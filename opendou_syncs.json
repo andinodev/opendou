@@ -44,6 +44,10 @@
 			"Wood",
 			"Water"
 		],
+		"SwitchGroup_3": [
+			"Switch_1",
+			"Switch_2"
+		],
 		"WeaponType": [
 			"Pistol",
 			"Rifle",

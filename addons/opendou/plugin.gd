@@ -9,6 +9,7 @@ const AUTOLOAD_NAME = "OpenDou"
 const AUTOLOAD_PATH = "res://addons/opendou/runtime/audio_event_manager.gd"
 
 var studio_instance: Control
+var dock_button: Button
 
 func _enter_tree() -> void:
 	# 1. Register Runtime Autoload Singleton
@@ -19,7 +20,14 @@ func _enter_tree() -> void:
 	studio_instance = OpenDouStudioMainClass.new()
 	
 	# 3. Add to bottom panel dock
-	add_control_to_bottom_panel(studio_instance, "Audio Logic")
+	dock_button = add_control_to_bottom_panel(studio_instance, "Audio Logic")
+	if dock_button:
+		dock_button.pressed.connect(_on_dock_button_pressed)
+
+func _on_dock_button_pressed() -> void:
+	if studio_instance:
+		studio_instance.detach_and_maximize()
+		hide_bottom_panel()
 
 func _exit_tree() -> void:
 	# Remove bottom panel dock
@@ -36,8 +44,9 @@ func _has_main_screen() -> bool:
 	return true
 
 func _make_visible(visible: bool) -> void:
-	if studio_instance:
-		studio_instance.visible = visible
+	if visible and studio_instance:
+		studio_instance.detach_and_maximize()
+		hide_bottom_panel()
 
 func _get_plugin_name() -> String:
 	return "OpenDou"

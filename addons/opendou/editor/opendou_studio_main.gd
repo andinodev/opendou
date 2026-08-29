@@ -367,29 +367,31 @@ func _on_tcp_toggled(is_on: bool) -> void:
 func toggle_detach_window() -> void:
 	if not is_detached:
 		is_detached = true
-		content_container.reparent(get_tree().root)
-		
-		detached_window = Window.new()
-		detached_window.title = "OpenDou Audio Studio (Godot 4.7+)"
-		detached_window.size = Vector2i(1100, 680)
-		detached_window.wrap_controls = false
-		detached_window.close_requested.connect(toggle_detach_window)
-		
-		get_tree().root.add_child(detached_window)
-		content_container.reparent(detached_window)
-		
-		# Set full rect stretch inside Window
-		content_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 0)
-		content_container.size = detached_window.size
-		detached_window.size_changed.connect(func():
-			if content_container:
-				content_container.size = detached_window.size
-		)
-		
-		detach_btn.text = "📥 Attach"
-		detach_btn.tooltip_text = "Dock Studio back into Godot Editor"
-		
-		detached_window.popup_centered()
+		if get_tree() and get_tree().root:
+			content_container.reparent(get_tree().root)
+			
+			detached_window = Window.new()
+			detached_window.title = "OpenDou Audio Studio (Godot 4.7+)"
+			detached_window.size = Vector2i(1280, 720)
+			detached_window.wrap_controls = false
+			detached_window.mode = Window.MODE_MAXIMIZED
+			detached_window.close_requested.connect(toggle_detach_window)
+			
+			get_tree().root.add_child(detached_window)
+			content_container.reparent(detached_window)
+			
+			# Set full rect stretch inside Window
+			content_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 0)
+			content_container.size = detached_window.size
+			detached_window.size_changed.connect(func():
+				if content_container and detached_window:
+					content_container.size = detached_window.size
+			)
+			
+			detach_btn.text = "📥 Attach"
+			detach_btn.tooltip_text = "Dock Studio back into Godot Editor"
+			
+			detached_window.popup()
 	else:
 		is_detached = false
 		if detached_window:
@@ -399,3 +401,11 @@ func toggle_detach_window() -> void:
 			detached_window = null
 		detach_btn.text = "🗗 Detach"
 		detach_btn.tooltip_text = "Detach Studio to floating multi-monitor window"
+
+## Detaches the studio into an external maximized multi-monitor floating window.
+func detach_and_maximize() -> void:
+	if not is_detached:
+		toggle_detach_window()
+	if detached_window:
+		detached_window.mode = Window.MODE_MAXIMIZED
+		detached_window.popup()
