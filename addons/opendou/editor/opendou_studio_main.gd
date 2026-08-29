@@ -353,6 +353,9 @@ func _build_ui() -> void:
 	if mixer_drawer:
 		mixer_drawer.snapshot_triggered.connect(func(snap_name, blend_t):
 			if snapshot_manager:
+				snapshot_manager.transition_to(snap_name, blend_t)
+		)
+	
 	# Wire transport bar with Music DAW
 	transport_bar.play_requested.connect(func():
 		if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:

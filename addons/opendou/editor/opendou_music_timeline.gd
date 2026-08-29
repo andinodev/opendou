@@ -503,9 +503,6 @@ func _on_intensity_slider_changed(val: float) -> void:
 	_update_stem_levels()
 	intensity_changed.emit(val)
 
-func _update_stem_levels() -> void:
-	var any_solo = false
-	for t in tracks:
 func load_music_suite(idx: int) -> void:
 	match idx:
 		0: # Dynamic_Combat_Suite
