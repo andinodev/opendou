@@ -70,8 +70,8 @@ var last_reported_beat: int = -1
 
 # Audio Players
 var metronome_player: AudioStreamPlayer
-var music_audio_player: AudioStreamPlayer
 var stinger_player: AudioStreamPlayer
+var stem_players: Array[AudioStreamPlayer] = []
 
 func _init() -> void:
 	clock = MusicClockClass.new(120.0, 4, 4)
@@ -88,11 +88,20 @@ func _build_ui() -> void:
 	metronome_player = AudioStreamPlayer.new()
 	add_child(metronome_player)
 	
-	music_audio_player = AudioStreamPlayer.new()
-	add_child(music_audio_player)
-	
 	stinger_player = AudioStreamPlayer.new()
 	add_child(stinger_player)
+	
+	stem_players.clear()
+	for i in range(4):
+		var p = AudioStreamPlayer.new()
+		add_child(p)
+		match i:
+			0: p.stream = AudioSynthesizerClass.create_music_pad_loop(2.0)
+			1: p.stream = AudioSynthesizerClass.create_music_bass_loop(2.0)
+			2: p.stream = AudioSynthesizerClass.create_music_drums_loop(2.0)
+			3: p.stream = AudioSynthesizerClass.create_music_brass_loop(2.0)
+		p.volume_db = -80.0
+		stem_players.append(p)
 	
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 8)
@@ -497,11 +506,33 @@ func _on_intensity_slider_changed(val: float) -> void:
 func _update_stem_levels() -> void:
 	var any_solo = false
 	for t in tracks:
+func load_music_suite(idx: int) -> void:
+	match idx:
+		0: # Dynamic_Combat_Suite
+			_on_bpm_changed(120.0)
+			if bpm_spinbox: bpm_spinbox.value = 120.0
+			_on_intensity_slider_changed(0.5)
+			if intensity_slider: intensity_slider.value = 0.5
+		1: # Exploration_Ambient_Theme
+			_on_bpm_changed(85.0)
+			if bpm_spinbox: bpm_spinbox.value = 85.0
+			_on_intensity_slider_changed(0.15)
+			if intensity_slider: intensity_slider.value = 0.15
+		2: # Boss_Phase_Orchestral
+			_on_bpm_changed(145.0)
+			if bpm_spinbox: bpm_spinbox.value = 145.0
+			_on_intensity_slider_changed(0.95)
+			if intensity_slider: intensity_slider.value = 0.95
+
+func _update_stem_levels() -> void:
+	var any_solo = false
+	for t in tracks:
 		if t.is_solo:
 			any_solo = true
 			break
 			
-	for t in tracks:
+	for i in range(tracks.size()):
+		var t = tracks[i]
 		var target_gain = 0.0
 		if active_intensity >= t.min_intensity and active_intensity <= t.max_intensity:
 			var fade = 0.15
@@ -524,6 +555,13 @@ func _update_stem_levels() -> void:
 		t.current_gain = target_gain
 		if t.meter_rect: t.meter_rect.queue_redraw()
 		if t.waveform_canvas: t.waveform_canvas.queue_redraw()
+		
+		# Drive dedicated stem audio player in real-time
+		if i < stem_players.size() and stem_players[i]:
+			if target_gain > 0.001:
+				stem_players[i].volume_db = clampf(linear_to_db(target_gain), -60.0, 6.0)
+			else:
+				stem_players[i].volume_db = -80.0
 
 func _on_trigger_transition_pressed() -> void:
 	var target_name = &"Combat_Loop"
@@ -552,12 +590,11 @@ func _on_music_play_pressed() -> void:
 	if pause_btn:
 		pause_btn.text = "⏸ Pause"
 		
-	if music_audio_player:
-		music_audio_player.stream = AudioSynthesizerClass.create_chord_loop(1.2)
-		music_audio_player.volume_db = 0.0
-		music_audio_player.stream_paused = false
-		if not music_audio_player.playing:
-			music_audio_player.play()
+	_update_stem_levels()
+	for p in stem_players:
+		p.stream_paused = false
+		if not p.playing:
+			p.play()
 
 func _on_music_pause_pressed() -> void:
 	if not is_playing:
@@ -565,8 +602,8 @@ func _on_music_pause_pressed() -> void:
 	is_paused = not is_paused
 	if pause_btn:
 		pause_btn.text = "▶ Resume" if is_paused else "⏸ Pause"
-	if music_audio_player:
-		music_audio_player.stream_paused = is_paused
+	for p in stem_players:
+		p.stream_paused = is_paused
 
 func _on_music_stop_pressed() -> void:
 	is_playing = false
@@ -577,8 +614,8 @@ func _on_music_stop_pressed() -> void:
 	if pause_btn:
 		pause_btn.text = "⏸ Pause"
 		
-	if music_audio_player:
-		music_audio_player.stop()
+	for p in stem_players:
+		p.stop()
 		
 	if clock:
 		clock.current_time_sec = 0.0

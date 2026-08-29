@@ -353,9 +353,28 @@ func _build_ui() -> void:
 	if mixer_drawer:
 		mixer_drawer.snapshot_triggered.connect(func(snap_name, blend_t):
 			if snapshot_manager:
-				snapshot_manager.transition_to(snap_name, blend_t)
-		)
-	
+	# Wire transport bar with Music DAW
+	transport_bar.play_requested.connect(func():
+		if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+			music_timeline._on_music_play_pressed()
+	)
+	transport_bar.pause_requested.connect(func():
+		if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+			music_timeline._on_music_pause_pressed()
+	)
+	transport_bar.stop_requested.connect(func():
+		if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+			music_timeline._on_music_stop_pressed()
+	)
+	transport_bar.music_intensity_changed.connect(func(val):
+		if music_timeline and music_timeline.intensity_slider:
+			music_timeline.intensity_slider.value = val
+	)
+	transport_bar.music_bpm_changed.connect(func(bpm):
+		if music_timeline and music_timeline.bpm_spinbox:
+			music_timeline.bpm_spinbox.value = bpm
+	)
+
 	# Initialize default state
 	_on_event_preset_selected(0)
 
@@ -389,6 +408,8 @@ func set_workspace_mode(mode: WorkspaceMode) -> void:
 				# Auto-collapse Left Sidebar to give 100% horizontal width to Music Timeline
 				btn_toggle_syncs.button_pressed = false
 				if game_syncs_panel: game_syncs_panel.visible = false
+				if music_timeline:
+					music_timeline.load_music_suite(0)
 				
 			WorkspaceMode.MODE_DIALOGUE_GRID:
 				for i in range(DIALOGUE_EVENTS.size()):
@@ -421,6 +442,8 @@ func _on_event_preset_selected(idx: int) -> void:
 		var ev_name = ev_list[idx]
 		if current_workspace == WorkspaceMode.MODE_GRAPH and graph_editor:
 			graph_editor.load_event_preset(idx)
+		elif current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+			music_timeline.load_music_suite(idx)
 		if transport_bar:
 			transport_bar.set_audition_event(ev_name)
 

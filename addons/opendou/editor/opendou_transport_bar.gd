@@ -356,15 +356,11 @@ func _on_play_pressed() -> void:
 	is_playing = true
 	is_paused = false
 	
+	if current_workspace_mode == 1: # Music DAW Mode
+		play_requested.emit()
+		return
+		
 	if editor_audio_player:
-		if current_workspace_mode == 1: # Music DAW Mode
-			editor_audio_player.stream = AudioSynthesizerClass.create_chord_loop(1.2)
-			editor_audio_player.pitch_scale = 1.0
-			editor_audio_player.volume_db = master_vol_slider.value if master_vol_slider else 0.0
-			editor_audio_player.play()
-			play_requested.emit()
-			return
-			
 		# 1. Compile active visual graph if available
 		var compiled = OpenDouGraphSerializerClass.build_composite_from_graph(active_graph_editor) if active_graph_editor else {}
 		var root_node = compiled.get("root_node", null)
@@ -408,6 +404,9 @@ func _on_play_pressed() -> void:
 
 func _on_pause_pressed() -> void:
 	is_paused = not is_paused
+	if current_workspace_mode == 1:
+		pause_requested.emit()
+		return
 	if editor_audio_player:
 		editor_audio_player.stream_paused = is_paused
 	pause_requested.emit()
@@ -415,6 +414,9 @@ func _on_pause_pressed() -> void:
 func _on_stop_pressed() -> void:
 	is_playing = false
 	is_paused = false
+	if current_workspace_mode == 1:
+		stop_requested.emit()
+		return
 	if editor_audio_player:
 		editor_audio_player.stop()
 	stop_requested.emit()

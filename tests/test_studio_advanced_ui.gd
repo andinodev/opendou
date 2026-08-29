@@ -44,16 +44,21 @@ static func run_all() -> Array[String]:
 	timeline._play_metronome_click(true)
 	timeline.play_audition_stinger(&"Victory_Brass")
 	
-	# Test Dedicated DAW Transport
+	# Test Dedicated DAW Transport & Stem Players
+	if timeline.stem_players.size() != 4:
+		failures.append("Test 2e Failed: Expected 4 stem players for multi-track audio playback")
+	timeline.load_music_suite(1) # Exploration Theme
+	if timeline.clock.bpm != 85.0:
+		failures.append("Test 2f Failed: Exploration suite tempo mismatch")
 	timeline._on_music_play_pressed()
 	if not timeline.is_playing:
-		failures.append("Test 2e Failed: DAW play not activated")
+		failures.append("Test 2g Failed: DAW play not activated")
 	timeline._on_music_pause_pressed()
 	if not timeline.is_paused:
-		failures.append("Test 2f Failed: DAW pause not toggled")
+		failures.append("Test 2h Failed: DAW pause not toggled")
 	timeline._on_music_stop_pressed()
 	if timeline.is_playing:
-		failures.append("Test 2g Failed: DAW stop not clearing playback")
+		failures.append("Test 2i Failed: DAW stop not clearing playback")
 		
 	timeline.free()
 	

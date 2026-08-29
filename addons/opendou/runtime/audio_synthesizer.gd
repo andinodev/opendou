@@ -148,3 +148,104 @@ static func create_engine_loop(base_freq: float = 55.0, duration_sec: float = 1.
 	stream.loop_end = num_samples
 	stream.stereo = false
 	return stream
+
+## Creates a lush ambient pad chord loop (Layer 1).
+static func create_music_pad_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var s1 = sin(t * 196.0 * TAU) * 0.3 # G3
+		var s2 = sin(t * 246.94 * TAU) * 0.25 # B3
+		var s3 = sin(t * 293.66 * TAU) * 0.25 # D4
+		var s4 = sin(t * 392.0 * TAU) * 0.2 # G4
+		var sample = (s1 + s2 + s3 + s4) * (0.8 + sin(t * TAU * 0.5) * 0.2)
+		var s16: int = clampi(int(sample * 26000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	return stream
+
+## Creates an energetic rhythmic bassline loop (Layer 2).
+static func create_music_bass_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var beat_t = fposmod(t * 4.0, 1.0)
+		var env = exp(-6.0 * beat_t)
+		var f = 98.0 if t < 1.0 else 87.3 # G2 / F2
+		var sample = (sin(t * f * TAU) * 0.6 + sin(t * f * 2.0 * TAU) * 0.4) * env
+		var s16: int = clampi(int(sample * 28000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	return stream
+
+## Creates a rhythmic drum beat loop (Layer 3).
+static func create_music_drums_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var beat_t = fposmod(t * 4.0, 1.0)
+		var beat_idx = int(t * 4.0) % 4
+		var sample = 0.0
+		if beat_idx == 0 or beat_idx == 2:
+			# Kick: pitch drop 150Hz -> 45Hz
+			var kick_env = exp(-14.0 * beat_t)
+			sample += sin(beat_t * (150.0 * exp(-20.0 * beat_t) + 45.0) * TAU) * kick_env * 0.8
+		else:
+			# Snare: noise burst + 200Hz body
+			var snare_env = exp(-10.0 * beat_t)
+			sample += ((randf() * 2.0 - 1.0) * 0.6 + sin(beat_t * 220.0 * TAU) * 0.4) * snare_env * 0.7
+		# Hi-hat on eighth notes
+		var hat_t = fposmod(t * 8.0, 1.0)
+		var hat_env = exp(-35.0 * hat_t)
+		sample += (randf() * 2.0 - 1.0) * hat_env * 0.25
+		var s16: int = clampi(int(sample * 28000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	return stream
+
+## Creates an epic orchestral brass climax loop (Layer 4).
+static func create_music_brass_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var b1 = sin(t * 392.0 * TAU) * 0.35 # G4
+		var b2 = sin(t * 493.88 * TAU) * 0.3 # B4
+		var b3 = sin(t * 587.33 * TAU) * 0.25 # D5
+		var b4 = sin(t * 784.0 * TAU) * 0.2 # G5
+		var sample = (b1 + b2 + b3 + b4) * (0.85 + sin(t * TAU * 1.5) * 0.15)
+		var s16: int = clampi(int(sample * 28000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	return stream
