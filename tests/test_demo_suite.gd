@@ -36,8 +36,8 @@ static func run_all() -> Array[String]:
 	var wood_voices = d3.trigger_footstep(&"Wood")
 	var concrete_voices = d3.trigger_footstep(&"Concrete")
 	if wood_voices.is_empty() or concrete_voices.is_empty():
-		failures.append("Test 3 Failed: Surface voice resolution returned empty")
-	elif wood_voices[0].resource_path == concrete_voices[0].resource_path:
+		failures.append("Test 3 Failed: Surface voice resolution empty (wood=%d, concrete=%d, root=%s)" % [wood_voices.size(), concrete_voices.size(), str(d3.footstep_event_def.root_container)])
+	elif wood_voices[0].stream.resource_name == concrete_voices[0].stream.resource_name:
 		failures.append("Test 3b Failed: Wood and Concrete should resolve different sample paths")
 		
 	# Test 4: Demo 04 - Vehicle RPM Blend
@@ -46,7 +46,7 @@ static func run_all() -> Array[String]:
 	var idle_v = d4.set_rpm(1000.0)
 	var high_v = d4.set_rpm(7500.0)
 	if idle_v.is_empty() or high_v.is_empty():
-		failures.append("Test 4 Failed: Vehicle RPM blend returned empty voices")
+		failures.append("Test 4 Failed: Vehicle RPM blend empty (idle=%d, high=%d, layers=%d)" % [idle_v.size(), high_v.size(), d4.blend_container.layers.size() if d4.blend_container else -1])
 		
 	# Test 5: Demo 05 - Dynamic Occlusion
 	var d5 = DemoDynamicOcclusionClass.new()
@@ -71,4 +71,25 @@ static func run_all() -> Array[String]:
 	if not d7.active_demo_node:
 		failures.append("Test 7 Failed: DemoHub failed to launch demo 1")
 		
+	# Test 8: Declarative PackedScene (.tscn) Parsing & Instantiation Validation
+	var scene_paths: Array[String] = [
+		"res://scenes/demos/01_spatial_rooms_portals/demo_rooms_portals.tscn",
+		"res://scenes/demos/02_massive_voice_stress/demo_voice_stress.tscn",
+		"res://scenes/demos/03_surface_switches_3d/demo_surface_switches.tscn",
+		"res://scenes/demos/04_vehicle_blend_rpm/demo_vehicle_rpm.tscn",
+		"res://scenes/demos/05_dynamic_occlusion_ray/demo_dynamic_occlusion.tscn",
+		"res://scenes/demos/06_soundbank_streaming/demo_soundbank_streaming.tscn",
+		"res://scenes/demos/demo_hub.tscn"
+	]
+	for p in scene_paths:
+		var packed: PackedScene = load(p)
+		if not packed:
+			failures.append("Test 8 Failed: ResourceLoader could not load PackedScene: %s" % p)
+		else:
+			var node = packed.instantiate()
+			if not node:
+				failures.append("Test 8 Failed: Could not instantiate PackedScene: %s" % p)
+			else:
+				node.free()
+				
 	return failures

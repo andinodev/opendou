@@ -1,12 +1,275 @@
-[gd_scene format=3 uid="uid://b7vyu1g8iakqm"]
+[gd_scene load_steps=2 format=3 uid="uid://cb41mk9v031qg"]
 
-[ext_resource type="Script" uid="uid://cvavudmmwkp0s" path="res://scenes/demos/demo_hub.gd" id="1_hub"]
+[ext_resource type="Script" path="res://scenes/demos/demo_hub.gd" id="1_script"]
 
-[node name="DemoHub" type="Control" unique_id=106035368]
+[node name="DemoHub" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_hub")
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.07, 0.08, 0.1, 1)
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = 24.0
+offset_right = -32.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="HeaderPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="MainContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 12
+
+[node name="HBox" type="HBoxContainer" parent="MainContainer/HeaderPanel/Margin"]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="MainContainer/HeaderPanel/Margin/HBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MainContainer/HeaderPanel/Margin/HBox/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "🎧 OpenDou Audio Middleware - Interactive Feature Showcase"
+
+[node name="Subtitle" type="Label" parent="MainContainer/HeaderPanel/Margin/HBox/VBox"]
+layout_mode = 2
+text = "Interactive AAA audio systems running natively in Godot 4.7+"
+
+[node name="Spacer" type="Control" parent="MainContainer/HeaderPanel/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BtnRunTests" type="Button" parent="MainContainer/HeaderPanel/Margin/HBox"]
+layout_mode = 2
+text = "🧪 Run 90 Unit Tests"
+
+[node name="GridContainer" type="GridContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 3
+
+[node name="Card1" type="PanelContainer" parent="MainContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card1"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card1/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card1/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "🚪 01: Spatial Rooms & Portals"
+
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card1/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Macro-acoustic pathfinding, doorway portal diffraction and multi-room reverb sends in full 3D."
+autowrap_mode = 2
+
+[node name="BtnLaunch1" type="Button" parent="MainContainer/GridContainer/Card1/Margin/VBox"]
+layout_mode = 2
+text = "Launch Demo 01"
+
+[node name="Card2" type="PanelContainer" parent="MainContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card2"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card2/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card2/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "⚡ 02: Massive Voice Starvation"
+
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card2/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "250+ simultaneous emitters managed by hardware voice pool with zero-cost virtual tracking."
+autowrap_mode = 2
+
+[node name="BtnLaunch2" type="Button" parent="MainContainer/GridContainer/Card2/Margin/VBox"]
+layout_mode = 2
+text = "Launch Demo 02"
+
+[node name="Card3" type="PanelContainer" parent="MainContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card3"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card3/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card3/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "👞 03: Footstep Surfaces"
+
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card3/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Discrete switch containers (Wood, Concrete, Metal, Water) with shuffle bags and pitch/vol jitter."
+autowrap_mode = 2
+
+[node name="BtnLaunch3" type="Button" parent="MainContainer/GridContainer/Card3/Margin/VBox"]
+layout_mode = 2
+text = "Launch Demo 03"
+
+[node name="Card4" type="PanelContainer" parent="MainContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card4"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card4/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card4/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "🏎️ 04: Vehicle RPM Crossfading"
+
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card4/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Multi-layer engine crossfading driven by continuous RTPC curves with silence culling at -80dB."
+autowrap_mode = 2
+
+[node name="BtnLaunch4" type="Button" parent="MainContainer/GridContainer/Card4/Margin/VBox"]
+layout_mode = 2
+text = "Launch Demo 04"
+
+[node name="Card5" type="PanelContainer" parent="MainContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card5"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card5/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card5/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "🧱 05: Dynamic Raycast Occlusion"
+
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card5/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Multi-ray obstacle detection, geometry line-of-sight tests, and slew-rate filter smoothing."
+autowrap_mode = 2
+
+[node name="BtnLaunch5" type="Button" parent="MainContainer/GridContainer/Card5/Margin/VBox"]
+layout_mode = 2
+text = "Launch Demo 05"
+
+[node name="Card6" type="PanelContainer" parent="MainContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card6"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card6/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card6/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "📦 06: SoundBank Streaming"
+
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card6/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Binary SoundBank format with 0ms RAM prefetch slice and background disk ring-buffer streaming."
+autowrap_mode = 2
+
+[node name="BtnLaunch6" type="Button" parent="MainContainer/GridContainer/Card6/Margin/VBox"]
+layout_mode = 2
+text = "Launch Demo 06"
+
+[node name="FooterPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="MainContainer/FooterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="FooterLabel" type="Label" parent="MainContainer/FooterPanel/Margin"]
+layout_mode = 2
+text = "OpenDou Audio Middleware • Pure GDScript Architecture • Godot Engine 4.7+"
+horizontal_alignment = 1

@@ -14,7 +14,10 @@ Este documento es la **fuente única de verdad** para el comportamiento, arquite
 3. **Desarrollo Guiado por Calidad (TDD / Verificación Continua):**
    * Todo módulo, adaptador o función debe contar con casos de prueba o plan de verificación reproducible antes de considerarse completada.
 4. **Diseño Modular y Desacoplado:**
-   * Separar la lógica pura (reglas del juego de cartas/motor) de los adaptadores del motor Godot y de las capas visuales/UI.
+   * Separar la lógica pura (reglas del motor/audio) de los adaptadores del motor Godot y de las capas visuales/UI.
+5. **Construcción Declarativa de Escenas (`.tscn`):**
+   * Toda escena (demos, sandbox, herramientas) DEBE construirse como un archivo `.tscn` con sus nodos 3D/2D, UI, cámaras, luces y componentes montados visualmente en el árbol de escenas.
+   * Los scripts `.gd` deben reservarse para la lógica de control, reactividad y conexión de señales, evitando la generación procedimental manual de interfaces completas por código.
 
 ---
 
@@ -30,7 +33,7 @@ Toda tarea debe seguir este ciclo estricto a través de `docs/tasks/`:
 ### Protocolo:
 * **Al iniciar:** Mover la tarea de `backlog.md` a `current.md`, asegurando que cuente con *Criterios de Aceptación (Definition of Done)* claros.
 * **Durante el desarrollo:** Marcar pasos con checklists `[ ]` / `[x]`.
-* **Al finalizar:** Verificar pruebas, actualizar la documentación relevante y mover la tarea a `completed.md` con fecha y resumen de cambios.
+* **Al finalizar:** **OBLIGATORIO:** Ejecutar `godot --headless -s tests/test_runner_cli.gd` y confirmar que todos los tests pasen al 100% (código de salida 0, sin errores ni advertencias de compilación/parseo). Solo entonces actualizar la documentación relevante y mover la tarea a `completed.md`. Si algún test o parseo falla, se debe corregir y verificar antes de continuar.
 
 ---
 

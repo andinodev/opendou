@@ -104,22 +104,29 @@ func _on_remove_stream_pressed() -> void:
 
 ## Compiles the current soundbank list into a binary .bank file.
 func compile_soundbank() -> bool:
-	var compiler = SoundBankCompilerClass.new()
-	var bank_name = StringName(bank_name_edit.text)
 	var out_path = output_path_edit.text
 	var prefetch_bytes = int(prefetch_spin.value * 1024)
+	var stream_inputs: Array[Dictionary] = []
 	
 	for i in range(file_list.item_count):
 		var path = file_list.get_item_text(i)
-		# Add simulated or real stream buffers
 		var dummy_data = PackedByteArray()
 		dummy_data.resize(prefetch_bytes + 2048)
-		compiler.add_audio_stream(StringName(path.get_file()), dummy_data, prefetch_bytes)
+		stream_inputs.append({
+			"id": 1000 + i,
+			"name": StringName(path.get_file()),
+			"data": dummy_data,
+			"channels": 2,
+			"sample_rate": 44100,
+			"codec": 0,
+			"prefetch_size": prefetch_bytes
+		})
 		
-	var err = compiler.compile_to_file(out_path, bank_name)
-	if err == OK:
+	var ok = SoundBankCompilerClass.compile_bank(out_path, stream_inputs)
+	if ok:
 		status_label.text = "✅ Bank compiled successfully: %s" % out_path
 		return true
 	else:
-		status_label.text = "❌ Compilation error: %d" % err
+		status_label.text = "❌ Compilation error writing to %s" % out_path
 		return false
+

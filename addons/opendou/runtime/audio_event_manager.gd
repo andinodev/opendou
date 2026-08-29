@@ -37,13 +37,15 @@ var voice_pool: VoicePoolManager
 # Listener position cache
 var active_listener_position: Vector3 = Vector3.ZERO
 
-func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_ALWAYS
+func _init() -> void:
 	sync_manager = GameSyncManagerClass.new()
 	bank_manager = SoundBankManagerClass.new()
 	spatial_acoustics = SpatialAcousticsManagerClass.new()
 	live_update_server = LiveUpdateServerClass.new()
 	voice_pool = VoicePoolManagerClass.new(64)
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 # ==============================================================================
 # LIVE UPDATE & PROFILING API

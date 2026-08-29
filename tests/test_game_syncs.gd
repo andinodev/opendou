@@ -9,6 +9,8 @@ static func run_all() -> Array[String]:
 	
 	# Test 1: O(1) LUT Baking and Fast Evaluation
 	var curve = Curve.new()
+	curve.min_value = -80.0
+	curve.max_value = 0.0
 	curve.add_point(Vector2(0.0, -80.0))
 	curve.add_point(Vector2(0.5, -20.0))
 	curve.add_point(Vector2(1.0, 0.0))

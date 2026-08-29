@@ -171,3 +171,24 @@ static func decode_detailed_telemetry(payload: PackedByteArray) -> Dictionary:
 		"prefetch_ram_kb": ram,
 		"voices": voices
 	}
+
+## Encodes basic performance metrics.
+static func encode_telemetry(phys: int, virt: int, instances: int) -> PackedByteArray:
+	var sp = StreamPeerBuffer.new()
+	sp.put_u32(phys)
+	sp.put_u32(virt)
+	sp.put_u32(instances)
+	return encode_packet(MessageType.MSG_TELEMETRY, sp.data_array)
+
+## Decodes basic performance metrics.
+static func decode_telemetry(payload: PackedByteArray) -> Dictionary:
+	if payload.size() < 12:
+		return {}
+	var sp = StreamPeerBuffer.new()
+	sp.data_array = payload
+	return {
+		"physical_voices": sp.get_u32(),
+		"virtual_voices": sp.get_u32(),
+		"instance_count": sp.get_u32()
+	}
+

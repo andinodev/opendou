@@ -15,13 +15,13 @@ var frequency_hz: float = 2.0
 var depth: float = 1.0
 var phase: float = 0.0
 
-func _init(p_waveform: Waveform = Waveform.SINE, p_freq: float = 2.0, p_depth: float = 1.0, p_phase_offset: float = 0.0) -> void:
-	waveform = p_waveform
+func _init(p_waveform: int = 0, p_freq: float = 2.0, p_depth: float = 1.0, p_phase_offset: float = 0.0) -> void:
+	waveform = p_waveform as Waveform
 	frequency_hz = p_freq
 	depth = p_depth
 	phase = fmod(p_phase_offset, 1.0)
 
-## Advances oscillator phase and calculates normalized wave output [-1.0, 1.0] * depth.
+## Advances oscillator phase and calculates normalized wave output [-1.0, 1.0].
 func process(delta: float) -> float:
 	phase += (frequency_hz * delta)
 	if phase >= 1.0 or phase < 0.0:
@@ -40,4 +40,4 @@ func process(delta: float) -> float:
 		Waveform.SAWTOOTH:
 			raw_wave = (2.0 * phase) - 1.0
 			
-	return raw_wave * depth
+	return raw_wave

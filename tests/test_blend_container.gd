@@ -12,19 +12,23 @@ static func run_all() -> Array[String]:
 	var stream_idle = AudioStreamWAV.new()
 	var stream_high = AudioStreamWAV.new()
 	
-	# Curve for Idle (0 RPM: 0dB, 4000 RPM: -80dB)
+	# Curve for Idle (0% RPM: 0dB, 100% RPM: -80dB)
 	var curve_idle = Curve.new()
+	curve_idle.min_value = -80.0
+	curve_idle.max_value = 0.0
 	curve_idle.add_point(Vector2(0.0, 0.0))
-	curve_idle.add_point(Vector2(4000.0, -80.0))
+	curve_idle.add_point(Vector2(1.0, -80.0))
 	curve_idle.bake()
 	
-	# Curve for High RPM (0 RPM: -80dB, 4000 RPM: 0dB)
+	# Curve for High RPM (0% RPM: -80dB, 100% RPM: 0dB)
 	var curve_high = Curve.new()
+	curve_high.min_value = -80.0
+	curve_high.max_value = 0.0
 	curve_high.add_point(Vector2(0.0, -80.0))
-	curve_high.add_point(Vector2(4000.0, 0.0))
+	curve_high.add_point(Vector2(1.0, 0.0))
 	curve_high.bake()
 	
-	var blend_container = AudioBlendContainerClass.new(&"RPM")
+	var blend_container = AudioBlendContainerClass.new(&"RPM", 0.0, 4000.0)
 	blend_container.add_layer(AudioPhysicalNodeClass.new(stream_idle), curve_idle)
 	blend_container.add_layer(AudioPhysicalNodeClass.new(stream_high), curve_high)
 	

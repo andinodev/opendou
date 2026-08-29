@@ -40,43 +40,58 @@ func process(delta: float, is_key_on: bool) -> float:
 		timer = 0.0
 		release_start_output = current_output
 		
-	match current_state:
-		State.ATTACK:
-			timer += delta
-			current_output = clampf(timer / attack_time, 0.0, 1.0)
-			if timer >= attack_time:
-				timer = 0.0
-				current_output = 1.0
-				current_state = State.HOLD if hold_time > 0.0 else State.DECAY
-				
-		State.HOLD:
-			timer += delta
-			current_output = 1.0
-			if timer >= hold_time:
-				timer = 0.0
-				current_state = State.DECAY
-				
-		State.DECAY:
-			timer += delta
-			var progress: float = clampf(timer / decay_time, 0.0, 1.0)
-			current_output = lerpf(1.0, sustain_level, progress)
-			if timer >= decay_time:
-				timer = 0.0
+	var rem: float = delta
+	while rem > 0.0:
+		match current_state:
+			State.ATTACK:
+				var needed = attack_time - timer
+				if rem >= needed:
+					rem -= needed
+					timer = 0.0
+					current_output = 1.0
+					current_state = State.HOLD if hold_time > 0.0 else State.DECAY
+				else:
+					timer += rem
+					current_output = clampf(timer / attack_time, 0.0, 1.0)
+					rem = 0.0
+			State.HOLD:
+				var needed = hold_time - timer
+				if rem >= needed:
+					rem -= needed
+					timer = 0.0
+					current_output = 1.0
+					current_state = State.DECAY
+				else:
+					timer += rem
+					current_output = 1.0
+					rem = 0.0
+			State.DECAY:
+				var needed = decay_time - timer
+				if rem >= needed:
+					rem -= needed
+					timer = 0.0
+					current_output = sustain_level
+					current_state = State.SUSTAIN
+				else:
+					timer += rem
+					current_output = lerpf(1.0, sustain_level, timer / decay_time)
+					rem = 0.0
+			State.SUSTAIN:
 				current_output = sustain_level
-				current_state = State.SUSTAIN
-				
-		State.SUSTAIN:
-			current_output = sustain_level
-			
-		State.RELEASE:
-			timer += delta
-			var progress: float = clampf(timer / release_time, 0.0, 1.0)
-			current_output = lerpf(release_start_output, 0.0, progress)
-			if timer >= release_time:
+				rem = 0.0
+			State.RELEASE:
+				var needed = release_time - timer
+				if rem >= needed:
+					rem -= needed
+					timer = 0.0
+					current_output = 0.0
+					current_state = State.IDLE
+				else:
+					timer += rem
+					current_output = lerpf(release_start_output, 0.0, timer / release_time)
+					rem = 0.0
+			State.IDLE:
 				current_output = 0.0
-				current_state = State.IDLE
+				rem = 0.0
 				
-		State.IDLE:
-			current_output = 0.0
-			
 	return current_output

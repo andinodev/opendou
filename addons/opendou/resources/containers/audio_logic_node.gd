@@ -11,3 +11,10 @@ const ResolvedVoiceClass = preload("res://addons/opendou/runtime/resolved_voice.
 ## Returns true if at least one voice was resolved, false otherwise.
 func resolve(_context: AudioPlaybackContext, _out_voices: Array[ResolvedVoice]) -> bool:
 	return false
+
+## Helper method to resolve and return array of resolved voices.
+func resolve_voices(context: AudioPlaybackContext = null) -> Array[ResolvedVoice]:
+	var out: Array[ResolvedVoice] = []
+	var ctx = context if context else AudioPlaybackContextClass.new()
+	resolve(ctx, out)
+	return out

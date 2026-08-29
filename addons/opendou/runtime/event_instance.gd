@@ -257,7 +257,7 @@ func pause() -> void:
 
 ## Resumes playback of the event instance.
 func resume() -> void:
-	if is_playing() and is_paused_state:
+	if is_paused_state:
 		is_paused_state = false
 
 func is_playing() -> bool:

@@ -39,40 +39,32 @@ func _init(p_param_id: StringName = &"", p_target_property: StringName = &"volum
 ## Bakes the modulation curve into an equidistant Lookup Table (LUT) for O(1) performance.
 func bake_lut(samples: int = 256) -> void:
 	lut_size = max(16, samples)
+	if not modulation_curve:
+		baked_lut.clear()
+		return
+		
 	baked_lut = PackedFloat32Array()
 	baked_lut.resize(lut_size)
 	
-	if not modulation_curve:
-		for i in range(lut_size):
-			var norm: float = float(i) / float(lut_size - 1)
-			baked_lut[i] = lerpf(min_input_value, max_input_value, norm)
-		return
-		
 	for i in range(lut_size):
 		var norm_pos: float = float(i) / float(lut_size - 1)
-		# Sample curve at normalized X coordinate
 		baked_lut[i] = modulation_curve.sample_baked(norm_pos)
 
-## Evaluates the parameter in constant O(1) time using the pre-baked lookup table.
-func evaluate_fast(param_value: float) -> float:
-	if baked_lut.is_empty():
-		bake_lut(lut_size)
+## Evaluates the parameter in constant O(1) time using the pre-baked lookup table or curve.
+func evaluate(param_value: float) -> float:
+	if not modulation_curve:
+		return param_value
 		
 	var span: float = max_input_value - min_input_value
 	var norm_val: float = 0.0
 	if span != 0.0:
 		norm_val = clampf((param_value - min_input_value) / span, 0.0, 1.0)
 		
-	var index: int = clampi(int(round(norm_val * float(lut_size - 1))), 0, lut_size - 1)
-	return baked_lut[index]
-
-## General evaluation function (defaults to O(1) LUT).
-func evaluate(param_value: float) -> float:
 	if not baked_lut.is_empty():
-		return evaluate_fast(param_value)
-	elif modulation_curve:
-		return modulation_curve.sample_baked(param_value)
-	return param_value
+		var index: int = clampi(int(round(norm_val * float(lut_size - 1))), 0, lut_size - 1)
+		return baked_lut[index]
+		
+	return modulation_curve.sample_baked(norm_val)
 
 ## Applies the evaluated curve output to an accumulator value based on math_operation.
 func apply_to(base_value: float, curve_output: float) -> float:

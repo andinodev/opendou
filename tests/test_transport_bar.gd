@@ -13,22 +13,19 @@ static func run_all() -> Array[String]:
 		failures.append("Test 1 Failed: Target event label text mismatch")
 		
 	# Test 2: Transport Play / Stop state
-	var played = false
-	var stopped = false
-	bar.play_requested.connect(func(): played = true)
-	bar.stop_requested.connect(func(): stopped = true)
+	var flags = {"played": false, "stopped": false}
+	bar.play_requested.connect(func(): flags["played"] = true)
+	bar.stop_requested.connect(func(): flags["stopped"] = true)
 	
 	bar._on_play_pressed()
-	if not played or not bar.is_playing:
+	if not flags["played"] or not bar.is_playing:
 		failures.append("Test 2a Failed: Play button state/signal failed")
 		
 	bar._on_stop_pressed()
-	if not stopped or bar.is_playing:
+	if not flags["stopped"] or bar.is_playing:
 		failures.append("Test 2b Failed: Stop button state/signal failed")
 		
 	# Test 3: Adding Dynamic RTPC Fader
-	var rtpc_emitted_val = 0.0
-	bar.rtpc_changed.connect(func(_param, val): rtpc_emitted_val = val)
 	bar.add_rtpc_fader(&"RPM", 0.0, 8000.0, 1000.0)
 	
 	if bar.rtpc_faders_container.get_child_count() != 1:

@@ -65,7 +65,7 @@ static func run_all() -> Array[String]:
 	def_kill.base_priority = 5.0
 	
 	var inst_kill = EventInstanceClass.new(def_kill)
-	inst_kill.virtualization_mode = EventInstanceClass.VirtualizationMode.VIRTUAL_KILL_VOICE
+	inst_kill.virtualization_mode = AudioEventDefClass.VirtualizationMode.VIRTUAL_KILL_VOICE
 	inst_kill.play()
 	
 	var inst_hero = EventInstanceClass.new(def_high)

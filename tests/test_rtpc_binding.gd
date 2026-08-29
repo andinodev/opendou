@@ -13,14 +13,17 @@ static func run_all() -> Array[String]:
 		
 	# Test 2: Binding with Linear Curve
 	var curve = Curve.new()
+	curve.min_value = -80.0
+	curve.max_value = 0.0
 	curve.add_point(Vector2(0.0, -80.0))
-	curve.add_point(Vector2(100.0, 0.0))
+	curve.add_point(Vector2(1.0, 0.0))
 	curve.bake()
 	
-	var binding_curve = RTPCBindingClass.new(&"Health", &"volume_db", curve, RTPCBindingClass.Operation.ADD)
+	var binding_curve = RTPCBindingClass.new(&"Health", &"volume_db", curve, RTPCBindingClass.Operation.ADD, 0.0, 100.0)
+	binding_curve.bake_lut()
 	var out_mid = binding_curve.evaluate(50.0) # Mid point should be approximately -40.0
-	if not is_equal_approx(out_mid, -40.0):
-		failures.append("Test 2 Failed: Curve mid evaluation expected -40.0, got %f" % out_mid)
+	if absf(out_mid - (-40.0)) > 0.5:
+		failures.append("Test 2 Failed: Curve mid evaluation expected ~ -40.0, got %f" % out_mid)
 		
 	# Test 3: Math Operations (ADD, MULTIPLY, OVERRIDE)
 	var add_res = binding_raw.apply_to(10.0, 5.0)

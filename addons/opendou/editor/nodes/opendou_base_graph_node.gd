@@ -20,7 +20,6 @@ var is_active_highlight: bool = false
 
 func _init() -> void:
 	resizable = false
-	show_close_button = true
 	custom_minimum_size = Vector2(180, 80)
 
 ## Sets the visual active/auditioning state (glowing LED border).

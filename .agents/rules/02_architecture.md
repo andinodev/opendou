@@ -48,3 +48,12 @@ El proyecto `opendou` debe estructurarse en 3 capas desacopladas:
   * Pruebas unitarias reproducibles.
   * Replays o guardado de partidas.
   * Sincronización multijugador o evaluación de IA de jugadores (bot solvers).
+
+---
+
+## 4. Construcción Declarativa de Escenas (`.tscn`)
+
+* Toda escena visible (escenas de demostración, sandboxes interactivos, paneles de herramientas complejos) **DEBE construirse como un archivo `.tscn` estructurado**.
+* Los nodos visuales (mallas 3D, geometrías CSG, cámaras, luces, contenedores UI `MarginContainer`, `VBoxContainer`, `Sliders`, `Labels`, etc.) deben residir declarativamente en el `.tscn` para que cualquier desarrollador pueda inspeccionar, editar y previsualizar la escena directamente en el editor visual de Godot 4.x.
+* Los scripts `.gd` deben enfocarse exclusivamente en la lógica de control, reactividad de parámetros y conexión de señales (mediante `@onready` o `@export`), evitando la generación procedimental manual de árboles completos de UI o nodos 3D por código.
+

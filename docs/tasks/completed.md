@@ -8,19 +8,20 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ### 2026-08-29
 
-* **`TASK-020` - Escenas de Demostración AAA y Sandbox (Divididas por Capacidades)**
+* **`TASK-020` - Escenas de Demostración AAA y Sandbox (Divididas por Capacidades y .tscn Declarativo)**
   * **Fecha:** 2026-08-29
   * **Responsable:** Danielillo & Antigravity
   * **Resumen:**
-    * Diseñadas e implementadas 7 escenas y controladores de demostración especializados en `scenes/demos/`:
-      * **Demo 01 (`01_spatial_rooms_portals`):** Macro-acústica espacial, difracción de sonido por puertas/ventanas y modulación dinámica de LPF y origen aparente al abrir/cerrar portales.
-      * **Demo 02 (`02_massive_voice_stress`):** Estrés con 250 emisores 3D activos sobre un pool de hardware limitado a 16 canales físicos, validando robo de voz por prioridad ($W$), micro-fades de 15ms y seguimiento virtual escalado por tono.
-      * **Demo 03 (`03_surface_switches_3d`):** Pisadas de personaje 3D sobre Madera, Concreto, Metal y Agua utilizando `AudioSwitchContainer` y `AudioRandomContainer` con bolsa shuffle anti-repetición.
-      * **Demo 04 (`04_vehicle_blend_rpm`):** Motor de vehículo con acelerador interactivo (0 a 8000 RPM) evaluando `AudioBlendContainer` con curvas pre-horneadas LUT $O(1)$ y descarte de silencio ($\le -80\text{ dB}$).
-      * **Demo 05 (`05_dynamic_occlusion_ray`):** Oclusión física por raycasting multi-rayo con obstáculo móvil y suavizado temporal por *slew-rate* ($\kappa = 8.0\text{ s}^{-1}$).
-      * **Demo 06 (`06_soundbank_streaming`):** Demostración de reproducción de SoundBanks monolíticos `.bank` con arranque instantáneo en RAM prefetch y empalme transparente a streaming de disco.
-      * **Demo 07 (`demo_hub`):** Lanzador y centro de navegación maestro con selección de escenas, explicaciones técnicas y telemetría en vivo.
-    * Creada la suite de tests unitarios en `test_demo_suite.gd`.
+    * Diseñadas y construidas 7 escenas completamente declarativas (`.tscn`) con mallas 3D, geometrías CSG, cámaras, luces, materiales emisivos e interfaces de usuario CanvasLayer completas visibles y editables en el editor de Godot 4.7+:
+      * **Demo 01 (`01_spatial_rooms_portals.tscn`):** Macro-acústica espacial, difracción de sonido por puertas/ventanas y modulación dinámica de LPF y origen aparente al abrir/cerrar portales.
+      * **Demo 02 (`02_massive_voice_stress.tscn`):** Estrés con 250 emisores 3D activos sobre un pool de hardware limitado a 16 canales físicos, validando robo de voz por prioridad ($W$), micro-fades de 15ms y seguimiento virtual escalado por tono.
+      * **Demo 03 (`03_surface_switches_3d.tscn`):** Pisadas de personaje 3D sobre Madera, Concreto, Metal y Agua utilizando `AudioSwitchContainer` y `AudioRandomContainer` con bolsa shuffle anti-repetición.
+      * **Demo 04 (`04_vehicle_blend_rpm.tscn`):** Motor de vehículo con tacómetro y acelerador interactivo (0 a 8000 RPM) evaluando `AudioBlendContainer` con curvas pre-horneadas LUT $O(1)$ y descarte de silencio ($\le -80\text{ dB}$).
+      * **Demo 05 (`05_dynamic_occlusion_ray.tscn`):** Oclusión física por raycasting multi-rayo con obstáculo móvil y suavizado temporal por *slew-rate* ($\kappa = 8.0\text{ s}^{-1}$).
+      * **Demo 06 (`06_soundbank_streaming.tscn`):** Demostración de reproducción de SoundBanks monolíticos `.bank` con arranque instantáneo en RAM prefetch y empalme transparente a streaming de disco.
+      * **Demo 07 (`demo_hub.tscn`):** Lanzador y centro de navegación maestro con selección de escenas, explicaciones técnicas y telemetría en vivo.
+    * Incorporada la regla de desarrollo de construcción declarativa de escenas en `AGENTS.md` y `.agents/rules/02_architecture.md`.
+    * Creada y validada la suite de tests unitarios en `test_demo_suite.gd` (90/90 pruebas pasando con código de salida 0 en `godot --headless -s tests/test_runner_cli.gd`).
 
 * **`TASK-019` - Contenedor Maestro Multi-Modo (Dock Inferior, Main Screen & Ventana Flotante `Window`)**
   * **Fecha:** 2026-08-29

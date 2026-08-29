@@ -5,6 +5,7 @@ extends RefCounted
 
 const PhysicalVoiceChannelClass = preload("res://addons/opendou/runtime/physical_voice_channel.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
+const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 
 var max_physical_voices: int = 64
 var channels: Array[PhysicalVoiceChannel] = []
@@ -79,7 +80,7 @@ func virtualize(instance: EventInstance) -> void:
 		ch.stop_with_fade()
 		instance.assigned_channel_id = -1
 		
-	if instance.virtualization_mode == EventInstanceClass.VirtualizationMode.VIRTUAL_KILL_VOICE:
+	if instance.virtualization_mode == AudioEventDefClass.VirtualizationMode.VIRTUAL_KILL_VOICE:
 		instance.voice_state = EventInstanceClass.VoiceState.STATE_KILLED
 	else:
 		instance.voice_state = EventInstanceClass.VoiceState.STATE_VIRTUAL
@@ -103,7 +104,7 @@ func devirtualize(instance: EventInstance) -> void:
 	var stream = voices[0].stream if not voices.is_empty() else (instance.definition.base_stream if instance.definition else null)
 	
 	var start_offset: float = 0.0
-	if instance.virtualization_mode == EventInstanceClass.VirtualizationMode.VIRTUAL_ELAPSED_TIME:
+	if instance.virtualization_mode == AudioEventDefClass.VirtualizationMode.VIRTUAL_ELAPSED_TIME:
 		start_offset = instance.logical_playback_position
 		
 	var bus_name: StringName = instance.definition.target_bus if instance.definition else &"Master"

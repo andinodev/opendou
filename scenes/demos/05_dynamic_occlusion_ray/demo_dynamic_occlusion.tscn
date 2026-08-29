@@ -1,0 +1,161 @@
+[gd_scene load_steps=2 format=3 uid="uid://c6xk42l8q0p7v"]
+
+[ext_resource type="Script" path="res://scenes/demos/05_dynamic_occlusion_ray/demo_dynamic_occlusion.gd" id="1_script"]
+
+[node name="DemoDynamicOcclusion" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 15, 0)
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.642788, 0.766044, 0, -0.766044, 0.642788, 0, 18, 20)
+current = true
+
+[node name="Environment3D" type="Node3D" parent="."]
+
+[node name="Floor" type="CSGBox3D" parent="Environment3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+size = Vector3(45, 0.2, 25)
+
+[node name="EmitterMarker" type="CSGSphere3D" parent="Environment3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 1.5, 0)
+radius = 0.8
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="Environment3D/EmitterMarker"]
+autoplay = true
+
+[node name="ListenerMarker" type="CSGCylinder3D" parent="Environment3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 1, 0)
+radius = 0.6
+height = 2.0
+
+[node name="ObstacleMesh" type="CSGBox3D" parent="Environment3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+size = Vector3(2.5, 5, 8)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HeaderPanel" type="PanelContainer" parent="UI"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 54.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="UI/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="HBox" type="HBoxContainer" parent="UI/HeaderPanel/Margin"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UI/HeaderPanel/Margin/HBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "🧱 Demo 05: Dynamic Obstacle Raycast Occlusion & Slew-Rate Smoothing"
+
+[node name="Spacer" type="Control" parent="UI/HeaderPanel/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BtnAudioToggle" type="Button" parent="UI/HeaderPanel/Margin/HBox"]
+layout_mode = 2
+text = "🔊 Sound: Playing"
+
+[node name="BtnBack" type="Button" parent="UI/HeaderPanel/Margin/HBox"]
+layout_mode = 2
+text = "◀ Back to Hub"
+
+[node name="HUDPanel" type="PanelContainer" parent="UI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -350.0
+offset_top = 70.0
+offset_right = -16.0
+offset_bottom = 270.0
+grow_horizontal = 0
+
+[node name="Margin" type="MarginContainer" parent="UI/HUDPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="UI/HUDPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HUDTitle" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "📊 Raycast Occlusion Telemetry"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+
+[node name="LblFactor" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Occlusion Factor: 100% (Fully Blocked)"
+
+[node name="LblRays" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Multi-Ray: 3 / 3 Center & Wing Rays Hit"
+
+[node name="LblLPF" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Target Cutoff LPF: 350 Hz"
+
+[node name="LblVol" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Volume Attenuation: -9.0 dB"
+
+[node name="ControlsPanel" type="PanelContainer" parent="UI"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Margin" type="MarginContainer" parent="UI/ControlsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="HBox" type="HBoxContainer" parent="UI/ControlsPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="LblWall" type="Label" parent="UI/ControlsPanel/Margin/HBox"]
+layout_mode = 2
+text = "Wall Z Offset:"
+
+[node name="WallSlider" type="HSlider" parent="UI/ControlsPanel/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = -8.0
+max_value = 8.0
+step = 0.1
+value = 0.0
+
+[node name="BtnBlock" type="Button" parent="UI/ControlsPanel/Margin/HBox"]
+layout_mode = 2
+text = "Block Line (Z=0)"
+
+[node name="BtnClear" type="Button" parent="UI/ControlsPanel/Margin/HBox"]
+layout_mode = 2
+text = "Clear Line (Z=6)"
+
+[node name="ChkOscillate" type="CheckBox" parent="UI/ControlsPanel/Margin/HBox"]
+layout_mode = 2
+text = "Auto Oscillate Wall"

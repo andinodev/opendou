@@ -1,0 +1,156 @@
+[gd_scene load_steps=2 format=3 uid="uid://dn710y8km43vw"]
+
+[ext_resource type="Script" path="res://scenes/demos/06_soundbank_streaming/demo_soundbank_streaming.gd" id="1_script"]
+
+[node name="DemoSoundBankStreaming" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.09, 0.1, 0.12, 1)
+
+[node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
+
+[node name="HeaderPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 54.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="HeaderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="HBox" type="HBoxContainer" parent="HeaderPanel/Margin"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="HeaderPanel/Margin/HBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "📦 Demo 06: Monolithic SoundBank Prefetch & Lock-Free Ring-Buffer Streaming"
+
+[node name="Spacer" type="Control" parent="HeaderPanel/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BtnBack" type="Button" parent="HeaderPanel/Margin/HBox"]
+layout_mode = 2
+text = "◀ Back to Hub"
+
+[node name="MainLayout" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 74.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 24
+
+[node name="Phase1Card" type="PanelContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Margin" type="MarginContainer" parent="MainLayout/Phase1Card"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="MainLayout/Phase1Card/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="CardTitle" type="Label" parent="MainLayout/Phase1Card/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "⚡ Phase 1: In-Memory RAM Prefetch (0ms Latency)"
+
+[node name="HSeparator" type="HSeparator" parent="MainLayout/Phase1Card/Margin/VBox"]
+layout_mode = 2
+
+[node name="LblPrefetch" type="Label" parent="MainLayout/Phase1Card/Margin/VBox"]
+layout_mode = 2
+text = "Prefetch Slice: 64 KB (Immediate Voice Attack)"
+
+[node name="BarPrefetch" type="ProgressBar" parent="MainLayout/Phase1Card/Margin/VBox"]
+layout_mode = 2
+max_value = 64.0
+value = 64.0
+show_percentage = false
+
+[node name="LblLatency" type="Label" parent="MainLayout/Phase1Card/Margin/VBox"]
+layout_mode = 2
+text = "Startup Latency: 0.00 ms (Zero IO Wait)"
+
+[node name="PlaybackControls" type="HBoxContainer" parent="MainLayout/Phase1Card/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BtnPlay" type="Button" parent="MainLayout/Phase1Card/Margin/VBox/PlaybackControls"]
+layout_mode = 2
+text = "▶ Stream Audio"
+
+[node name="BtnStop" type="Button" parent="MainLayout/Phase1Card/Margin/VBox/PlaybackControls"]
+layout_mode = 2
+text = "⏹ Stop"
+
+[node name="Phase2Card" type="PanelContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Margin" type="MarginContainer" parent="MainLayout/Phase2Card"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="MainLayout/Phase2Card/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="CardTitle" type="Label" parent="MainLayout/Phase2Card/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "🔄 Phase 2: Lock-Free Disk Ring-Buffer"
+
+[node name="HSeparator" type="HSeparator" parent="MainLayout/Phase2Card/Margin/VBox"]
+layout_mode = 2
+
+[node name="LblRing" type="Label" parent="MainLayout/Phase2Card/Margin/VBox"]
+layout_mode = 2
+text = "Ring-Buffer Fill: 256 KB / 256 KB (100%)"
+
+[node name="BarRing" type="ProgressBar" parent="MainLayout/Phase2Card/Margin/VBox"]
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="LblChunks" type="Label" parent="MainLayout/Phase2Card/Margin/VBox"]
+layout_mode = 2
+text = "Mixed Chunks: 0 frames (0 KB streamed)"
+
+[node name="LblStatus" type="Label" parent="MainLayout/Phase2Card/Margin/VBox"]
+layout_mode = 2
+text = "Protection: Ring-Buffer Healthy (0 Underruns)"
