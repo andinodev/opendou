@@ -2,13 +2,15 @@
 class_name OpenDouTransportBar
 extends PanelContainer
 
-## Ultra-compact bottom transport bar for auditioning events, dynamically evaluating the active GraphEdit node tree, tweaking precision RTPC faders + SpinBoxes, and monitoring animated stereo VU meters in Godot editor.
+## Ultra-compact bottom transport bar with dynamic context-aware workspace adaptation (SFX RTPCs, Music DAW Transport, Dialogue Localization), active GraphEdit compilation, and stereo VU meters.
 
 signal play_requested()
 signal pause_requested()
 signal stop_requested()
 signal rtpc_changed(param_name: StringName, value: float)
 signal switch_changed(group_name: StringName, state_name: StringName)
+signal music_intensity_changed(intensity: float)
+signal music_bpm_changed(bpm: float)
 
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_playback_context.gd")
@@ -24,7 +26,7 @@ var target_event_label: Label
 var master_vol_slider: HSlider
 var master_vol_spin: SpinBox
 
-var rtpc_faders_container: HBoxContainer
+var dynamic_controls_container: HBoxContainer
 var vu_meter_rect: Control
 
 var left_peak: float = 0.0
@@ -33,6 +35,7 @@ var right_peak: float = 0.0
 # Editor playback audio
 var editor_audio_player: AudioStreamPlayer
 var current_event_name: StringName = &"Battlefield_Gunfire.tres"
+var current_workspace_mode: int = 0 # 0 = Graph, 1 = Music, 2 = Dialogue
 
 # Reference to active editor graph for live evaluation
 var active_graph_editor: GraphEdit = null
@@ -95,11 +98,11 @@ func _build_ui() -> void:
 	
 	main_hbox.add_child(VSeparator.new())
 	
-	# 3. Dynamic Precision RTPC Simulation Faders (Slider + SpinBox)
-	rtpc_faders_container = HBoxContainer.new()
-	rtpc_faders_container.add_theme_constant_override("separation", 18)
-	rtpc_faders_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_hbox.add_child(rtpc_faders_container)
+	# 3. Dynamic Contextual Controls Container
+	dynamic_controls_container = HBoxContainer.new()
+	dynamic_controls_container.add_theme_constant_override("separation", 14)
+	dynamic_controls_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_hbox.add_child(dynamic_controls_container)
 	
 	_populate_default_faders()
 	
@@ -151,14 +154,95 @@ func _build_ui() -> void:
 	vu_meter_rect.draw.connect(_on_draw_vu_meter)
 	main_hbox.add_child(vu_meter_rect)
 
+## Dynamically adapts bottom transport controls based on active workspace mode.
+func set_workspace_context(mode: int) -> void:
+	current_workspace_mode = mode
+	clear_dynamic_controls()
+	
+	match mode:
+		0: # Graph Workspace (SFX & RTPCs)
+			target_event_label.text = "Audition: [%s]" % str(current_event_name)
+			add_precision_fader(&"Distance", 0.0, 100.0, 15.0, 0.5, "m")
+			add_precision_fader(&"RPM", 0.0, 8000.0, 3200.0, 50.0, "RPM")
+			add_precision_fader(&"Pitch Jitter", 0.0, 0.5, 0.05, 0.01, "±")
+			
+		1: # Music DAW Workspace
+			target_event_label.text = "Audition: [🎼 Dynamic_Combat_Suite]"
+			_add_music_transport_controls()
+			
+		2: # Dialogue Grid Workspace
+			target_event_label.text = "Audition: [🗣️ Dialogue_Voice_Bank]"
+			_add_dialogue_transport_controls()
+
+func _add_music_transport_controls() -> void:
+	# Master Tempo BPM Spinbox
+	var bpm_box = HBoxContainer.new()
+	bpm_box.add_theme_constant_override("separation", 4)
+	var bpm_lbl = Label.new()
+	bpm_lbl.text = "BPM:"
+	bpm_lbl.add_theme_font_size_override("font_size", 11)
+	var bpm_spin = SpinBox.new()
+	bpm_spin.min_value = 40.0
+	bpm_spin.max_value = 240.0
+	bpm_spin.value = 120.0
+	bpm_spin.value_changed.connect(func(v): music_bpm_changed.emit(v))
+	bpm_box.add_child(bpm_lbl)
+	bpm_box.add_child(bpm_spin)
+	dynamic_controls_container.add_child(bpm_box)
+	
+	# Combat Intensity Slider
+	var int_box = HBoxContainer.new()
+	int_box.add_theme_constant_override("separation", 4)
+	var int_lbl = Label.new()
+	int_lbl.text = "Intensity:"
+	int_lbl.add_theme_font_size_override("font_size", 11)
+	var int_slider = HSlider.new()
+	int_slider.min_value = 0.0
+	int_slider.max_value = 1.0
+	int_slider.step = 0.01
+	int_slider.value = 0.0
+	int_slider.custom_minimum_size = Vector2(85, 0)
+	int_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	int_slider.value_changed.connect(func(v): music_intensity_changed.emit(v))
+	int_box.add_child(int_lbl)
+	int_box.add_child(int_slider)
+	dynamic_controls_container.add_child(int_box)
+	
+	# Quantize Selector
+	var snap_opt = OptionButton.new()
+	snap_opt.add_item("🧲 Next Bar", 0)
+	snap_opt.add_item("🧲 Next Beat", 1)
+	snap_opt.add_item("⚡ Immediate", 2)
+	dynamic_controls_container.add_child(snap_opt)
+
+func _add_dialogue_transport_controls() -> void:
+	var loc_box = HBoxContainer.new()
+	loc_box.add_theme_constant_override("separation", 4)
+	var loc_lbl = Label.new()
+	loc_lbl.text = "Locale:"
+	loc_lbl.add_theme_font_size_override("font_size", 11)
+	var loc_opt = OptionButton.new()
+	loc_opt.add_item("🇺🇸 EN", 0)
+	loc_opt.add_item("🇪🇸 ES", 1)
+	loc_opt.add_item("🇯🇵 JA", 2)
+	loc_opt.add_item("🇨🇳 ZH", 3)
+	loc_box.add_child(loc_lbl)
+	loc_box.add_child(loc_opt)
+	dynamic_controls_container.add_child(loc_box)
+	
+	var duck_lbl = Label.new()
+	duck_lbl.text = "Ducking: -12 dB (Voice Bus)"
+	duck_lbl.add_theme_font_size_override("font_size", 10)
+	dynamic_controls_container.add_child(duck_lbl)
+
 func _populate_default_faders() -> void:
-	clear_simulation_faders()
+	clear_dynamic_controls()
 	add_precision_fader(&"Distance", 0.0, 100.0, 15.0, 0.5, "m")
 	add_precision_fader(&"RPM", 0.0, 8000.0, 3200.0, 50.0, "RPM")
 
-func clear_simulation_faders() -> void:
+func clear_dynamic_controls() -> void:
 	current_simulation_rtpcs.clear()
-	for child in rtpc_faders_container.get_children():
+	for child in dynamic_controls_container.get_children():
 		child.queue_free()
 
 func set_audition_event(event_name: StringName) -> void:
@@ -166,7 +250,7 @@ func set_audition_event(event_name: StringName) -> void:
 	if target_event_label:
 		target_event_label.text = "Audition: [%s]" % str(current_event_name)
 		
-	clear_simulation_faders()
+	clear_dynamic_controls()
 	if "Vehicle" in str(event_name):
 		add_precision_fader(&"RPM", 0.0, 8000.0, 3200.0, 50.0, "RPM")
 		add_precision_fader(&"Speed", 0.0, 50.0, 15.0, 1.0, "m/s")
@@ -178,7 +262,9 @@ func set_audition_event(event_name: StringName) -> void:
 
 ## Populates simulation faders dynamically from persistent GameSyncs registry.
 func populate_from_game_syncs(rtpcs: Dictionary) -> void:
-	clear_simulation_faders()
+	if current_workspace_mode != 0:
+		return # Only populate RTPC faders in Graph mode
+	clear_dynamic_controls()
 	for param in rtpcs.keys():
 		var d = rtpcs[param]
 		var min_v = float(d.get("min", 0.0))
@@ -234,7 +320,7 @@ func add_precision_fader(p_name: StringName, min_v: float, max_v: float, def_v: 
 	box.add_child(lbl)
 	box.add_child(slider)
 	box.add_child(spin)
-	rtpc_faders_container.add_child(box)
+	dynamic_controls_container.add_child(box)
 
 func _process(delta: float) -> void:
 	if is_playing:
@@ -271,6 +357,14 @@ func _on_play_pressed() -> void:
 	is_paused = false
 	
 	if editor_audio_player:
+		if current_workspace_mode == 1: # Music DAW Mode
+			editor_audio_player.stream = AudioSynthesizerClass.create_chord_loop(1.2)
+			editor_audio_player.pitch_scale = 1.0
+			editor_audio_player.volume_db = master_vol_slider.value if master_vol_slider else 0.0
+			editor_audio_player.play()
+			play_requested.emit()
+			return
+			
 		# 1. Compile active visual graph if available
 		var compiled = OpenDouGraphSerializerClass.build_composite_from_graph(active_graph_editor) if active_graph_editor else {}
 		var root_node = compiled.get("root_node", null)

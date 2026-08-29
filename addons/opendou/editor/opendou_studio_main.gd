@@ -60,10 +60,22 @@ var bank_panel: OpenDouBankPanel
 var mixer_drawer: OpenDouMixerDrawer
 var transport_bar: OpenDouTransportBar
 
-const PRESET_EVENTS = [
+const SFX_EVENTS = [
 	&"Battlefield_Gunfire.tres",
 	&"Vehicle_Engine_RPM.tres",
 	&"Footstep_Surface.tres"
+]
+
+const MUSIC_EVENTS = [
+	&"Dynamic_Combat_Suite.tres",
+	&"Exploration_Ambient_Theme.tres",
+	&"Boss_Phase_Orchestral.tres"
+]
+
+const DIALOGUE_EVENTS = [
+	&"Chapter1_Hero_Voices.tres",
+	&"NPC_Ambient_Barks.tres",
+	&"Boss_Fight_Taunts.tres"
 ]
 
 func _init() -> void:
@@ -316,6 +328,34 @@ func set_workspace_mode(mode: WorkspaceMode) -> void:
 		music_timeline.visible = (mode == WorkspaceMode.MODE_MUSIC_DAW)
 	if dialogue_grid:
 		dialogue_grid.visible = (mode == WorkspaceMode.MODE_DIALOGUE_GRID)
+		
+	if transport_bar:
+		transport_bar.set_workspace_context(int(mode))
+		
+	# Update Event selector list contextually & adapt left sidebar
+	if event_selector:
+		event_selector.clear()
+		match mode:
+			WorkspaceMode.MODE_GRAPH:
+				for i in range(SFX_EVENTS.size()):
+					event_selector.add_item("🎯 " + str(SFX_EVENTS[i]), i)
+				# Restore Left Syncs Sidebar for Graph work
+				btn_toggle_syncs.button_pressed = true
+				if game_syncs_panel: game_syncs_panel.visible = true
+				
+			WorkspaceMode.MODE_MUSIC_DAW:
+				for i in range(MUSIC_EVENTS.size()):
+					event_selector.add_item("🎼 " + str(MUSIC_EVENTS[i]), i)
+				# Auto-collapse Left Sidebar to give 100% horizontal width to Music Timeline
+				btn_toggle_syncs.button_pressed = false
+				if game_syncs_panel: game_syncs_panel.visible = false
+				
+			WorkspaceMode.MODE_DIALOGUE_GRID:
+				for i in range(DIALOGUE_EVENTS.size()):
+					event_selector.add_item("🗣️ " + str(DIALOGUE_EVENTS[i]), i)
+				# Collapse Left Sidebar
+				btn_toggle_syncs.button_pressed = false
+				if game_syncs_panel: game_syncs_panel.visible = false
 
 func _on_toggle_syncs_toggled(is_open: bool) -> void:
 	if game_syncs_panel:
@@ -332,9 +372,14 @@ func _on_toggle_mixer_toggled(is_open: bool) -> void:
 		mixer_drawer.visible = is_open
 
 func _on_event_preset_selected(idx: int) -> void:
-	if idx >= 0 and idx < PRESET_EVENTS.size():
-		var ev_name = PRESET_EVENTS[idx]
-		if graph_editor:
+	var ev_list = SFX_EVENTS
+	match current_workspace:
+		WorkspaceMode.MODE_MUSIC_DAW: ev_list = MUSIC_EVENTS
+		WorkspaceMode.MODE_DIALOGUE_GRID: ev_list = DIALOGUE_EVENTS
+		
+	if idx >= 0 and idx < ev_list.size():
+		var ev_name = ev_list[idx]
+		if current_workspace == WorkspaceMode.MODE_GRAPH and graph_editor:
 			graph_editor.load_event_preset(idx)
 		if transport_bar:
 			transport_bar.set_audition_event(ev_name)
