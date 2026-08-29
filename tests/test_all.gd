@@ -32,6 +32,7 @@ const TestDialogueLocalizationClass = preload("res://tests/test_dialogue_localiz
 const TestEarlyReflectionsHRTFClass = preload("res://tests/test_early_reflections_hrtf.gd")
 const TestDSPAdvancedClass = preload("res://tests/test_dsp_advanced.gd")
 const TestProfilerRewindClass = preload("res://tests/test_profiler_rewind.gd")
+const TestStudioAdvancedUIClass = preload("res://tests/test_studio_advanced_ui.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -160,6 +161,10 @@ static func run_suite() -> Dictionary:
 	var r31 = TestProfilerRewindClass.run_all()
 	total_tests += 6
 	all_failures.append_array(r31)
+	
+	var r32 = TestStudioAdvancedUIClass.run_all()
+	total_tests += 8
+	all_failures.append_array(r32)
 	
 	return {
 		"total": total_tests,

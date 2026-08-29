@@ -10,7 +10,10 @@ enum NodeType {
 	TYPE_RANDOM,
 	TYPE_SWITCH,
 	TYPE_BLEND,
-	TYPE_SEQUENCE
+	TYPE_SEQUENCE,
+	TYPE_CONVOLUTION,
+	TYPE_GRANULAR,
+	TYPE_BINAURAL
 }
 
 const COLOR_AUDIO_SIGNAL: Color = Color(0.18, 0.83, 0.55, 1.0) # Emerald Mint
@@ -21,7 +24,10 @@ const NODE_ACCENT_COLORS = {
 	NodeType.TYPE_RANDOM: Color(0.22, 0.74, 0.97),     # Sapphire Cyan
 	NodeType.TYPE_SWITCH: Color(0.75, 0.52, 0.98),     # Purple Magenta
 	NodeType.TYPE_BLEND: Color(0.98, 0.75, 0.14),      # Amber Gold
-	NodeType.TYPE_OUTPUT: Color(0.97, 0.44, 0.44)      # Coral Red
+	NodeType.TYPE_OUTPUT: Color(0.97, 0.44, 0.44),     # Coral Red
+	NodeType.TYPE_CONVOLUTION: Color(0.12, 0.82, 0.85),# Cyan Teal
+	NodeType.TYPE_GRANULAR: Color(0.98, 0.55, 0.22),   # Coral Orange
+	NodeType.TYPE_BINAURAL: Color(0.45, 0.55, 0.98)    # Royal Indigo
 }
 
 var node_type: NodeType = NodeType.TYPE_OUTPUT

@@ -184,10 +184,38 @@ func _on_rewind_slider_changed(val: float) -> void:
 		is_paused_scrubbing = true
 		btn_play_pause.text = "▶️ Resume"
 		rewind_time_lbl.text = "%.1fs" % val
-		dsp_metrics_lbl.text = "⏱️ Time-Travel: %.1fs ago | Frozen Telemetry" % absf(val)
+		dsp_metrics_lbl.text = "⏱️ Time-Travel: %.1fs ago | Frozen Frame" % absf(val)
+		
+		# Look up historical frame
+		if session_recorder and not session_recorder.frames.is_empty():
+			var total_time = session_recorder.frames.back().timestamp_sec
+			var target_time = maxf(total_time + val, 0.0)
+			var hist_frame = session_recorder.get_frame_at_time(target_time)
+			if hist_frame:
+				_update_historical_voice_ledger(hist_frame)
 	else:
 		rewind_time_lbl.text = "0.0s (Live)"
 		dsp_metrics_lbl.text = "⚡ DSP Load: Avg 42.1 µs | Peak 78.2 µs | Budget: < 250 µs"
+		_populate_sample_telemetry()
+
+func _update_historical_voice_ledger(frame: ProfilerSessionRecorder.TelemetryFrame) -> void:
+	voice_tree.clear()
+	var root = voice_tree.create_item()
+	
+	var samples = [
+		{ "name": "Player_Gunfire", "state": "🟢 Physical (Ch 0)" if frame.physical_voices > 0 else "⚪ Stopped", "priority": "95.0", "dist": "0.0 m" },
+		{ "name": "Engine_Patrol_RPM", "state": "🟢 Physical (Ch 1)" if frame.physical_voices > 1 else "⚪ Stopped", "priority": "82.0", "dist": "14.2 m" },
+		{ "name": "Monster_Roar_Crypt", "state": "🟢 Physical (Ch 2)" if frame.physical_voices > 2 else "⚪ Stopped", "priority": "78.0", "dist": "22.5 m" },
+		{ "name": "Casing_Impact_01", "state": "⚪ Virtual Elapsed", "priority": "12.0", "dist": "18.0 m" },
+		{ "name": "Explosion_Debris_Far", "state": "⚪ Virtual Elapsed", "priority": "9.0", "dist": "45.0 m" }
+	]
+	
+	for s in samples:
+		var item = voice_tree.create_item(root)
+		item.set_text(0, s["name"])
+		item.set_text(1, s["state"])
+		item.set_text(2, s["priority"])
+		item.set_text(3, s["dist"])
 
 func _on_draw_dsp_graph() -> void:
 	if not dsp_graph_rect:

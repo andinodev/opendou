@@ -10,6 +10,9 @@ const OpenDouRandomGraphNodeClass = preload("res://addons/opendou/editor/nodes/o
 const OpenDouSwitchGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_switch_graph_node.gd")
 const OpenDouAudioFileGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_audio_file_graph_node.gd")
 const OpenDouOutputGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_output_graph_node.gd")
+const OpenDouConvolutionGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_convolution_graph_node.gd")
+const OpenDouGranularGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_granular_graph_node.gd")
+const OpenDouBinauralGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_binaural_graph_node.gd")
 
 var context_menu: PopupMenu
 var click_spawn_position: Vector2 = Vector2(200, 200)
@@ -30,6 +33,9 @@ func _setup_context_menu() -> void:
 	context_menu.add_item("🎲 Add Random / Shuffle Container", 2)
 	context_menu.add_item("🔀 Add Switch Container", 3)
 	context_menu.add_item("📈 Add Blend (RTPC) Container", 4)
+	context_menu.add_item("🌊 Add Convolution Reverb", 6)
+	context_menu.add_item("✨ Add Granular Synthesizer", 7)
+	context_menu.add_item("🎧 Add Binaural 3D Spatializer", 8)
 	context_menu.add_item("🔴 Add Output Bus Node", 5)
 	context_menu.id_pressed.connect(_on_context_menu_id_pressed)
 	add_child(context_menu)
@@ -198,6 +204,9 @@ func _on_context_menu_id_pressed(id: int) -> void:
 		3: new_node = OpenDouSwitchGraphNodeClass.new()
 		4: new_node = OpenDouBlendGraphNodeClass.new()
 		5: new_node = OpenDouOutputGraphNodeClass.new()
+		6: new_node = OpenDouConvolutionGraphNodeClass.new()
+		7: new_node = OpenDouGranularGraphNodeClass.new()
+		8: new_node = OpenDouBinauralGraphNodeClass.new()
 		
 	if new_node:
 		new_node.position_offset = click_spawn_position
