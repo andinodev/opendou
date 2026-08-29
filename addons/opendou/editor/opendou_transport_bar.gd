@@ -2,7 +2,7 @@
 class_name OpenDouTransportBar
 extends PanelContainer
 
-## Ultra-compact bottom transport bar for auditioning events, tweaking precision RTPC faders + SpinBoxes, and monitoring animated stereo VU meters in Godot editor with generous logical group spacing.
+## Ultra-compact bottom transport bar for auditioning events, dynamically evaluating the active GraphEdit node tree, tweaking precision RTPC faders + SpinBoxes, and monitoring animated stereo VU meters in Godot editor.
 
 signal play_requested()
 signal pause_requested()
@@ -11,6 +11,8 @@ signal rtpc_changed(param_name: StringName, value: float)
 signal switch_changed(group_name: StringName, state_name: StringName)
 
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
+const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_playback_context.gd")
+const OpenDouGraphSerializerClass = preload("res://addons/opendou/editor/opendou_graph_serializer.gd")
 
 var is_playing: bool = false
 var is_paused: bool = false
@@ -31,6 +33,10 @@ var right_peak: float = 0.0
 # Editor playback audio
 var editor_audio_player: AudioStreamPlayer
 var current_event_name: StringName = &"Battlefield_Gunfire.tres"
+
+# Reference to active editor graph for live evaluation
+var active_graph_editor: GraphEdit = null
+var current_simulation_rtpcs: Dictionary = {}
 
 func _init() -> void:
 	custom_minimum_size = Vector2(0, 36)
@@ -148,9 +154,10 @@ func _build_ui() -> void:
 func _populate_default_faders() -> void:
 	clear_simulation_faders()
 	add_precision_fader(&"Distance", 0.0, 100.0, 15.0, 0.5, "m")
-	add_precision_fader(&"Pitch Mod", 0.5, 2.0, 1.0, 0.01, "x")
+	add_precision_fader(&"RPM", 0.0, 8000.0, 3200.0, 50.0, "RPM")
 
 func clear_simulation_faders() -> void:
+	current_simulation_rtpcs.clear()
 	for child in rtpc_faders_container.get_children():
 		child.queue_free()
 
@@ -169,8 +176,20 @@ func set_audition_event(event_name: StringName) -> void:
 		add_precision_fader(&"Distance", 0.0, 100.0, 10.0, 0.5, "m")
 		add_precision_fader(&"Pitch Jitter", 0.0, 0.5, 0.05, 0.01, "±")
 
+## Populates simulation faders dynamically from persistent GameSyncs registry.
+func populate_from_game_syncs(rtpcs: Dictionary) -> void:
+	clear_simulation_faders()
+	for param in rtpcs.keys():
+		var d = rtpcs[param]
+		var min_v = float(d.get("min", 0.0))
+		var max_v = float(d.get("max", 100.0))
+		var def_v = float(d.get("default", 0.0))
+		var unit = "RPM" if "RPM" in str(param) else ("m" if "Dist" in str(param) else "")
+		add_precision_fader(param, min_v, max_v, def_v, (max_v - min_v) / 100.0, unit)
+
 ## Adds a compound precision control (Label + HSlider + SpinBox) with two-way binding.
 func add_precision_fader(p_name: StringName, min_v: float, max_v: float, def_v: float, step_v: float, unit: String) -> void:
+	current_simulation_rtpcs[p_name] = def_v
 	var box = HBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	
@@ -198,6 +217,7 @@ func add_precision_fader(p_name: StringName, min_v: float, max_v: float, def_v: 
 	
 	slider.value_changed.connect(func(val):
 		if not is_equal_approx(spin.value, val): spin.value = val
+		current_simulation_rtpcs[p_name] = val
 		rtpc_changed.emit(p_name, val)
 		if is_playing and p_name == &"RPM" and editor_audio_player:
 			editor_audio_player.pitch_scale = lerpf(0.6, 2.5, val / 8000.0)
@@ -205,6 +225,7 @@ func add_precision_fader(p_name: StringName, min_v: float, max_v: float, def_v: 
 	
 	spin.value_changed.connect(func(val):
 		if not is_equal_approx(slider.value, val): slider.value = val
+		current_simulation_rtpcs[p_name] = val
 		rtpc_changed.emit(p_name, val)
 		if is_playing and p_name == &"RPM" and editor_audio_player:
 			editor_audio_player.pitch_scale = lerpf(0.6, 2.5, val / 8000.0)
@@ -248,23 +269,47 @@ func _on_draw_vu_meter() -> void:
 func _on_play_pressed() -> void:
 	is_playing = true
 	is_paused = false
+	
 	if editor_audio_player:
-		var ev_str = str(current_event_name).to_lower()
-		if "gunfire" in ev_str or "battlefield" in ev_str or "shot" in ev_str:
-			editor_audio_player.stream = AudioSynthesizerClass.create_gunshot()
-			editor_audio_player.pitch_scale = randf_range(0.95, 1.05)
-		elif "vehicle" in ev_str or "rpm" in ev_str or "engine" in ev_str:
-			editor_audio_player.stream = AudioSynthesizerClass.create_engine_loop(55.0)
-			editor_audio_player.pitch_scale = 1.0
-		elif "footstep" in ev_str or "step" in ev_str or "surface" in ev_str:
-			editor_audio_player.stream = AudioSynthesizerClass.create_footstep(&"Concrete", randi_range(1, 3))
-			editor_audio_player.pitch_scale = 1.0
-		else:
-			editor_audio_player.stream = AudioSynthesizerClass.create_chord_loop(1.5)
-			editor_audio_player.pitch_scale = 1.0
+		# 1. Compile active visual graph if available
+		var compiled = OpenDouGraphSerializerClass.build_composite_from_graph(active_graph_editor) if active_graph_editor else {}
+		var root_node = compiled.get("root_node", null)
+		
+		var ctx = AudioPlaybackContextClass.new()
+		for p_name in current_simulation_rtpcs.keys():
+			ctx.set_rtpc_value(p_name, current_simulation_rtpcs[p_name])
 			
-		editor_audio_player.volume_db = master_vol_slider.value if master_vol_slider else 0.0
+		var resolved_voices = root_node.resolve_voices(ctx) if root_node else []
+		
+		var base_stream: AudioStream = null
+		var resolved_pitch: float = 1.0
+		var resolved_vol_db: float = master_vol_slider.value if master_vol_slider else 0.0
+		
+		if not resolved_voices.is_empty():
+			var chosen_voice = resolved_voices[randi() % resolved_voices.size()]
+			resolved_pitch = chosen_voice.pitch_modifier
+			resolved_vol_db += chosen_voice.volume_offset_db
+			if chosen_voice.stream:
+				base_stream = chosen_voice.stream
+				
+		if base_stream == null:
+			# Fallback synthesis based on event name
+			var ev_str = str(current_event_name).to_lower()
+			if "gunfire" in ev_str or "battlefield" in ev_str or "shot" in ev_str:
+				base_stream = AudioSynthesizerClass.create_gunshot()
+			elif "vehicle" in ev_str or "rpm" in ev_str or "engine" in ev_str:
+				var rpm = current_simulation_rtpcs.get(&"RPM", 3200.0)
+				base_stream = AudioSynthesizerClass.create_engine_loop(lerpf(30.0, 120.0, rpm / 8000.0))
+			elif "footstep" in ev_str or "step" in ev_str or "surface" in ev_str:
+				base_stream = AudioSynthesizerClass.create_footstep(&"Concrete", randi_range(1, 3))
+			else:
+				base_stream = AudioSynthesizerClass.create_chord_loop(1.5)
+				
+		editor_audio_player.stream = base_stream
+		editor_audio_player.pitch_scale = clampf(resolved_pitch, 0.1, 4.0)
+		editor_audio_player.volume_db = resolved_vol_db
 		editor_audio_player.play()
+		
 	play_requested.emit()
 
 func _on_pause_pressed() -> void:

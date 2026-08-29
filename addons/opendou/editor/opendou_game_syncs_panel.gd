@@ -2,38 +2,28 @@
 class_name OpenDouGameSyncsPanel
 extends PanelContainer
 
-## Sidebar manager for Game Syncs (RTPCs, States, Switches, and Triggers) in OpenDou Studio.
+## Sidebar manager for Game Syncs (RTPCs, States, Switches, and Triggers) in OpenDou Studio with persistent JSON storage across editor sessions.
 
 signal rtpc_selected(param_name: StringName, min_val: float, max_val: float, def_val: float)
 signal syncs_updated()
+
+const SYNCS_FILE_PATH: String = "res://opendou_syncs.json"
 
 var tab_container: TabContainer
 var rtpc_tree: Tree
 var state_tree: Tree
 var switch_tree: Tree
 
-# In-Memory Project Game Syncs Registry
-var rtpcs: Dictionary = {
-	&"RPM": { "min": 0.0, "max": 8000.0, "default": 1000.0 },
-	&"Health": { "min": 0.0, "max": 100.0, "default": 100.0 },
-	&"Distance": { "min": 0.0, "max": 100.0, "default": 0.0 },
-	&"Speed": { "min": 0.0, "max": 50.0, "default": 0.0 }
-}
-
-var states: Dictionary = {
-	&"GameState": ["Exploration", "Combat", "Stealth", "Defeat"],
-	&"Environment": ["Outdoor", "Cave", "Underwater", "Space"]
-}
-
-var switches: Dictionary = {
-	&"SurfaceType": ["Asphalt", "Mud", "Metal", "Stone", "Wood", "Water"],
-	&"WeaponType": ["Pistol", "Rifle", "Shotgun", "RocketLauncher"]
-}
+# Persistent Project Game Syncs Registry
+var rtpcs: Dictionary = {}
+var states: Dictionary = {}
+var switches: Dictionary = {}
 
 func _init() -> void:
 	custom_minimum_size = Vector2(0, 0)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
+	load_syncs_from_disk()
 	_build_ui()
 
 func _build_ui() -> void:
@@ -119,7 +109,91 @@ func _build_ui() -> void:
 	
 	_refresh_trees()
 
+## Loads persistent game syncs registry from project disk file.
+func load_syncs_from_disk() -> void:
+	if FileAccess.file_exists(SYNCS_FILE_PATH):
+		var file = FileAccess.open(SYNCS_FILE_PATH, FileAccess.READ)
+		if file:
+			var json_str = file.get_as_text()
+			file.close()
+			var parsed = JSON.parse_string(json_str)
+			if parsed is Dictionary:
+				_deserialize_syncs(parsed)
+				return
+				
+	# Default Initial Preset if no file exists
+	rtpcs = {
+		&"RPM": { "min": 0.0, "max": 8000.0, "default": 1000.0 },
+		&"Health": { "min": 0.0, "max": 100.0, "default": 100.0 },
+		&"Distance": { "min": 0.0, "max": 100.0, "default": 0.0 },
+		&"Speed": { "min": 0.0, "max": 50.0, "default": 0.0 }
+	}
+	states = {
+		&"GameState": ["Exploration", "Combat", "Stealth", "Defeat"],
+		&"Environment": ["Outdoor", "Cave", "Underwater", "Space"]
+	}
+	switches = {
+		&"SurfaceType": ["Asphalt", "Mud", "Metal", "Stone", "Wood", "Water"],
+		&"WeaponType": ["Pistol", "Rifle", "Shotgun", "RocketLauncher"]
+	}
+	save_syncs_to_disk()
+
+## Saves current game syncs registry permanently to project disk file.
+func save_syncs_to_disk() -> void:
+	var file = FileAccess.open(SYNCS_FILE_PATH, FileAccess.WRITE)
+	if file:
+		var data = _serialize_syncs()
+		file.store_string(JSON.stringify(data, "\t"))
+		file.flush()
+		file.close()
+
+func _serialize_syncs() -> Dictionary:
+	var rtpcs_data: Dictionary = {}
+	for k in rtpcs.keys():
+		rtpcs_data[str(k)] = rtpcs[k]
+		
+	var states_data: Dictionary = {}
+	for k in states.keys():
+		states_data[str(k)] = states[k]
+		
+	var switches_data: Dictionary = {}
+	for k in switches.keys():
+		switches_data[str(k)] = switches[k]
+		
+	return {
+		"rtpcs": rtpcs_data,
+		"states": states_data,
+		"switches": switches_data
+	}
+
+func _deserialize_syncs(data: Dictionary) -> void:
+	rtpcs.clear()
+	var r_data = data.get("rtpcs", {})
+	for k in r_data.keys():
+		rtpcs[StringName(k)] = {
+			"min": float(r_data[k].get("min", 0.0)),
+			"max": float(r_data[k].get("max", 100.0)),
+			"default": float(r_data[k].get("default", 0.0))
+		}
+		
+	states.clear()
+	var s_data = data.get("states", {})
+	for k in s_data.keys():
+		var arr: Array = []
+		for item in s_data[k]: arr.append(str(item))
+		states[StringName(k)] = arr
+		
+	switches.clear()
+	var sw_data = data.get("switches", {})
+	for k in sw_data.keys():
+		var arr: Array = []
+		for item in sw_data[k]: arr.append(str(item))
+		switches[StringName(k)] = arr
+
 func _refresh_trees() -> void:
+	if not rtpc_tree or not state_tree or not switch_tree:
+		return
+		
 	# 1. RTPC Tree
 	rtpc_tree.clear()
 	var rtpc_root = rtpc_tree.create_item()
@@ -129,6 +203,7 @@ func _refresh_trees() -> void:
 		item.set_text(0, str(param))
 		item.set_text(1, "%.0f - %.0f" % [data["min"], data["max"]])
 		item.set_text(2, "%.1f" % data["default"])
+		item.set_metadata(0, param)
 		
 	# 2. State Tree
 	state_tree.clear()
@@ -161,18 +236,21 @@ func _on_rtpc_activated() -> void:
 func _on_add_rtpc_pressed() -> void:
 	var new_id = "RTPC_%d" % (rtpcs.size() + 1)
 	rtpcs[StringName(new_id)] = { "min": 0.0, "max": 100.0, "default": 50.0 }
+	save_syncs_to_disk()
 	_refresh_trees()
 	syncs_updated.emit()
 
 func _on_add_state_pressed() -> void:
 	var new_grp = "StateGroup_%d" % (states.size() + 1)
 	states[StringName(new_grp)] = ["State_A", "State_B"]
+	save_syncs_to_disk()
 	_refresh_trees()
 	syncs_updated.emit()
 
 func _on_add_switch_pressed() -> void:
 	var new_grp = "SwitchGroup_%d" % (switches.size() + 1)
 	switches[StringName(new_grp)] = ["Switch_1", "Switch_2"]
+	save_syncs_to_disk()
 	_refresh_trees()
 	syncs_updated.emit()
 

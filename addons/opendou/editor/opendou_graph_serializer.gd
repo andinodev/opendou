@@ -1,7 +1,8 @@
+@tool
 class_name OpenDouGraphSerializer
 extends RefCounted
 
-## Serializes and deserializes between visual GraphEdit node topologies and AudioLogicNode Composite trees.
+## Serializes, deserializes, and compiles between visual GraphEdit node topologies, AudioLogicNode Composite trees, and dynamic DSP processing chains.
 
 const OpenDouBaseGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_base_graph_node.gd")
 const OpenDouBlendGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_blend_graph_node.gd")
@@ -9,12 +10,114 @@ const OpenDouRandomGraphNodeClass = preload("res://addons/opendou/editor/nodes/o
 const OpenDouSwitchGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_switch_graph_node.gd")
 const OpenDouAudioFileGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_audio_file_graph_node.gd")
 const OpenDouOutputGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_output_graph_node.gd")
+const OpenDouConvolutionGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_convolution_graph_node.gd")
+const OpenDouGranularGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_granular_graph_node.gd")
+const OpenDouBinauralGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_binaural_graph_node.gd")
 
 const AudioLogicNodeClass = preload("res://addons/opendou/resources/containers/audio_logic_node.gd")
 const AudioPhysicalNodeClass = preload("res://addons/opendou/resources/containers/audio_physical_node.gd")
 const AudioRandomContainerClass = preload("res://addons/opendou/resources/containers/audio_random_container.gd")
 const AudioSwitchContainerClass = preload("res://addons/opendou/resources/containers/audio_switch_container.gd")
 const AudioBlendContainerClass = preload("res://addons/opendou/resources/containers/audio_blend_container.gd")
+
+## Reconstructs an executable runtime AudioLogicNode tree and DSP chain from the current GraphEdit canvas.
+static func build_composite_from_graph(graph_edit: GraphEdit) -> Dictionary:
+	var result = {
+		"root_node": null,
+		"dsp_chain": [],
+		"audio_files": []
+	}
+	
+	if not graph_edit:
+		return result
+		
+	# Find Output Node
+	var output_node: OpenDouOutputGraphNode = null
+	for child in graph_edit.get_children():
+		if child is OpenDouOutputGraphNodeClass:
+			output_node = child
+			break
+			
+	var connections = graph_edit.get_connection_list()
+	
+	# Collect any DSP nodes in the graph
+	for child in graph_edit.get_children():
+		if child is OpenDouConvolutionGraphNodeClass:
+			result["dsp_chain"].append({ "type": "convolution", "node": child })
+		elif child is OpenDouGranularGraphNodeClass:
+			result["dsp_chain"].append({ "type": "granular", "node": child })
+		elif child is OpenDouBinauralGraphNodeClass:
+			result["dsp_chain"].append({ "type": "binaural", "node": child })
+		elif child is OpenDouAudioFileGraphNodeClass:
+			result["audio_files"].append(child)
+			
+	if not output_node:
+		# If no output node, fallback to building container from first root container found
+		for child in graph_edit.get_children():
+			if child is OpenDouRandomGraphNodeClass or child is OpenDouBlendGraphNodeClass or child is OpenDouSwitchGraphNodeClass:
+				result["root_node"] = _compile_node_recursive(child, connections, graph_edit)
+				return result
+		return result
+		
+	# Find what connects to Output Node (port 0)
+	for conn in connections:
+		if conn["to_node"] == output_node.name:
+			var source_node = graph_edit.get_node_or_null(NodePath(conn["from_node"]))
+			if source_node:
+				result["root_node"] = _compile_node_recursive(source_node, connections, graph_edit)
+				break
+				
+	return result
+
+static func _compile_node_recursive(visual_node: Node, connections: Array, graph_edit: GraphEdit) -> AudioLogicNode:
+	if visual_node is OpenDouAudioFileGraphNodeClass:
+		var phys = AudioPhysicalNodeClass.new()
+		phys.resource_path = visual_node.audio_file_path
+		phys.pitch = visual_node.pitch_scale
+		phys.volume_db = visual_node.volume_db
+		return phys
+		
+	elif visual_node is OpenDouRandomGraphNodeClass:
+		var rnd = AudioRandomContainerClass.new()
+		rnd.is_shuffle = visual_node.is_shuffle
+		rnd.pitch_jitter = visual_node.pitch_jitter
+		rnd.volume_jitter_db = visual_node.volume_jitter_db
+		
+		# Find all input connections to this random node
+		for conn in connections:
+			if conn["to_node"] == visual_node.name:
+				var child_vis = graph_edit.get_node_or_null(NodePath(conn["from_node"]))
+				if child_vis:
+					var child_logic = _compile_node_recursive(child_vis, connections, graph_edit)
+					if child_logic:
+						rnd.children.append(child_logic)
+		return rnd
+		
+	elif visual_node is OpenDouBlendGraphNodeClass:
+		var blend = AudioBlendContainerClass.new()
+		blend.rtpc_parameter = visual_node.rtpc_name
+		for conn in connections:
+			if conn["to_node"] == visual_node.name:
+				var child_vis = graph_edit.get_node_or_null(NodePath(conn["from_node"]))
+				if child_vis:
+					var child_logic = _compile_node_recursive(child_vis, connections, graph_edit)
+					if child_logic:
+						blend.children.append(child_logic)
+		return blend
+		
+	elif visual_node is OpenDouSwitchGraphNodeClass:
+		var sw = AudioSwitchContainerClass.new()
+		sw.switch_group = visual_node.switch_group
+		for conn in connections:
+			if conn["to_node"] == visual_node.name:
+				var child_vis = graph_edit.get_node_or_null(NodePath(conn["from_node"]))
+				if child_vis:
+					var child_logic = _compile_node_recursive(child_vis, connections, graph_edit)
+					if child_logic:
+						sw.children.append(child_logic)
+		return sw
+		
+	return null
 
 ## Converts an AudioLogicNode composite resource tree into visual GraphNodes and connections inside a GraphEdit.
 static func populate_graph_from_composite(root_node: AudioLogicNode, graph_edit: GraphEdit) -> void:
@@ -23,7 +126,7 @@ static func populate_graph_from_composite(root_node: AudioLogicNode, graph_edit:
 		
 	graph_edit.clear_connections()
 	for child in graph_edit.get_children():
-		if child is OpenDouBaseGraphNode:
+		if child is OpenDouBaseGraphNodeClass:
 			child.queue_free()
 			
 	var output_node = OpenDouOutputGraphNodeClass.new()

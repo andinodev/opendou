@@ -13,11 +13,13 @@ const MusicClockClass = preload("res://addons/opendou/core/music/music_clock.gd"
 const MusicSegmentClass = preload("res://addons/opendou/core/music/music_segment.gd")
 const MusicTransitionMatrixClass = preload("res://addons/opendou/core/music/music_transition_matrix.gd")
 const MusicStingerQueueClass = preload("res://addons/opendou/core/music/music_stinger_queue.gd")
+const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 var clock: MusicClock
 var current_segment: MusicSegment
 var transition_matrix: MusicTransitionMatrix
 var stinger_queue: MusicStingerQueue
+var stinger_player: AudioStreamPlayer
 
 var bpm_spinbox: SpinBox
 var intensity_slider: HSlider
@@ -206,17 +208,33 @@ func _build_ui() -> void:
 	stinger_title.add_theme_font_size_override("font_size", 11)
 	right_panel.add_child(stinger_title)
 	
+	stinger_player = AudioStreamPlayer.new()
+	add_child(stinger_player)
+	
 	var btn_stinger_victory = Button.new()
 	btn_stinger_victory.text = "🎺 Stinger: Victory_Brass"
-	btn_stinger_victory.pressed.connect(func(): stinger_requested.emit(&"Victory_Brass", 0))
+	btn_stinger_victory.pressed.connect(func():
+		play_audition_stinger(&"Victory_Brass")
+		stinger_requested.emit(&"Victory_Brass", 0)
+	)
 	right_panel.add_child(btn_stinger_victory)
 	
 	var btn_stinger_danger = Button.new()
 	btn_stinger_danger.text = "⚠️ Stinger: Danger_Hit"
-	btn_stinger_danger.pressed.connect(func(): stinger_requested.emit(&"Danger_Hit", 1))
+	btn_stinger_danger.pressed.connect(func():
+		play_audition_stinger(&"Danger_Hit")
+		stinger_requested.emit(&"Danger_Hit", 1)
+	)
 	right_panel.add_child(btn_stinger_danger)
 	
 	split.add_child(right_panel)
+
+func play_audition_stinger(stinger_name: StringName) -> void:
+	if stinger_player:
+		stinger_player.stream = AudioSynthesizerClass.create_chord_loop(0.8)
+		stinger_player.pitch_scale = 1.3 if "Victory" in str(stinger_name) else 0.7
+		stinger_player.volume_db = 2.0
+		stinger_player.play()
 
 func _add_track_lane(layer_name: String, min_int: float, max_int: float, color: Color) -> void:
 	var lane_panel = PanelContainer.new()

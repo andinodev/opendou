@@ -5,6 +5,8 @@ const OpenDouStudioMainClass = preload("res://addons/opendou/editor/opendou_stud
 const OpenDouMixerDrawerClass = preload("res://addons/opendou/editor/opendou_mixer_drawer.gd")
 const OpenDouMusicTimelineClass = preload("res://addons/opendou/editor/opendou_music_timeline.gd")
 const OpenDouDialogueGridClass = preload("res://addons/opendou/editor/opendou_dialogue_grid.gd")
+const OpenDouGameSyncsPanelClass = preload("res://addons/opendou/editor/opendou_game_syncs_panel.gd")
+const OpenDouGraphSerializerClass = preload("res://addons/opendou/editor/opendou_graph_serializer.gd")
 const OpenDouConvolutionGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_convolution_graph_node.gd")
 const OpenDouGranularGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_granular_graph_node.gd")
 const OpenDouBinauralGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_binaural_graph_node.gd")
@@ -29,13 +31,15 @@ static func run_all() -> Array[String]:
 	timeline._on_intensity_slider_changed(0.85)
 	if timeline.active_intensity != 0.85:
 		failures.append("Test 2b Failed: Intensity slider value mismatch")
+	timeline.play_audition_stinger(&"Victory_Brass")
 	timeline.free()
 	
 	# Test 3: OpenDouDialogueGrid
 	var dlg_grid = OpenDouDialogueGridClass.new()
 	dlg_grid._on_locale_selected(1) # Spanish
 	if dlg_grid.dialogue_manager.current_language != "es":
-		failures.append("Test 3 Failed: Dialogue grid locale switch to es failed")
+		failures.append("Test 3a Failed: Dialogue grid locale switch to es failed")
+	dlg_grid.audition_dialogue_key(&"HERO_GREETING_01", "es")
 	dlg_grid.free()
 	
 	# Test 4: New DSP Graph Nodes
@@ -55,19 +59,39 @@ static func run_all() -> Array[String]:
 		failures.append("Test 4c Failed: Binaural node metrics label not formatted")
 	bin_node.free()
 	
-	# Test 5: OpenDouStudioMain Workspaces Switching
+	# Test 5: Game Syncs Persistence (Disk serialization & deserialization)
+	var syncs_panel = OpenDouGameSyncsPanelClass.new()
+	syncs_panel._on_add_rtpc_pressed()
+	if not syncs_panel.rtpcs.has(&"RTPC_5"):
+		failures.append("Test 5a Failed: New RTPC not added to registry")
+	syncs_panel.save_syncs_to_disk()
+	var reload_syncs = OpenDouGameSyncsPanelClass.new()
+	if not reload_syncs.rtpcs.has(&"RTPC_5"):
+		failures.append("Test 5b Failed: Persistent syncs not reloaded from disk")
+	syncs_panel.free()
+	reload_syncs.free()
+	
+	# Test 6: OpenDouStudioMain Workspaces Switching & Live Graph Audition
 	var studio = OpenDouStudioMainClass.new()
 	studio.set_workspace_mode(OpenDouStudioMainClass.WorkspaceMode.MODE_MUSIC_DAW)
 	if not studio.music_timeline.visible or studio.graph_editor.visible:
-		failures.append("Test 5a Failed: Music DAW workspace mode did not toggle visibility correctly")
+		failures.append("Test 6a Failed: Music DAW workspace mode did not toggle visibility correctly")
 		
 	studio.set_workspace_mode(OpenDouStudioMainClass.WorkspaceMode.MODE_DIALOGUE_GRID)
 	if not studio.dialogue_grid.visible or studio.music_timeline.visible:
-		failures.append("Test 5b Failed: Dialogue Grid workspace mode did not toggle visibility correctly")
+		failures.append("Test 6b Failed: Dialogue Grid workspace mode did not toggle visibility correctly")
 		
 	studio._on_toggle_mixer_toggled(true)
 	if not studio.mixer_drawer.visible:
-		failures.append("Test 5c Failed: Mixer drawer toggle failed")
+		failures.append("Test 6c Failed: Mixer drawer toggle failed")
 		
+	# Test Graph compilation from canvas
+	var compiled = OpenDouGraphSerializerClass.build_composite_from_graph(studio.graph_editor)
+	if compiled.get("root_node") == null and compiled.get("audio_files").is_empty():
+		failures.append("Test 6d Failed: Graph serializer failed to compile active graph editor")
+		
+	studio.transport_bar._on_play_pressed()
+	studio.transport_bar._on_stop_pressed()
 	studio.free()
+	
 	return failures

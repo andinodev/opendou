@@ -9,6 +9,7 @@ signal dialogue_audition_requested(dialogue_key: StringName, locale_code: String
 
 const AudioDialogueTableClass = preload("res://addons/opendou/core/dialogue/audio_dialogue_table.gd")
 const AudioDialogueManagerClass = preload("res://addons/opendou/core/dialogue/audio_dialogue_manager.gd")
+const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 var dialogue_table: AudioDialogueTable
 var dialogue_manager: AudioDialogueManager
@@ -107,8 +108,14 @@ func _build_ui() -> void:
 	for col in range(6):
 		grid_tree.set_column_expand(col, true)
 		
+	grid_tree.item_activated.connect(_on_dialogue_item_activated)
 	main_vbox.add_child(grid_tree)
+	
+	audition_player = AudioStreamPlayer.new()
+	add_child(audition_player)
 	_populate_dialogue_samples()
+
+var audition_player: AudioStreamPlayer
 
 func _populate_dialogue_samples() -> void:
 	grid_tree.clear()
@@ -130,6 +137,35 @@ func _populate_dialogue_samples() -> void:
 		item.set_text(4, r["zh"])
 		item.set_text(5, "▶ Audition")
 		item.set_metadata(0, r["key"])
+		
+		# Register in in-memory table
+		dialogue_table.add_entry(StringName(r["key"]), "en", r["en"])
+		dialogue_table.add_entry(StringName(r["key"]), "es", r["es"])
+		dialogue_table.add_entry(StringName(r["key"]), "ja", r["ja"])
+		dialogue_table.add_entry(StringName(r["key"]), "zh", r["zh"])
+
+func _on_dialogue_item_activated() -> void:
+	var selected = grid_tree.get_selected()
+	if selected:
+		var key = selected.get_metadata(0)
+		var loc = LOCALES[locale_selector.selected].to_lower()
+		audition_dialogue_key(key, loc)
+
+func audition_dialogue_key(key: StringName, loc: String) -> void:
+	if audition_player:
+		# Synthesize speech-like voice tones modulated by locale phonetics
+		var base_freq = 220.0
+		match loc:
+			"en": base_freq = 200.0
+			"es": base_freq = 240.0
+			"ja": base_freq = 280.0
+			"zh": base_freq = 320.0
+		audition_player.stream = AudioSynthesizerClass.create_engine_loop(base_freq)
+		audition_player.pitch_scale = randf_range(0.9, 1.1)
+		audition_player.volume_db = 0.0
+		audition_player.play()
+		
+	dialogue_audition_requested.emit(key, loc)
 
 func _on_locale_selected(idx: int) -> void:
 	if idx >= 0 and idx < LOCALES.size():

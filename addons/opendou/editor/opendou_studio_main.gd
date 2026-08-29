@@ -286,7 +286,23 @@ func _build_ui() -> void:
 	
 	# 4. Compact Bottom Audition Transport Bar
 	transport_bar = OpenDouTransportBarClass.new()
+	transport_bar.active_graph_editor = graph_editor
 	content_container.add_child(transport_bar)
+	
+	# Wire live reactivity between panels
+	game_syncs_panel.syncs_updated.connect(func():
+		if transport_bar and game_syncs_panel:
+			transport_bar.populate_from_game_syncs(game_syncs_panel.rtpcs)
+	)
+	
+	if game_syncs_panel:
+		transport_bar.populate_from_game_syncs(game_syncs_panel.rtpcs)
+		
+	if mixer_drawer:
+		mixer_drawer.snapshot_triggered.connect(func(snap_name, blend_t):
+			if snapshot_manager:
+				snapshot_manager.transition_to(snap_name, blend_t)
+		)
 	
 	# Initialize default state
 	_on_event_preset_selected(0)
