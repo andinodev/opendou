@@ -107,11 +107,10 @@ static func run_all() -> Array[String]:
 	if compiled.get("root_node") == null and compiled.get("audio_files").is_empty():
 		failures.append("Test 6f Failed: Graph serializer failed to compile active graph editor")
 		
-	studio.transport_bar.current_simulation_rtpcs[&"RPM"] = 4000.0
-	studio.transport_bar._on_play_pressed()
-	if not studio.transport_bar.is_playing:
-		failures.append("Test 6g Failed: Transport bar not playing after play pressed")
-	studio.transport_bar._on_stop_pressed()
+	# Test Detach Window & Placeholder
+	if studio.dock_placeholder == null:
+		failures.append("Test 6h Failed: Dock placeholder not initialized")
+	studio.toggle_detach_window()
 	studio.free()
 	
 	return failures

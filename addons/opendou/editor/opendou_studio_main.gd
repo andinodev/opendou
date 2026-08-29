@@ -86,7 +86,47 @@ func _init() -> void:
 	custom_minimum_size = Vector2(0, 0)
 	_build_ui()
 
+var dock_placeholder: PanelContainer
+
 func _build_ui() -> void:
+	# 0. Dock Placeholder View (Shown in bottom dock when window is detached)
+	dock_placeholder = PanelContainer.new()
+	dock_placeholder.anchors_preset = Control.PRESET_FULL_RECT
+	dock_placeholder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dock_placeholder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dock_placeholder.visible = false
+	add_child(dock_placeholder)
+	
+	var ph_margin = MarginContainer.new()
+	ph_margin.add_theme_constant_override("margin_left", 16)
+	ph_margin.add_theme_constant_override("margin_top", 12)
+	ph_margin.add_theme_constant_override("margin_right", 16)
+	ph_margin.add_theme_constant_override("margin_bottom", 12)
+	dock_placeholder.add_child(ph_margin)
+	
+	var ph_hbox = HBoxContainer.new()
+	ph_hbox.add_theme_constant_override("separation", 16)
+	ph_margin.add_child(ph_hbox)
+	
+	var ph_lbl = Label.new()
+	ph_lbl.text = "🎧 OpenDou Audio Studio is running in a Floating Window."
+	ph_lbl.add_theme_font_size_override("font_size", 12)
+	ph_hbox.add_child(ph_lbl)
+	
+	var ph_spacer = Control.new()
+	ph_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ph_hbox.add_child(ph_spacer)
+	
+	var btn_bring_front = Button.new()
+	btn_bring_front.text = "🗗 Bring Window to Front"
+	btn_bring_front.pressed.connect(detach_and_maximize)
+	ph_hbox.add_child(btn_bring_front)
+	
+	var btn_dock_back = Button.new()
+	btn_dock_back.text = "📥 Dock Back to Editor"
+	btn_dock_back.pressed.connect(toggle_detach_window)
+	ph_hbox.add_child(btn_dock_back)
+
 	content_container = VBoxContainer.new()
 	content_container.anchors_preset = Control.PRESET_FULL_RECT
 	content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -408,40 +448,62 @@ func _on_tcp_toggled(is_on: bool) -> void:
 		if profiler_panel:
 			profiler_panel.is_connected = false
 
+func get_editor_root_node() -> Node:
+	if is_inside_tree() and get_tree() and get_tree().root:
+		return get_tree().root
+	var ml = Engine.get_main_loop()
+	if ml is SceneTree and ml.root:
+		return ml.root
+	return null
+
 ## Toggles between docked bottom panel and floating multi-monitor window with 100% elastic resizing.
 func toggle_detach_window() -> void:
+	var root_node = get_editor_root_node()
 	if not is_detached:
+		if not root_node:
+			call_deferred("toggle_detach_window")
+			return
+			
 		is_detached = true
-		if get_tree() and get_tree().root:
-			content_container.reparent(get_tree().root)
+		if dock_placeholder:
+			dock_placeholder.visible = true
 			
-			detached_window = Window.new()
-			detached_window.title = "OpenDou Audio Studio (Godot 4.7+)"
-			detached_window.size = Vector2i(1280, 720)
-			detached_window.wrap_controls = false
-			detached_window.mode = Window.MODE_MAXIMIZED
-			detached_window.close_requested.connect(toggle_detach_window)
-			
-			get_tree().root.add_child(detached_window)
-			content_container.reparent(detached_window)
-			
-			# Set full rect stretch inside Window
-			content_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 0)
-			content_container.size = detached_window.size
-			detached_window.size_changed.connect(func():
-				if content_container and detached_window:
-					content_container.size = detached_window.size
-			)
-			
-			detach_btn.text = "📥 Attach"
-			detach_btn.tooltip_text = "Dock Studio back into Godot Editor"
-			
-			detached_window.popup()
+		if content_container:
+			content_container.visible = true
+			if content_container.get_parent():
+				content_container.get_parent().remove_child(content_container)
+				
+		detached_window = Window.new()
+		detached_window.title = "OpenDou Audio Studio (Godot 4.7+)"
+		detached_window.size = Vector2i(1280, 720)
+		detached_window.wrap_controls = false
+		detached_window.mode = Window.MODE_MAXIMIZED
+		detached_window.close_requested.connect(toggle_detach_window)
+		
+		root_node.add_child(detached_window)
+		detached_window.add_child(content_container)
+		
+		content_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 0)
+		content_container.size = detached_window.size
+		detached_window.size_changed.connect(func():
+			if content_container and detached_window:
+				content_container.size = detached_window.size
+		)
+		
+		detach_btn.text = "📥 Attach"
+		detach_btn.tooltip_text = "Dock Studio back into Godot Editor"
+		
+		detached_window.popup()
+		detached_window.grab_focus()
 	else:
 		is_detached = false
+		if dock_placeholder:
+			dock_placeholder.visible = false
 		if detached_window:
-			content_container.reparent(self)
-			content_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 0)
+			if content_container and content_container.get_parent() == detached_window:
+				detached_window.remove_child(content_container)
+				add_child(content_container)
+				content_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 0)
 			detached_window.queue_free()
 			detached_window = null
 		detach_btn.text = "🗗 Detach"
@@ -449,8 +511,9 @@ func toggle_detach_window() -> void:
 
 ## Detaches the studio into an external maximized multi-monitor floating window.
 func detach_and_maximize() -> void:
-	if not is_detached:
+	if not is_detached or not detached_window:
 		toggle_detach_window()
 	if detached_window:
 		detached_window.mode = Window.MODE_MAXIMIZED
 		detached_window.popup()
+		detached_window.grab_focus()
