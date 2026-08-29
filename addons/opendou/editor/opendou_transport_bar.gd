@@ -277,7 +277,7 @@ func _on_play_pressed() -> void:
 		
 		var ctx = AudioPlaybackContextClass.new()
 		for p_name in current_simulation_rtpcs.keys():
-			ctx.set_rtpc_value(p_name, current_simulation_rtpcs[p_name])
+			ctx.set_rtpc(p_name, current_simulation_rtpcs[p_name])
 			
 		var resolved_voices = root_node.resolve_voices(ctx) if root_node else []
 		

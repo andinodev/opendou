@@ -8,6 +8,10 @@ extends AudioLogicNode
 @export var default_state: StringName = &""
 @export var state_mappings: Dictionary = {} # StringName -> AudioLogicNode
 
+var switch_group: StringName:
+	get: return switch_group_name
+	set(val): switch_group_name = val
+
 func _init(p_switch_group: StringName = &"", p_default_state: StringName = &"") -> void:
 	switch_group_name = p_switch_group
 	default_state = p_default_state

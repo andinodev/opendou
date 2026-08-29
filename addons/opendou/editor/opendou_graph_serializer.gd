@@ -72,16 +72,16 @@ static func build_composite_from_graph(graph_edit: GraphEdit) -> Dictionary:
 static func _compile_node_recursive(visual_node: Node, connections: Array, graph_edit: GraphEdit) -> AudioLogicNode:
 	if visual_node is OpenDouAudioFileGraphNodeClass:
 		var phys = AudioPhysicalNodeClass.new()
-		phys.resource_path = visual_node.audio_file_path
-		phys.pitch = visual_node.pitch_scale
-		phys.volume_db = visual_node.volume_db
+		phys.stream = visual_node._create_matching_stream()
+		phys.pitch_modifier = 1.0
+		phys.volume_offset_db = 0.0
 		return phys
 		
 	elif visual_node is OpenDouRandomGraphNodeClass:
 		var rnd = AudioRandomContainerClass.new()
-		rnd.is_shuffle = visual_node.is_shuffle
-		rnd.pitch_jitter = visual_node.pitch_jitter
-		rnd.volume_jitter_db = visual_node.volume_jitter_db
+		rnd.use_shuffle = visual_node.is_shuffle
+		rnd.pitch_jitter_range = Vector2(-visual_node.pitch_jitter, visual_node.pitch_jitter)
+		rnd.volume_jitter_db_range = Vector2(-visual_node.volume_jitter_db, 0.0)
 		
 		# Find all input connections to this random node
 		for conn in connections:
@@ -102,19 +102,22 @@ static func _compile_node_recursive(visual_node: Node, connections: Array, graph
 				if child_vis:
 					var child_logic = _compile_node_recursive(child_vis, connections, graph_edit)
 					if child_logic:
-						blend.children.append(child_logic)
+						blend.add_layer(child_logic, null)
 		return blend
 		
 	elif visual_node is OpenDouSwitchGraphNodeClass:
 		var sw = AudioSwitchContainerClass.new()
-		sw.switch_group = visual_node.switch_group
+		sw.switch_group_name = visual_node.switch_group
+		var idx = 0
 		for conn in connections:
 			if conn["to_node"] == visual_node.name:
 				var child_vis = graph_edit.get_node_or_null(NodePath(conn["from_node"]))
 				if child_vis:
 					var child_logic = _compile_node_recursive(child_vis, connections, graph_edit)
 					if child_logic:
-						sw.children.append(child_logic)
+						var st_name = StringName("State_%d" % idx)
+						sw.set_state_node(st_name, child_logic)
+						idx += 1
 		return sw
 		
 	return null

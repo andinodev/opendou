@@ -14,6 +14,10 @@ func _init(p_rtpcs: Dictionary = {}, p_switches: Dictionary = {}) -> void:
 func set_rtpc(param_name: StringName, value: float) -> void:
 	rtpc_values[param_name] = value
 
+## Alias for set_rtpc
+func set_rtpc_value(param_name: StringName, value: float) -> void:
+	rtpc_values[param_name] = value
+
 ## Gets an RTPC float value, returning default_value if not found.
 func get_rtpc(param_name: StringName, default_value: float = 0.0) -> float:
 	return rtpc_values.get(param_name, default_value)

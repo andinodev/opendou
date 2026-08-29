@@ -10,6 +10,18 @@ extends AudioLogicNode
 @export var pitch_jitter_range: Vector2 = Vector2(0.0, 0.0) # min/max pitch multiplier delta (e.g. -0.05, +0.05)
 @export var volume_jitter_db_range: Vector2 = Vector2(0.0, 0.0) # min/max volume delta in dB (e.g. -2.0, 0.0)
 
+var is_shuffle: bool:
+	get: return use_shuffle
+	set(val): use_shuffle = val
+
+var pitch_jitter: float:
+	get: return pitch_jitter_range.y
+	set(val): pitch_jitter_range = Vector2(-absf(val), absf(val))
+
+var volume_jitter_db: float:
+	get: return volume_jitter_db_range.y
+	set(val): volume_jitter_db_range = Vector2(-absf(val), 0.0)
+
 var play_history: Array[int] = []
 
 func _init(p_children: Array[AudioLogicNode] = []) -> void:

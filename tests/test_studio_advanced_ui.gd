@@ -86,11 +86,15 @@ static func run_all() -> Array[String]:
 		failures.append("Test 6c Failed: Mixer drawer toggle failed")
 		
 	# Test Graph compilation from canvas
+	studio.graph_editor.load_event_preset(0)
 	var compiled = OpenDouGraphSerializerClass.build_composite_from_graph(studio.graph_editor)
 	if compiled.get("root_node") == null and compiled.get("audio_files").is_empty():
 		failures.append("Test 6d Failed: Graph serializer failed to compile active graph editor")
 		
+	studio.transport_bar.current_simulation_rtpcs[&"RPM"] = 4000.0
 	studio.transport_bar._on_play_pressed()
+	if not studio.transport_bar.is_playing:
+		failures.append("Test 6e Failed: Transport bar not playing after play pressed")
 	studio.transport_bar._on_stop_pressed()
 	studio.free()
 	

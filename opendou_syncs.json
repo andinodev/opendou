@@ -1,0 +1,54 @@
+{
+	"rtpcs": {
+		"Distance": {
+			"default": 0.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"Health": {
+			"default": 100.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RPM": {
+			"default": 1000.0,
+			"max": 8000.0,
+			"min": 0.0
+		},
+		"Speed": {
+			"default": 0.0,
+			"max": 50.0,
+			"min": 0.0
+		}
+	},
+	"states": {
+		"Environment": [
+			"Outdoor",
+			"Cave",
+			"Underwater",
+			"Space"
+		],
+		"GameState": [
+			"Exploration",
+			"Combat",
+			"Stealth",
+			"Defeat"
+		]
+	},
+	"switches": {
+		"SurfaceType": [
+			"Asphalt",
+			"Mud",
+			"Metal",
+			"Stone",
+			"Wood",
+			"Water"
+		],
+		"WeaponType": [
+			"Pistol",
+			"Rifle",
+			"Shotgun",
+			"RocketLauncher"
+		]
+	}
+}
