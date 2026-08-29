@@ -2,18 +2,23 @@
 class_name OpenDouMusicTimeline
 extends PanelContainer
 
-## Professional DAW-style interactive music timeline with Rhythmic BPM Grid Ruler, Multi-Track Headers (Mute, Solo, Volume Fader), High-Definition Waveform Clip Previews, Metronome, Horizontal Zoom, and Quantized Transition Matrix.
+## Professional DAW-style interactive music timeline with Rhythmic BPM Grid Ruler, Multi-Track Headers (Mute, Solo, Volume Fader, Audio File Picker, Delete), Clip Trim Handles, Dynamic Track CRUD ([+ Add Track]), Persistent Suite Serialization (JSON / .tres), Metronome, Horizontal Zoom, and Quantized Transition Matrix.
 
 signal bpm_changed(new_bpm: float)
 signal intensity_changed(new_intensity: float)
 signal transition_requested(target_segment: StringName, sync_mode: int, fade_time: float)
 signal stinger_requested(stinger_name: StringName, sync_mode: int)
+signal dirty_changed(is_dirty: bool)
+signal track_added(track_name: String)
+signal track_deleted(track_name: String)
 
 const MusicClockClass = preload("res://addons/opendou/core/music/music_clock.gd")
 const MusicSegmentClass = preload("res://addons/opendou/core/music/music_segment.gd")
 const MusicTransitionMatrixClass = preload("res://addons/opendou/core/music/music_transition_matrix.gd")
 const MusicStingerQueueClass = preload("res://addons/opendou/core/music/music_stinger_queue.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
+
+const MUSIC_SUITES_SAVE_PATH = "res://opendou_music_suites.json"
 
 class TrackLaneData:
 	var name: String
@@ -24,10 +29,17 @@ class TrackLaneData:
 	var is_solo: bool = false
 	var volume_db: float = 0.0
 	var current_gain: float = 0.0
+	var audio_file_path: String = ""
+	var left_trim_ratio: float = 0.0 # 0.0 to 1.0
+	var right_trim_ratio: float = 1.0 # 0.0 to 1.0
+	var row_container: HBoxContainer
 	var header_panel: PanelContainer
 	var mute_btn: Button
 	var solo_btn: Button
 	var vol_slider: HSlider
+	var file_btn: Button
+	var delete_btn: Button
+	var file_label: Label
 	var meter_rect: Control
 	var waveform_canvas: Control
 
@@ -48,6 +60,7 @@ var zoom_spinbox: SpinBox
 var intensity_slider: HSlider
 var intensity_lbl: Label
 var beat_counter_lbl: Label
+var btn_add_track: Button
 
 # Center Sequencer
 var ruler_canvas: Control
@@ -62,13 +75,21 @@ var fade_duration_spinbox: SpinBox
 var btn_stinger_victory: Button
 var btn_stinger_danger: Button
 
-# Playback State
+# Playback & Dragging State
 var is_playing: bool = false
 var is_paused: bool = false
+var is_dirty: bool = false
 var zoom_factor: float = 1.0 # 0.5 to 3.0
 var active_intensity: float = 0.0
 var current_playhead_ratio: float = 0.0
 var last_reported_beat: int = -1
+var active_suite_name: StringName = &"Dynamic_Combat_Suite.tres"
+
+# File Dialog & Trim Handle Dragging
+var file_dialog: FileDialog
+var pending_file_track_index: int = -1
+var dragging_trim_track: TrackLaneData = null
+var dragging_trim_handle: int = 0 # 1 = left, 2 = right
 
 # Audio Players
 var metronome_player: AudioStreamPlayer
@@ -84,6 +105,7 @@ func _init() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_build_ui()
+	load_from_disk(active_suite_name)
 
 func _build_ui() -> void:
 	# Audio Players
@@ -94,17 +116,13 @@ func _build_ui() -> void:
 	stinger_player.finished.connect(_on_stinger_finished)
 	add_child(stinger_player)
 	
-	stem_players.clear()
-	for i in range(4):
-		var p = AudioStreamPlayer.new()
-		add_child(p)
-		match i:
-			0: p.stream = AudioSynthesizerClass.create_music_pad_loop(2.0)
-			1: p.stream = AudioSynthesizerClass.create_music_bass_loop(2.0)
-			2: p.stream = AudioSynthesizerClass.create_music_drums_loop(2.0)
-			3: p.stream = AudioSynthesizerClass.create_music_brass_loop(2.0)
-		p.volume_db = -80.0
-		stem_players.append(p)
+	# File Dialog for audio clips
+	file_dialog = FileDialog.new()
+	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	file_dialog.access = FileDialog.ACCESS_RESOURCES
+	file_dialog.filters = ["*.wav ; WAV Audio", "*.ogg ; OGG Vorbis"]
+	file_dialog.file_selected.connect(_on_audio_file_selected)
+	add_child(file_dialog)
 	
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 8)
@@ -215,7 +233,7 @@ func _build_ui() -> void:
 	
 	toolbar.add_child(VSeparator.new())
 	
-	# Beat Counter Display
+	# Real-time Beat & Bar Counter
 	beat_counter_lbl = Label.new()
 	beat_counter_lbl.text = "⏱️ Bar 1 : Beat 1.0"
 	beat_counter_lbl.add_theme_font_size_override("font_size", 11)
@@ -261,17 +279,33 @@ func _build_ui() -> void:
 	seq_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	seq_vbox.add_theme_constant_override("separation", 4)
 	
-	# Header Row (Left corner spacer + Rhythmic Timeline Ruler)
+	# Header Row (Left corner spacer with [+ Add Track] + Rhythmic Timeline Ruler)
 	var ruler_row = HBoxContainer.new()
 	ruler_row.add_theme_constant_override("separation", 6)
 	
 	var track_header_spacer = PanelContainer.new()
-	track_header_spacer.custom_minimum_size = Vector2(230, 32)
+	track_header_spacer.custom_minimum_size = Vector2(240, 32)
+	
+	var spacer_hbox = HBoxContainer.new()
+	spacer_hbox.add_theme_constant_override("margin_left", 6)
+	spacer_hbox.add_theme_constant_override("margin_right", 6)
+	spacer_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track_header_spacer.add_child(spacer_hbox)
+	
 	var spacer_lbl = Label.new()
-	spacer_lbl.text = "  Tracks / Stems"
-	spacer_lbl.add_theme_font_size_override("font_size", 10)
+	spacer_lbl.text = "Tracks / Stems"
+	spacer_lbl.add_theme_font_size_override("font_size", 11)
+	spacer_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spacer_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	track_header_spacer.add_child(spacer_lbl)
+	spacer_hbox.add_child(spacer_lbl)
+	
+	btn_add_track = Button.new()
+	btn_add_track.text = "➕ Add Track"
+	btn_add_track.tooltip_text = "Add new custom audio stem layer"
+	btn_add_track.custom_minimum_size = Vector2(85, 24)
+	btn_add_track.pressed.connect(func(): add_new_custom_track())
+	spacer_hbox.add_child(btn_add_track)
+	
 	ruler_row.add_child(track_header_spacer)
 	
 	ruler_canvas = Control.new()
@@ -281,7 +315,7 @@ func _build_ui() -> void:
 	ruler_row.add_child(ruler_canvas)
 	seq_vbox.add_child(ruler_row)
 	
-	# Multi-Track Lanes Stack inside ScrollContainer
+	# Multi-Track Lanes Stack inside functional ScrollContainer
 	scroll_container = ScrollContainer.new()
 	scroll_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -317,6 +351,7 @@ func _build_ui() -> void:
 	transition_target_opt.add_item("Segment: Exploration_Pads", 1)
 	transition_target_opt.add_item("Segment: Boss_Encounter", 2)
 	transition_target_opt.add_item("Segment: Victory_Outro", 3)
+	transition_target_opt.item_selected.connect(func(_idx): mark_dirty(true))
 	right_panel.add_child(transition_target_opt)
 	
 	var sync_lbl = Label.new()
@@ -328,6 +363,7 @@ func _build_ui() -> void:
 	sync_mode_opt.add_item("⏱️ Next Bar (Downbeat)", 0)
 	sync_mode_opt.add_item("🎵 Next Beat", 1)
 	sync_mode_opt.add_item("⚡ Immediate", 2)
+	sync_mode_opt.item_selected.connect(func(_idx): mark_dirty(true))
 	right_panel.add_child(sync_mode_opt)
 	
 	var fade_lbl = Label.new()
@@ -340,6 +376,7 @@ func _build_ui() -> void:
 	fade_duration_spinbox.max_value = 4.0
 	fade_duration_spinbox.step = 0.1
 	fade_duration_spinbox.value = 1.5
+	fade_duration_spinbox.value_changed.connect(func(_v): mark_dirty(true))
 	right_panel.add_child(fade_duration_spinbox)
 	
 	var btn_trigger_trans = Button.new()
@@ -395,30 +432,34 @@ func _build_ui() -> void:
 	right_panel.add_child(btn_stinger_danger)
 	
 	split.add_child(right_panel)
-	
-	# Populate 4 Default Interactive Stems
-	_add_track("Layer 1: Ambient_Pads", 0.0, 0.5, Color(0.2, 0.75, 0.95))
-	_add_track("Layer 2: Stealth_Bass", 0.2, 0.7, Color(0.3, 0.85, 0.45))
-	_add_track("Layer 3: Combat_Drums", 0.5, 1.0, Color(0.98, 0.65, 0.22))
-	_add_track("Layer 4: Brass_Climax", 0.8, 1.0, Color(0.98, 0.25, 0.35))
-	
-	_on_intensity_slider_changed(0.0)
 
-func _add_track(track_name: String, min_int: float, max_int: float, color: Color) -> void:
+## Marks the DAW as dirty or clean, notifying parent editor.
+func mark_dirty(dirty: bool = true) -> void:
+	if is_dirty != dirty:
+		is_dirty = dirty
+		dirty_changed.emit(is_dirty)
+
+## Adds a new customizable stem track with interactive header, file picker, delete button, and waveform canvas.
+func _add_track(track_name: String, min_int: float, max_int: float, color: Color, audio_path: String = "", left_t: float = 0.0, right_t: float = 1.0) -> TrackLaneData:
 	var t = TrackLaneData.new()
 	t.name = track_name
 	t.min_intensity = min_int
 	t.max_intensity = max_int
 	t.color = color
+	t.audio_file_path = audio_path
+	t.left_trim_ratio = left_t
+	t.right_trim_ratio = right_t
 	
 	var row = HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.custom_minimum_size = Vector2(0, 52)
+	row.custom_minimum_size = Vector2(0, 56)
 	row.add_theme_constant_override("separation", 6)
+	t.row_container = row
 	
-	# 1. Track Header (Left Panel, 230px)
+	# 1. Track Header (Left Panel, 240px)
 	var header = PanelContainer.new()
-	header.custom_minimum_size = Vector2(230, 52)
+	header.custom_minimum_size = Vector2(240, 56)
+	t.header_panel = header
 	
 	var header_hbox = HBoxContainer.new()
 	header_hbox.add_theme_constant_override("separation", 6)
@@ -427,19 +468,45 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	# Color badge
 	var badge = ColorRect.new()
 	badge.color = color
-	badge.custom_minimum_size = Vector2(4, 40)
+	badge.custom_minimum_size = Vector2(4, 44)
 	header_hbox.add_child(badge)
 	
 	var info_vbox = VBoxContainer.new()
 	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info_vbox.add_theme_constant_override("separation", 2)
 	
+	# Top line: Track Title + Delete button
+	var top_title_box = HBoxContainer.new()
+	top_title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
 	var name_lbl = Label.new()
 	name_lbl.text = track_name
 	name_lbl.add_theme_font_size_override("font_size", 10)
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	info_vbox.add_child(name_lbl)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_title_box.add_child(name_lbl)
 	
+	# File Picker Button
+	var f_btn = Button.new()
+	f_btn.text = "📁"
+	f_btn.tooltip_text = "Select Audio File (.wav/.ogg)"
+	f_btn.custom_minimum_size = Vector2(22, 18)
+	f_btn.pressed.connect(func(): open_file_dialog_for_track(tracks.find(t)))
+	t.file_btn = f_btn
+	top_title_box.add_child(f_btn)
+	
+	# Delete Track Button
+	var del_btn = Button.new()
+	del_btn.text = "🗑️"
+	del_btn.tooltip_text = "Delete Track"
+	del_btn.custom_minimum_size = Vector2(22, 18)
+	del_btn.pressed.connect(func(): delete_track(t))
+	t.delete_btn = del_btn
+	top_title_box.add_child(del_btn)
+	
+	info_vbox.add_child(top_title_box)
+	
+	# Middle line: Controls (Mute, Solo, Vol Slider)
 	var controls_hbox = HBoxContainer.new()
 	controls_hbox.add_theme_constant_override("separation", 4)
 	
@@ -448,11 +515,12 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	m_btn.text = "M"
 	m_btn.tooltip_text = "Mute Track"
 	m_btn.toggle_mode = true
-	m_btn.custom_minimum_size = Vector2(22, 20)
+	m_btn.custom_minimum_size = Vector2(22, 18)
 	m_btn.toggled.connect(func(is_m):
 		t.is_muted = is_m
 		m_btn.modulate = Color(1.0, 0.3, 0.3) if is_m else Color.WHITE
 		_update_stem_levels()
+		mark_dirty(true)
 	)
 	t.mute_btn = m_btn
 	controls_hbox.add_child(m_btn)
@@ -462,11 +530,12 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	s_btn.text = "S"
 	s_btn.tooltip_text = "Solo Track"
 	s_btn.toggle_mode = true
-	s_btn.custom_minimum_size = Vector2(22, 20)
+	s_btn.custom_minimum_size = Vector2(22, 18)
 	s_btn.toggled.connect(func(is_s):
 		t.is_solo = is_s
 		s_btn.modulate = Color(1.0, 0.9, 0.2) if is_s else Color.WHITE
 		_update_stem_levels()
+		mark_dirty(true)
 	)
 	t.solo_btn = s_btn
 	controls_hbox.add_child(s_btn)
@@ -475,23 +544,34 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	var vol_slider = HSlider.new()
 	vol_slider.min_value = -24.0
 	vol_slider.max_value = 6.0
-	vol_slider.value = 0.0
+	vol_slider.value = t.volume_db
 	vol_slider.step = 0.5
 	vol_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vol_slider.custom_minimum_size = Vector2(60, 0)
+	vol_slider.custom_minimum_size = Vector2(50, 0)
 	vol_slider.value_changed.connect(func(v):
 		t.volume_db = v
 		_update_stem_levels()
+		mark_dirty(true)
 	)
 	t.vol_slider = vol_slider
 	controls_hbox.add_child(vol_slider)
 	
 	info_vbox.add_child(controls_hbox)
+	
+	# Bottom line: Audio File Path Preview
+	var path_lbl = Label.new()
+	path_lbl.text = audio_path.get_file() if not audio_path.is_empty() else "Procedural Synth"
+	path_lbl.add_theme_font_size_override("font_size", 8)
+	path_lbl.modulate = Color(0.6, 0.7, 0.8)
+	path_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	t.file_label = path_lbl
+	info_vbox.add_child(path_lbl)
+	
 	header_hbox.add_child(info_vbox)
 	
 	# Live LED Meter Bar
 	var meter = Control.new()
-	meter.custom_minimum_size = Vector2(8, 40)
+	meter.custom_minimum_size = Vector2(8, 44)
 	meter.draw.connect(func():
 		var s = meter.size
 		meter.draw_rect(Rect2(Vector2.ZERO, s), Color(0.1, 0.12, 0.15, 1.0))
@@ -506,21 +586,234 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	
 	row.add_child(header)
 	
-	# 2. Waveform Clip Canvas
+	# 2. Interactive Waveform Clip Canvas with Trim Handles
 	var wave_canvas = Control.new()
 	wave_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	wave_canvas.custom_minimum_size = Vector2(0, 52)
+	wave_canvas.custom_minimum_size = Vector2(0, 56)
 	wave_canvas.draw.connect(func(): _on_draw_track_waveform(t, wave_canvas))
+	wave_canvas.gui_input.connect(func(ev): _on_waveform_gui_input(t, wave_canvas, ev))
 	t.waveform_canvas = wave_canvas
 	row.add_child(wave_canvas)
 	
 	tracks.append(t)
 	lanes_vbox.add_child(row)
+	
+	# Add matching audio player for this stem
+	var p = AudioStreamPlayer.new()
+	add_child(p)
+	p.volume_db = -80.0
+	_assign_default_or_file_stream(p, tracks.size() - 1, audio_path)
+	stem_players.append(p)
+	
+	return t
+
+func _assign_default_or_file_stream(player: AudioStreamPlayer, idx: int, audio_path: String) -> void:
+	if not audio_path.is_empty() and ResourceLoader.exists(audio_path):
+		var res = ResourceLoader.load(audio_path)
+		if res is AudioStream:
+			player.stream = res
+			return
+	match idx % 4:
+		0: player.stream = AudioSynthesizerClass.create_music_pad_loop(2.0)
+		1: player.stream = AudioSynthesizerClass.create_music_bass_loop(2.0)
+		2: player.stream = AudioSynthesizerClass.create_music_drums_loop(2.0)
+		3: player.stream = AudioSynthesizerClass.create_music_brass_loop(2.0)
+
+## Adds a new custom track dynamically.
+func add_new_custom_track(custom_name: String = "") -> void:
+	var next_idx = tracks.size() + 1
+	var t_name = custom_name if not custom_name.is_empty() else "Layer %d: Stem_%d" % [next_idx, next_idx]
+	var colors = [Color(0.2, 0.75, 0.95), Color(0.3, 0.85, 0.45), Color(0.98, 0.65, 0.22), Color(0.98, 0.25, 0.35), Color(0.75, 0.4, 0.95)]
+	var col = colors[(next_idx - 1) % colors.size()]
+	_add_track(t_name, 0.0, 1.0, col)
+	_update_stem_levels()
+	mark_dirty(true)
+	track_added.emit(t_name)
+
+## Deletes an existing track dynamically.
+func delete_track(t: TrackLaneData) -> void:
+	var idx = tracks.find(t)
+	if idx >= 0:
+		var deleted_name = t.name
+		if t.row_container:
+			t.row_container.queue_free()
+		tracks.remove_at(idx)
+		if idx < stem_players.size():
+			var p = stem_players[idx]
+			stem_players.remove_at(idx)
+			p.queue_free()
+		_update_stem_levels()
+		mark_dirty(true)
+		track_deleted.emit(deleted_name)
+
+func open_file_dialog_for_track(idx: int) -> void:
+	if idx >= 0 and idx < tracks.size():
+		pending_file_track_index = idx
+		if file_dialog:
+			file_dialog.popup_centered(Vector2i(700, 450))
+
+func _on_audio_file_selected(path: String) -> void:
+	if pending_file_track_index >= 0 and pending_file_track_index < tracks.size():
+		var t = tracks[pending_file_track_index]
+		t.audio_file_path = path
+		if t.file_label:
+			t.file_label.text = path.get_file()
+		if pending_file_track_index < stem_players.size():
+			_assign_default_or_file_stream(stem_players[pending_file_track_index], pending_file_track_index, path)
+		if t.waveform_canvas:
+			t.waveform_canvas.queue_redraw()
+		mark_dirty(true)
+
+## Handles mouse dragging on trim handles.
+func _on_waveform_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent) -> void:
+	if ev is InputEventMouseButton:
+		var mb = ev as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				var size = canvas.size
+				var total_w = size.x * zoom_factor
+				var lx = t.left_trim_ratio * total_w
+				var rx = t.right_trim_ratio * total_w
+				if absf(mb.position.x - lx) <= 12.0:
+					dragging_trim_track = t
+					dragging_trim_handle = 1
+				elif absf(mb.position.x - rx) <= 12.0:
+					dragging_trim_track = t
+					dragging_trim_handle = 2
+			else:
+				if dragging_trim_track:
+					dragging_trim_track = null
+					dragging_trim_handle = 0
+					mark_dirty(true)
+	elif ev is InputEventMouseMotion and dragging_trim_track == t:
+		var mm = ev as InputEventMouseMotion
+		var size = canvas.size
+		var total_w = size.x * zoom_factor
+		var ratio = clampf(mm.position.x / total_w, 0.0, 1.0)
+		if dragging_trim_handle == 1:
+			t.left_trim_ratio = minf(ratio, t.right_trim_ratio - 0.05)
+		elif dragging_trim_handle == 2:
+			t.right_trim_ratio = maxf(ratio, t.left_trim_ratio + 0.05)
+		canvas.queue_redraw()
+
+## Persists the active music suites and tracks configuration to disk.
+func save_to_disk() -> void:
+	var root_dict = {}
+	if FileAccess.file_exists(MUSIC_SUITES_SAVE_PATH):
+		var file = FileAccess.open(MUSIC_SUITES_SAVE_PATH, FileAccess.READ)
+		if file:
+			var parsed = JSON.parse_string(file.get_as_text())
+			if parsed is Dictionary:
+				root_dict = parsed
+				
+	var suite_data = {
+		"bpm": clock.bpm if clock else 120.0,
+		"intensity": active_intensity,
+		"tracks": []
+	}
+	for t in tracks:
+		suite_data["tracks"].append({
+			"name": t.name,
+			"min_intensity": t.min_intensity,
+			"max_intensity": t.max_intensity,
+			"color": t.color.to_html(false),
+			"volume_db": t.volume_db,
+			"is_muted": t.is_muted,
+			"is_solo": t.is_solo,
+			"audio_file_path": t.audio_file_path,
+			"left_trim": t.left_trim_ratio,
+			"right_trim": t.right_trim_ratio
+		})
+	root_dict[str(active_suite_name)] = suite_data
+	
+	var out_file = FileAccess.open(MUSIC_SUITES_SAVE_PATH, FileAccess.WRITE)
+	if out_file:
+		out_file.store_string(JSON.stringify(root_dict, "\t"))
+		
+	mark_dirty(false)
+
+## Loads the active music suite configuration from disk, creating default tracks if not present.
+func load_from_disk(suite_name: StringName) -> void:
+	active_suite_name = suite_name
+	# Clear existing tracks and stem players
+	for t in tracks:
+		if t.row_container:
+			t.row_container.queue_free()
+	tracks.clear()
+	for p in stem_players:
+		p.queue_free()
+	stem_players.clear()
+	
+	var loaded = false
+	if FileAccess.file_exists(MUSIC_SUITES_SAVE_PATH):
+		var file = FileAccess.open(MUSIC_SUITES_SAVE_PATH, FileAccess.READ)
+		if file:
+			var parsed = JSON.parse_string(file.get_as_text())
+			if parsed is Dictionary and parsed.has(str(suite_name)):
+				var s_data = parsed[str(suite_name)]
+				var bpm_val = float(s_data.get("bpm", 120.0))
+				_on_bpm_changed(bpm_val)
+				if bpm_spinbox: bpm_spinbox.value = bpm_val
+				var int_val = float(s_data.get("intensity", 0.0))
+				_on_intensity_slider_changed(int_val)
+				if intensity_slider: intensity_slider.value = int_val
+				
+				var track_list = s_data.get("tracks", [])
+				for td in track_list:
+					var col = Color.from_string(str(td.get("color", "ffffff")), Color.WHITE)
+					var t = _add_track(
+						str(td.get("name", "Track")),
+						float(td.get("min_intensity", 0.0)),
+						float(td.get("max_intensity", 1.0)),
+						col,
+						str(td.get("audio_file_path", "")),
+						float(td.get("left_trim", 0.0)),
+						float(td.get("right_trim", 1.0))
+					)
+					t.volume_db = float(td.get("volume_db", 0.0))
+					t.is_muted = bool(td.get("is_muted", false))
+					t.is_solo = bool(td.get("is_solo", false))
+					if t.vol_slider: t.vol_slider.value = t.volume_db
+					if t.mute_btn: t.mute_btn.set_pressed_no_signal(t.is_muted)
+					if t.solo_btn: t.solo_btn.set_pressed_no_signal(t.is_solo)
+				loaded = true
+				
+	if not loaded:
+		# Fallback to default 4 interactive stems
+		_add_track("Layer 1: Ambient_Pads", 0.0, 0.5, Color(0.2, 0.75, 0.95))
+		_add_track("Layer 2: Stealth_Bass", 0.2, 0.7, Color(0.3, 0.85, 0.45))
+		_add_track("Layer 3: Combat_Drums", 0.5, 1.0, Color(0.98, 0.65, 0.22))
+		_add_track("Layer 4: Brass_Climax", 0.8, 1.0, Color(0.98, 0.25, 0.35))
+		_on_intensity_slider_changed(0.0)
+		
+	_update_stem_levels()
+	mark_dirty(false)
+
+func get_ui_state() -> Dictionary:
+	return {
+		"zoom": zoom_factor,
+		"intensity": active_intensity,
+		"bpm": clock.bpm if clock else 120.0,
+		"scroll_h": scroll_container.scroll_horizontal if scroll_container else 0,
+		"scroll_v": scroll_container.scroll_vertical if scroll_container else 0
+	}
+
+func restore_ui_state(st: Dictionary) -> void:
+	if st.has("zoom") and zoom_spinbox:
+		zoom_spinbox.value = st["zoom"] * 100.0
+	if st.has("intensity") and intensity_slider:
+		intensity_slider.value = st["intensity"]
+	if st.has("bpm") and bpm_spinbox:
+		bpm_spinbox.value = st["bpm"]
+	if scroll_container:
+		if st.has("scroll_h"): scroll_container.scroll_horizontal = st["scroll_h"]
+		if st.has("scroll_v"): scroll_container.scroll_vertical = st["scroll_v"]
 
 func _on_bpm_changed(val: float) -> void:
 	if clock:
 		clock.bpm = val
 	bpm_changed.emit(val)
+	mark_dirty(true)
 
 func _on_intensity_slider_changed(val: float) -> void:
 	active_intensity = val
@@ -529,24 +822,16 @@ func _on_intensity_slider_changed(val: float) -> void:
 	intensity_lbl.text = "%d%% (%s)" % [pct, desc]
 	_update_stem_levels()
 	intensity_changed.emit(val)
+	mark_dirty(true)
 
 func load_music_suite(idx: int) -> void:
-	match idx:
-		0: # Dynamic_Combat_Suite
-			_on_bpm_changed(120.0)
-			if bpm_spinbox: bpm_spinbox.value = 120.0
-			_on_intensity_slider_changed(0.5)
-			if intensity_slider: intensity_slider.value = 0.5
-		1: # Exploration_Ambient_Theme
-			_on_bpm_changed(85.0)
-			if bpm_spinbox: bpm_spinbox.value = 85.0
-			_on_intensity_slider_changed(0.15)
-			if intensity_slider: intensity_slider.value = 0.15
-		2: # Boss_Phase_Orchestral
-			_on_bpm_changed(145.0)
-			if bpm_spinbox: bpm_spinbox.value = 145.0
-			_on_intensity_slider_changed(0.95)
-			if intensity_slider: intensity_slider.value = 0.95
+	var suites = [
+		&"Dynamic_Combat_Suite.tres",
+		&"Exploration_Ambient_Theme.tres",
+		&"Boss_Phase_Orchestral.tres"
+	]
+	if idx >= 0 and idx < suites.size():
+		load_from_disk(suites[idx])
 
 func _update_stem_levels() -> void:
 	var any_solo = false
@@ -749,6 +1034,10 @@ func _on_draw_track_waveform(t: TrackLaneData, canvas: Control) -> void:
 	if size.x <= 10.0 or size.y <= 10.0:
 		return
 		
+	var total_w = size.x * zoom_factor
+	var left_trim_x = t.left_trim_ratio * total_w
+	var right_trim_x = t.right_trim_ratio * total_w
+	
 	# 1. Dark Waveform Clip Background
 	var alpha_factor = clampf(t.current_gain, 0.25, 1.0)
 	var bg_col = Color(0.08, 0.1, 0.13, 1.0)
@@ -773,11 +1062,23 @@ func _on_draw_track_waveform(t: TrackLaneData, canvas: Control) -> void:
 		var wave_color = Color(t.color.r, t.color.g, t.color.b, 0.85 * alpha_factor)
 		for i in range(steps):
 			var x = float(i) * 4.0
-			var t_norm = (x / size.x) * 8.0 # 8 beats pattern
+			# Only draw inside active trim window with full color
+			var is_inside_trim = (x >= left_trim_x and x <= right_trim_x)
+			var col = wave_color if is_inside_trim else Color(wave_color.r * 0.3, wave_color.g * 0.3, wave_color.b * 0.3, 0.3)
+			var t_norm = (x / size.x) * 8.0
 			var peak = (sin(t_norm * TAU * 2.0) * 0.4 + sin(t_norm * TAU * 6.0) * 0.3 + sin(t_norm * TAU * 14.0) * 0.3)
 			var amp = absf(peak) * (size.y * 0.4) * clampf(t.current_gain, 0.3, 1.0)
-			canvas.draw_line(Vector2(x, mid_y - amp), Vector2(x, mid_y + amp), wave_color, 2.0)
+			canvas.draw_line(Vector2(x, mid_y - amp), Vector2(x, mid_y + amp), col, 2.0)
 			
-	# 5. Playhead Line
+	# 5. Trim Handles Visuals ([ | and | ])
+	# Left handle
+	canvas.draw_line(Vector2(left_trim_x, 0), Vector2(left_trim_x, size.y), Color(0.3, 0.95, 0.95, 0.9), 2.5)
+	canvas.draw_rect(Rect2(Vector2(left_trim_x, 2), Vector2(6, 12)), Color(0.3, 0.95, 0.95, 1.0))
+	
+	# Right handle
+	canvas.draw_line(Vector2(right_trim_x, 0), Vector2(right_trim_x, size.y), Color(0.95, 0.85, 0.3, 0.9), 2.5)
+	canvas.draw_rect(Rect2(Vector2(right_trim_x - 6, size.y - 14), Vector2(6, 12)), Color(0.95, 0.85, 0.3, 1.0))
+	
+	# 6. Playhead Line
 	var playhead_x = current_playhead_ratio * size.x * zoom_factor
 	canvas.draw_line(Vector2(playhead_x, 0), Vector2(playhead_x, size.y), Color(1.0, 0.35, 0.35, 0.9), 1.5)

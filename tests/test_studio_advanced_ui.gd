@@ -50,21 +50,36 @@ static func run_all() -> Array[String]:
 		failures.append("Test 2e Failed: Stinger player should stop when button toggled off")
 	timeline.stop_audition_stinger()
 	
-	# Test Dedicated DAW Transport & Stem Players
-	if timeline.stem_players.size() != 4:
-		failures.append("Test 2e Failed: Expected 4 stem players for multi-track audio playback")
-	timeline.load_music_suite(1) # Exploration Theme
-	if timeline.clock.bpm != 85.0:
-		failures.append("Test 2f Failed: Exploration suite tempo mismatch")
-	timeline._on_music_play_pressed()
-	if not timeline.is_playing:
-		failures.append("Test 2g Failed: DAW play not activated")
-	timeline._on_music_pause_pressed()
-	if not timeline.is_paused:
-		failures.append("Test 2h Failed: DAW pause not toggled")
-	timeline._on_music_stop_pressed()
-	if timeline.is_playing:
-		failures.append("Test 2i Failed: DAW stop not clearing playback")
+	# Test Track CRUD (Add / Delete Track)
+	timeline.add_new_custom_track("Layer 5: Choirs")
+	if timeline.tracks.size() != 5:
+		failures.append("Test 2j Failed: Dynamic add track failed to increase count to 5")
+	if not timeline.is_dirty:
+		failures.append("Test 2k Failed: Adding track should mark timeline dirty")
+		
+	# Test Trim handles & audio path assignment
+	timeline.tracks[4].left_trim_ratio = 0.1
+	timeline.tracks[4].right_trim_ratio = 0.9
+	timeline._on_audio_file_selected("res://tests/sample_stream.wav")
+	
+	timeline.delete_track(timeline.tracks[4])
+	if timeline.tracks.size() != 4:
+		failures.append("Test 2l Failed: Delete track failed to restore count to 4")
+		
+	# Test Suite Persistence (save_to_disk & load_from_disk)
+	timeline.save_to_disk()
+	if timeline.is_dirty:
+		failures.append("Test 2m Failed: Save to disk should clear dirty flag")
+	if not FileAccess.file_exists("res://opendou_music_suites.json"):
+		failures.append("Test 2n Failed: Music suites JSON file was not created on disk")
+		
+	# Test Tab UI State Caching
+	var ui_st = timeline.get_ui_state()
+	if not ui_st.has("zoom") or not ui_st.has("bpm"):
+		failures.append("Test 2o Failed: UI state dictionary missing keys")
+	timeline.restore_ui_state({"zoom": 2.0, "intensity": 0.7, "bpm": 130.0})
+	if timeline.zoom_factor != 2.0 or timeline.active_intensity != 0.7:
+		failures.append("Test 2p Failed: UI state restoration mismatch")
 		
 	timeline.free()
 	

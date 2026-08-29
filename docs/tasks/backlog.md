@@ -92,3 +92,54 @@ Este archivo almacena el banco de tareas pendientes y planificadas para **OpenDo
   * Metadatos para Godot Asset Library y guía de integración rápida.
 * [x] `TASK-029.3`: **Verificación Final y Release Package:**
   * Ejecución de la suite completa de pruebas con código de salida 0.
+
+---
+
+## 💾 16. Persistencia Real, CRUD de Pistas y Ergonomía del Music DAW (`TASK-030`)
+
+* [ ] `TASK-030.1`: **Indicador de Estado Modificado (`Dirty State *`):**
+  * Al modificar cualquier valor del DAW, mostrar un asterisco junto al nombre del recurso y advertir con un diálogo al cambiar de pestaña si hay cambios sin guardar.
+* [ ] `TASK-030.2`: **Guardado en Disco (`Ctrl+S` / Botón 💾):**
+  * Serialización persistente del recurso `MusicSegment.tres` y su árbol de pistas mediante `ResourceSaver.save()` y JSON de respaldo.
+* [ ] `TASK-030.3`: **Caché y Restauración Visual de Pestañas:**
+  * Guardar en memoria la posición del scroll, nivel de zoom, capas activas y cabezal al alternar entre *Graph*, *Music DAW* y *Dialogues*.
+* [ ] `TASK-030.4`: **CRUD de Pistas (`Add / Delete Track`):**
+  * Botón `[ ➕ Add Track ]` para crear nuevas capas dinámicas y botón `[ 🗑️ ]` para eliminarlas.
+* [ ] `TASK-030.5`: **Asignación de Archivos de Audio (`Audio File Picker`):**
+  * Selector en la cabecera del track (`[ 📁 Load WAV/OGG ]`) mediante `EditorFileDialog` para asignar cualquier archivo del proyecto.
+* [ ] `TASK-030.6`: **Scrollbars y Tiradores de Recorte (`Clip Trim Handles`):**
+  * Barras de desplazamiento horizontal/vertical fluidas en `ScrollContainer` y tiradores en los bordes de los clips para recortar o repetir visualmente.
+
+---
+
+## ⏱️ 17. Marcadores Estructurales y Sub-Pistas Aleatorias (`TASK-031`)
+
+* [ ] `TASK-031.1`: **Marcadores Pre-Entry Cues (Anacrusas / Pickups):**
+  * Marcador visual interactivo que permite que el clip comience a sonar antes del compás 1.
+* [ ] `TASK-031.2`: **Colas de Desbordamiento Post-Exit Tails:**
+  * Cola de reverberación y platillos que sigue sonando sin cortarse abruptamente tras transicionar al siguiente segmento.
+* [ ] `TASK-031.3`: **Sub-Pistas Aleatorias (*Random Multi-Tracks*):**
+  * Carriles de variación dentro de cada capa (ej. Variación A, B y C de batería) que el motor elige aleatoriamente en cada vuelta del bucle de 8 compases.
+
+---
+
+## 📈 18. Automatizaciones RTPC en Línea de Tiempo y Ruteo de Buses (`TASK-032`)
+
+* [ ] `TASK-032.1`: **Carriles de Automatización Desplegables:**
+  * Líneas de curvas de puntos (*Splines / Beziers*) bajo cada pista para automatizar volumen, filtros pasa-bajos (LPF) o envíos auxiliares.
+* [ ] `TASK-032.2`: **Vinculación a Parámetros RTPC:**
+  * Mapeo de curvas a variables del juego (`CombatIntensity`, `Health`, `DangerLevel`).
+* [ ] `TASK-032.3`: **Ruteo de Sub-Buses por Pista:**
+  * Selector en cada cabecera de pista para dirigir la salida a sub-buses específicos de Godot (`Music_Pads`, `Music_Percussion`, `Music_Leads`).
+
+---
+
+## 🎼 19. Gestor de Playlists Musicales y Jerarquía (`TASK-033`)
+
+* [ ] `TASK-033.1`: **Secuenciador de Playlists (`MusicPlaylistManager`):**
+  * Orquestación de flujo de estados musicales (`Intro` $\rightarrow$ `Loop_A (2 a 4 veces)` $\rightarrow$ `Transición` $\rightarrow$ `Loop_B` $\rightarrow$ `Outro`).
+* [ ] `TASK-033.2`: **Reglas de Aleatoriedad y Repetición de Segmentos:**
+  * Lógica no lineal para evitar repetición predecible entre secciones de combate y exploración.
+* [ ] `TASK-033.3`: **Integración de Deshacer/Rehacer (`UndoRedo`):**
+  * Conexión completa al historial del editor de Godot para todas las acciones del DAW.
+

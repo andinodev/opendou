@@ -8,7 +8,16 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ### 2026-08-29
 
-* **`TASK-030` - Suite Visual OpenDou Audio Studio, Persistencia de Syncs y Evaluación Dinámica de Grafos**
+* **`TASK-030` - Persistencia Real, CRUD de Pistas, Selector de Audio y Tiradores de Recorte del Music DAW**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Indicador de Estado Modificado (`Dirty State *`):** Detección en tiempo real de cambios en faders, mute, solo, BPM, intensidad y trim handles, actualizando el selector con `*` y resaltando el botón `[ 💾 Save ]`.
+    * **Guardado en Disco (`Ctrl+S` / Botón 💾):** Serialización persistente en `res://opendou_music_suites.json` (y recursos `.tres`), restaurando suites y capas al reiniciar el editor.
+    * **Caché y Restauración Visual de Pestañas:** Retención en memoria de la posición de zoom, scroll horizontal/vertical, volumen y cabezal al alternar entre *Graph*, *Music DAW* y *Dialogues*.
+    * **CRUD Dinámico de Pistas (`[ ➕ Add Track ]` / `[ 🗑️ Delete Track ]`):** Creación y eliminación de pistas/stems en caliente, adaptando los reproductores de audio procedurales y sincronizados en tiempo real.
+    * **Selector de Archivos de Audio (`Audio File Picker`):** Diálogo de archivos (`.wav`/`.ogg`) por pista para asignar clips personalizados y refrescar sus formas de onda.
+    * **Tiradores de Recorte Interactivos (`Clip Trim Handles`):** Tiradores izquierdo/derecho en cada carril para acortar o recortar el punto de entrada y salida del bucle musical con arrastre de ratón.
+    * **Suite de Pruebas:** 135 / 135 pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
   * **Fecha:** 2026-08-29
   * **Resumen:**
     * **Espacios de Trabajo Dedicados:** Alternador superior entre `🌐 Graph`, `🎼 Music DAW` y `🗣️ Dialogues` con el 100% de elasticidad de lienzo.

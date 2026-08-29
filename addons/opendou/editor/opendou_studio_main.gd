@@ -37,10 +37,12 @@ var btn_mode_graph: Button
 var btn_mode_music: Button
 var btn_mode_dialogue: Button
 var event_selector: OptionButton
+var btn_save: Button
 var locale_selector: OptionButton
 var snap_selector: OptionButton
 var tcp_status_btn: Button
 var detach_btn: Button
+var music_cached_ui_state: Dictionary = {}
 
 # Layout containers
 var main_hsplit: HSplitContainer
@@ -216,6 +218,14 @@ func _build_ui() -> void:
 	event_selector.custom_minimum_size = Vector2(165, 24)
 	header_bar.add_child(event_selector)
 	
+	# Save Button
+	btn_save = Button.new()
+	btn_save.text = "💾 Save"
+	btn_save.tooltip_text = "Save active suite/event to disk (Ctrl+S)"
+	btn_save.custom_minimum_size = Vector2(65, 24)
+	btn_save.pressed.connect(_on_save_pressed)
+	header_bar.add_child(btn_save)
+	
 	# Locale Selector
 	locale_selector = OptionButton.new()
 	locale_selector.add_item("🇺🇸 EN", 0)
@@ -377,12 +387,21 @@ func _build_ui() -> void:
 		if music_timeline and music_timeline.bpm_spinbox:
 			music_timeline.bpm_spinbox.value = bpm
 	)
+	
+	if music_timeline:
+		music_timeline.dirty_changed.connect(func(is_d: bool):
+			_update_event_dirty_indicator(is_d)
+		)
 
 	# Initialize default state
 	_on_event_preset_selected(0)
 
 ## Switches between Graph Editor, Music DAW, and Dialogue Grid workspaces.
 func set_workspace_mode(mode: WorkspaceMode) -> void:
+	# Cache outgoing UI state
+	if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+		music_cached_ui_state = music_timeline.get_ui_state()
+		
 	current_workspace = mode
 	if graph_editor:
 		graph_editor.visible = (mode == WorkspaceMode.MODE_GRAPH)
@@ -411,7 +430,9 @@ func set_workspace_mode(mode: WorkspaceMode) -> void:
 				# Auto-collapse Left Sidebar to give 100% horizontal width to Music Timeline
 				btn_toggle_syncs.button_pressed = false
 				if game_syncs_panel: game_syncs_panel.visible = false
-				if music_timeline:
+				if not music_cached_ui_state.is_empty() and music_timeline:
+					music_timeline.restore_ui_state(music_cached_ui_state)
+				elif music_timeline:
 					music_timeline.load_music_suite(0)
 				
 			WorkspaceMode.MODE_DIALOGUE_GRID:
@@ -420,6 +441,39 @@ func set_workspace_mode(mode: WorkspaceMode) -> void:
 				# Collapse Left Sidebar
 				btn_toggle_syncs.button_pressed = false
 				if game_syncs_panel: game_syncs_panel.visible = false
+
+func _on_save_pressed() -> void:
+	if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+		music_timeline.save_to_disk()
+		_update_event_dirty_indicator(false)
+	elif current_workspace == WorkspaceMode.MODE_GRAPH:
+		if game_syncs_panel:
+			game_syncs_panel.save_syncs_to_disk()
+		_update_event_dirty_indicator(false)
+
+func _update_event_dirty_indicator(is_d: bool) -> void:
+	if not event_selector or event_selector.item_count == 0:
+		return
+	var cur_idx = event_selector.selected
+	if cur_idx < 0:
+		cur_idx = 0
+	var cur_text = event_selector.get_item_text(cur_idx)
+	if is_d:
+		if not cur_text.ends_with(" *"):
+			event_selector.set_item_text(cur_idx, cur_text + " *")
+		if btn_save:
+			btn_save.modulate = Color(0.4, 1.0, 0.4)
+	else:
+		if cur_text.ends_with(" *"):
+			event_selector.set_item_text(cur_idx, cur_text.substr(0, cur_text.length() - 2))
+		if btn_save:
+			btn_save.modulate = Color.WHITE
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_S and (event.ctrl_pressed or event.meta_pressed):
+			_on_save_pressed()
+			get_viewport().set_input_as_handled()
 
 func _on_toggle_syncs_toggled(is_open: bool) -> void:
 	if game_syncs_panel:
