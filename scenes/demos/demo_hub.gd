@@ -12,8 +12,11 @@ const DEMO_SCENES = {
 	6: "res://scenes/demos/06_soundbank_streaming/demo_soundbank_streaming.tscn"
 }
 
+const MASTER_SANDBOX_SCENE = "res://scenes/demos/master_sandbox/master_vertical_slice.tscn"
+
 var active_demo_node: Node = null
 
+@onready var btn_master: Button = get_node_or_null("MainContainer/HeaderPanel/Margin/HBox/BtnMasterSandbox")
 @onready var btn_launch1: Button = get_node_or_null("MainContainer/GridContainer/Card1/Margin/VBox/BtnLaunch1")
 @onready var btn_launch2: Button = get_node_or_null("MainContainer/GridContainer/Card2/Margin/VBox/BtnLaunch2")
 @onready var btn_launch3: Button = get_node_or_null("MainContainer/GridContainer/Card3/Margin/VBox/BtnLaunch3")
@@ -26,6 +29,8 @@ func _ready() -> void:
 	_connect_ui()
 
 func _connect_ui() -> void:
+	if btn_master:
+		btn_master.pressed.connect(func(): get_tree().change_scene_to_file(MASTER_SANDBOX_SCENE))
 	if btn_launch1:
 		btn_launch1.pressed.connect(func(): switch_to_demo(1))
 	if btn_launch2:

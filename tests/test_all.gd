@@ -26,6 +26,12 @@ const TestRadarViewClass = preload("res://tests/test_radar_view.gd")
 const TestBankPanelClass = preload("res://tests/test_bank_panel.gd")
 const TestStudioMainClass = preload("res://tests/test_studio_main.gd")
 const TestDemoSuiteClass = preload("res://tests/test_demo_suite.gd")
+const TestHDRSnapshotsClass = preload("res://tests/test_hdr_snapshots.gd")
+const TestInteractiveMusicClass = preload("res://tests/test_interactive_music.gd")
+const TestDialogueLocalizationClass = preload("res://tests/test_dialogue_localization.gd")
+const TestEarlyReflectionsHRTFClass = preload("res://tests/test_early_reflections_hrtf.gd")
+const TestDSPAdvancedClass = preload("res://tests/test_dsp_advanced.gd")
+const TestProfilerRewindClass = preload("res://tests/test_profiler_rewind.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -130,6 +136,30 @@ static func run_suite() -> Dictionary:
 	var r25 = TestDemoSuiteClass.run_all()
 	total_tests += 7
 	all_failures.append_array(r25)
+	
+	var r26 = TestHDRSnapshotsClass.run_all()
+	total_tests += 9
+	all_failures.append_array(r26)
+	
+	var r27 = TestInteractiveMusicClass.run_all()
+	total_tests += 10
+	all_failures.append_array(r27)
+	
+	var r28 = TestDialogueLocalizationClass.run_all()
+	total_tests += 7
+	all_failures.append_array(r28)
+	
+	var r29 = TestEarlyReflectionsHRTFClass.run_all()
+	total_tests += 7
+	all_failures.append_array(r29)
+	
+	var r30 = TestDSPAdvancedClass.run_all()
+	total_tests += 5
+	all_failures.append_array(r30)
+	
+	var r31 = TestProfilerRewindClass.run_all()
+	total_tests += 6
+	all_failures.append_array(r31)
 	
 	return {
 		"total": total_tests,

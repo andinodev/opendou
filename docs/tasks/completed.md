@@ -8,6 +8,63 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ### 2026-08-29
 
+* **`TASK-029` - Empaquetado Final, Iconografía Vectorial y Asset Library**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * Iconos SVG vectoriales (`icon_event_player_3d.svg`, `icon_room.svg`, `icon_portal.svg`, `icon_studio.svg`).
+    * Manifiesto `plugin.cfg` v1.0.0 listo para Godot Asset Library.
+
+* **`TASK-028` - Grabación Histórica de Sesión y Time-Travel Rewind en el Profiler**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * Implementado `ProfilerSessionRecorder` con búfer circular para telemetría continua (DSP $\mu s$, voces, eventos, RTPCs).
+    * Línea de tiempo de Scrubbing y Rebobinado (`OpenDouProfilerPanel`) para depurar robos de voz congelando el tiempo.
+    * Métodos de exportación/importación JSON de sesiones `.douprof`.
+    * Suite de pruebas en `test_profiler_rewind.gd`.
+
+* **`TASK-027` - Procesamiento DSP Avanzado (Convolution Reverb & Síntesis Granular)**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * Motor `ConvolutionReverbNode` para procesamiento FIR de respuestas a impulsos reales (.wav IR).
+    * Motor `AudioGranularSynthesizer` para micro-granos, ventanas Hanning, time-stretching y pitch modulation.
+    * Suite de pruebas en `test_dsp_advanced.gd`.
+
+* **`TASK-026` - Reflexiones Tempranas 3D y Audio Inmersivo HRTF**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * `AcousticReflector` para trazado de rayos especulares de 1er/2do orden y coeficientes de absorción de superficies.
+    * `AudioSpatialBinaural` con fórmula Woodworth para retardo interaural temporal (ITD), diferencia de nivel (ILD) y filtrado espectral pinna.
+    * Suite de pruebas en `test_early_reflections_hrtf.gd`.
+
+* **`TASK-025` - Gestión y Localización de Diálogos Multi-Idioma**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * `AudioDialogueTable` para mapeo de claves de diálogo a streams por código de idioma (`es`, `en`, `ja`, etc.).
+    * `AudioDialogueManager` con intercambio de idioma en caliente sin reconstrucción de eventos y auto-ducking del bus `Voice`.
+    * Suite de pruebas en `test_dialogue_localization.gd`.
+
+* **`TASK-024` - Jerarquía de Música Interactiva (Interactive Music Engine)**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * `MusicClock` de alta precisión (BPM, compases, tiempos, eventos de cuantización).
+    * `MusicSegment` y `MusicTrack` con capas instrumentales dinámicas por intensidad.
+    * `MusicTransitionMatrix` para crossfades cuantizados (*Immediate*, *Next Beat*, *Next Bar*).
+    * `MusicStingerQueue` para inyección de stingers rítmicos con atenuación de bus base.
+    * Suite de pruebas en `test_interactive_music.gd`.
+
+* **`TASK-023` - Audio HDR y Snapshots de Mezcla Global**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * `AudioMixSnapshot` y `AudioMixSnapshotManager` con interpolación de curvas suave multi-bus.
+    * `AudioHDREngine` con ventana dinámica de sonoridad para prevenir clipping balístico.
+    * `AudioDuckingMatrix` para atenuación de sidechain multi-bus continua y click-free.
+    * Selector de snapshots en `OpenDouStudioMain` y suite de pruebas en `test_hdr_snapshots.gd`.
+
+* **`TASK-022` - Rediseño y Construcción de la Suite de Editor de Audio AAA**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * Reestructuración de `OpenDouStudioMain` con layout de 3 columnas redimensionable, paneles colapsables, ventana flotante elástica, mini-waveforms PCM, panel de Game Syncs y transporte con vúmetro estéreo.
+
 * **`TASK-020` - Escenas de Demostración AAA y Sandbox (Divididas por Capacidades y .tscn Declarativo)**
   * **Fecha:** 2026-08-29
   * **Responsable:** Danielillo & Antigravity

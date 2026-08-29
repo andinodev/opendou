@@ -17,18 +17,22 @@ current = true
 
 [node name="Zone_Wood" type="CSGBox3D" parent="Environment3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -6)
+use_collision = true
 size = Vector3(10, 0.4, 10)
 
 [node name="Zone_Concrete" type="CSGBox3D" parent="Environment3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -6)
+use_collision = true
 size = Vector3(10, 0.4, 10)
 
 [node name="Zone_Metal" type="CSGBox3D" parent="Environment3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 6)
+use_collision = true
 size = Vector3(10, 0.4, 10)
 
 [node name="Zone_Water" type="CSGBox3D" parent="Environment3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 6)
+use_collision = true
 size = Vector3(10, 0.4, 10)
 
 [node name="CharacterMarker" type="CSGCylinder3D" parent="Environment3D"]

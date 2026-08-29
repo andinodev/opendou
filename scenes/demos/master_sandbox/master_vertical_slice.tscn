@@ -1,0 +1,318 @@
+[gd_scene load_steps=5 format=3 uid="uid://c587v2n1ql7pq"]
+
+[ext_resource type="Script" path="res://scenes/demos/master_sandbox/master_vertical_slice.gd" id="1_master_script"]
+[ext_resource type="Script" path="res://scenes/demos/master_sandbox/player_controller.gd" id="2_player_script"]
+[ext_resource type="Script" path="res://scenes/demos/master_sandbox/armored_vehicle.gd" id="3_vehicle_script"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.5
+height = 1.8
+
+[node name="MasterVerticalSlice" type="Node3D"]
+script = ExtResource("1_master_script")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 25, 0)
+shadow_enabled = true
+
+[node name="LevelGeometry" type="Node3D" parent="."]
+
+[node name="Sector1_TacticalSiege" type="Node3D" parent="LevelGeometry"]
+
+[node name="AsphaltFloor" type="CSGBox3D" parent="LevelGeometry/Sector1_TacticalSiege"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -0.1, 0)
+use_collision = true
+size = Vector3(50, 0.2, 50)
+
+[node name="MudTrench" type="CSGBox3D" parent="LevelGeometry/Sector1_TacticalSiege"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0.05, -15)
+use_collision = true
+size = Vector3(15, 0.3, 15)
+
+[node name="MetalPlatform" type="CSGBox3D" parent="LevelGeometry/Sector1_TacticalSiege"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0.05, 15)
+use_collision = true
+size = Vector3(15, 0.3, 15)
+
+[node name="Barricade1" type="CSGBox3D" parent="LevelGeometry/Sector1_TacticalSiege"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1, -5)
+use_collision = true
+size = Vector3(1, 2, 8)
+
+[node name="Barricade2" type="CSGBox3D" parent="LevelGeometry/Sector1_TacticalSiege"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1, 8)
+use_collision = true
+size = Vector3(1, 2, 6)
+
+[node name="ArmoredVehicle" type="Node3D" parent="LevelGeometry/Sector1_TacticalSiege"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0.5, -20)
+script = ExtResource("3_vehicle_script")
+
+[node name="Body" type="CSGBox3D" parent="LevelGeometry/Sector1_TacticalSiege/ArmoredVehicle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+use_collision = true
+size = Vector3(3, 1.6, 5)
+
+[node name="Turret" type="CSGBox3D" parent="LevelGeometry/Sector1_TacticalSiege/ArmoredVehicle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+size = Vector3(1.8, 0.8, 2.2)
+
+[node name="Cannon" type="CSGCylinder3D" parent="LevelGeometry/Sector1_TacticalSiege/ArmoredVehicle"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 2, 2)
+radius = 0.2
+height = 2.5
+
+[node name="EngineAudio" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector1_TacticalSiege/ArmoredVehicle"]
+
+[node name="ChaosEmittersParent" type="Node3D" parent="LevelGeometry/Sector1_TacticalSiege"]
+
+[node name="Sector2_DarkCrypt" type="Node3D" parent="LevelGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 0)
+
+[node name="CryptFloor" type="CSGBox3D" parent="LevelGeometry/Sector2_DarkCrypt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, -0.1, 0)
+use_collision = true
+size = Vector3(40, 0.2, 35)
+
+[node name="CryptWalls" type="CSGBox3D" parent="LevelGeometry/Sector2_DarkCrypt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 3.5, 0)
+use_collision = true
+size = Vector3(38, 7, 33)
+
+[node name="CryptInterior" type="CSGBox3D" parent="LevelGeometry/Sector2_DarkCrypt/CryptWalls"]
+operation = 2
+size = Vector3(36, 6.6, 31)
+
+[node name="EntranceOpening" type="CSGBox3D" parent="LevelGeometry/Sector2_DarkCrypt/CryptWalls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19, -1.5, 0)
+operation = 2
+size = Vector3(4, 4, 4)
+
+[node name="CryptGate" type="CSGBox3D" parent="LevelGeometry/Sector2_DarkCrypt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 2, 0)
+use_collision = true
+size = Vector3(0.4, 3.8, 3.8)
+
+[node name="Pillar1" type="CSGBox3D" parent="LevelGeometry/Sector2_DarkCrypt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 3.5, -6)
+use_collision = true
+size = Vector3(2.5, 7, 2.5)
+
+[node name="Pillar2" type="CSGBox3D" parent="LevelGeometry/Sector2_DarkCrypt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 3.5, 6)
+use_collision = true
+size = Vector3(2.5, 7, 2.5)
+
+[node name="Pillar3" type="CSGBox3D" parent="LevelGeometry/Sector2_DarkCrypt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 3.5, 0)
+use_collision = true
+size = Vector3(3, 7, 3)
+
+[node name="MonsterEmitter" type="CSGSphere3D" parent="LevelGeometry/Sector2_DarkCrypt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 2, 0)
+radius = 1.0
+
+[node name="MonsterAudio" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector2_DarkCrypt/MonsterEmitter"]
+autoplay = true
+
+[node name="TorchEmitter" type="CSGSphere3D" parent="LevelGeometry/Sector2_DarkCrypt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 2.5, -12)
+radius = 0.4
+
+[node name="TorchLight" type="OmniLight3D" parent="LevelGeometry/Sector2_DarkCrypt/TorchEmitter"]
+light_color = Color(1, 0.6, 0.2, 1)
+light_energy = 2.0
+omni_range = 10.0
+
+[node name="TorchAudio" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector2_DarkCrypt/TorchEmitter"]
+autoplay = true
+
+[node name="Sector3_CalibrationRoom" type="Node3D" parent="LevelGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 35)
+
+[node name="GlassFloor" type="CSGBox3D" parent="LevelGeometry/Sector3_CalibrationRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+use_collision = true
+size = Vector3(25, 0.2, 20)
+
+[node name="GlassChamber" type="CSGBox3D" parent="LevelGeometry/Sector3_CalibrationRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+use_collision = true
+size = Vector3(24, 6, 19)
+
+[node name="GlassInterior" type="CSGBox3D" parent="LevelGeometry/Sector3_CalibrationRoom/GlassChamber"]
+operation = 2
+size = Vector3(23.2, 5.6, 18.2)
+
+[node name="GlassDoorOpening" type="CSGBox3D" parent="LevelGeometry/Sector3_CalibrationRoom/GlassChamber"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, -9.5)
+operation = 2
+size = Vector3(4, 4, 4)
+
+[node name="GeneratorEmitter" type="CSGBox3D" parent="LevelGeometry/Sector3_CalibrationRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 1.5, 0)
+use_collision = true
+size = Vector3(2.5, 3, 2.5)
+
+[node name="GeneratorAudio" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector3_CalibrationRoom/GeneratorEmitter"]
+autoplay = true
+
+[node name="AlarmEmitter" type="CSGSphere3D" parent="LevelGeometry/Sector3_CalibrationRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 3.5, 0)
+radius = 0.6
+
+[node name="AlarmAudio" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector3_CalibrationRoom/AlarmEmitter"]
+autoplay = true
+
+[node name="Player" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+script = ExtResource("2_player_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="Camera3D" type="Camera3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+current = true
+
+[node name="MuzzleLight" type="OmniLight3D" parent="Player/Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.2, -0.8)
+light_color = Color(1, 0.8, 0.2, 1)
+light_energy = 3.0
+omni_range = 8.0
+
+[node name="FloorRay" type="RayCast3D" parent="Player"]
+target_position = Vector3(0, -1.2, 0)
+
+[node name="FootstepAudio" type="AudioStreamPlayer" parent="Player"]
+
+[node name="WeaponAudio" type="AudioStreamPlayer" parent="Player"]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="TopBar" type="PanelContainer" parent="UI"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 54.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="UI/TopBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="HBox" type="HBoxContainer" parent="UI/TopBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="UI/TopBar/Margin/HBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "⭐ OpenDou AAA Master Vertical Slice"
+
+[node name="Spacer" type="Control" parent="UI/TopBar/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BtnTeleport1" type="Button" parent="UI/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "📍 Sector 1: Siege"
+
+[node name="BtnTeleport2" type="Button" parent="UI/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "📍 Sector 2: Crypt"
+
+[node name="BtnTeleport3" type="Button" parent="UI/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "📍 Sector 3: Lab"
+
+[node name="BtnBack" type="Button" parent="UI/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "◀ Back to Hub"
+
+[node name="HUDPanel" type="PanelContainer" parent="UI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -360.0
+offset_top = 66.0
+offset_right = -16.0
+offset_bottom = 320.0
+grow_horizontal = 0
+
+[node name="Margin" type="MarginContainer" parent="UI/HUDPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox" type="VBoxContainer" parent="UI/HUDPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HUDTitle" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "📊 Live Engine Telemetry & Profiler"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+
+[node name="LblVoices" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Voices: 16 Physical / 234 Virtual"
+
+[node name="LblSurface" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Active Surface: Asphalt"
+
+[node name="LblAcoustics" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Acoustics: Outdoor Direct (20,000 Hz)"
+
+[node name="LblOcclusion" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Pillar Occlusion: 0% (Direct LOS)"
+
+[node name="LblTCP" type="Label" parent="UI/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "TCP Server: 🟢 Active (Port 3016)"
+
+[node name="BottomBar" type="PanelContainer" parent="UI"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Margin" type="MarginContainer" parent="UI/BottomBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 10
+
+[node name="HBox" type="HBoxContainer" parent="UI/BottomBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LblInstructions" type="Label" parent="UI/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "Controls: [WASD] Move • [Left Click] Shoot • [Esc] Unlock Mouse"
+
+[node name="Spacer" type="Control" parent="UI/BottomBar/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BtnChaosBombardment" type="Button" parent="UI/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "💥 250-Voice Bombardment"
+
+[node name="BtnToggleGate" type="Button" parent="UI/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "🚪 Toggle Crypt Gate"

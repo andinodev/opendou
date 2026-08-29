@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://cb41mk9v031qg"]
+[gd_scene format=3 uid="uid://cb41mlav031qg"]
 
-[ext_resource type="Script" path="res://scenes/demos/demo_hub.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cvavudmmwkp0s" path="res://scenes/demos/demo_hub.gd" id="1_script"]
 
-[node name="DemoHub" type="Control"]
+[node name="DemoHub" type="Control" unique_id=35559910]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=822942828]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,7 +20,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.07, 0.08, 0.1, 1)
 
-[node name="MainContainer" type="VBoxContainer" parent="."]
+[node name="MainContainer" type="VBoxContainer" parent="." unique_id=470453482]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -33,243 +33,244 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 20
 
-[node name="HeaderPanel" type="PanelContainer" parent="MainContainer"]
+[node name="HeaderPanel" type="PanelContainer" parent="MainContainer" unique_id=418761906]
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/HeaderPanel"]
+[node name="Margin" type="MarginContainer" parent="MainContainer/HeaderPanel" unique_id=1280779145]
 layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 12
 
-[node name="HBox" type="HBoxContainer" parent="MainContainer/HeaderPanel/Margin"]
+[node name="HBox" type="HBoxContainer" parent="MainContainer/HeaderPanel/Margin" unique_id=315591727]
 layout_mode = 2
 
-[node name="VBox" type="VBoxContainer" parent="MainContainer/HeaderPanel/Margin/HBox"]
+[node name="VBox" type="VBoxContainer" parent="MainContainer/HeaderPanel/Margin/HBox" unique_id=1706307904]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="MainContainer/HeaderPanel/Margin/HBox/VBox"]
+[node name="Title" type="Label" parent="MainContainer/HeaderPanel/Margin/HBox/VBox" unique_id=55218953]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "🎧 OpenDou Audio Middleware - Interactive Feature Showcase"
 
-[node name="Subtitle" type="Label" parent="MainContainer/HeaderPanel/Margin/HBox/VBox"]
+[node name="Subtitle" type="Label" parent="MainContainer/HeaderPanel/Margin/HBox/VBox" unique_id=914120334]
 layout_mode = 2
 text = "Interactive AAA audio systems running natively in Godot 4.7+"
 
-[node name="Spacer" type="Control" parent="MainContainer/HeaderPanel/Margin/HBox"]
+[node name="BtnMasterSandbox" type="Button" parent="MainContainer/HeaderPanel/Margin/HBox" unique_id=1389357603]
 layout_mode = 2
-size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "⭐ Launch Master Vertical Slice"
 
-[node name="BtnRunTests" type="Button" parent="MainContainer/HeaderPanel/Margin/HBox"]
+[node name="BtnRunTests" type="Button" parent="MainContainer/HeaderPanel/Margin/HBox" unique_id=1792861876]
 layout_mode = 2
 text = "🧪 Run 90 Unit Tests"
 
-[node name="GridContainer" type="GridContainer" parent="MainContainer"]
+[node name="GridContainer" type="GridContainer" parent="MainContainer" unique_id=1163110350]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 20
 columns = 3
 
-[node name="Card1" type="PanelContainer" parent="MainContainer/GridContainer"]
+[node name="Card1" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=1673384373]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card1"]
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card1" unique_id=575027802]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card1/Margin"]
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card1/Margin" unique_id=1159588366]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card1/Margin/VBox"]
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card1/Margin/VBox" unique_id=791370631]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "🚪 01: Spatial Rooms & Portals"
 
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card1/Margin/VBox"]
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card1/Margin/VBox" unique_id=2005843034]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Macro-acoustic pathfinding, doorway portal diffraction and multi-room reverb sends in full 3D."
 autowrap_mode = 2
 
-[node name="BtnLaunch1" type="Button" parent="MainContainer/GridContainer/Card1/Margin/VBox"]
+[node name="BtnLaunch1" type="Button" parent="MainContainer/GridContainer/Card1/Margin/VBox" unique_id=1563908711]
 layout_mode = 2
 text = "Launch Demo 01"
 
-[node name="Card2" type="PanelContainer" parent="MainContainer/GridContainer"]
+[node name="Card2" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=397759919]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card2"]
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card2" unique_id=567035256]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card2/Margin"]
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card2/Margin" unique_id=1651370472]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card2/Margin/VBox"]
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card2/Margin/VBox" unique_id=1224599014]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "⚡ 02: Massive Voice Starvation"
 
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card2/Margin/VBox"]
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card2/Margin/VBox" unique_id=1066276084]
 layout_mode = 2
 size_flags_vertical = 3
 text = "250+ simultaneous emitters managed by hardware voice pool with zero-cost virtual tracking."
 autowrap_mode = 2
 
-[node name="BtnLaunch2" type="Button" parent="MainContainer/GridContainer/Card2/Margin/VBox"]
+[node name="BtnLaunch2" type="Button" parent="MainContainer/GridContainer/Card2/Margin/VBox" unique_id=14822997]
 layout_mode = 2
 text = "Launch Demo 02"
 
-[node name="Card3" type="PanelContainer" parent="MainContainer/GridContainer"]
+[node name="Card3" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=74100609]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card3"]
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card3" unique_id=2004449970]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card3/Margin"]
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card3/Margin" unique_id=688629857]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card3/Margin/VBox"]
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card3/Margin/VBox" unique_id=1187781185]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "👞 03: Footstep Surfaces"
 
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card3/Margin/VBox"]
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card3/Margin/VBox" unique_id=2129088090]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Discrete switch containers (Wood, Concrete, Metal, Water) with shuffle bags and pitch/vol jitter."
 autowrap_mode = 2
 
-[node name="BtnLaunch3" type="Button" parent="MainContainer/GridContainer/Card3/Margin/VBox"]
+[node name="BtnLaunch3" type="Button" parent="MainContainer/GridContainer/Card3/Margin/VBox" unique_id=903094824]
 layout_mode = 2
 text = "Launch Demo 03"
 
-[node name="Card4" type="PanelContainer" parent="MainContainer/GridContainer"]
+[node name="Card4" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=206956711]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card4"]
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card4" unique_id=2073621935]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card4/Margin"]
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card4/Margin" unique_id=1884132726]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card4/Margin/VBox"]
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card4/Margin/VBox" unique_id=885614859]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "🏎️ 04: Vehicle RPM Crossfading"
 
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card4/Margin/VBox"]
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card4/Margin/VBox" unique_id=2074415288]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Multi-layer engine crossfading driven by continuous RTPC curves with silence culling at -80dB."
 autowrap_mode = 2
 
-[node name="BtnLaunch4" type="Button" parent="MainContainer/GridContainer/Card4/Margin/VBox"]
+[node name="BtnLaunch4" type="Button" parent="MainContainer/GridContainer/Card4/Margin/VBox" unique_id=121836643]
 layout_mode = 2
 text = "Launch Demo 04"
 
-[node name="Card5" type="PanelContainer" parent="MainContainer/GridContainer"]
+[node name="Card5" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=1506581758]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card5"]
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card5" unique_id=1374102919]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card5/Margin"]
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card5/Margin" unique_id=1634233034]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card5/Margin/VBox"]
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card5/Margin/VBox" unique_id=1747046923]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "🧱 05: Dynamic Raycast Occlusion"
 
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card5/Margin/VBox"]
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card5/Margin/VBox" unique_id=572667777]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Multi-ray obstacle detection, geometry line-of-sight tests, and slew-rate filter smoothing."
 autowrap_mode = 2
 
-[node name="BtnLaunch5" type="Button" parent="MainContainer/GridContainer/Card5/Margin/VBox"]
+[node name="BtnLaunch5" type="Button" parent="MainContainer/GridContainer/Card5/Margin/VBox" unique_id=1682617092]
 layout_mode = 2
 text = "Launch Demo 05"
 
-[node name="Card6" type="PanelContainer" parent="MainContainer/GridContainer"]
+[node name="Card6" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=428755032]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card6"]
+[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card6" unique_id=888283090]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card6/Margin"]
+[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card6/Margin" unique_id=1478473244]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card6/Margin/VBox"]
+[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card6/Margin/VBox" unique_id=349560640]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "📦 06: SoundBank Streaming"
 
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card6/Margin/VBox"]
+[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card6/Margin/VBox" unique_id=1061977304]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Binary SoundBank format with 0ms RAM prefetch slice and background disk ring-buffer streaming."
 autowrap_mode = 2
 
-[node name="BtnLaunch6" type="Button" parent="MainContainer/GridContainer/Card6/Margin/VBox"]
+[node name="BtnLaunch6" type="Button" parent="MainContainer/GridContainer/Card6/Margin/VBox" unique_id=839134399]
 layout_mode = 2
 text = "Launch Demo 06"
 
-[node name="FooterPanel" type="PanelContainer" parent="MainContainer"]
+[node name="FooterPanel" type="PanelContainer" parent="MainContainer" unique_id=1170334895]
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/FooterPanel"]
+[node name="Margin" type="MarginContainer" parent="MainContainer/FooterPanel" unique_id=580413981]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 8
 
-[node name="FooterLabel" type="Label" parent="MainContainer/FooterPanel/Margin"]
+[node name="FooterLabel" type="Label" parent="MainContainer/FooterPanel/Margin" unique_id=859906958]
 layout_mode = 2
 text = "OpenDou Audio Middleware • Pure GDScript Architecture • Godot Engine 4.7+"
 horizontal_alignment = 1

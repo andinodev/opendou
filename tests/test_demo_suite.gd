@@ -79,7 +79,8 @@ static func run_all() -> Array[String]:
 		"res://scenes/demos/04_vehicle_blend_rpm/demo_vehicle_rpm.tscn",
 		"res://scenes/demos/05_dynamic_occlusion_ray/demo_dynamic_occlusion.tscn",
 		"res://scenes/demos/06_soundbank_streaming/demo_soundbank_streaming.tscn",
-		"res://scenes/demos/demo_hub.tscn"
+		"res://scenes/demos/demo_hub.tscn",
+		"res://scenes/demos/master_sandbox/master_vertical_slice.tscn"
 	]
 	for p in scene_paths:
 		var packed: PackedScene = load(p)

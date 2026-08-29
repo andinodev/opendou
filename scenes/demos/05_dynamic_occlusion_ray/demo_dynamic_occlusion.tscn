@@ -17,6 +17,7 @@ current = true
 
 [node name="Floor" type="CSGBox3D" parent="Environment3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+use_collision = true
 size = Vector3(45, 0.2, 25)
 
 [node name="EmitterMarker" type="CSGSphere3D" parent="Environment3D"]
@@ -33,6 +34,7 @@ height = 2.0
 
 [node name="ObstacleMesh" type="CSGBox3D" parent="Environment3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+use_collision = true
 size = Vector3(2.5, 5, 8)
 
 [node name="UI" type="CanvasLayer" parent="."]
