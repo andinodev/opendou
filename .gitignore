@@ -1,0 +1,55 @@
+# Godot 4.x specific ignores
+.godot/
+*.translation
+*.import
+
+# Godot export/build output
+export/
+build/
+bin/
+
+# GDExtension / C++ build artifacts
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.lib
+*.exp
+*.pdb
+*.ilk
+.sconsign.dblite
+.scons_temp/
+scons-local/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Rust / Cargo build artifacts (if using gdext)
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# C# / .NET build artifacts
+.vs/
+bin/
+obj/
+*.csproj.user
+*.suo
+*.user
+
+# Editor & OS files
+.idea/
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & temp files
+*.log
+*.tmp
+*.bak
