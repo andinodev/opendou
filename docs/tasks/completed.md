@@ -8,6 +8,16 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ### 2026-08-29
 
+* **`TASK-030` - Suite Visual OpenDou Audio Studio, Persistencia de Syncs y Evaluación Dinámica de Grafos**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Espacios de Trabajo Dedicados:** Alternador superior entre `🌐 Graph`, `🎼 Music DAW` y `🗣️ Dialogues` con el 100% de elasticidad de lienzo.
+    * **Consola de Mezcla HDR Deslizante:** Faders de canal, visualizador dinámico HDR, banco de Snapshots con blend time y monitor de sidechain ducking.
+    * **Persistencia en Disco de Game Syncs:** Guardado/recarga automático en `res://opendou_syncs.json` de RTPCs, Estados y Switches, sincronizados en tiempo real con los faders de simulación del Transport Bar.
+    * **Compilador Bidireccional de Grafos y Audición Real:** `OpenDouGraphSerializer.build_composite_from_graph` compila los nodos del canvas en un árbol `AudioLogicNode` ejecutable, evaluando en tiempo real las variaciones de tono, volumen, ramas de switch y cadenas DSP en el reproductor de audición.
+    * **Audición Interactiva de Música y Diálogos:** Sintetizadores procedurales de prueba para stems de música multicapa, stingers cuantizados y voces con fonética localizada.
+    * **Suite de Pruebas:** 135 / 135 pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
 * **`TASK-029` - Empaquetado Final, Iconografía Vectorial y Asset Library**
   * **Fecha:** 2026-08-29
   * **Resumen:**
