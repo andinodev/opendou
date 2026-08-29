@@ -18,3 +18,11 @@ config/name="OpenDou"
 config/description="Open-Source Audio Engine & Middleware for Godot 4.7+"
 run/main_scene="uid://cb41mlav031qg"
 config/features=PackedStringArray("4.7", "Forward Plus")
+
+[autoload]
+
+OpenDou="*uid://citk7hsdxgmrt"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/opendou/plugin.cfg")

@@ -40,9 +40,15 @@ static func run_all() -> Array[String]:
 		failures.append("Test 2d Failed: Muted track should have 0 gain")
 	timeline.tracks[0].mute_btn.button_pressed = false
 	
-	# Test Metronome click & Stinger
+	# Test Metronome click & Stinger Toggle Trigger
 	timeline._play_metronome_click(true)
-	timeline.play_audition_stinger(&"Victory_Brass")
+	timeline.btn_stinger_victory.button_pressed = true
+	if not timeline.stinger_player.playing:
+		failures.append("Test 2d Failed: Stinger player should play when button toggled on")
+	timeline.btn_stinger_victory.button_pressed = false
+	if timeline.stinger_player.playing:
+		failures.append("Test 2e Failed: Stinger player should stop when button toggled off")
+	timeline.stop_audition_stinger()
 	
 	# Test Dedicated DAW Transport & Stem Players
 	if timeline.stem_players.size() != 4:

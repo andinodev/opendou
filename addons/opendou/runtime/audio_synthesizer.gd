@@ -249,3 +249,49 @@ static func create_music_brass_loop(duration_sec: float = 2.0) -> AudioStreamWAV
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_end = num_samples
 	return stream
+
+## Creates a celebratory brass fanfare stinger (Victory_Brass).
+static func create_stinger_fanfare(duration_sec: float = 1.5) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var env = exp(-3.0 * t / duration_sec)
+		# Ascending arpeggio notes across 1.5 seconds
+		var f = 523.25 # C5
+		if t < 0.15: f = 261.63 # C4
+		elif t < 0.30: f = 329.63 # E4
+		elif t < 0.45: f = 392.0 # G4
+		var sample = (sin(t * f * TAU) * 0.5 + sin(t * f * 2.0 * TAU) * 0.3 + sin(t * f * 3.0 * TAU) * 0.2) * env
+		var s16: int = clampi(int(sample * 30000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream
+
+## Creates an ominous danger impact stinger (Danger_Hit).
+static func create_stinger_impact(duration_sec: float = 1.2) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var env = exp(-5.0 * t)
+		var bass_f = 65.0 * exp(-8.0 * t) + 35.0
+		var sub = sin(t * bass_f * TAU) * 0.7
+		var noise = (randf() * 2.0 - 1.0) * exp(-20.0 * t) * 0.5
+		var sample = (sub + noise) * env
+		var s16: int = clampi(int(sample * 30000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream

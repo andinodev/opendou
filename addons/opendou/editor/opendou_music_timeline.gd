@@ -59,6 +59,8 @@ var tracks: Array[TrackLaneData] = []
 var transition_target_opt: OptionButton
 var sync_mode_opt: OptionButton
 var fade_duration_spinbox: SpinBox
+var btn_stinger_victory: Button
+var btn_stinger_danger: Button
 
 # Playback State
 var is_playing: bool = false
@@ -89,6 +91,7 @@ func _build_ui() -> void:
 	add_child(metronome_player)
 	
 	stinger_player = AudioStreamPlayer.new()
+	stinger_player.finished.connect(_on_stinger_finished)
 	add_child(stinger_player)
 	
 	stem_players.clear()
@@ -351,19 +354,43 @@ func _build_ui() -> void:
 	stinger_title.add_theme_font_size_override("font_size", 11)
 	right_panel.add_child(stinger_title)
 	
-	var btn_stinger_victory = Button.new()
+	btn_stinger_victory = Button.new()
 	btn_stinger_victory.text = "🎺 Stinger: Victory_Brass"
-	btn_stinger_victory.pressed.connect(func():
-		play_audition_stinger(&"Victory_Brass")
-		stinger_requested.emit(&"Victory_Brass", 0)
+	btn_stinger_victory.toggle_mode = true
+	btn_stinger_victory.toggled.connect(func(is_on: bool):
+		if is_on:
+			if btn_stinger_danger:
+				btn_stinger_danger.set_pressed_no_signal(false)
+				btn_stinger_danger.text = "⚠️ Stinger: Danger_Hit"
+				btn_stinger_danger.modulate = Color.WHITE
+			btn_stinger_victory.text = "⏹ Stop: Victory_Brass"
+			btn_stinger_victory.modulate = Color(0.4, 1.0, 0.4)
+			play_audition_stinger(&"Victory_Brass")
+			stinger_requested.emit(&"Victory_Brass", 0)
+		else:
+			btn_stinger_victory.text = "🎺 Stinger: Victory_Brass"
+			btn_stinger_victory.modulate = Color.WHITE
+			stop_audition_stinger()
 	)
 	right_panel.add_child(btn_stinger_victory)
 	
-	var btn_stinger_danger = Button.new()
+	btn_stinger_danger = Button.new()
 	btn_stinger_danger.text = "⚠️ Stinger: Danger_Hit"
-	btn_stinger_danger.pressed.connect(func():
-		play_audition_stinger(&"Danger_Hit")
-		stinger_requested.emit(&"Danger_Hit", 1)
+	btn_stinger_danger.toggle_mode = true
+	btn_stinger_danger.toggled.connect(func(is_on: bool):
+		if is_on:
+			if btn_stinger_victory:
+				btn_stinger_victory.set_pressed_no_signal(false)
+				btn_stinger_victory.text = "🎺 Stinger: Victory_Brass"
+				btn_stinger_victory.modulate = Color.WHITE
+			btn_stinger_danger.text = "⏹ Stop: Danger_Hit"
+			btn_stinger_danger.modulate = Color(1.0, 0.4, 0.3)
+			play_audition_stinger(&"Danger_Hit")
+			stinger_requested.emit(&"Danger_Hit", 1)
+		else:
+			btn_stinger_danger.text = "⚠️ Stinger: Danger_Hit"
+			btn_stinger_danger.modulate = Color.WHITE
+			stop_audition_stinger()
 	)
 	right_panel.add_child(btn_stinger_danger)
 	
@@ -573,10 +600,30 @@ func _on_trigger_transition_pressed() -> void:
 
 func play_audition_stinger(stinger_name: StringName) -> void:
 	if stinger_player:
-		stinger_player.stream = AudioSynthesizerClass.create_chord_loop(0.8)
-		stinger_player.pitch_scale = 1.3 if "Victory" in str(stinger_name) else 0.7
+		if "Victory" in str(stinger_name):
+			stinger_player.stream = AudioSynthesizerClass.create_stinger_fanfare(1.5)
+		else:
+			stinger_player.stream = AudioSynthesizerClass.create_stinger_impact(1.2)
 		stinger_player.volume_db = 2.0
 		stinger_player.play()
+
+func stop_audition_stinger() -> void:
+	if stinger_player:
+		stinger_player.stop()
+	_reset_stinger_buttons()
+
+func _on_stinger_finished() -> void:
+	_reset_stinger_buttons()
+
+func _reset_stinger_buttons() -> void:
+	if btn_stinger_victory:
+		btn_stinger_victory.set_pressed_no_signal(false)
+		btn_stinger_victory.text = "🎺 Stinger: Victory_Brass"
+		btn_stinger_victory.modulate = Color.WHITE
+	if btn_stinger_danger:
+		btn_stinger_danger.set_pressed_no_signal(false)
+		btn_stinger_danger.text = "⚠️ Stinger: Danger_Hit"
+		btn_stinger_danger.modulate = Color.WHITE
 
 func _on_music_play_pressed() -> void:
 	is_playing = true
