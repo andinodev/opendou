@@ -36,6 +36,11 @@ var transition_matrix: MusicTransitionMatrix
 var stinger_queue: MusicStingerQueue
 
 # Toolbar Controls
+var play_btn: Button
+var pause_btn: Button
+var stop_btn: Button
+var loop_btn: Button
+
 var bpm_spinbox: SpinBox
 var metronome_btn: Button
 var snap_selector: OptionButton
@@ -57,6 +62,7 @@ var fade_duration_spinbox: SpinBox
 
 # Playback State
 var is_playing: bool = false
+var is_paused: bool = false
 var zoom_factor: float = 1.0 # 0.5 to 3.0
 var active_intensity: float = 0.0
 var current_playhead_ratio: float = 0.0
@@ -104,9 +110,37 @@ func _build_ui() -> void:
 	toolbar.add_theme_constant_override("separation", 10)
 	
 	var title_lbl = Label.new()
-	title_lbl.text = "🎼 Interactive Music DAW Sequencer"
+	title_lbl.text = "🎼 Music DAW"
 	title_lbl.add_theme_font_size_override("font_size", 12)
 	toolbar.add_child(title_lbl)
+	
+	toolbar.add_child(VSeparator.new())
+	
+	# Dedicated DAW Transport Controls
+	play_btn = Button.new()
+	play_btn.text = "▶ Play"
+	play_btn.tooltip_text = "Start Interactive Music Sequencer"
+	play_btn.pressed.connect(_on_music_play_pressed)
+	toolbar.add_child(play_btn)
+	
+	pause_btn = Button.new()
+	pause_btn.text = "⏸ Pause"
+	pause_btn.tooltip_text = "Pause Sequencer Playhead"
+	pause_btn.pressed.connect(_on_music_pause_pressed)
+	toolbar.add_child(pause_btn)
+	
+	stop_btn = Button.new()
+	stop_btn.text = "⏹ Stop"
+	stop_btn.tooltip_text = "Stop & Rewind to Bar 1 Beat 1"
+	stop_btn.pressed.connect(_on_music_stop_pressed)
+	toolbar.add_child(stop_btn)
+	
+	loop_btn = Button.new()
+	loop_btn.text = "🔁 Loop"
+	loop_btn.tooltip_text = "Loop 8-Bar Segment"
+	loop_btn.toggle_mode = true
+	loop_btn.button_pressed = true
+	toolbar.add_child(loop_btn)
 	
 	toolbar.add_child(VSeparator.new())
 	
@@ -509,11 +543,71 @@ func play_audition_stinger(stinger_name: StringName) -> void:
 		stinger_player.volume_db = 2.0
 		stinger_player.play()
 
-func _process(delta: float) -> void:
+func _on_music_play_pressed() -> void:
+	is_playing = true
+	is_paused = false
+	if play_btn:
+		play_btn.text = "▶ Playing"
+		play_btn.modulate = Color(0.3, 1.0, 0.4)
+	if pause_btn:
+		pause_btn.text = "⏸ Pause"
+		
+	if music_audio_player:
+		music_audio_player.stream = AudioSynthesizerClass.create_chord_loop(1.2)
+		music_audio_player.volume_db = 0.0
+		music_audio_player.stream_paused = false
+		if not music_audio_player.playing:
+			music_audio_player.play()
+
+func _on_music_pause_pressed() -> void:
+	if not is_playing:
+		return
+	is_paused = not is_paused
+	if pause_btn:
+		pause_btn.text = "▶ Resume" if is_paused else "⏸ Pause"
+	if music_audio_player:
+		music_audio_player.stream_paused = is_paused
+
+func _on_music_stop_pressed() -> void:
+	is_playing = false
+	is_paused = false
+	if play_btn:
+		play_btn.text = "▶ Play"
+		play_btn.modulate = Color.WHITE
+	if pause_btn:
+		pause_btn.text = "⏸ Pause"
+		
+	if music_audio_player:
+		music_audio_player.stop()
+		
 	if clock:
+		clock.current_time_sec = 0.0
+		clock.current_beat = 0
+		clock.current_bar = 0
+		
+	current_playhead_ratio = 0.0
+	last_reported_beat = -1
+	if beat_counter_lbl:
+		beat_counter_lbl.text = "⏱️ Bar 1 : Beat 1.0"
+	if ruler_canvas:
+		ruler_canvas.queue_redraw()
+	for t in tracks:
+		if t.waveform_canvas:
+			t.waveform_canvas.queue_redraw()
+
+func _process(delta: float) -> void:
+	if is_playing and not is_paused and clock:
 		clock.update(delta)
 		current_playhead_ratio = fposmod(clock.current_time_sec / 16.0, 1.0)
 		beat_counter_lbl.text = "⏱️ Bar %d : Beat %d.0" % [clock.current_bar + 1, clock.current_beat + 1]
+		
+		# Check loop or stop at end of 8 bars
+		if clock.current_time_sec >= 16.0:
+			if loop_btn and loop_btn.button_pressed:
+				clock.current_time_sec = fposmod(clock.current_time_sec, 16.0)
+			else:
+				_on_music_stop_pressed()
+				return
 		
 		# Metronome tick
 		if metronome_btn and metronome_btn.button_pressed:

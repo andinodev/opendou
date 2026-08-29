@@ -43,6 +43,18 @@ static func run_all() -> Array[String]:
 	# Test Metronome click & Stinger
 	timeline._play_metronome_click(true)
 	timeline.play_audition_stinger(&"Victory_Brass")
+	
+	# Test Dedicated DAW Transport
+	timeline._on_music_play_pressed()
+	if not timeline.is_playing:
+		failures.append("Test 2e Failed: DAW play not activated")
+	timeline._on_music_pause_pressed()
+	if not timeline.is_paused:
+		failures.append("Test 2f Failed: DAW pause not toggled")
+	timeline._on_music_stop_pressed()
+	if timeline.is_playing:
+		failures.append("Test 2g Failed: DAW stop not clearing playback")
+		
 	timeline.free()
 	
 	# Test 3: OpenDouDialogueGrid
