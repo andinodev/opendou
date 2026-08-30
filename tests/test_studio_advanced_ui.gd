@@ -269,6 +269,13 @@ static func run_all() -> Array[String]:
 		failures.append("Test 6n Failed: Profiler session JSON import mismatch")
 	new_recorder.free()
 
+	# Test Spatial Radar Tab in Profiler
+	if profiler.radar_view == null:
+		failures.append("Test 6o Failed: Profiler spatial radar view was not initialized")
+	else:
+		profiler.radar_view.update_radar_data([{ "event_name": "Test_Step", "world_position": Vector3(5, 0, 5), "is_virtual": false, "volume_db": 0.0 }])
+		profiler.radar_view.update_telemetry_metrics(8, 64, 0.02, 2048)
+
 	# Test Detach Window & Placeholder
 	if studio.dock_placeholder == null:
 		failures.append("Test 6h Failed: Dock placeholder not initialized")

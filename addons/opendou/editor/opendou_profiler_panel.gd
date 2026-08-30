@@ -5,6 +5,7 @@ extends PanelContainer
 ## Real-time profiler panel with High-Density DSP execution graphs, Voice Stealing Ledger, Session Recording/Export/Import, Time-Travel Scrubbing, and TCP hot-connection.
 
 const ProfilerSessionRecorderClass = preload("res://addons/opendou/core/telemetry/profiler_session_recorder.gd")
+const OpenDouRadarViewClass = preload("res://addons/opendou/editor/opendou_radar_view.gd")
 
 signal connect_tcp_requested(host: String, port: int)
 signal session_saved(file_path: String)
@@ -17,6 +18,7 @@ var dsp_metrics_lbl: Label
 var rewind_slider: HSlider
 var rewind_time_lbl: Label
 var btn_play_pause: Button
+var radar_view: OpenDouRadarView
 
 # Session Recording & I/O Controls
 var btn_record_session: Button
@@ -175,6 +177,69 @@ func _build_ui() -> void:
 	
 	dsp_box.add_child(rewind_box)
 	tab_container.add_child(dsp_box)
+	
+	# Tab 3: Spatial Radar & Acoustic Portals
+	var radar_box = VBoxContainer.new()
+	radar_box.name = "📡 Spatial Radar"
+	radar_box.add_theme_constant_override("separation", 4)
+	
+	# Options row
+	var r_opts_hbox = HBoxContainer.new()
+	r_opts_hbox.add_theme_constant_override("separation", 6)
+	
+	var chk_portals = CheckBox.new()
+	chk_portals.text = "Portals"
+	chk_portals.button_pressed = true
+	chk_portals.toggled.connect(func(v):
+		if radar_view:
+			radar_view.show_portals = v
+			radar_view.queue_redraw()
+	)
+	r_opts_hbox.add_child(chk_portals)
+	
+	var chk_diff = CheckBox.new()
+	chk_diff.text = "Diffract"
+	chk_diff.button_pressed = true
+	chk_diff.toggled.connect(func(v):
+		if radar_view:
+			radar_view.show_diffraction = v
+			radar_view.queue_redraw()
+	)
+	r_opts_hbox.add_child(chk_diff)
+	
+	var chk_refl = CheckBox.new()
+	chk_refl.text = "Reflect"
+	chk_refl.button_pressed = true
+	chk_refl.toggled.connect(func(v):
+		if radar_view:
+			radar_view.show_reflections = v
+			radar_view.queue_redraw()
+	)
+	r_opts_hbox.add_child(chk_refl)
+	
+	var dist_lbl = Label.new()
+	dist_lbl.text = "Range:"
+	dist_lbl.add_theme_font_size_override("font_size", 9)
+	r_opts_hbox.add_child(dist_lbl)
+	
+	var dist_spin = SpinBox.new()
+	dist_spin.min_value = 10.0
+	dist_spin.max_value = 100.0
+	dist_spin.step = 5.0
+	dist_spin.value = 40.0
+	dist_spin.suffix = "m"
+	dist_spin.custom_minimum_size = Vector2(60, 0)
+	dist_spin.value_changed.connect(func(v):
+		if radar_view:
+			radar_view.max_view_distance_m = v
+			radar_view.queue_redraw()
+	)
+	r_opts_hbox.add_child(dist_spin)
+	radar_box.add_child(r_opts_hbox)
+	
+	radar_view = OpenDouRadarViewClass.new()
+	radar_box.add_child(radar_view)
+	tab_container.add_child(radar_box)
 	
 	# Seed initial realistic DSP history
 	for i in range(max_dsp_history):
