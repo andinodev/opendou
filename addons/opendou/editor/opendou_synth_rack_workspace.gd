@@ -193,9 +193,10 @@ func _build_ui() -> void:
 	# Right Panel: Full VST Rack & Workspace
 	# ----------------------------------------------------
 	right_scroll = ScrollContainer.new()
+	right_scroll.custom_minimum_size = Vector2(0, 0)
 	right_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	right_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	main_hsplit.add_child(right_scroll)
 
 	vbox_rack = VBoxContainer.new()

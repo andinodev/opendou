@@ -6,6 +6,37 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-046` - OpenDou VST Modular Synth Rack Workstation (Mode 3: Synth Studio)**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Integración del Espacio de Trabajo Modo 3 en OpenDouStudioMain (`opendou_studio_main.gd`):**
+      * Registro de `WorkspaceMode.MODE_SYNTH_RACK` (Modo 3) y botón selector de radio `"⚡ Synth"` en la barra de herramientas principal.
+      * Instanciación declarativa y gestión de visibilidad de `synth_workspace` (`OpenDouSynthRackWorkspace`) como hijo del contenedor central `center_workspace_box`.
+      * Conmutación reactiva y exclusiva entre los 4 modos de estudio (Grafo SFX, Música DAW, Diálogos/Voces y Synth Workstation), colapsando paneles laterales y selectores contextuales irrelevantes para maximizar el espacio útil en pantalla.
+      * Soporte de guardado en caliente (`Ctrl+S` / `btn_save`) conectado al flujo de serialización de presets sintéticos (`synth_workspace._on_save_all_pressed()`).
+    * **Adaptación Contextual de la Barra de Transporte Inferior (`opendou_transport_bar.gd`):**
+      * Insignia reactiva de evento objetivo `"Audition: [⚡ Synth Preset Studio]"`.
+      * Faders de precisión contextuales para modulación de octava (`Octave`), desafinación (`Detune`) y ganancia maestra (`Master Gain`).
+      * Integración de botones de audición en bucle y disparo directo.
+    * **Suite de Pruebas Automatizadas:**
+      * Test 11 en `tests/test_studio_advanced_ui.gd` verificando la inicialización, conmutación bidireccional de visibilidad de los 4 espacios de trabajo, actualización contextual de la barra de transporte y 234 pruebas unitarias pasando al 100% (código de salida 0, 0 fallos).
+
+* **`TASK-046-PREV` - Script PowerShell Autónomo de Pruebas, Logging en Tiempo Real y Shim de Godot Steam**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Script de Ejecución Automatizada PowerShell (`run_tests.ps1`):**
+      * Detección y resolución automática del ejecutable de Godot Steam (`godot.windows.opt.tools.64.exe`), variables de entorno (`GODOT_PATH`, `GodotSteamPath`, `GODOT_BIN`) y directorios de librerías Steam (`libraryfolders.vdf`).
+      * Invocación en modo `--headless --path . -s tests/test_runner_cli.gd` con streaming en vivo a consola y captura en `test_console.log`.
+      * Medición precisa de tiempo de ejecución (duración en segundos), timestamps de inicio/fin y retorno estricto de exit code (`0` éxito, `1` fallo).
+    * **Generación y Verificación de `test_results.log`:**
+      * Estandarización de `tests/test_runner_cli.gd` para escribir el resumen de pruebas en `res://test_results.log`, `user://test_results.log` y ruta globalizada de proyecto con flush inmediato.
+      * Doble comprobación y validación parseada (`STATUS`, `TOTAL`, `PASSED`, `FAILURES`) en el script de PowerShell con reporte visual en verde/rojo.
+    * **Shim de Comando para Windows (`godot.cmd`):**
+      * Wrapper por lotes en la raíz del repositorio para invocar comandos directos de Godot contra la instalación de Steam sin depender de `$PROFILE`.
+    * **Actualización de Directrices y Workflow (`AGENTS.md`, `03_workflow.md`):**
+      * Estandarización de `powershell -ExecutionPolicy Bypass -File .\run_tests.ps1` como el comando mandatorio de verificación.
+    * **Suite de Pruebas Automatizadas:** 224 pruebas unitarias y de integración pasando al 100% (código de salida 0, 0 fallos).
+
 * **`TASK-045` - Integración de Motor de Síntesis Modular Procedimental & Preset Studio en Nodos Declarativos y Showcase AAA**
   * **Fecha:** 2026-08-30
   * **Resumen:**

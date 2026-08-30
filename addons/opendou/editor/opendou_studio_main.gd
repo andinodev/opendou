@@ -14,11 +14,13 @@ const OpenDouBankPanelClass = preload("res://addons/opendou/editor/opendou_bank_
 const OpenDouMixerDrawerClass = preload("res://addons/opendou/editor/opendou_mixer_drawer.gd")
 const OpenDouTransportBarClass = preload("res://addons/opendou/editor/opendou_transport_bar.gd")
 const OpenDouGraphSerializerClass = preload("res://addons/opendou/editor/opendou_graph_serializer.gd")
+const OpenDouSynthRackWorkspaceClass = preload("res://addons/opendou/editor/opendou_synth_rack_workspace.gd")
 
 enum WorkspaceMode {
 	MODE_GRAPH,
 	MODE_MUSIC_DAW,
-	MODE_DIALOGUE_GRID
+	MODE_DIALOGUE_GRID,
+	MODE_SYNTH_RACK
 }
 
 var current_workspace: WorkspaceMode = WorkspaceMode.MODE_GRAPH
@@ -32,6 +34,7 @@ var btn_modal_syncs: Button
 var btn_mode_graph: Button
 var btn_mode_music: Button
 var btn_mode_dialogue: Button
+var btn_mode_synth: Button
 var btn_toggle_mixer: Button
 var event_selector: OptionButton
 var locale_selector: OptionButton
@@ -53,6 +56,7 @@ var center_workspace_box: PanelContainer
 var graph_editor: OpenDouGraphEditor
 var music_timeline: OpenDouMusicTimeline
 var dialogue_grid: OpenDouDialogueGrid
+var synth_workspace: OpenDouSynthRackWorkspace
 
 # Drawers and Panels
 var game_syncs_panel: OpenDouGameSyncsPanel
@@ -153,16 +157,18 @@ func _build_ui() -> void:
 	# 1. Structured Header Toolbar (PanelContainer)
 	header_panel = PanelContainer.new()
 	header_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_panel.custom_minimum_size = Vector2(0, 0)
 	
 	var header_margin = MarginContainer.new()
-	header_margin.add_theme_constant_override("margin_left", 6)
-	header_margin.add_theme_constant_override("margin_top", 3)
-	header_margin.add_theme_constant_override("margin_right", 6)
-	header_margin.add_theme_constant_override("margin_bottom", 3)
+	header_margin.custom_minimum_size = Vector2(0, 0)
+	header_margin.add_theme_constant_override("margin_left", 4)
+	header_margin.add_theme_constant_override("margin_top", 2)
+	header_margin.add_theme_constant_override("margin_right", 4)
+	header_margin.add_theme_constant_override("margin_bottom", 2)
 	header_panel.add_child(header_margin)
 	
 	header_bar = HBoxContainer.new()
-	header_bar.add_theme_constant_override("separation", 4)
+	header_bar.add_theme_constant_override("separation", 2)
 	header_margin.add_child(header_bar)
 	
 	# Title & Brand
@@ -182,7 +188,8 @@ func _build_ui() -> void:
 	btn_mode_graph.toggle_mode = true
 	btn_mode_graph.button_pressed = true
 	btn_mode_graph.button_group = ws_group
-	btn_mode_graph.custom_minimum_size = Vector2(62, 22)
+	btn_mode_graph.add_theme_font_size_override("font_size", 10)
+	btn_mode_graph.custom_minimum_size = Vector2(52, 22)
 	btn_mode_graph.pressed.connect(func(): set_workspace_mode(WorkspaceMode.MODE_GRAPH))
 	header_bar.add_child(btn_mode_graph)
 	
@@ -191,7 +198,8 @@ func _build_ui() -> void:
 	btn_mode_music.tooltip_text = "Interactive Music Timeline & Sequencer"
 	btn_mode_music.toggle_mode = true
 	btn_mode_music.button_group = ws_group
-	btn_mode_music.custom_minimum_size = Vector2(62, 22)
+	btn_mode_music.add_theme_font_size_override("font_size", 10)
+	btn_mode_music.custom_minimum_size = Vector2(52, 22)
 	btn_mode_music.pressed.connect(func(): set_workspace_mode(WorkspaceMode.MODE_MUSIC_DAW))
 	header_bar.add_child(btn_mode_music)
 	
@@ -200,9 +208,20 @@ func _build_ui() -> void:
 	btn_mode_dialogue.tooltip_text = "Voice-Over & Localization Spreadsheet Table"
 	btn_mode_dialogue.toggle_mode = true
 	btn_mode_dialogue.button_group = ws_group
-	btn_mode_dialogue.custom_minimum_size = Vector2(62, 22)
+	btn_mode_dialogue.add_theme_font_size_override("font_size", 10)
+	btn_mode_dialogue.custom_minimum_size = Vector2(52, 22)
 	btn_mode_dialogue.pressed.connect(func(): set_workspace_mode(WorkspaceMode.MODE_DIALOGUE_GRID))
 	header_bar.add_child(btn_mode_dialogue)
+	
+	btn_mode_synth = Button.new()
+	btn_mode_synth.text = "⚡ Synth"
+	btn_mode_synth.tooltip_text = "Modular Synth Rack & Sound Design Studio Workspace"
+	btn_mode_synth.toggle_mode = true
+	btn_mode_synth.button_group = ws_group
+	btn_mode_synth.add_theme_font_size_override("font_size", 10)
+	btn_mode_synth.custom_minimum_size = Vector2(52, 22)
+	btn_mode_synth.pressed.connect(func(): set_workspace_mode(WorkspaceMode.MODE_SYNTH_RACK))
+	header_bar.add_child(btn_mode_synth)
 	
 	header_bar.add_child(VSeparator.new())
 	
@@ -210,7 +229,8 @@ func _build_ui() -> void:
 	btn_modal_syncs = Button.new()
 	btn_modal_syncs.text = "🎮 Syncs"
 	btn_modal_syncs.tooltip_text = "Open Game Syncs in an independent Floating Window"
-	btn_modal_syncs.custom_minimum_size = Vector2(60, 22)
+	btn_modal_syncs.add_theme_font_size_override("font_size", 10)
+	btn_modal_syncs.custom_minimum_size = Vector2(48, 22)
 	btn_modal_syncs.pressed.connect(open_syncs_modal)
 	header_bar.add_child(btn_modal_syncs)
 	
@@ -219,21 +239,24 @@ func _build_ui() -> void:
 	btn_toggle_mixer.tooltip_text = "Open Global HDR Mixing Console & Ducking Matrix Floating Window"
 	btn_toggle_mixer.toggle_mode = true
 	btn_toggle_mixer.button_pressed = false
-	btn_toggle_mixer.custom_minimum_size = Vector2(56, 22)
+	btn_toggle_mixer.add_theme_font_size_override("font_size", 10)
+	btn_toggle_mixer.custom_minimum_size = Vector2(46, 22)
 	btn_toggle_mixer.toggled.connect(_on_toggle_mixer_toggled)
 	header_bar.add_child(btn_toggle_mixer)
 	
 	btn_modal_profiler = Button.new()
 	btn_modal_profiler.text = "📊 Profiler"
 	btn_modal_profiler.tooltip_text = "Open Live Profiler in an independent Floating Window"
-	btn_modal_profiler.custom_minimum_size = Vector2(66, 22)
+	btn_modal_profiler.add_theme_font_size_override("font_size", 10)
+	btn_modal_profiler.custom_minimum_size = Vector2(54, 22)
 	btn_modal_profiler.pressed.connect(open_profiler_modal)
 	header_bar.add_child(btn_modal_profiler)
 	
 	btn_modal_banks = Button.new()
 	btn_modal_banks.text = "📦 Banks"
 	btn_modal_banks.tooltip_text = "Open SoundBank Compiler in an independent Floating Window"
-	btn_modal_banks.custom_minimum_size = Vector2(58, 22)
+	btn_modal_banks.add_theme_font_size_override("font_size", 10)
+	btn_modal_banks.custom_minimum_size = Vector2(48, 22)
 	btn_modal_banks.pressed.connect(open_banks_modal)
 	header_bar.add_child(btn_modal_banks)
 	
@@ -241,40 +264,50 @@ func _build_ui() -> void:
 	
 	# Event Selector
 	event_selector = OptionButton.new()
+	event_selector.fit_to_longest_item = false
+	event_selector.clip_text = true
 	event_selector.add_item("🎯 Battlefield_Gunfire.tres", 0)
 	event_selector.add_item("🎯 Vehicle_Engine_RPM.tres", 1)
 	event_selector.add_item("🎯 Footstep_Surface.tres", 2)
 	event_selector.item_selected.connect(_on_event_preset_selected)
-	event_selector.custom_minimum_size = Vector2(110, 22)
+	event_selector.add_theme_font_size_override("font_size", 10)
+	event_selector.custom_minimum_size = Vector2(90, 22)
 	header_bar.add_child(event_selector)
 	
 	# Save Button
 	btn_save = Button.new()
 	btn_save.text = "💾 Save"
 	btn_save.tooltip_text = "Save active suite/event to disk (Ctrl+S)"
-	btn_save.custom_minimum_size = Vector2(48, 22)
+	btn_save.add_theme_font_size_override("font_size", 10)
+	btn_save.custom_minimum_size = Vector2(42, 22)
 	btn_save.pressed.connect(_on_save_pressed)
 	header_bar.add_child(btn_save)
 	
 	# Contextual Locale Selector (Visible only in Voice Mode)
 	locale_selector = OptionButton.new()
+	locale_selector.fit_to_longest_item = false
+	locale_selector.clip_text = true
 	locale_selector.add_item("🇺🇸 EN", 0)
 	locale_selector.add_item("🇪🇸 ES", 1)
 	locale_selector.add_item("🇯🇵 JA", 2)
 	locale_selector.add_item("🇨🇳 ZH", 3)
 	locale_selector.item_selected.connect(_on_locale_selected)
-	locale_selector.custom_minimum_size = Vector2(62, 22)
+	locale_selector.add_theme_font_size_override("font_size", 10)
+	locale_selector.custom_minimum_size = Vector2(52, 22)
 	locale_selector.visible = false
 	header_bar.add_child(locale_selector)
 	
 	# Contextual Snapshot Mix Profile Selector (Visible only in Music Mode)
 	snap_selector = OptionButton.new()
+	snap_selector.fit_to_longest_item = false
+	snap_selector.clip_text = true
 	snap_selector.add_item("📸 Default", 0)
 	snap_selector.add_item("📸 Tinnitus", 1)
 	snap_selector.add_item("📸 Pause", 2)
 	snap_selector.add_item("📸 Water", 3)
 	snap_selector.item_selected.connect(_on_snapshot_selected)
-	snap_selector.custom_minimum_size = Vector2(75, 22)
+	snap_selector.add_theme_font_size_override("font_size", 10)
+	snap_selector.custom_minimum_size = Vector2(60, 22)
 	snap_selector.visible = false
 	header_bar.add_child(snap_selector)
 	
@@ -294,7 +327,8 @@ func _build_ui() -> void:
 	tcp_status_btn.tooltip_text = "Hot-connect to game session on localhost:3016"
 	tcp_status_btn.toggle_mode = true
 	tcp_status_btn.toggled.connect(_on_tcp_toggled)
-	tcp_status_btn.custom_minimum_size = Vector2(56, 22)
+	tcp_status_btn.add_theme_font_size_override("font_size", 10)
+	tcp_status_btn.custom_minimum_size = Vector2(46, 22)
 	header_bar.add_child(tcp_status_btn)
 	
 	# Detach / Attach Button
@@ -302,7 +336,8 @@ func _build_ui() -> void:
 	detach_btn.text = "🗗 Detach"
 	detach_btn.tooltip_text = "Detach Studio to floating multi-monitor window"
 	detach_btn.pressed.connect(toggle_detach_window)
-	detach_btn.custom_minimum_size = Vector2(56, 22)
+	detach_btn.add_theme_font_size_override("font_size", 10)
+	detach_btn.custom_minimum_size = Vector2(48, 22)
 	header_bar.add_child(detach_btn)
 	
 	content_container.add_child(header_panel)
@@ -363,6 +398,14 @@ func _build_ui() -> void:
 	dialogue_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	dialogue_grid.visible = false
 	center_workspace_box.add_child(dialogue_grid)
+	
+	# 2d. Modular Synth Rack Workspace
+	synth_workspace = OpenDouSynthRackWorkspaceClass.new()
+	synth_workspace.custom_minimum_size = Vector2(0, 0)
+	synth_workspace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	synth_workspace.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	synth_workspace.visible = false
+	center_workspace_box.add_child(synth_workspace)
 	
 	# Column 3: Right Inspector & Profiler Tabs (Collapsed by default, floating modal available)
 	right_tabs_scroll = ScrollContainer.new()
@@ -556,22 +599,25 @@ func _update_preset_selector_text(is_dirty: bool) -> void:
 	else:
 		event_selector.set_item_text(cur_idx, clean_text)
 
-func set_workspace_mode(mode: WorkspaceMode) -> void:
-	current_workspace = mode
+func set_workspace_mode(mode: Variant) -> void:
+	var mode_int: int = int(mode)
+	current_workspace = mode_int as WorkspaceMode
 	
 	# Update workspace visibility
-	if graph_editor: graph_editor.visible = (mode == WorkspaceMode.MODE_GRAPH)
-	if music_timeline: music_timeline.visible = (mode == WorkspaceMode.MODE_MUSIC_DAW)
-	if dialogue_grid: dialogue_grid.visible = (mode == WorkspaceMode.MODE_DIALOGUE_GRID)
+	if graph_editor: graph_editor.visible = (mode_int == 0)
+	if music_timeline: music_timeline.visible = (mode_int == 1)
+	if dialogue_grid: dialogue_grid.visible = (mode_int == 2)
+	if synth_workspace: synth_workspace.visible = (mode_int == 3)
 	
 	# Update button states
-	if btn_mode_graph: btn_mode_graph.button_pressed = (mode == WorkspaceMode.MODE_GRAPH)
-	if btn_mode_music: btn_mode_music.button_pressed = (mode == WorkspaceMode.MODE_MUSIC_DAW)
-	if btn_mode_dialogue: btn_mode_dialogue.button_pressed = (mode == WorkspaceMode.MODE_DIALOGUE_GRID)
+	if btn_mode_graph: btn_mode_graph.button_pressed = (mode_int == 0)
+	if btn_mode_music: btn_mode_music.button_pressed = (mode_int == 1)
+	if btn_mode_dialogue: btn_mode_dialogue.button_pressed = (mode_int == 2)
+	if btn_mode_synth: btn_mode_synth.button_pressed = (mode_int == 3)
 	
 	# Contextual toolbar widgets
-	if locale_selector: locale_selector.visible = (mode == WorkspaceMode.MODE_DIALOGUE_GRID)
-	if snap_selector: snap_selector.visible = (mode == WorkspaceMode.MODE_MUSIC_DAW)
+	if locale_selector: locale_selector.visible = (mode_int == 2)
+	if snap_selector: snap_selector.visible = (mode_int == 1)
 	
 	# Sidebars stay collapsed so active workspace occupies 100% full screen width
 	if game_syncs_panel: game_syncs_panel.visible = false
@@ -583,24 +629,27 @@ func set_workspace_mode(mode: WorkspaceMode) -> void:
 	
 	# Context-aware bottom transport bar adaptation
 	if transport_bar:
-		transport_bar.set_workspace_context(int(mode))
+		transport_bar.set_workspace_context(mode_int)
 	
 	# Update event selector items
 	event_selector.clear()
-	match mode:
-		WorkspaceMode.MODE_GRAPH:
+	match mode_int:
+		0:
 			for i in range(SFX_EVENTS.size()):
 				event_selector.add_item("🎯 " + str(SFX_EVENTS[i]), i)
 			transport_bar.set_audition_event(SFX_EVENTS[0])
-		WorkspaceMode.MODE_MUSIC_DAW:
+		1:
 			for i in range(MUSIC_EVENTS.size()):
 				var dirty_marker = " *" if music_timeline and music_timeline.is_dirty else ""
 				event_selector.add_item("🎼 " + str(MUSIC_EVENTS[i]) + dirty_marker, i)
 			transport_bar.set_audition_event(MUSIC_EVENTS[0])
-		WorkspaceMode.MODE_DIALOGUE_GRID:
+		2:
 			for i in range(DIALOGUE_EVENTS.size()):
 				event_selector.add_item("🗣️ " + str(DIALOGUE_EVENTS[i]), i)
 			transport_bar.set_audition_event(DIALOGUE_EVENTS[0])
+		3:
+			event_selector.add_item("⚡ Synth_Preset_Studio", 0)
+			transport_bar.set_audition_event(&"⚡ Synth Preset Studio")
 
 func _on_transport_rtpc_changed(rtpc_name: StringName, value: float) -> void:
 	if game_syncs_panel:
@@ -655,8 +704,10 @@ func _on_sync_switch_changed(group: StringName, sw: StringName) -> void:
 		transport_bar.set_status_log("Switch: %s → %s" % [group, sw])
 
 func _on_save_pressed() -> void:
-	if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+	if (current_workspace == WorkspaceMode.MODE_MUSIC_DAW or int(current_workspace) == 1) and music_timeline:
 		music_timeline.save_to_disk()
+	elif (current_workspace == WorkspaceMode.MODE_SYNTH_RACK or int(current_workspace) == 3) and synth_workspace:
+		synth_workspace._on_save_all_pressed()
 	_update_preset_selector_text(false)
 	if btn_save:
 		btn_save.modulate = Color.WHITE

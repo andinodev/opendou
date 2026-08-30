@@ -545,5 +545,51 @@ static func run_all() -> Array[String]:
 		
 	syncs_p.free()
 	
+	# Test 11: Mode 3 (Modular Synth Rack Workstation) Integration in OpenDouStudioMain & OpenDouTransportBar (Task 4)
+	var studio_synth = OpenDouStudioMainClass.new()
+	if studio_synth.synth_workspace == null:
+		failures.append("Test 11a Failed: synth_workspace not initialized on OpenDouStudioMain")
+	elif studio_synth.synth_workspace.visible:
+		failures.append("Test 11b Failed: synth_workspace should initially be hidden in Graph mode")
+		
+	if studio_synth.btn_mode_synth == null:
+		failures.append("Test 11c Failed: btn_mode_synth not found in header bar")
+		
+	# Switch to Mode 3
+	studio_synth.set_workspace_mode(3)
+	if studio_synth.synth_workspace == null or not studio_synth.synth_workspace.visible:
+		failures.append("Test 11d Failed: synth_workspace should be visible when switched to Mode 3")
+	if studio_synth.graph_editor.visible or studio_synth.music_timeline.visible or studio_synth.dialogue_grid.visible:
+		failures.append("Test 11e Failed: Graph, Music and Voice workspaces must be hidden in Mode 3")
+	if studio_synth.locale_selector.visible or studio_synth.snap_selector.visible:
+		failures.append("Test 11f Failed: Contextual selectors (locale, snap) should be hidden in Mode 3")
+	if studio_synth.btn_mode_synth and not studio_synth.btn_mode_synth.button_pressed:
+		failures.append("Test 11g Failed: btn_mode_synth should be pressed in Mode 3")
+	if studio_synth.transport_bar.current_workspace_mode != 3:
+		failures.append("Test 11h Failed: Transport bar current_workspace_mode should be 3 in Mode 3")
+	if not studio_synth.transport_bar.target_event_label.text.contains("Synth Preset Studio"):
+		failures.append("Test 11i Failed: Transport bar target event label does not contain 'Synth Preset Studio'")
+		
+	# Switch back to Mode 0, 1, 2
+	studio_synth.set_workspace_mode(0)
+	if studio_synth.synth_workspace.visible:
+		failures.append("Test 11j Failed: synth_workspace should be hidden when switching back to Mode 0")
+	studio_synth.set_workspace_mode(1)
+	if studio_synth.synth_workspace.visible:
+		failures.append("Test 11k Failed: synth_workspace should be hidden when switching to Mode 1")
+	studio_synth.set_workspace_mode(2)
+	if studio_synth.synth_workspace.visible:
+		failures.append("Test 11l Failed: synth_workspace should be hidden when switching to Mode 2")
+		
+	# Direct Transport Bar Mode 3 test
+	var tb_synth = OpenDouTransportBarClass.new()
+	tb_synth.set_workspace_context(3)
+	if tb_synth.current_workspace_mode != 3:
+		failures.append("Test 11m Failed: Transport bar set_workspace_context(3) did not set current_workspace_mode to 3")
+	if not tb_synth.target_event_label.text.contains("Synth Preset Studio"):
+		failures.append("Test 11n Failed: Transport bar target_event_label mismatch for Mode 3")
+	tb_synth.free()
+	studio_synth.free()
+	
 	return failures
 

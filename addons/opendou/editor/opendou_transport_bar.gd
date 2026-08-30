@@ -196,6 +196,15 @@ func set_workspace_context(mode: int) -> void:
 				ev_title = "Dialogue_Voice_Bank.tres"
 			target_event_label.text = "Audition: [🗣️ %s]" % ev_title
 			_add_dialogue_transport_controls()
+			
+		3: # Synth Rack Workspace
+			target_event_label.text = "Audition: [⚡ Synth Preset Studio]"
+			_add_synth_transport_controls()
+
+func _add_synth_transport_controls() -> void:
+	add_precision_fader(&"Octave", -3.0, 3.0, 0.0, 1.0, "oct")
+	add_precision_fader(&"Detune", -100.0, 100.0, 0.0, 1.0, "ct")
+	add_precision_fader(&"Master Gain", -40.0, 6.0, 0.0, 0.5, "dB")
 
 func _populate_graph_controls() -> void:
 	if "Vehicle" in str(current_event_name):
@@ -383,6 +392,7 @@ func set_audition_event(event_name: StringName) -> void:
 			0: target_event_label.text = "Audition: [%s]" % str(current_event_name)
 			1: target_event_label.text = "Audition: [🎼 %s]" % str(current_event_name)
 			2: target_event_label.text = "Audition: [🗣️ %s]" % str(current_event_name)
+			3: target_event_label.text = "Audition: [⚡ %s]" % str(current_event_name)
 
 func _on_master_slider_changed(v: float) -> void:
 	if master_vol_spin and not is_equal_approx(master_vol_spin.value, v):
