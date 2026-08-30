@@ -385,6 +385,11 @@ static func run_all() -> Array[String]:
 			"base": "Node",
 			"script": "res://addons/opendou/nodes/opendou_music_player.gd",
 			"icon": "res://addons/opendou/icons/icon_music_player.svg"
+		},
+		"OpenDouAudibleMonitor": {
+			"base": "CanvasLayer",
+			"script": "res://addons/opendou/nodes/opendou_audible_monitor.gd",
+			"icon": "res://addons/opendou/icons/icon_audible_monitor.svg"
 		}
 	}
 	

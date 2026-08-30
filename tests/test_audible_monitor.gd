@@ -8,6 +8,7 @@ const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_d
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const AudioDuckingMatrixClass = preload("res://addons/opendou/core/audio_ducking_matrix.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
+const OpenDouAudibleMonitorClass = preload("res://addons/opendou/nodes/opendou_audible_monitor.gd")
 
 static func run_all() -> Array[String]:
 	var failures: Array[String] = []
@@ -148,4 +149,89 @@ static func run_all() -> Array[String]:
 	root_node.free()
 	tree.free()
 	
+	# Test 6: OpenDouAudibleMonitor node instantiation, default properties, and UI generation
+	var monitor = OpenDouAudibleMonitorClass.new()
+	if not (monitor is CanvasLayer):
+		failures.append("Test 6a Failed: OpenDouAudibleMonitor must extend CanvasLayer")
+	if monitor.enabled != true:
+		failures.append("Test 6b Failed: enabled default should be true")
+	if monitor.is_overlay_visible != true:
+		failures.append("Test 6c Failed: is_overlay_visible default should be true")
+	if monitor.toggle_key != KEY_F8:
+		failures.append("Test 6d Failed: toggle_key default should be KEY_F8")
+	if monitor.max_items_displayed != 8:
+		failures.append("Test 6e Failed: max_items_displayed default should be 8")
+	if not is_equal_approx(monitor.min_db_threshold, -55.0):
+		failures.append("Test 6f Failed: min_db_threshold default should be -55.0")
+	if not is_equal_approx(monitor.poll_interval, 0.05):
+		failures.append("Test 6g Failed: poll_interval default should be 0.05")
+	if monitor.listener_node_path != NodePath(""):
+		failures.append("Test 6h Failed: listener_node_path default should be empty NodePath")
+		
+	# Test UI hierarchy & tree attachment
+	var test_tree = SceneTree.new()
+	var test_root = Node.new()
+	test_tree.root.add_child(test_root)
+	test_root.add_child(monitor)
+	
+	if monitor.panel_container == null or not is_instance_valid(monitor.panel_container):
+		failures.append("Test 6i Failed: OpenDouAudibleMonitor did not create panel_container on _ready")
+	if monitor.items_vbox == null or not is_instance_valid(monitor.items_vbox):
+		failures.append("Test 6j Failed: OpenDouAudibleMonitor did not create items_vbox on _ready")
+		
+	# Test visibility toggle & unhandled input
+	var ev_f8 = InputEventKey.new()
+	ev_f8.pressed = true
+	ev_f8.keycode = KEY_F8
+	monitor._unhandled_input(ev_f8)
+	if monitor.is_overlay_visible != false or (monitor.panel_container != null and monitor.panel_container.visible != false):
+		failures.append("Test 6k Failed: F8 input event failed to hide overlay")
+		
+	monitor._unhandled_input(ev_f8)
+	if monitor.is_overlay_visible != true or (monitor.panel_container != null and monitor.panel_container.visible != true):
+		failures.append("Test 6l Failed: F8 input event failed to show overlay")
+		
+	# Test dynamic voice rendering in HUD
+	var test_mgr = AudioEventManagerClass.new()
+	test_mgr.name = "OpenDou"
+	test_tree.root.add_child(test_mgr)
+	
+	var hud_def = AudioEventDefClass.new(&"HUDVoiceTest")
+	hud_def.bus = &"SFX"
+	hud_def.base_volume_db = -6.0
+	var hud_inst = test_mgr.post_event(hud_def)
+	hud_inst.set_position(Vector3(2.0, 0.0, 0.0))
+	
+	monitor.refresh_now()
+	if monitor.get_displayed_voices_count() < 1:
+		failures.append("Test 6m Failed: Expected displayed voice count >= 1, got %d" % monitor.get_displayed_voices_count())
+	if monitor.items_vbox != null and monitor.items_vbox.get_child_count() < 1:
+		failures.append("Test 6n Failed: Expected items_vbox to contain at least 1 voice row widget")
+		
+	# Cleanup
+	monitor.queue_free()
+	test_mgr.free()
+	test_root.free()
+	test_tree.free()
+	
+	# Test 7: plugin.gd custom type registration and SVG icon loading
+	var script_path = "res://addons/opendou/nodes/opendou_audible_monitor.gd"
+	var icon_path = "res://addons/opendou/icons/icon_audible_monitor.svg"
+	
+	var scr = ResourceLoader.load(script_path)
+	if scr == null:
+		failures.append("Test 7a Failed: Script resource missing for OpenDouAudibleMonitor at %s" % script_path)
+	var icon_res = ResourceLoader.load(icon_path)
+	if icon_res == null:
+		failures.append("Test 7b Failed: Icon resource missing for OpenDouAudibleMonitor at %s" % icon_path)
+		
+	var plugin_code = FileAccess.get_file_as_string("res://addons/opendou/plugin.gd")
+	if plugin_code.is_empty():
+		failures.append("Test 7c Failed: Could not read addons/opendou/plugin.gd")
+	else:
+		if not plugin_code.contains('add_custom_type("OpenDouAudibleMonitor"') and not plugin_code.contains("add_custom_type('OpenDouAudibleMonitor'"):
+			failures.append("Test 7d Failed: plugin.gd missing add_custom_type for OpenDouAudibleMonitor")
+		if not plugin_code.contains('remove_custom_type("OpenDouAudibleMonitor"') and not plugin_code.contains("remove_custom_type('OpenDouAudibleMonitor'"):
+			failures.append("Test 7e Failed: plugin.gd missing remove_custom_type for OpenDouAudibleMonitor")
+			
 	return failures

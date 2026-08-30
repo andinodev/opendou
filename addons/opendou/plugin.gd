@@ -16,6 +16,7 @@ const OpenDouRoom3DClass = preload("res://addons/opendou/nodes/opendou_room_3d.g
 const OpenDouPortal3DClass = preload("res://addons/opendou/nodes/opendou_portal_3d.gd")
 const OpenDouReflector3DClass = preload("res://addons/opendou/nodes/opendou_reflector_3d.gd")
 const OpenDouMusicPlayerClass = preload("res://addons/opendou/nodes/opendou_music_player.gd")
+const OpenDouAudibleMonitorClass = preload("res://addons/opendou/nodes/opendou_audible_monitor.gd")
 
 # Declarative Node Icons
 const IconEventPlayer3D = preload("res://addons/opendou/icons/icon_event_player_3d.svg")
@@ -25,6 +26,7 @@ const IconRoom3D = preload("res://addons/opendou/icons/icon_room.svg")
 const IconPortal3D = preload("res://addons/opendou/icons/icon_portal.svg")
 const IconReflector3D = preload("res://addons/opendou/icons/icon_reflector_3d.svg")
 const IconMusicPlayer = preload("res://addons/opendou/icons/icon_music_player.svg")
+const IconAudibleMonitor = preload("res://addons/opendou/icons/icon_audible_monitor.svg")
 
 var studio_instance: Control
 var dock_button: Button
@@ -50,6 +52,7 @@ func _enter_tree() -> void:
 	add_custom_type("OpenDouPortal3D", "Node3D", OpenDouPortal3DClass, IconPortal3D)
 	add_custom_type("OpenDouReflector3D", "Node3D", OpenDouReflector3DClass, IconReflector3D)
 	add_custom_type("OpenDouMusicPlayer", "Node", OpenDouMusicPlayerClass, IconMusicPlayer)
+	add_custom_type("OpenDouAudibleMonitor", "CanvasLayer", OpenDouAudibleMonitorClass, IconAudibleMonitor)
 
 func _on_dock_button_pressed() -> void:
 	if studio_instance:
@@ -65,6 +68,7 @@ func _exit_tree() -> void:
 	remove_custom_type("OpenDouPortal3D")
 	remove_custom_type("OpenDouReflector3D")
 	remove_custom_type("OpenDouMusicPlayer")
+	remove_custom_type("OpenDouAudibleMonitor")
 
 	# Remove bottom panel dock
 	if studio_instance:

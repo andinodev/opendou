@@ -178,7 +178,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r34)
 	
 	var r35 = TestAudibleMonitorClass.run_all()
-	total_tests += 5
+	total_tests += 7
 	all_failures.append_array(r35)
 	
 	return {
