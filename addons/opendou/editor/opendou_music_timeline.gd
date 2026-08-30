@@ -809,7 +809,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	var auto_header_box = HBoxContainer.new()
 	auto_header_box.add_theme_constant_override("margin_left", 8)
 	auto_header_box.add_theme_constant_override("separation", 6)
-	auto_header_box.add_child(auto_header_box)
+	auto_header.add_child(auto_header_box)
 	
 	var auto_lbl = Label.new()
 	auto_lbl.text = "📈 Curve:"
