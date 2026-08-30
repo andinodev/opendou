@@ -247,6 +247,21 @@ static func run_all() -> Array[String]:
 	if not found_seq:
 		failures.append("Test 6k Failed: Sequence GraphNode was not spawned via context menu")
 
+	# Test Profiler Panel Session Recording and JSON roundtrip
+	var profiler = studio.profiler_panel
+	profiler._on_record_session_toggled(true)
+	profiler.session_recorder.record_frame(55.0, 4, 120, ["Test_Event"], {}, 2)
+	profiler._on_record_session_toggled(false)
+	if profiler.session_recorder.frames.is_empty():
+		failures.append("Test 6l Failed: Profiler session recorder did not capture frames")
+	var exported_json = profiler.session_recorder.export_to_json()
+	if not exported_json.contains("Test_Event"):
+		failures.append("Test 6m Failed: Profiler session JSON export missing recorded event")
+	var new_recorder = ProfilerSessionRecorderClass.new()
+	if not new_recorder.import_from_json(exported_json) or new_recorder.frames.size() != profiler.session_recorder.frames.size():
+		failures.append("Test 6n Failed: Profiler session JSON import mismatch")
+	new_recorder.free()
+
 	# Test Detach Window & Placeholder
 	if studio.dock_placeholder == null:
 		failures.append("Test 6h Failed: Dock placeholder not initialized")

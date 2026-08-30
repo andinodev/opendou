@@ -2,11 +2,13 @@
 class_name OpenDouProfilerPanel
 extends PanelContainer
 
-## Real-time profiler panel with High-Density DSP execution graphs, Voice Stealing Ledger, and TCP hot-connection.
+## Real-time profiler panel with High-Density DSP execution graphs, Voice Stealing Ledger, Session Recording/Export/Import, Time-Travel Scrubbing, and TCP hot-connection.
 
 const ProfilerSessionRecorderClass = preload("res://addons/opendou/core/telemetry/profiler_session_recorder.gd")
 
 signal connect_tcp_requested(host: String, port: int)
+signal session_saved(file_path: String)
+signal session_loaded(file_path: String)
 
 var tab_container: TabContainer
 var voice_tree: Tree
@@ -16,8 +18,17 @@ var rewind_slider: HSlider
 var rewind_time_lbl: Label
 var btn_play_pause: Button
 
+# Session Recording & I/O Controls
+var btn_record_session: Button
+var rec_status_lbl: Label
+var btn_export_session: Button
+var btn_import_session: Button
+var session_file_dialog: FileDialog
+var is_file_dialog_for_export: bool = true
+
 var is_connected: bool = false
 var is_paused_scrubbing: bool = false
+var is_manual_recording: bool = false
 var session_recorder: ProfilerSessionRecorder
 
 var dsp_history: Array[float] = []
@@ -37,6 +48,13 @@ func _init() -> void:
 	_build_ui()
 
 func _build_ui() -> void:
+	# FileDialog for Sessions
+	session_file_dialog = FileDialog.new()
+	session_file_dialog.access = FileDialog.ACCESS_RESOURCES
+	session_file_dialog.filters = ["*.json ; OpenDou Telemetry Profile Session"]
+	session_file_dialog.file_selected.connect(_on_session_file_selected)
+	add_child(session_file_dialog)
+	
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 8)
 	margin.add_theme_constant_override("margin_top", 8)
@@ -45,8 +63,39 @@ func _build_ui() -> void:
 	add_child(margin)
 	
 	var v_box = VBoxContainer.new()
-	v_box.add_theme_constant_override("separation", 8)
+	v_box.add_theme_constant_override("separation", 6)
 	margin.add_child(v_box)
+	
+	# Top Session Recording Toolbar
+	var session_toolbar = HBoxContainer.new()
+	session_toolbar.add_theme_constant_override("separation", 6)
+	
+	btn_record_session = Button.new()
+	btn_record_session.text = "🔴 Record"
+	btn_record_session.tooltip_text = "Start/Stop recording continuous telemetry profile session"
+	btn_record_session.toggle_mode = true
+	btn_record_session.toggled.connect(_on_record_session_toggled)
+	session_toolbar.add_child(btn_record_session)
+	
+	rec_status_lbl = Label.new()
+	rec_status_lbl.text = "Standby (0 frames)"
+	rec_status_lbl.add_theme_font_size_override("font_size", 9)
+	rec_status_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	session_toolbar.add_child(rec_status_lbl)
+	
+	btn_export_session = Button.new()
+	btn_export_session.text = "💾 Export"
+	btn_export_session.tooltip_text = "Export recorded session to JSON file"
+	btn_export_session.pressed.connect(_on_export_session_pressed)
+	session_toolbar.add_child(btn_export_session)
+	
+	btn_import_session = Button.new()
+	btn_import_session.text = "📂 Open"
+	btn_import_session.tooltip_text = "Load recorded session JSON for offline analysis"
+	btn_import_session.pressed.connect(_on_import_session_pressed)
+	session_toolbar.add_child(btn_import_session)
+	
+	v_box.add_child(session_toolbar)
 	
 	# Tabs with enhanced styling
 	tab_container = TabContainer.new()
@@ -133,6 +182,64 @@ func _build_ui() -> void:
 		
 	_populate_sample_telemetry()
 
+func _on_record_session_toggled(is_recording: bool) -> void:
+	is_manual_recording = is_recording
+	if is_recording:
+		btn_record_session.text = "⏹ Stop Rec"
+		btn_record_session.modulate = Color(1.0, 0.3, 0.3)
+		if session_recorder:
+			session_recorder.frames.clear()
+			session_recorder.is_recording = true
+			session_recorder.session_start_time_msec = Time.get_ticks_msec()
+	else:
+		btn_record_session.text = "🔴 Record"
+		btn_record_session.modulate = Color.WHITE
+		if session_recorder:
+			rec_status_lbl.text = "Recorded %d frames (%.1fs)" % [session_recorder.frames.size(), session_recorder.frames.back().timestamp_sec if not session_recorder.frames.is_empty() else 0.0]
+
+func _on_export_session_pressed() -> void:
+	if not session_recorder or session_recorder.frames.is_empty():
+		return
+	is_file_dialog_for_export = true
+	session_file_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	session_file_dialog.popup_centered(Vector2i(650, 420))
+
+func _on_import_session_pressed() -> void:
+	is_file_dialog_for_export = false
+	session_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	session_file_dialog.popup_centered(Vector2i(650, 420))
+
+func _on_session_file_selected(path: String) -> void:
+	if is_file_dialog_for_export:
+		if session_recorder:
+			var json_data = session_recorder.export_to_json()
+			var f = FileAccess.open(path, FileAccess.WRITE)
+			if f:
+				f.store_string(json_data)
+				session_saved.emit(path)
+	else:
+		if FileAccess.file_exists(path) and session_recorder:
+			var f = FileAccess.open(path, FileAccess.READ)
+			if f:
+				var content = f.get_as_text()
+				if session_recorder.import_from_json(content):
+					is_paused_scrubbing = true
+					btn_play_pause.text = "▶️ Resume"
+					rec_status_lbl.text = "Loaded: %s (%d frames)" % [path.get_file(), session_recorder.frames.size()]
+					_populate_from_session_frames()
+					session_loaded.emit(path)
+
+func _populate_from_session_frames() -> void:
+	if not session_recorder or session_recorder.frames.is_empty():
+		return
+	dsp_history.clear()
+	for f in session_recorder.frames:
+		dsp_history.append(f.dsp_time_us)
+		if dsp_history.size() > max_dsp_history:
+			dsp_history.pop_front()
+	if dsp_graph_rect:
+		dsp_graph_rect.queue_redraw()
+
 func _populate_sample_telemetry() -> void:
 	voice_tree.clear()
 	var root = voice_tree.create_item()
@@ -164,6 +271,8 @@ func _process(delta: float) -> void:
 			
 		if session_recorder:
 			session_recorder.record_frame(cur, active_physical_voices, active_virtual_voices, ["Battlefield_Gunfire"], {}, 1)
+			if is_manual_recording:
+				rec_status_lbl.text = "🔴 REC: %d frames (%.1fs)" % [session_recorder.frames.size(), session_recorder.frames.back().timestamp_sec if not session_recorder.frames.is_empty() else 0.0]
 			
 	if dsp_graph_rect:
 		dsp_graph_rect.queue_redraw()
