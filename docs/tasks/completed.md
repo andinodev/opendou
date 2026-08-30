@@ -8,6 +8,15 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ### 2026-08-29
 
+* **`TASK-031` - Marcadores Estructurales (Pre-Entry / Exit Cues), Colas Post-Exit Tails y Sub-Pistas Aleatorias**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Marcadores Rítmicos en la Regla (`Entry` 🟢 / `Exit` 🔴):** Marcadores arrastrables en la regla con ajuste magnético, soportando anacrusas (*pre-entry pickups*) antes del compás 1.
+    * **Colas de Desbordamiento (`Post-Exit Tails` 🟣):** Zona de cola sombreada en la regla y búfer de decaimiento natural (`tail_decay_players`) durante las transiciones para evitar cortes abruptos en reverberaciones y platillos.
+    * **Sub-Pistas Aleatorias (`Random Multi-Tracks` 🎲):** Gestión de múltiples variaciones por pista (`[ 🎲 Var: N ]`) con conmutación aleatoria en cada ciclo de bucle rítmico para evitar la fatiga auditiva.
+    * **Persistencia Completa:** Guardado y recarga en disco de marcadores, colas y variaciones en `res://opendou_music_suites.json`.
+    * **Suite de Pruebas:** 135 / 135 pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
 * **`TASK-030` - Persistencia Real, CRUD de Pistas, Selector de Audio y Tiradores de Recorte del Music DAW**
   * **Fecha:** 2026-08-29
   * **Resumen:**

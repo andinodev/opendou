@@ -97,28 +97,28 @@ Este archivo almacena el banco de tareas pendientes y planificadas para **OpenDo
 
 ## 💾 16. Persistencia Real, CRUD de Pistas y Ergonomía del Music DAW (`TASK-030`)
 
-* [ ] `TASK-030.1`: **Indicador de Estado Modificado (`Dirty State *`):**
+* [x] `TASK-030.1`: **Indicador de Estado Modificado (`Dirty State *`):**
   * Al modificar cualquier valor del DAW, mostrar un asterisco junto al nombre del recurso y advertir con un diálogo al cambiar de pestaña si hay cambios sin guardar.
-* [ ] `TASK-030.2`: **Guardado en Disco (`Ctrl+S` / Botón 💾):**
+* [x] `TASK-030.2`: **Guardado en Disco (`Ctrl+S` / Botón 💾):**
   * Serialización persistente del recurso `MusicSegment.tres` y su árbol de pistas mediante `ResourceSaver.save()` y JSON de respaldo.
-* [ ] `TASK-030.3`: **Caché y Restauración Visual de Pestañas:**
+* [x] `TASK-030.3`: **Caché y Restauración Visual de Pestañas:**
   * Guardar en memoria la posición del scroll, nivel de zoom, capas activas y cabezal al alternar entre *Graph*, *Music DAW* y *Dialogues*.
-* [ ] `TASK-030.4`: **CRUD de Pistas (`Add / Delete Track`):**
+* [x] `TASK-030.4`: **CRUD de Pistas (`Add / Delete Track`):**
   * Botón `[ ➕ Add Track ]` para crear nuevas capas dinámicas y botón `[ 🗑️ ]` para eliminarlas.
-* [ ] `TASK-030.5`: **Asignación de Archivos de Audio (`Audio File Picker`):**
+* [x] `TASK-030.5`: **Asignación de Archivos de Audio (`Audio File Picker`):**
   * Selector en la cabecera del track (`[ 📁 Load WAV/OGG ]`) mediante `EditorFileDialog` para asignar cualquier archivo del proyecto.
-* [ ] `TASK-030.6`: **Scrollbars y Tiradores de Recorte (`Clip Trim Handles`):**
+* [x] `TASK-030.6`: **Scrollbars y Tiradores de Recorte (`Clip Trim Handles`):**
   * Barras de desplazamiento horizontal/vertical fluidas en `ScrollContainer` y tiradores en los bordes de los clips para recortar o repetir visualmente.
 
 ---
 
 ## ⏱️ 17. Marcadores Estructurales y Sub-Pistas Aleatorias (`TASK-031`)
 
-* [ ] `TASK-031.1`: **Marcadores Pre-Entry Cues (Anacrusas / Pickups):**
+* [x] `TASK-031.1`: **Marcadores Pre-Entry Cues (Anacrusas / Pickups):**
   * Marcador visual interactivo que permite que el clip comience a sonar antes del compás 1.
-* [ ] `TASK-031.2`: **Colas de Desbordamiento Post-Exit Tails:**
+* [x] `TASK-031.2`: **Colas de Desbordamiento Post-Exit Tails:**
   * Cola de reverberación y platillos que sigue sonando sin cortarse abruptamente tras transicionar al siguiente segmento.
-* [ ] `TASK-031.3`: **Sub-Pistas Aleatorias (*Random Multi-Tracks*):**
+* [x] `TASK-031.3`: **Sub-Pistas Aleatorias (*Random Multi-Tracks*):**
   * Carriles de variación dentro de cada capa (ej. Variación A, B y C de batería) que el motor elige aleatoriamente en cada vuelta del bucle de 8 compases.
 
 ---

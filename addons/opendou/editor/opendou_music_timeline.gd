@@ -2,7 +2,7 @@
 class_name OpenDouMusicTimeline
 extends PanelContainer
 
-## Professional DAW-style interactive music timeline with Rhythmic BPM Grid Ruler, Multi-Track Headers (Mute, Solo, Volume Fader, Audio File Picker, Delete), Clip Trim Handles, Dynamic Track CRUD ([+ Add Track]), Persistent Suite Serialization (JSON / .tres), Metronome, Horizontal Zoom, and Quantized Transition Matrix.
+## Professional DAW-style interactive music timeline with Rhythmic BPM Grid Ruler, Multi-Track Headers (Mute, Solo, Volume Fader, Audio File Picker, Delete, Random Sub-Tracks), Structural Cues (Pre-Entry, Exit), Post-Exit Reverb Tails, Clip Trim Handles, Dynamic Track CRUD ([+ Add Track]), Persistent Suite Serialization (JSON / .tres), Metronome, Horizontal Zoom, and Quantized Transition Matrix.
 
 signal bpm_changed(new_bpm: float)
 signal intensity_changed(new_intensity: float)
@@ -32,12 +32,16 @@ class TrackLaneData:
 	var audio_file_path: String = ""
 	var left_trim_ratio: float = 0.0 # 0.0 to 1.0
 	var right_trim_ratio: float = 1.0 # 0.0 to 1.0
+	var sub_tracks: Array[Dictionary] = [] # [{"name": "Var 1", "audio_path": "...", "weight": 1.0}]
+	var active_sub_index: int = 0
+	var is_random_mode: bool = true
 	var row_container: HBoxContainer
 	var header_panel: PanelContainer
 	var mute_btn: Button
 	var solo_btn: Button
 	var vol_slider: HSlider
 	var file_btn: Button
+	var var_btn: Button
 	var delete_btn: Button
 	var file_label: Label
 	var meter_rect: Control
@@ -68,10 +72,17 @@ var scroll_container: ScrollContainer
 var lanes_vbox: VBoxContainer
 var tracks: Array[TrackLaneData] = []
 
+# Structural Cues & Post-Exit Tails (Wwise / FMOD Standard)
+var entry_cue_bar: float = 0.0 # 0.0 = Bar 1 Beat 1 (can be negative, e.g. -1.0 for pickups/anacrusas)
+var exit_cue_bar: float = 8.0 # Bar position where loop cycles or exits
+var post_exit_tail_sec: float = 2.0 # Reverb/cymbal decay duration
+var dragging_cue_marker: int = 0 # 1 = entry cue, 2 = exit cue
+
 # Right Matrix Controls
 var transition_target_opt: OptionButton
 var sync_mode_opt: OptionButton
 var fade_duration_spinbox: SpinBox
+var tail_duration_spinbox: SpinBox
 var btn_stinger_victory: Button
 var btn_stinger_danger: Button
 
@@ -88,13 +99,15 @@ var active_suite_name: StringName = &"Dynamic_Combat_Suite.tres"
 # File Dialog & Trim Handle Dragging
 var file_dialog: FileDialog
 var pending_file_track_index: int = -1
+var pending_file_is_variation: bool = false
 var dragging_trim_track: TrackLaneData = null
 var dragging_trim_handle: int = 0 # 1 = left, 2 = right
 
-# Audio Players
+# Audio Players & Tail Decay Buffers
 var metronome_player: AudioStreamPlayer
 var stinger_player: AudioStreamPlayer
 var stem_players: Array[AudioStreamPlayer] = []
+var tail_decay_players: Array[AudioStreamPlayer] = []
 
 func _init() -> void:
 	clock = MusicClockClass.new(120.0, 4, 4)
@@ -284,7 +297,7 @@ func _build_ui() -> void:
 	ruler_row.add_theme_constant_override("separation", 6)
 	
 	var track_header_spacer = PanelContainer.new()
-	track_header_spacer.custom_minimum_size = Vector2(240, 32)
+	track_header_spacer.custom_minimum_size = Vector2(240, 34)
 	
 	var spacer_hbox = HBoxContainer.new()
 	spacer_hbox.add_theme_constant_override("margin_left", 6)
@@ -310,8 +323,9 @@ func _build_ui() -> void:
 	
 	ruler_canvas = Control.new()
 	ruler_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ruler_canvas.custom_minimum_size = Vector2(0, 32)
+	ruler_canvas.custom_minimum_size = Vector2(0, 34)
 	ruler_canvas.draw.connect(_on_draw_timeline_ruler)
+	ruler_canvas.gui_input.connect(_on_ruler_gui_input)
 	ruler_row.add_child(ruler_canvas)
 	seq_vbox.add_child(ruler_row)
 	
@@ -379,6 +393,23 @@ func _build_ui() -> void:
 	fade_duration_spinbox.value_changed.connect(func(_v): mark_dirty(true))
 	right_panel.add_child(fade_duration_spinbox)
 	
+	var tail_lbl = Label.new()
+	tail_lbl.text = "Post-Exit Tail (s):"
+	tail_lbl.add_theme_font_size_override("font_size", 10)
+	right_panel.add_child(tail_lbl)
+	
+	tail_duration_spinbox = SpinBox.new()
+	tail_duration_spinbox.min_value = 0.5
+	tail_duration_spinbox.max_value = 5.0
+	tail_duration_spinbox.step = 0.1
+	tail_duration_spinbox.value = post_exit_tail_sec
+	tail_duration_spinbox.value_changed.connect(func(v):
+		post_exit_tail_sec = v
+		if ruler_canvas: ruler_canvas.queue_redraw()
+		mark_dirty(true)
+	)
+	right_panel.add_child(tail_duration_spinbox)
+	
 	var btn_trigger_trans = Button.new()
 	btn_trigger_trans.text = "🔀 Trigger Transition"
 	btn_trigger_trans.pressed.connect(_on_trigger_transition_pressed)
@@ -439,7 +470,7 @@ func mark_dirty(dirty: bool = true) -> void:
 		is_dirty = dirty
 		dirty_changed.emit(is_dirty)
 
-## Adds a new customizable stem track with interactive header, file picker, delete button, and waveform canvas.
+## Adds a new customizable stem track with interactive header, file picker, variation button, delete button, and waveform canvas.
 func _add_track(track_name: String, min_int: float, max_int: float, color: Color, audio_path: String = "", left_t: float = 0.0, right_t: float = 1.0) -> TrackLaneData:
 	var t = TrackLaneData.new()
 	t.name = track_name
@@ -449,6 +480,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	t.audio_file_path = audio_path
 	t.left_trim_ratio = left_t
 	t.right_trim_ratio = right_t
+	t.sub_tracks = [{"name": "Var 1", "audio_path": audio_path, "weight": 1.0}]
 	
 	var row = HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -475,9 +507,10 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info_vbox.add_theme_constant_override("separation", 2)
 	
-	# Top line: Track Title + Delete button
+	# Top line: Track Title + Var Button + Delete button
 	var top_title_box = HBoxContainer.new()
 	top_title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_title_box.add_theme_constant_override("separation", 4)
 	
 	var name_lbl = Label.new()
 	name_lbl.text = track_name
@@ -485,6 +518,15 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_title_box.add_child(name_lbl)
+	
+	# Random Variation Button
+	var v_btn = Button.new()
+	v_btn.text = "🎲 1"
+	v_btn.tooltip_text = "Add / Cycle Random Sub-Tracks for this layer"
+	v_btn.custom_minimum_size = Vector2(26, 18)
+	v_btn.pressed.connect(func(): _on_track_variation_clicked(t))
+	t.var_btn = v_btn
+	top_title_box.add_child(v_btn)
 	
 	# File Picker Button
 	var f_btn = Button.new()
@@ -560,7 +602,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	
 	# Bottom line: Audio File Path Preview
 	var path_lbl = Label.new()
-	path_lbl.text = audio_path.get_file() if not audio_path.is_empty() else "Procedural Synth"
+	path_lbl.text = audio_path.get_file() if not audio_path.is_empty() else "Procedural Synth (Var 1)"
 	path_lbl.add_theme_font_size_override("font_size", 8)
 	path_lbl.modulate = Color(0.6, 0.7, 0.8)
 	path_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -606,6 +648,33 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	stem_players.append(p)
 	
 	return t
+
+## Clicking the variation button adds or cycles random sub-tracks.
+func _on_track_variation_clicked(t: TrackLaneData) -> void:
+	var next_num = t.sub_tracks.size() + 1
+	var new_var_name = "Var %d" % next_num
+	t.sub_tracks.append({"name": new_var_name, "audio_path": t.audio_file_path, "weight": 1.0})
+	t.active_sub_index = t.sub_tracks.size() - 1
+	if t.var_btn:
+		t.var_btn.text = "🎲 %d" % t.sub_tracks.size()
+	if t.file_label:
+		t.file_label.text = "%s (%s)" % [t.audio_file_path.get_file() if not t.audio_file_path.is_empty() else "Procedural Synth", new_var_name]
+	mark_dirty(true)
+
+## Randomly selects sub-tracks on loop completion.
+func _pick_random_variations_on_loop() -> void:
+	for i in range(tracks.size()):
+		var t = tracks[i]
+		if t.is_random_mode and t.sub_tracks.size() > 1:
+			var rand_idx = randi() % t.sub_tracks.size()
+			t.active_sub_index = rand_idx
+			var sub_data = t.sub_tracks[rand_idx]
+			var path = str(sub_data.get("audio_path", ""))
+			if i < stem_players.size() and stem_players[i]:
+				_assign_default_or_file_stream(stem_players[i], i, path)
+			if t.file_label:
+				var fn = path.get_file() if not path.is_empty() else "Procedural Synth"
+				t.file_label.text = "%s (%s)" % [fn, str(sub_data.get("name", "Var"))]
 
 func _assign_default_or_file_stream(player: AudioStreamPlayer, idx: int, audio_path: String) -> void:
 	if not audio_path.is_empty() and ResourceLoader.exists(audio_path):
@@ -656,6 +725,8 @@ func _on_audio_file_selected(path: String) -> void:
 	if pending_file_track_index >= 0 and pending_file_track_index < tracks.size():
 		var t = tracks[pending_file_track_index]
 		t.audio_file_path = path
+		if t.active_sub_index < t.sub_tracks.size():
+			t.sub_tracks[t.active_sub_index]["audio_path"] = path
 		if t.file_label:
 			t.file_label.text = path.get_file()
 		if pending_file_track_index < stem_players.size():
@@ -696,7 +767,39 @@ func _on_waveform_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent) -
 			t.right_trim_ratio = maxf(ratio, t.left_trim_ratio + 0.05)
 		canvas.queue_redraw()
 
-## Persists the active music suites and tracks configuration to disk.
+## Handles mouse dragging on timeline ruler for Entry and Exit cues.
+func _on_ruler_gui_input(ev: InputEvent) -> void:
+	if not ruler_canvas:
+		return
+	var size = ruler_canvas.size
+	var bar_w = (size.x / 8.0) * zoom_factor
+	var entry_x = entry_cue_bar * bar_w
+	var exit_x = exit_cue_bar * bar_w
+	
+	if ev is InputEventMouseButton:
+		var mb = ev as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				if absf(mb.position.x - entry_x) <= 14.0:
+					dragging_cue_marker = 1
+				elif absf(mb.position.x - exit_x) <= 14.0:
+					dragging_cue_marker = 2
+			else:
+				if dragging_cue_marker != 0:
+					dragging_cue_marker = 0
+					mark_dirty(true)
+	elif ev is InputEventMouseMotion and dragging_cue_marker != 0:
+		var mm = ev as InputEventMouseMotion
+		var bar_pos = mm.position.x / bar_w
+		# Snap to nearest 0.5 bar or 0.25 bar if snap active
+		bar_pos = snappedf(bar_pos, 0.25)
+		if dragging_cue_marker == 1:
+			entry_cue_bar = clampf(bar_pos, -2.0, exit_cue_bar - 0.5)
+		elif dragging_cue_marker == 2:
+			exit_cue_bar = clampf(bar_pos, entry_cue_bar + 0.5, 16.0)
+		ruler_canvas.queue_redraw()
+
+## Persists the active music suites, tracks, cues, tails and sub-tracks to disk.
 func save_to_disk() -> void:
 	var root_dict = {}
 	if FileAccess.file_exists(MUSIC_SUITES_SAVE_PATH):
@@ -709,6 +812,9 @@ func save_to_disk() -> void:
 	var suite_data = {
 		"bpm": clock.bpm if clock else 120.0,
 		"intensity": active_intensity,
+		"entry_cue": entry_cue_bar,
+		"exit_cue": exit_cue_bar,
+		"tail_sec": post_exit_tail_sec,
 		"tracks": []
 	}
 	for t in tracks:
@@ -722,7 +828,8 @@ func save_to_disk() -> void:
 			"is_solo": t.is_solo,
 			"audio_file_path": t.audio_file_path,
 			"left_trim": t.left_trim_ratio,
-			"right_trim": t.right_trim_ratio
+			"right_trim": t.right_trim_ratio,
+			"sub_tracks": t.sub_tracks
 		})
 	root_dict[str(active_suite_name)] = suite_data
 	
@@ -758,6 +865,11 @@ func load_from_disk(suite_name: StringName) -> void:
 				_on_intensity_slider_changed(int_val)
 				if intensity_slider: intensity_slider.value = int_val
 				
+				entry_cue_bar = float(s_data.get("entry_cue", 0.0))
+				exit_cue_bar = float(s_data.get("exit_cue", 8.0))
+				post_exit_tail_sec = float(s_data.get("tail_sec", 2.0))
+				if tail_duration_spinbox: tail_duration_spinbox.value = post_exit_tail_sec
+				
 				var track_list = s_data.get("tracks", [])
 				for td in track_list:
 					var col = Color.from_string(str(td.get("color", "ffffff")), Color.WHITE)
@@ -773,6 +885,12 @@ func load_from_disk(suite_name: StringName) -> void:
 					t.volume_db = float(td.get("volume_db", 0.0))
 					t.is_muted = bool(td.get("is_muted", false))
 					t.is_solo = bool(td.get("is_solo", false))
+					if td.has("sub_tracks"):
+						var arr = td.get("sub_tracks")
+						if arr is Array:
+							t.sub_tracks = arr
+							if t.var_btn:
+								t.var_btn.text = "🎲 %d" % t.sub_tracks.size()
 					if t.vol_slider: t.vol_slider.value = t.volume_db
 					if t.mute_btn: t.mute_btn.set_pressed_no_signal(t.is_muted)
 					if t.solo_btn: t.solo_btn.set_pressed_no_signal(t.is_solo)
@@ -784,6 +902,9 @@ func load_from_disk(suite_name: StringName) -> void:
 		_add_track("Layer 2: Stealth_Bass", 0.2, 0.7, Color(0.3, 0.85, 0.45))
 		_add_track("Layer 3: Combat_Drums", 0.5, 1.0, Color(0.98, 0.65, 0.22))
 		_add_track("Layer 4: Brass_Climax", 0.8, 1.0, Color(0.98, 0.25, 0.35))
+		entry_cue_bar = 0.0
+		exit_cue_bar = 8.0
+		post_exit_tail_sec = 2.0
 		_on_intensity_slider_changed(0.0)
 		
 	_update_stem_levels()
@@ -794,6 +915,9 @@ func get_ui_state() -> Dictionary:
 		"zoom": zoom_factor,
 		"intensity": active_intensity,
 		"bpm": clock.bpm if clock else 120.0,
+		"entry_cue": entry_cue_bar,
+		"exit_cue": exit_cue_bar,
+		"tail_sec": post_exit_tail_sec,
 		"scroll_h": scroll_container.scroll_horizontal if scroll_container else 0,
 		"scroll_v": scroll_container.scroll_vertical if scroll_container else 0
 	}
@@ -805,9 +929,17 @@ func restore_ui_state(st: Dictionary) -> void:
 		intensity_slider.value = st["intensity"]
 	if st.has("bpm") and bpm_spinbox:
 		bpm_spinbox.value = st["bpm"]
+	if st.has("entry_cue"):
+		entry_cue_bar = st["entry_cue"]
+	if st.has("exit_cue"):
+		exit_cue_bar = st["exit_cue"]
+	if st.has("tail_sec"):
+		post_exit_tail_sec = st["tail_sec"]
+		if tail_duration_spinbox: tail_duration_spinbox.value = post_exit_tail_sec
 	if scroll_container:
 		if st.has("scroll_h"): scroll_container.scroll_horizontal = st["scroll_h"]
 		if st.has("scroll_v"): scroll_container.scroll_vertical = st["scroll_v"]
+	if ruler_canvas: ruler_canvas.queue_redraw()
 
 func _on_bpm_changed(val: float) -> void:
 	if clock:
@@ -872,6 +1004,7 @@ func _update_stem_levels() -> void:
 			else:
 				stem_players[i].volume_db = -80.0
 
+## Triggers smooth transition with Post-Exit Reverb Tail Decayer buffers.
 func _on_trigger_transition_pressed() -> void:
 	var target_name = &"Combat_Loop"
 	match transition_target_opt.selected:
@@ -881,6 +1014,26 @@ func _on_trigger_transition_pressed() -> void:
 		3: target_name = &"Victory_Outro"
 	var sync_m = sync_mode_opt.selected
 	var fade_t = fade_duration_spinbox.value
+	
+	# Spawn Post-Exit Tail Decayer for active stem layers
+	if is_playing and post_exit_tail_sec > 0.01:
+		for p in stem_players:
+			if p.playing and p.volume_db > -60.0:
+				var tail_p = AudioStreamPlayer.new()
+				tail_p.stream = p.stream
+				tail_p.volume_db = p.volume_db
+				add_child(tail_p)
+				tail_p.play(p.get_playback_position())
+				tail_decay_players.append(tail_p)
+				
+				# Smooth exponential decay over post_exit_tail_sec
+				var tw = create_tween()
+				tw.tween_property(tail_p, "volume_db", -80.0, post_exit_tail_sec)
+				tw.tween_callback(func():
+					tail_decay_players.erase(tail_p)
+					tail_p.queue_free()
+				)
+				
 	transition_requested.emit(target_name, sync_m, fade_t)
 
 func play_audition_stinger(stinger_name: StringName) -> void:
@@ -945,6 +1098,10 @@ func _on_music_stop_pressed() -> void:
 		
 	for p in stem_players:
 		p.stop()
+	for tp in tail_decay_players:
+		tp.stop()
+		tp.queue_free()
+	tail_decay_players.clear()
 		
 	if clock:
 		clock.current_time_sec = 0.0
@@ -964,13 +1121,17 @@ func _on_music_stop_pressed() -> void:
 func _process(delta: float) -> void:
 	if is_playing and not is_paused and clock:
 		clock.update(delta)
+		var loop_length = (exit_cue_bar - entry_cue_bar) * 2.0 # 2.0s per bar at 120bpm
+		if loop_length <= 0.1: loop_length = 16.0
+		
 		current_playhead_ratio = fposmod(clock.current_time_sec / 16.0, 1.0)
 		beat_counter_lbl.text = "⏱️ Bar %d : Beat %d.0" % [clock.current_bar + 1, clock.current_beat + 1]
 		
-		# Check loop or stop at end of 8 bars
-		if clock.current_time_sec >= 16.0:
+		# Check loop or stop at end of active exit cue
+		if clock.current_time_sec >= loop_length:
 			if loop_btn and loop_btn.button_pressed:
-				clock.current_time_sec = fposmod(clock.current_time_sec, 16.0)
+				clock.current_time_sec = fposmod(clock.current_time_sec, loop_length)
+				_pick_random_variations_on_loop()
 			else:
 				_on_music_stop_pressed()
 				return
@@ -1023,6 +1184,28 @@ func _on_draw_timeline_ruler() -> void:
 			if beat_x <= size.x:
 				ruler_canvas.draw_line(Vector2(beat_x, size.y - 8), Vector2(beat_x, size.y), Color(0.3, 0.35, 0.45), 1.0)
 				
+	# Post-Exit Tail Shaded Zone (Purple)
+	var exit_x = exit_cue_bar * bar_width
+	var tail_w = (post_exit_tail_sec / 2.0) * bar_width # bar_width = 2s at 120bpm
+	if exit_x <= size.x:
+		var tail_rect = Rect2(Vector2(exit_x, 2), Vector2(minf(tail_w, size.x - exit_x), size.y - 4))
+		ruler_canvas.draw_rect(tail_rect, Color(0.65, 0.25, 0.9, 0.22))
+		ruler_canvas.draw_rect(tail_rect, Color(0.65, 0.25, 0.9, 0.6), false, 1.0)
+		ruler_canvas.draw_string(ThemeDB.fallback_font, Vector2(exit_x + 4, size.y - 4), "Tail: +%.1fs" % post_exit_tail_sec, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.85, 0.6, 1.0))
+		
+	# Entry Cue Marker (Green Badge ▼)
+	var entry_x = entry_cue_bar * bar_width
+	if entry_x >= 0 and entry_x <= size.x:
+		ruler_canvas.draw_line(Vector2(entry_x, 0), Vector2(entry_x, size.y), Color(0.25, 0.95, 0.45), 2.5)
+		ruler_canvas.draw_rect(Rect2(Vector2(entry_x - 3, 0), Vector2(6, 10)), Color(0.25, 0.95, 0.45))
+		ruler_canvas.draw_string(ThemeDB.fallback_font, Vector2(entry_x + 4, size.y - 4), "Entry", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.25, 0.95, 0.45))
+		
+	# Exit Cue Marker (Red Badge ▼)
+	if exit_x >= 0 and exit_x <= size.x:
+		ruler_canvas.draw_line(Vector2(exit_x, 0), Vector2(exit_x, size.y), Color(0.95, 0.3, 0.35), 2.5)
+		ruler_canvas.draw_rect(Rect2(Vector2(exit_x - 3, 0), Vector2(6, 10)), Color(0.95, 0.3, 0.35))
+		ruler_canvas.draw_string(ThemeDB.fallback_font, Vector2(exit_x - 22, 14), "Exit", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.95, 0.3, 0.35))
+		
 	# Playhead cursor
 	var playhead_x = current_playhead_ratio * size.x * zoom_factor
 	ruler_canvas.draw_line(Vector2(playhead_x, 0), Vector2(playhead_x, size.y), Color(1.0, 0.35, 0.35, 1.0), 2.0)

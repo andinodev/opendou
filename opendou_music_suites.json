@@ -1,0 +1,200 @@
+{
+	"Boss_Phase_Orchestral.tres": {
+		"bpm": 120.0,
+		"intensity": 0.66,
+		"tracks": [
+			{
+				"audio_file_path": "",
+				"color": "33bff2",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 0.5,
+				"min_intensity": 0.0,
+				"name": "Layer 1: Ambient_Pads",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "4dd973",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 0.7,
+				"min_intensity": 0.2,
+				"name": "Layer 2: Stealth_Bass",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "faa638",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 1.0,
+				"min_intensity": 0.5,
+				"name": "Layer 3: Combat_Drums",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "fa4059",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 1.0,
+				"min_intensity": 0.8,
+				"name": "Layer 4: Brass_Climax",
+				"right_trim": 1.0,
+				"volume_db": -0.5
+			},
+			{
+				"audio_file_path": "",
+				"color": "33bff2",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 1.0,
+				"min_intensity": 0.0,
+				"name": "Layer 6: Stem_6",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "33bff2",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 1.0,
+				"min_intensity": 0.0,
+				"name": "Layer 6: Stem_6",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "4dd973",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 1.0,
+				"min_intensity": 0.0,
+				"name": "Layer 7: Stem_7",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			}
+		]
+	},
+	"Dynamic_Combat_Suite.tres": {
+		"bpm": 120.0,
+		"intensity": 0.51,
+		"tracks": [
+			{
+				"audio_file_path": "",
+				"color": "33bff2",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 0.5,
+				"min_intensity": 0.0,
+				"name": "Layer 1: Ambient_Pads",
+				"right_trim": 1.0,
+				"volume_db": -1.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "4dd973",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 0.7,
+				"min_intensity": 0.2,
+				"name": "Layer 2: Stealth_Bass",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "faa638",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 1.0,
+				"min_intensity": 0.5,
+				"name": "Layer 3: Combat_Drums",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "fa4059",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 1.0,
+				"min_intensity": 0.8,
+				"name": "Layer 4: Brass_Climax",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			}
+		]
+	},
+	"Exploration_Ambient_Theme.tres": {
+		"bpm": 120.0,
+		"intensity": 0.42,
+		"tracks": [
+			{
+				"audio_file_path": "",
+				"color": "33bff2",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 0.5,
+				"min_intensity": 0.0,
+				"name": "Layer 1: Ambient_Pads",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "4dd973",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 0.7,
+				"min_intensity": 0.2,
+				"name": "Layer 2: Stealth_Bass",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "faa638",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 1.0,
+				"min_intensity": 0.5,
+				"name": "Layer 3: Combat_Drums",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"color": "fa4059",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 1.0,
+				"min_intensity": 0.8,
+				"name": "Layer 4: Brass_Climax",
+				"right_trim": 1.0,
+				"volume_db": 0.0
+			}
+		]
+	}
+}

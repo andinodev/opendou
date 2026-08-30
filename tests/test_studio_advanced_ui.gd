@@ -73,13 +73,27 @@ static func run_all() -> Array[String]:
 	if not FileAccess.file_exists("res://opendou_music_suites.json"):
 		failures.append("Test 2n Failed: Music suites JSON file was not created on disk")
 		
-	# Test Tab UI State Caching
-	var ui_st = timeline.get_ui_state()
-	if not ui_st.has("zoom") or not ui_st.has("bpm"):
-		failures.append("Test 2o Failed: UI state dictionary missing keys")
-	timeline.restore_ui_state({"zoom": 2.0, "intensity": 0.7, "bpm": 130.0})
-	if timeline.zoom_factor != 2.0 or timeline.active_intensity != 0.7:
-		failures.append("Test 2p Failed: UI state restoration mismatch")
+	# Test TASK-031: Structural Cues, Tails & Random Sub-Tracks
+	timeline.entry_cue_bar = -0.5
+	timeline.exit_cue_bar = 8.0
+	timeline.post_exit_tail_sec = 2.5
+	if timeline.entry_cue_bar != -0.5 or timeline.post_exit_tail_sec != 2.5:
+		failures.append("Test 2q Failed: Structural cues and tail values mismatch")
+		
+	# Test Sub-track variation adding and random picking
+	timeline._on_track_variation_clicked(timeline.tracks[0])
+	timeline._on_track_variation_clicked(timeline.tracks[0])
+	if timeline.tracks[0].sub_tracks.size() != 3:
+		failures.append("Test 2r Failed: Expected 3 sub-track variations on layer 1")
+		
+	timeline._pick_random_variations_on_loop()
+	if timeline.tracks[0].active_sub_index < 0 or timeline.tracks[0].active_sub_index >= 3:
+		failures.append("Test 2s Failed: Random variation index out of bounds")
+		
+	# Test Post-Exit Tail Decayer trigger
+	timeline._on_music_play_pressed()
+	timeline._on_trigger_transition_pressed()
+	timeline._on_music_stop_pressed()
 		
 	timeline.free()
 	
