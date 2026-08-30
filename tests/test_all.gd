@@ -38,6 +38,7 @@ const TestDeclarativeNodesClass = preload("res://tests/test_declarative_nodes.gd
 const TestAudibleMonitorClass = preload("res://tests/test_audible_monitor.gd")
 const TestSynthNatureClass = preload("res://tests/test_synth_nature.gd")
 const TestModularSynthEngineClass = preload("res://tests/test_modular_synth_engine.gd")
+const TestSynthPresetRegistryClass = preload("res://tests/test_synth_preset_registry.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -190,6 +191,10 @@ static func run_suite() -> Dictionary:
 	var r37 = TestModularSynthEngineClass.run_all()
 	total_tests += 16
 	all_failures.append_array(r37)
+	
+	var r38 = TestSynthPresetRegistryClass.run_all()
+	total_tests += 7
+	all_failures.append_array(r38)
 	
 	return {
 		"total": total_tests,

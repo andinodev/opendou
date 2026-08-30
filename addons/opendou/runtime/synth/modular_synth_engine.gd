@@ -171,7 +171,7 @@ static func generate_layer_samples(layer_dict: Dictionary, duration: float, samp
 				samples[i] = sin(carrier_phase + mod_index * sin(mod_phase))
 
 		"Karplus_Strong":
-			var decay_factor: float = float(layer_dict.get("decay_factor", 0.985))
+			var decay_factor: float = float(layer_dict.get("decay_factor", layer_dict.get("decay", 0.985)))
 			var damping: float = float(layer_dict.get("damping", 0.5))
 			var N: int = maxi(2, int(float(sample_rate) / base_freq))
 			var ring_buf = PackedFloat32Array()
@@ -203,7 +203,15 @@ static func generate_layer_samples(layer_dict: Dictionary, duration: float, samp
 				samples[i] = sin(carrier_phase + pm_index * sin(mod_phase))
 
 		"Harmonic_Buzz":
-			var harmonics: int = clampi(int(layer_dict.get("harmonics", layer_dict.get("num_harmonics", 8))), 1, 32)
+			var harmonics_raw = layer_dict.get("harmonics", layer_dict.get("num_harmonics", 8))
+			var harmonic_weights: Array = []
+			if harmonics_raw is Array:
+				harmonic_weights = harmonics_raw
+			else:
+				var h_count: int = clampi(int(harmonics_raw), 1, 32)
+				for k in range(1, h_count + 1):
+					harmonic_weights.append(1.0 / float(k))
+
 			var flutter_rate: float = float(layer_dict.get("flutter_rate", 5.0))
 			var flutter_depth: float = float(layer_dict.get("flutter_depth", 0.05))
 
@@ -216,9 +224,10 @@ static func generate_layer_samples(layer_dict: Dictionary, duration: float, samp
 				var f0: float = base_freq * pitch_mult
 
 				var sum: float = 0.0
-				for k in range(1, harmonics + 1):
-					var amp: float = 1.0 / float(k)
-					sum += sin(t * f0 * float(k) * (1.0 + flutter * (float(k) * 0.1)) * TAU) * amp
+				for k in range(harmonic_weights.size()):
+					var h_idx: int = k + 1
+					var amp: float = float(harmonic_weights[k])
+					sum += sin(t * f0 * float(h_idx) * (1.0 + flutter * (float(h_idx) * 0.1)) * TAU) * amp
 				samples[i] = sum * 0.5
 
 		"Sub_Rumble":
