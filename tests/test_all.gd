@@ -35,6 +35,7 @@ const TestProfilerRewindClass = preload("res://tests/test_profiler_rewind.gd")
 const TestStudioAdvancedUIClass = preload("res://tests/test_studio_advanced_ui.gd")
 const TestCyberpunkDemoClass = preload("res://tests/test_cyberpunk_demo.gd")
 const TestDeclarativeNodesClass = preload("res://tests/test_declarative_nodes.gd")
+const TestAudibleMonitorClass = preload("res://tests/test_audible_monitor.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -175,6 +176,10 @@ static func run_suite() -> Dictionary:
 	var r34 = TestDeclarativeNodesClass.run_all()
 	total_tests += 11
 	all_failures.append_array(r34)
+	
+	var r35 = TestAudibleMonitorClass.run_all()
+	total_tests += 5
+	all_failures.append_array(r35)
 	
 	return {
 		"total": total_tests,
