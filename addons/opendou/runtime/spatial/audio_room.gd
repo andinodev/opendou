@@ -10,14 +10,18 @@ var reverb_decay_time: float = 1.5
 var damping: float = 0.5
 var reverb_send_level: float = 0.2
 
+var floor_surface: StringName = &"Concrete"
+var material_preset: String = "Concrete"
+
 var bounds: AABB = AABB()
 var has_bounds: bool = false
 var connected_portals: Array = [] # Array of AudioPortal
 
-func _init(p_name: StringName = &"", p_reverb: float = 1.5, p_damping: float = 0.5) -> void:
+func _init(p_name: StringName = &"", p_reverb: float = 1.5, p_damping: float = 0.5, p_floor: StringName = &"Concrete") -> void:
 	room_name = p_name
 	reverb_decay_time = p_reverb
 	damping = p_damping
+	floor_surface = p_floor
 	connected_portals = []
 
 ## Links a portal to this room.

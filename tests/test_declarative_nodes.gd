@@ -514,6 +514,72 @@ static func run_all() -> Array[String]:
 		failures.append("Test 20 Failed: Fallback to AudioSynthesizerClass for Turret_Scan returned null stream")
 	p3d_fallback.free()
 
+	# Test 21: OpenDouRoom3D absorption presets - Metal, Foliage, Outdoor
+	var room_presets = OpenDouRoom3DClass.new()
+	# Metal (alpha = 0.02) -> 64.4 / (360 * 0.02) = 64.4 / 7.2 = 8.944444
+	room_presets.material_preset = "Metal"
+	if not is_equal_approx(room_presets.get_absorption(), 0.02):
+		failures.append("Test 21 Failed: Metal absorption should be 0.02, got %f" % room_presets.get_absorption())
+	var rt60_metal = room_presets.calculate_sabine_reverb(Vector3(10.0, 4.0, 10.0))
+	if not is_equal_approx(rt60_metal, 8.944444):
+		failures.append("Test 21 Failed: Sabine RT60 Metal preset mismatch, got %f" % rt60_metal)
+
+	# Foliage (alpha = 0.85) -> 64.4 / (360 * 0.85) = 64.4 / 306.0 = 0.210458
+	room_presets.material_preset = "Foliage"
+	if not is_equal_approx(room_presets.get_absorption(), 0.85):
+		failures.append("Test 21 Failed: Foliage absorption should be 0.85, got %f" % room_presets.get_absorption())
+	var rt60_foliage = room_presets.calculate_sabine_reverb(Vector3(10.0, 4.0, 10.0))
+	if not is_equal_approx(rt60_foliage, 0.210458):
+		failures.append("Test 21 Failed: Sabine RT60 Foliage preset mismatch, got %f" % rt60_foliage)
+
+	# Outdoor (alpha = 0.95) -> 64.4 / (360 * 0.95) = 64.4 / 342.0 = 0.188304
+	room_presets.material_preset = "Outdoor"
+	if not is_equal_approx(room_presets.get_absorption(), 0.95):
+		failures.append("Test 21 Failed: Outdoor absorption should be 0.95, got %f" % room_presets.get_absorption())
+	var rt60_outdoor = room_presets.calculate_sabine_reverb(Vector3(10.0, 4.0, 10.0))
+	if not is_equal_approx(rt60_outdoor, 0.188304):
+		failures.append("Test 21 Failed: Sabine RT60 Outdoor preset mismatch, got %f" % rt60_outdoor)
+
+	# Water (alpha = 0.01) -> 64.4 / (360 * 0.01) = 64.4 / 3.6 = 17.888889 -> clamped to 12.0
+	room_presets.material_preset = "Water"
+	if not is_equal_approx(room_presets.get_absorption(), 0.01):
+		failures.append("Test 21 Failed: Water absorption should be 0.01, got %f" % room_presets.get_absorption())
+	var rt60_water = room_presets.calculate_sabine_reverb(Vector3(10.0, 4.0, 10.0))
+	if not is_equal_approx(rt60_water, 12.0):
+		failures.append("Test 21 Failed: Sabine RT60 Water preset should clamp to 12.0, got %f" % rt60_water)
+	room_presets.free()
+
+	# Test 22: floor_surface property assignment and propagation to runtime_room
+	var room_floor = OpenDouRoom3DClass.new()
+	# Default floor_surface should be &"Concrete"
+	if room_floor.floor_surface != &"Concrete":
+		failures.append("Test 22 Failed: default floor_surface should be &\"Concrete\", got %s" % str(room_floor.floor_surface))
+
+	# Assign floor_surface and register, then check runtime_room propagation
+	room_floor.floor_surface = &"Metal"
+	room_floor.material_preset = "Metal"
+	room_floor.register_in_manager()
+	if room_floor.runtime_room == null:
+		failures.append("Test 22 Failed: runtime_room should not be null after register_in_manager()")
+	elif room_floor.runtime_room.floor_surface != &"Metal":
+		failures.append("Test 22 Failed: runtime_room.floor_surface should be &\"Metal\", got %s" % str(room_floor.runtime_room.floor_surface))
+
+	# Update floor_surface and re-register, verify propagation
+	room_floor.floor_surface = &"Water"
+	room_floor.register_in_manager()
+	if room_floor.runtime_room.floor_surface != &"Water":
+		failures.append("Test 22 Failed: runtime_room.floor_surface should update to &\"Water\", got %s" % str(room_floor.runtime_room.floor_surface))
+
+	# Check material_preset also propagates to runtime_room
+	room_floor.material_preset = "Foliage"
+	room_floor.floor_surface = &"Foliage"
+	room_floor.register_in_manager()
+	if room_floor.runtime_room.material_preset != "Foliage":
+		failures.append("Test 22 Failed: runtime_room.material_preset should be \"Foliage\", got %s" % str(room_floor.runtime_room.material_preset))
+	if room_floor.runtime_room.floor_surface != &"Foliage":
+		failures.append("Test 22 Failed: runtime_room.floor_surface should be &\"Foliage\", got %s" % str(room_floor.runtime_room.floor_surface))
+	room_floor.free()
+
 	return failures
 
 

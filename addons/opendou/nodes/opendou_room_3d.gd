@@ -16,7 +16,8 @@ const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spati
 
 @export_group("Room Acoustics")
 @export var room_name: StringName = &"Room"
-@export_enum("Concrete", "Wood", "Glass", "Curtains", "Custom") var material_preset: String = "Concrete"
+@export_enum("Concrete", "Metal", "Wood", "Glass", "Water", "Curtains", "Foliage", "Outdoor", "Custom") var material_preset: String = "Concrete"
+@export var floor_surface: StringName = &"Concrete"
 @export_range(0.01, 1.0, 0.01) var absorption_coefficient: float = 0.15
 @export var custom_reverb_time: float = 0.0
 @export var calculated_rt60: float = 0.0
@@ -66,6 +67,8 @@ func calculate_sabine_reverb(dimensions: Vector3) -> float:
 	if runtime_room != null:
 		runtime_room.reverb_decay_time = get_effective_reverb_time()
 		runtime_room.damping = alpha
+		runtime_room.floor_surface = floor_surface
+		runtime_room.material_preset = material_preset
 		var center_pos: Vector3 = global_position if is_inside_tree() else position
 		runtime_room.set_bounds(AABB(center_pos - _dimensions * 0.5, _dimensions))
 		
@@ -76,12 +79,20 @@ func get_absorption() -> float:
 	match material_preset:
 		"Concrete":
 			return 0.05
+		"Metal":
+			return 0.02
 		"Wood":
 			return 0.15
 		"Glass":
 			return 0.03
+		"Water":
+			return 0.01
 		"Curtains":
 			return 0.60
+		"Foliage":
+			return 0.85
+		"Outdoor":
+			return 0.95
 		"Custom":
 			return absorption_coefficient
 		_:
@@ -104,11 +115,14 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 	var reverb_time: float = get_effective_reverb_time()
 	
 	if runtime_room == null:
-		runtime_room = AudioRoomClass.new(room_name, reverb_time, alpha)
+		runtime_room = AudioRoomClass.new(room_name, reverb_time, alpha, floor_surface)
+		runtime_room.material_preset = material_preset
 	else:
 		runtime_room.room_name = room_name
 		runtime_room.reverb_decay_time = reverb_time
 		runtime_room.damping = alpha
+		runtime_room.floor_surface = floor_surface
+		runtime_room.material_preset = material_preset
 
 	if _dimensions != Vector3.ZERO:
 		var center_pos: Vector3 = global_position if is_inside_tree() else position
