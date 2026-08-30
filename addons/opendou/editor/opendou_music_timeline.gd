@@ -43,6 +43,18 @@ var intensity_lbl: Label
 var beat_counter_lbl: Label
 var btn_add_track: Button
 
+# Add Track Modal Dialog Controls
+var add_track_dialog: ConfirmationDialog
+var add_track_name_edit: LineEdit
+var add_track_type_opt: OptionButton
+var add_track_file_box: HBoxContainer
+var add_track_file_path_edit: LineEdit
+var add_track_bus_opt: OptionButton
+var add_track_min_spin: SpinBox
+var add_track_max_spin: SpinBox
+var add_track_color_picker: ColorPickerButton
+var is_picking_file_for_new_track: bool = false
+
 # Center Sequencer
 var ruler_canvas: Control
 var scroll_container: ScrollContainer
@@ -131,6 +143,137 @@ func _build_ui() -> void:
 	file_dialog.filters = ["*.wav ; WAV Audio", "*.ogg ; OGG Vorbis"]
 	file_dialog.file_selected.connect(_on_audio_file_selected)
 	add_child(file_dialog)
+	
+	# Add Track Modal Dialog
+	add_track_dialog = ConfirmationDialog.new()
+	add_track_dialog.title = "➕ Add New Music Track / Stem Layer"
+	add_track_dialog.ok_button_text = "Create Track"
+	add_track_dialog.confirmed.connect(_on_add_track_dialog_confirmed)
+	
+	var dlg_margin = MarginContainer.new()
+	dlg_margin.add_theme_constant_override("margin_left", 12)
+	dlg_margin.add_theme_constant_override("margin_top", 12)
+	dlg_margin.add_theme_constant_override("margin_right", 12)
+	dlg_margin.add_theme_constant_override("margin_bottom", 12)
+	add_track_dialog.add_child(dlg_margin)
+	
+	var dlg_vbox = VBoxContainer.new()
+	dlg_vbox.custom_minimum_size = Vector2(460, 220)
+	dlg_vbox.add_theme_constant_override("separation", 10)
+	dlg_margin.add_child(dlg_vbox)
+	
+	# Row 1: Track Type / Role Preset
+	var type_hbox = HBoxContainer.new()
+	type_hbox.add_theme_constant_override("separation", 8)
+	var type_lbl = Label.new()
+	type_lbl.text = "Track Type / Preset:"
+	type_lbl.custom_minimum_size = Vector2(140, 0)
+	type_hbox.add_child(type_lbl)
+	
+	add_track_type_opt = OptionButton.new()
+	add_track_type_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_track_type_opt.add_item("🎹 Ambient Pads / Atmospheres (Synth)", 0)
+	add_track_type_opt.add_item("🎸 Bass & Sub Layer (Synth)", 1)
+	add_track_type_opt.add_item("🥁 Percussion & Drums (Synth Loop)", 2)
+	add_track_type_opt.add_item("🎺 Brass & Lead Climax (Synth)", 3)
+	add_track_type_opt.add_item("📁 Custom Audio File (.wav / .ogg)", 4)
+	add_track_type_opt.item_selected.connect(_on_add_track_type_selected)
+	type_hbox.add_child(add_track_type_opt)
+	dlg_vbox.add_child(type_hbox)
+	
+	# Row 2: Track Name
+	var name_hbox = HBoxContainer.new()
+	name_hbox.add_theme_constant_override("separation", 8)
+	var name_lbl = Label.new()
+	name_lbl.text = "Track Name:"
+	name_lbl.custom_minimum_size = Vector2(140, 0)
+	name_hbox.add_child(name_lbl)
+	
+	add_track_name_edit = LineEdit.new()
+	add_track_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_track_name_edit.placeholder_text = "e.g. Layer 5: Melodic_Synth"
+	name_hbox.add_child(add_track_name_edit)
+	dlg_vbox.add_child(name_hbox)
+	
+	# Row 3: Audio File Browser
+	add_track_file_box = HBoxContainer.new()
+	add_track_file_box.add_theme_constant_override("separation", 8)
+	var file_lbl = Label.new()
+	file_lbl.text = "Audio File Source:"
+	file_lbl.custom_minimum_size = Vector2(140, 0)
+	add_track_file_box.add_child(file_lbl)
+	
+	add_track_file_path_edit = LineEdit.new()
+	add_track_file_path_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_track_file_path_edit.placeholder_text = "res://path/to/sound.wav (Optional)"
+	add_track_file_box.add_child(add_track_file_path_edit)
+	
+	var btn_browse = Button.new()
+	btn_browse.text = "📁 Browse..."
+	btn_browse.pressed.connect(func():
+		is_picking_file_for_new_track = true
+		if file_dialog: file_dialog.popup_centered(Vector2i(700, 450))
+	)
+	add_track_file_box.add_child(btn_browse)
+	dlg_vbox.add_child(add_track_file_box)
+	
+	# Row 4: Intensity Range (Min - Max)
+	var int_hbox = HBoxContainer.new()
+	int_hbox.add_theme_constant_override("separation", 8)
+	var int_range_lbl = Label.new()
+	int_range_lbl.text = "Intensity Range:"
+	int_range_lbl.custom_minimum_size = Vector2(140, 0)
+	int_hbox.add_child(int_range_lbl)
+	
+	var min_lbl = Label.new()
+	min_lbl.text = "Min:"
+	int_hbox.add_child(min_lbl)
+	add_track_min_spin = SpinBox.new()
+	add_track_min_spin.min_value = 0.0
+	add_track_min_spin.max_value = 1.0
+	add_track_min_spin.step = 0.05
+	add_track_min_spin.value = 0.0
+	int_hbox.add_child(add_track_min_spin)
+	
+	var max_lbl = Label.new()
+	max_lbl.text = "Max:"
+	int_hbox.add_child(max_lbl)
+	add_track_max_spin = SpinBox.new()
+	add_track_max_spin.min_value = 0.0
+	add_track_max_spin.max_value = 1.0
+	add_track_max_spin.step = 0.05
+	add_track_max_spin.value = 1.0
+	int_hbox.add_child(add_track_max_spin)
+	dlg_vbox.add_child(int_hbox)
+	
+	# Row 5: Bus Routing & Color
+	var bus_col_hbox = HBoxContainer.new()
+	bus_col_hbox.add_theme_constant_override("separation", 8)
+	var bus_lbl = Label.new()
+	bus_lbl.text = "Output Audio Bus:"
+	bus_lbl.custom_minimum_size = Vector2(140, 0)
+	bus_col_hbox.add_child(bus_lbl)
+	
+	add_track_bus_opt = OptionButton.new()
+	add_track_bus_opt.add_item("Master", 0)
+	add_track_bus_opt.add_item("Music", 1)
+	add_track_bus_opt.add_item("Music_Percussion", 2)
+	add_track_bus_opt.add_item("Music_Pads", 3)
+	add_track_bus_opt.add_item("Music_Leads", 4)
+	add_track_bus_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bus_col_hbox.add_child(add_track_bus_opt)
+	
+	var col_lbl = Label.new()
+	col_lbl.text = "Color:"
+	bus_col_hbox.add_child(col_lbl)
+	
+	add_track_color_picker = ColorPickerButton.new()
+	add_track_color_picker.color = Color(0.2, 0.75, 0.95)
+	add_track_color_picker.custom_minimum_size = Vector2(40, 24)
+	bus_col_hbox.add_child(add_track_color_picker)
+	dlg_vbox.add_child(bus_col_hbox)
+	
+	add_child(add_track_dialog)
 	
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 8)
@@ -310,9 +453,9 @@ func _build_ui() -> void:
 	
 	btn_add_track = Button.new()
 	btn_add_track.text = "➕ Add Track"
-	btn_add_track.tooltip_text = "Add new custom audio stem layer"
+	btn_add_track.tooltip_text = "Open Add Track Modal (Choose Presets or Custom Audio)"
 	btn_add_track.custom_minimum_size = Vector2(85, 24)
-	btn_add_track.pressed.connect(func(): add_new_custom_track())
+	btn_add_track.pressed.connect(func(): open_add_track_dialog())
 	spacer_hbox.add_child(btn_add_track)
 	
 	ruler_row.add_child(track_header_spacer)
@@ -849,6 +992,72 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	
 	return t
 
+## Opens the interactive Add Track modal dialog allowing selection of synth presets or custom audio files.
+func open_add_track_dialog() -> void:
+	if not add_track_dialog:
+		add_new_custom_track()
+		return
+	is_picking_file_for_new_track = false
+	if add_track_type_opt:
+		add_track_type_opt.selected = 0
+		_on_add_track_type_selected(0)
+	add_track_dialog.popup_centered(Vector2i(520, 240))
+
+## Updates the Add Track dialog fields when changing the preset type.
+func _on_add_track_type_selected(idx: int) -> void:
+	var next_idx = tracks.size() + 1
+	match idx:
+		0: # Ambient Pads
+			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Ambient_Pads" % next_idx
+			if add_track_min_spin: add_track_min_spin.value = 0.0
+			if add_track_max_spin: add_track_max_spin.value = 0.5
+			if add_track_bus_opt: add_track_bus_opt.selected = 3 # Music_Pads
+			if add_track_color_picker: add_track_color_picker.color = Color(0.2, 0.75, 0.95)
+			if add_track_file_path_edit: add_track_file_path_edit.text = ""
+		1: # Bass & Sub
+			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Stealth_Bass" % next_idx
+			if add_track_min_spin: add_track_min_spin.value = 0.2
+			if add_track_max_spin: add_track_max_spin.value = 0.7
+			if add_track_bus_opt: add_track_bus_opt.selected = 1 # Music
+			if add_track_color_picker: add_track_color_picker.color = Color(0.3, 0.85, 0.45)
+			if add_track_file_path_edit: add_track_file_path_edit.text = ""
+		2: # Percussion & Drums
+			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Combat_Drums" % next_idx
+			if add_track_min_spin: add_track_min_spin.value = 0.5
+			if add_track_max_spin: add_track_max_spin.value = 1.0
+			if add_track_bus_opt: add_track_bus_opt.selected = 2 # Music_Percussion
+			if add_track_color_picker: add_track_color_picker.color = Color(0.98, 0.65, 0.22)
+			if add_track_file_path_edit: add_track_file_path_edit.text = ""
+		3: # Brass & Lead
+			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Brass_Climax" % next_idx
+			if add_track_min_spin: add_track_min_spin.value = 0.8
+			if add_track_max_spin: add_track_max_spin.value = 1.0
+			if add_track_bus_opt: add_track_bus_opt.selected = 4 # Music_Leads
+			if add_track_color_picker: add_track_color_picker.color = Color(0.98, 0.25, 0.35)
+			if add_track_file_path_edit: add_track_file_path_edit.text = ""
+		4: # Custom Audio File
+			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Custom_Audio" % next_idx
+			if add_track_min_spin: add_track_min_spin.value = 0.0
+			if add_track_max_spin: add_track_max_spin.value = 1.0
+			if add_track_bus_opt: add_track_bus_opt.selected = 1 # Music
+			if add_track_color_picker: add_track_color_picker.color = Color(0.75, 0.4, 0.95)
+
+## Confirms creation of track from modal dialog.
+func _on_add_track_dialog_confirmed() -> void:
+	var t_name = add_track_name_edit.text.strip_edges() if add_track_name_edit else ""
+	if t_name.is_empty():
+		t_name = "Layer %d: Track" % (tracks.size() + 1)
+	var min_i = float(add_track_min_spin.value) if add_track_min_spin else 0.0
+	var max_i = float(add_track_max_spin.value) if add_track_max_spin else 1.0
+	var col = add_track_color_picker.color if add_track_color_picker else Color(0.2, 0.75, 0.95)
+	var b_name = StringName(add_track_bus_opt.get_item_text(add_track_bus_opt.selected)) if add_track_bus_opt else &"Master"
+	var a_path = add_track_file_path_edit.text.strip_edges() if add_track_file_path_edit else ""
+	
+	_add_track(t_name, min_i, max_i, col, a_path, 0.0, 1.0, b_name)
+	_update_stem_levels()
+	mark_dirty(true)
+	track_added.emit(t_name)
+
 ## Clicking the variation button adds or cycles random sub-tracks.
 func _on_track_variation_clicked(t: OpenDouTrackLaneData) -> void:
 	var next_num = t.sub_tracks.size() + 1
@@ -888,7 +1097,7 @@ func _assign_default_or_file_stream(player: AudioStreamPlayer, idx: int, audio_p
 		2: player.stream = AudioSynthesizerClass.create_music_drums_loop(2.0)
 		3: player.stream = AudioSynthesizerClass.create_music_brass_loop(2.0)
 
-## Adds a new custom track dynamically.
+## Adds a new custom track dynamically without modal (e.g. for testing / programmatic calls).
 func add_new_custom_track(custom_name: String = "") -> void:
 	var next_idx = tracks.size() + 1
 	var t_name = custom_name if not custom_name.is_empty() else "Layer %d: Stem_%d" % [next_idx, next_idx]
@@ -920,10 +1129,20 @@ func delete_track(t: OpenDouTrackLaneData) -> void:
 func open_file_dialog_for_track(idx: int) -> void:
 	if idx >= 0 and idx < tracks.size():
 		pending_file_track_index = idx
+		is_picking_file_for_new_track = false
 		if file_dialog:
 			file_dialog.popup_centered(Vector2i(700, 450))
 
 func _on_audio_file_selected(path: String) -> void:
+	if is_picking_file_for_new_track:
+		is_picking_file_for_new_track = false
+		if add_track_file_path_edit:
+			add_track_file_path_edit.text = path
+		if add_track_name_edit:
+			var base = path.get_file().get_basename()
+			add_track_name_edit.text = "Layer %d: %s" % [tracks.size() + 1, base]
+		return
+		
 	if pending_file_track_index >= 0 and pending_file_track_index < tracks.size():
 		var t = tracks[pending_file_track_index]
 		t.audio_file_path = path

@@ -3,7 +3,7 @@
 		"bpm": 140.0,
 		"entry_cue": 0.0,
 		"exit_cue": 8.0,
-		"intensity": 0.8,
+		"intensity": 0.86,
 		"playlist": [],
 		"tail_sec": 3.0,
 		"tracks": [
@@ -114,55 +114,20 @@
 					}
 				],
 				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"auto_enabled": true,
-				"auto_param": 0,
-				"auto_points": [
-					[
-						0.0,
-						1.0
-					],
-					[
-						0.118949957191944,
-						0.20833332836628
-					],
-					[
-						0.943396210670471,
-						0.819444417953491
-					],
-					[
-						1.0,
-						1.0
-					]
-				],
-				"bus_name": "Master",
-				"color": "bf66f2",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.0,
-				"name": "Layer 5: Stem_5",
-				"right_trim": 0.284490145672665,
-				"sub_tracks": [
-					{
-						"audio_path": "",
-						"name": "Var 1",
-						"weight": 1.0
-					}
-				],
-				"volume_db": 0.0
 			}
 		]
 	},
 	"Dynamic_Combat_Suite.tres": {
-		"bpm": 120.0,
+		"bpm": 50.0,
 		"entry_cue": 0.0,
 		"exit_cue": 8.0,
-		"intensity": 0.72,
+		"intensity": 0.62,
 		"playlist": [
+			{
+				"max_loops": 1.0,
+				"min_loops": 1.0,
+				"segment_name": "Combat_Intro"
+			},
 			{
 				"max_loops": 4.0,
 				"min_loops": 2.0,
@@ -172,11 +137,6 @@
 				"max_loops": 2.0,
 				"min_loops": 1.0,
 				"segment_name": "Boss_Encounter"
-			},
-			{
-				"max_loops": 1.0,
-				"min_loops": 1.0,
-				"segment_name": "Combat_Intro"
 			},
 			{
 				"max_loops": 1.0,
@@ -290,6 +250,21 @@
 						"audio_path": "",
 						"name": "Var 1",
 						"weight": 1.0
+					},
+					{
+						"audio_path": "",
+						"name": "Var 2",
+						"weight": 1.0
+					},
+					{
+						"audio_path": "",
+						"name": "Var 3",
+						"weight": 1.0
+					},
+					{
+						"audio_path": "",
+						"name": "Var 4",
+						"weight": 1.0
 					}
 				],
 				"volume_db": 0.0
@@ -325,6 +300,11 @@
 					{
 						"audio_path": "",
 						"name": "Var 1",
+						"weight": 1.0
+					},
+					{
+						"audio_path": "",
+						"name": "Var 2",
 						"weight": 1.0
 					}
 				],

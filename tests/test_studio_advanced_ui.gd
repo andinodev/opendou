@@ -133,6 +133,16 @@ static func run_all() -> Array[String]:
 		failures.append("Test 2ab Failed: Timeline playlist mode not toggled on")
 	timeline._on_playlist_play_toggled(false)
 	
+	# Test Add Track Modal Dialog
+	var prev_track_count = timeline.tracks.size()
+	timeline.open_add_track_dialog()
+	timeline._on_add_track_type_selected(2) # Percussion & Drums
+	timeline._on_add_track_dialog_confirmed()
+	if timeline.tracks.size() != prev_track_count + 1:
+		failures.append("Test 2ac Failed: Track was not added via modal dialog")
+	if timeline.tracks[timeline.tracks.size() - 1].bus_name != &"Music_Percussion":
+		failures.append("Test 2ad Failed: Modal track preset bus assignment mismatch")
+		
 	# Test Post-Exit Tail Decayer trigger
 	timeline._on_music_play_pressed()
 	timeline._on_trigger_transition_pressed()
