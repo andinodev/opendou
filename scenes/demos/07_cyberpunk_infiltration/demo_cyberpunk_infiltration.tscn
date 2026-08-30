@@ -464,7 +464,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 0, 0)
 script = ExtResource("6_room")
 room_name = &"Biosphere_Sanctuary"
 material_preset = "Curtains"
-calculated_rt60 = 0.85
+calculated_rt60 = 0.8944444444444444
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector5_Biosphere/BiosphereRoom" unique_id=310100018]
 shape = SubResource("BoxShape3D_biosphere")
@@ -478,10 +478,10 @@ room_b = NodePath("../../Sector4_ExtractionArena/ExtractionArenaRoom")
 
 [node name="CanopyWind_FL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100001]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 3.5, -6)
-volume_db = -10.0
-unit_size = 2.5
+volume_db = -8.0
+unit_size = 5.0
 autoplay = true
-max_distance = 25.0
+max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Wind_Canopy"
 synth_preset = "Wind_Canopy"
@@ -489,10 +489,10 @@ bus_category = "Ambience"
 
 [node name="Waterfall_FR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100002]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 3.5, -6)
-volume_db = -10.0
-unit_size = 2.5
+volume_db = -8.0
+unit_size = 5.0
 autoplay = true
-max_distance = 25.0
+max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Water_Stream"
 synth_preset = "Water_Stream"
@@ -500,50 +500,54 @@ bus_category = "Ambience"
 
 [node name="Bird_C" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100003]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 2, -8)
-volume_db = -8.0
-unit_size = 2.5
+volume_db = -6.0
+unit_size = 5.0
 autoplay = true
-max_distance = 25.0
+max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Bird_Chirp"
 synth_preset = "Bird_Chirp"
+bus_category = "SFX"
 
 [node name="Thunder_LFE" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100004]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, -0.5, 0)
-volume_db = -6.0
-unit_size = 2.5
+volume_db = -4.0
+unit_size = 6.0
 autoplay = true
-max_distance = 25.0
+max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Thunder_Rumble"
 synth_preset = "Thunder_Rumble"
+bus_category = "SFX"
 
 [node name="Cicada_SL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100005]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71, 1.5, 0)
-volume_db = -12.0
-unit_size = 2.5
+volume_db = -9.0
+unit_size = 5.0
 autoplay = true
-max_distance = 25.0
+max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Cicada_Swarm"
 synth_preset = "Cicada_Swarm"
+bus_category = "Ambience"
 
 [node name="Frog_SR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100006]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89, 1.5, 0)
-volume_db = -10.0
-unit_size = 2.5
+volume_db = -7.0
+unit_size = 5.0
 autoplay = true
-max_distance = 25.0
+max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Frog_Croak"
 synth_preset = "Frog_Croak"
+bus_category = "Ambience"
 
 [node name="Rain_RL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100007]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 2.5, 6)
-volume_db = -12.0
-unit_size = 2.5
+volume_db = -9.0
+unit_size = 5.0
 autoplay = true
-max_distance = 25.0
+max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Rain_Ambience"
 synth_preset = "Rain"
@@ -551,24 +555,25 @@ bus_category = "Ambience"
 
 [node name="Droplet_RR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100008]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 2.5, 6)
-volume_db = -10.0
-unit_size = 2.5
+volume_db = -7.0
+unit_size = 5.0
 autoplay = true
-max_distance = 25.0
+max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Water_Droplet"
 synth_preset = "Water_Droplet"
+bus_category = "Ambience"
 
 [node name="OrbitingBeeEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100009]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 85, 1.5, 0)
-volume_db = -14.0
-unit_size = 2.5
+volume_db = -8.0
+unit_size = 4.0
 autoplay = true
-max_distance = 25.0
+max_distance = 30.0
 script = ExtResource("4_p3d")
 event_name = &"Cyber_Hornet"
-synth_preset = "Tone"
-synth_frequency = 280.0
+synth_preset = "Cyber_Hornet"
+bus_category = "SFX"
 
 [node name="ChaosEmittersParent" type="Node3D" parent="LevelGeometry" unique_id=943152636]
 visible = false

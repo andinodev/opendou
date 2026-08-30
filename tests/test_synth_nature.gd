@@ -70,7 +70,7 @@ static func run_all() -> Array[String]:
 		failures.append("Test 5 Failed: create_water_droplet must return a valid non-empty AudioStreamWAV")
 
 	# Test 6: OpenDouEventPlayer3D & OpenDouEventPlayer with nature presets auto-generate streams on _ready()
-	var nature_presets = ["Wind_Canopy", "Bird_Chirp", "Thunder_Rumble", "Cicada_Swarm", "Frog_Croak", "Water_Droplet"]
+	var nature_presets = ["Wind_Canopy", "Bird_Chirp", "Thunder_Rumble", "Cicada_Swarm", "Frog_Croak", "Water_Droplet", "Cyber_Hornet"]
 	for preset in nature_presets:
 		var p3d = OpenDouEventPlayer3DClass.new()
 		p3d.synth_preset = preset

@@ -22,7 +22,7 @@ const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthe
 @export var stop_on_tree_exit: bool = true
 
 @export_group("Procedural Synthesis")
-@export_enum("None", "Rain", "Server_Hum", "Water_Stream", "Turret_Scan", "Radio_Beacon", "Footstep", "Gunshot", "Engine", "Tone", "Wind_Canopy", "Bird_Chirp", "Thunder_Rumble", "Cicada_Swarm", "Frog_Croak", "Water_Droplet") var synth_preset: String = "None"
+@export_enum("None", "Rain", "Server_Hum", "Water_Stream", "Turret_Scan", "Radio_Beacon", "Footstep", "Gunshot", "Engine", "Tone", "Wind_Canopy", "Bird_Chirp", "Thunder_Rumble", "Cicada_Swarm", "Frog_Croak", "Water_Droplet", "Cyber_Hornet") var synth_preset: String = "None"
 @export var synth_duration: float = 2.0
 @export var synth_frequency: float = 440.0
 
@@ -183,6 +183,8 @@ func _apply_synth_preset() -> void:
 			stream = AudioSynthesizerClass.create_frog_croak(synth_duration if synth_duration != 2.0 else 0.45)
 		"Water_Droplet":
 			stream = AudioSynthesizerClass.create_water_droplet(synth_frequency if synth_frequency != 440.0 else 1200.0)
+		"Cyber_Hornet":
+			stream = AudioSynthesizerClass.create_cyber_hornet_loop(synth_duration if synth_duration != 2.0 else 1.5)
 
 func _auto_infer_synth_preset() -> void:
 	var n: String = str(event_name).to_lower()
@@ -198,6 +200,8 @@ func _auto_infer_synth_preset() -> void:
 		synth_preset = "Frog_Croak"
 	elif n.contains("droplet") or n.contains("drip"):
 		synth_preset = "Water_Droplet"
+	elif n.contains("hornet") or n.contains("bee") or n.contains("wasp"):
+		synth_preset = "Cyber_Hornet"
 	elif n.contains("rain"):
 		synth_preset = "Rain"
 	elif n.contains("server"):
@@ -214,4 +218,3 @@ func _auto_infer_synth_preset() -> void:
 		synth_preset = "Footstep"
 	if synth_preset != "None":
 		_apply_synth_preset()
-

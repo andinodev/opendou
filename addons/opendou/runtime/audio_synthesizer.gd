@@ -430,24 +430,73 @@ static func create_canopy_wind_loop(duration: float = 3.0, sample_rate: int = 44
 	stream.stereo = false
 	return stream
 
-## Creates a vibrant avian bird chirp with dynamic pitch bends and rapid trill.
-static func create_bird_chirp(base_frequency: float = 2400.0, duration: float = 0.35, sample_rate: int = 44100) -> AudioStreamWAV:
+## Creates a vibrant avian bird chirp chorus with natural pauses and trill sweeps (looping).
+static func create_bird_chirp(base_frequency: float = 2400.0, duration: float = 3.0, sample_rate: int = 44100) -> AudioStreamWAV:
 	var num_samples: int = int(duration * sample_rate)
 	var byte_data = PackedByteArray()
 	byte_data.resize(num_samples * 2)
-	var phase: float = 0.0
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var sample: float = 0.0
+		
+		# Chirp 1 at t ~ 0.2s
+		var t1: float = t - 0.2
+		if t1 >= 0.0 and t1 < 0.35:
+			var p1: float = t1 / 0.35
+			var f1: float = base_frequency * (1.0 + sin(p1 * PI) * 0.45 + sin(p1 * TAU * 4.0) * 0.12)
+			var env1: float = pow(sin(p1 * PI), 1.2)
+			sample += (sin(t1 * f1 * TAU) * 0.75 + sin(t1 * f1 * 2.0 * TAU) * 0.25) * env1
+			
+		# Chirp 2 at t ~ 0.8s
+		var t2: float = t - 0.8
+		if t2 >= 0.0 and t2 < 0.25:
+			var p2: float = t2 / 0.25
+			var f2: float = (base_frequency * 1.25) * (1.0 + sin(p2 * PI) * 0.35)
+			var env2: float = pow(sin(p2 * PI), 1.2)
+			sample += sin(t2 * f2 * TAU) * env2 * 0.85
+			
+		# Chirp 3 at t ~ 1.8s
+		var t3: float = t - 1.8
+		if t3 >= 0.0 and t3 < 0.4:
+			var p3: float = t3 / 0.4
+			var f3: float = (base_frequency * 0.9) * (1.0 + sin(p3 * PI * 2.0) * 0.3)
+			var env3: float = pow(sin(p3 * PI), 1.2)
+			sample += (sin(t3 * f3 * TAU) * 0.8 + sin(t3 * f3 * 1.5 * TAU) * 0.2) * env3
+			
+		var s16: int = clampi(int(sample * 26000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+		
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	stream.stereo = false
+	return stream
+
+## Creates a deep procedural thunder rumble with continuous rolling sub-bass and seismic aftershocks (looping).
+static func create_thunder_rumble(duration: float = 3.5, sample_rate: int = 44100) -> AudioStreamWAV:
+	var num_samples: int = int(duration * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	var noise_filter: float = 0.0
 	for i in range(num_samples):
 		var t: float = float(i) / sample_rate
 		var progress: float = t / duration
-		# Rapid ascending sweep followed by descent + trill vibrato
-		var freq_sweep: float = base_frequency * (1.0 + sin(progress * PI) * 0.45 + sin(progress * TAU * 4.0) * 0.12)
-		phase += freq_sweep * (1.0 / sample_rate) * TAU
-		# Smooth bell amplitude envelope
-		var env: float = sin(progress * PI)
-		if env < 0.0:
-			env = 0.0
-		env = pow(env, 1.2)
-		var sample: float = (sin(phase) * 0.75 + sin(phase * 2.0) * 0.25) * env
+		var white: float = (randf() * 2.0 - 1.0)
+		noise_filter = (noise_filter * 0.94) + (white * 0.06)
+		
+		# Rolling swells that repeat seamlessly in the loop
+		var swell1: float = sin(progress * TAU * 1.0) * 0.5 + 0.5
+		var swell2: float = sin(progress * TAU * 3.0) * 0.35 + 0.35
+		var rumble_env: float = (swell1 * 0.6 + swell2 * 0.4)
+		
+		# Deep sub-bass (38Hz - 62Hz)
+		var sub_f: float = 45.0 + sin(progress * TAU * 2.0) * 12.0
+		var sub: float = sin(t * sub_f * TAU) * 0.55 + sin(t * sub_f * 0.5 * TAU) * 0.3
+		
+		var sample: float = (noise_filter * 1.5 + sub) * rumble_env * 0.75
 		var s16: int = clampi(int(sample * 28000.0), -32768, 32767)
 		byte_data.encode_s16(i * 2, s16)
 		
@@ -455,39 +504,8 @@ static func create_bird_chirp(base_frequency: float = 2400.0, duration: float = 
 	stream.data = byte_data
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
-	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
-	stream.stereo = false
-	return stream
-
-## Creates a deep procedural thunder rumble with explosive transient and rolling sub-bass aftershocks.
-static func create_thunder_rumble(duration: float = 2.5, sample_rate: int = 44100) -> AudioStreamWAV:
-	var num_samples: int = int(duration * sample_rate)
-	var byte_data = PackedByteArray()
-	byte_data.resize(num_samples * 2)
-	var noise_filter: float = 0.0
-	for i in range(num_samples):
-		var t: float = float(i) / sample_rate
-		var white: float = (randf() * 2.0 - 1.0)
-		noise_filter = (noise_filter * 0.94) + (white * 0.06)
-		
-		# Initial crack impact
-		var crack_env: float = exp(-18.0 * t)
-		var crack: float = (sin(t * 110.0 * TAU) * 0.5 + (randf() * 2.0 - 1.0) * 0.5) * crack_env
-		
-		# Rolling sub rumble swells
-		var rumble_env: float = exp(-1.8 * t) * (1.0 + sin(t * 5.5 * TAU) * 0.35 + sin(t * 2.2 * TAU) * 0.25)
-		var sub_f: float = 48.0 + sin(t * 3.0 * TAU) * 12.0
-		var sub: float = sin(t * sub_f * TAU) * 0.45
-		
-		var sample: float = (crack * 0.6 + (noise_filter * 1.8 + sub) * rumble_env * 0.8)
-		var s16: int = clampi(int(sample * 30000.0), -32768, 32767)
-		byte_data.encode_s16(i * 2, s16)
-		
-	var stream = AudioStreamWAV.new()
-	stream.data = byte_data
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = sample_rate
-	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
 	stream.stereo = false
 	return stream
 
@@ -498,11 +516,9 @@ static func create_cicada_swarm_loop(duration: float = 2.0, sample_rate: int = 4
 	byte_data.resize(num_samples * 2)
 	for i in range(num_samples):
 		var t: float = float(i) / sample_rate
-		# Rapid rhythmic buzzing pulse (aligned with loop duration: 16 cycles / 2.0s = 8Hz)
 		var pulse: float = maxf(0.0, sin(t / duration * TAU * 16.0))
 		pulse = pulse * pulse
 		
-		# High frequency cicada carriers
 		var c1: float = sin(t * 5200.0 * TAU) * 0.35
 		var c2: float = sin(t * 5850.0 * TAU) * 0.30
 		var c3: float = sin(t * 6600.0 * TAU) * 0.25
@@ -521,31 +537,33 @@ static func create_cicada_swarm_loop(duration: float = 2.0, sample_rate: int = 4
 	stream.stereo = false
 	return stream
 
-## Creates a guttural amphibian frog croak / ribbit with formant modulation.
-static func create_frog_croak(duration: float = 0.45, sample_rate: int = 44100) -> AudioStreamWAV:
+## Creates an active amphibian frog pond chorus with alternating guttural ribbits (looping).
+static func create_frog_croak(duration: float = 2.5, sample_rate: int = 44100) -> AudioStreamWAV:
 	var num_samples: int = int(duration * sample_rate)
 	var byte_data = PackedByteArray()
 	byte_data.resize(num_samples * 2)
 	for i in range(num_samples):
 		var t: float = float(i) / sample_rate
-		var progress: float = t / duration
-		# Formant pulse modulation (~36Hz guttural rate)
-		var pulse: float = maxf(0.0, sin(t * 36.0 * TAU))
-		pulse = pow(pulse, 3.0)
+		var sample: float = 0.0
 		
-		# Low resonance ribbit carriers
-		var pitch_drift: float = 1.0 + sin(progress * PI) * 0.15
-		var f1: float = 260.0 * pitch_drift
-		var f2: float = 620.0 * pitch_drift
-		var f3: float = 940.0 * pitch_drift
-		var carrier: float = sin(t * f1 * TAU) * 0.5 + sin(t * f2 * TAU) * 0.35 + sin(t * f3 * TAU) * 0.15
-		
-		# Amplitude envelope
-		var env: float = sin(progress * PI)
-		if env < 0.0:
-			env = 0.0
-		
-		var sample: float = carrier * pulse * env * 0.8
+		# Frog 1 croak at t ~ 0.3s
+		var t1: float = t - 0.3
+		if t1 >= 0.0 and t1 < 0.45:
+			var p1: float = t1 / 0.45
+			var pulse1: float = pow(maxf(0.0, sin(t1 * 36.0 * TAU)), 3.0)
+			var f1: float = 260.0 * (1.0 + sin(p1 * PI) * 0.15)
+			var c1: float = sin(t1 * f1 * TAU) * 0.6 + sin(t1 * f1 * 2.5 * TAU) * 0.4
+			sample += c1 * pulse1 * sin(p1 * PI) * 0.8
+			
+		# Frog 2 croak at t ~ 1.4s (different pitch/speed)
+		var t2: float = t - 1.4
+		if t2 >= 0.0 and t2 < 0.5:
+			var p2: float = t2 / 0.5
+			var pulse2: float = pow(maxf(0.0, sin(t2 * 42.0 * TAU)), 3.0)
+			var f2: float = 340.0 * (1.0 + sin(p2 * PI) * 0.1)
+			var c2: float = sin(t2 * f2 * TAU) * 0.5 + sin(t2 * f2 * 2.0 * TAU) * 0.5
+			sample += c2 * pulse2 * sin(p2 * PI) * 0.75
+			
 		var s16: int = clampi(int(sample * 28000.0), -32768, 32767)
 		byte_data.encode_s16(i * 2, s16)
 		
@@ -553,26 +571,42 @@ static func create_frog_croak(duration: float = 0.45, sample_rate: int = 44100) 
 	stream.data = byte_data
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
-	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
 	stream.stereo = false
 	return stream
 
-## Creates a resonant water droplet ping with snappy upward pitch inflection.
+## Creates a gentle trickling cadence of 3D water droplets scattering across time (looping).
 static func create_water_droplet(pitch: float = 1200.0, sample_rate: int = 44100) -> AudioStreamWAV:
-	var duration: float = 0.12
+	var duration: float = 2.0
 	var num_samples: int = int(duration * sample_rate)
 	var byte_data = PackedByteArray()
 	byte_data.resize(num_samples * 2)
-	var phase: float = 0.0
 	for i in range(num_samples):
 		var t: float = float(i) / sample_rate
-		var progress: float = t / duration
-		# Snappy pitch upward inflection
-		var cur_freq: float = pitch * (0.65 + 0.75 * exp(-12.0 * progress))
-		phase += cur_freq * (1.0 / sample_rate) * TAU
+		var sample: float = 0.0
 		
-		var env: float = exp(-28.0 * progress)
-		var sample: float = sin(phase) * env * 0.7
+		# Drop 1 at t ~ 0.15s
+		var t1: float = t - 0.15
+		if t1 >= 0.0 and t1 < 0.12:
+			var p1: float = t1 / 0.12
+			var f1: float = pitch * (0.7 + 0.75 * exp(-12.0 * p1))
+			sample += sin(t1 * f1 * TAU) * exp(-28.0 * p1) * 0.6
+			
+		# Drop 2 at t ~ 0.75s (lower pitch)
+		var t2: float = t - 0.75
+		if t2 >= 0.0 and t2 < 0.12:
+			var p2: float = t2 / 0.12
+			var f2: float = (pitch * 0.85) * (0.7 + 0.75 * exp(-12.0 * p2))
+			sample += sin(t2 * f2 * TAU) * exp(-28.0 * p2) * 0.65
+			
+		# Drop 3 at t ~ 1.45s (higher pitch)
+		var t3: float = t - 1.45
+		if t3 >= 0.0 and t3 < 0.12:
+			var p3: float = t3 / 0.12
+			var f3: float = (pitch * 1.3) * (0.7 + 0.75 * exp(-12.0 * p3))
+			sample += sin(t3 * f3 * TAU) * exp(-28.0 * p3) * 0.55
+			
 		var s16: int = clampi(int(sample * 28000.0), -32768, 32767)
 		byte_data.encode_s16(i * 2, s16)
 		
@@ -580,7 +614,36 @@ static func create_water_droplet(pitch: float = 1200.0, sample_rate: int = 44100
 	stream.data = byte_data
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
-	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	stream.stereo = false
+	return stream
+
+## Creates a flying insect / cyber-hornet buzz with rapid flutter amplitude modulation (looping).
+static func create_cyber_hornet_loop(duration: float = 1.5, sample_rate: int = 44100) -> AudioStreamWAV:
+	var num_samples: int = int(duration * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var wing_flutter: float = sin(t * 85.0 * TAU) * 0.4 + 0.6
+		var pitch_drift: float = 180.0 + sin(t * 4.0 * TAU) * 25.0
+		
+		# Wing saw-like harmonics
+		var h1: float = sin(t * pitch_drift * TAU) * 0.5
+		var h2: float = sin(t * pitch_drift * 2.0 * TAU) * 0.3
+		var h3: float = sin(t * pitch_drift * 3.0 * TAU) * 0.15
+		var buzz: float = (h1 + h2 + h3) * wing_flutter
+		
+		var s16: int = clampi(int(buzz * 26000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+		
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
 	stream.stereo = false
 	return stream
 
