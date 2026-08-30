@@ -162,6 +162,13 @@ static func run_all() -> Array[String]:
 	var conv_node = OpenDouConvolutionGraphNodeClass.new()
 	if conv_node.node_type != OpenDouConvolutionGraphNodeClass.NodeType.TYPE_CONVOLUTION:
 		failures.append("Test 4a Failed: Convolution node type mismatch")
+	conv_node.room_len_spin.value = 20.0
+	conv_node._recalculate_room_acoustics()
+	if conv_node.calculated_rt60 <= 0.1:
+		failures.append("Test 4a1 Failed: Convolution room designer RT60 calculation failed")
+	conv_node._on_mode_selected(1)
+	if conv_node.room_box.visible or not conv_node.ir_file_box.visible:
+		failures.append("Test 4a2 Failed: Convolution node mode toggle visibility failed")
 	conv_node.free()
 	
 	var gran_node = OpenDouGranularGraphNodeClass.new()
