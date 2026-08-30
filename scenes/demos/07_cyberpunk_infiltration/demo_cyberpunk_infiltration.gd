@@ -99,6 +99,7 @@ var stem_track_data: Array[Dictionary] = []
 @onready var btn_bombardment: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnBombardment")
 @onready var btn_radio: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnRadio")
 @onready var btn_toggle_monitor: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleMonitor")
+@onready var btn_toggle_acoustics: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics") if get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics") else get_node_or_null("UI/ControlsPanel/Margin/HBox/BtnToggleAcoustics")
 @onready var slider_intensity: HSlider = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/SliderIntensity")
 @onready var btn_lang_en: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangEN")
 @onready var btn_lang_es: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangES")
@@ -106,6 +107,7 @@ var stem_track_data: Array[Dictionary] = []
 @onready var btn_lang_zh: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangZH")
 
 @onready var audible_monitor: Node = get_node_or_null("AudibleMonitor")
+@onready var acoustic_debugger: OpenDouAcousticDebugger3D = get_node_or_null("LevelGeometry/AcousticDebugger")
 
 @onready var lbl_sector: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSector")
 @onready var lbl_surface: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSurface")
@@ -118,6 +120,7 @@ var stem_track_data: Array[Dictionary] = []
 @onready var lbl_music: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblMusic")
 @onready var lbl_dsp: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblDSP")
 @onready var lbl_subtitles: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSubtitles")
+@onready var lbl_sound_field: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSoundField") if get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSoundField") else get_node_or_null("UI/HUDPanel/Margin/VBox/LblSoundField")
 @onready var radar_view: Control = get_node_or_null("TacticalHUD/RadarContainer/Margin/RadarVBox/RadarView")
 
 func _init() -> void:
@@ -339,6 +342,8 @@ func _connect_ui() -> void:
 				elif "visible" in audible_monitor:
 					audible_monitor.visible = not audible_monitor.visible
 		)
+	if btn_toggle_acoustics:
+		btn_toggle_acoustics.pressed.connect(_on_toggle_acoustics_pressed)
 	if slider_intensity:
 		slider_intensity.value_changed.connect(func(v: float): set_combat_intensity(v))
 		
@@ -371,6 +376,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			toggle_server_airlock()
 		elif event.keycode == KEY_B:
 			trigger_siege_bombardment()
+		elif event.keycode == KEY_G:
+			_on_toggle_acoustics_pressed()
+
+func _on_toggle_acoustics_pressed() -> void:
+	if not acoustic_debugger:
+		acoustic_debugger = get_node_or_null("LevelGeometry/AcousticDebugger")
+	if acoustic_debugger:
+		acoustic_debugger.toggle_debug()
+	if btn_toggle_acoustics:
+		var is_on = acoustic_debugger.enabled if acoustic_debugger else false
+		btn_toggle_acoustics.text = "👁️ Sound Field: %s (G)" % ("ON" if is_on else "OFF")
+	_update_hud()
 
 func _on_back_pressed() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
@@ -745,3 +762,8 @@ func _update_hud() -> void:
 		var phys = voice_pool.get_active_physical_count()
 		var virt = voice_pool.get_active_virtual_count(bombardment_instances)
 		lbl_voices.text = "Voices: %d Phys / %d Virt" % [phys, virt]
+		
+	if lbl_sound_field:
+		var is_on = acoustic_debugger.enabled if acoustic_debugger else false
+		var ray_count = acoustic_debugger.probe_ray_count if acoustic_debugger else 24
+		lbl_sound_field.text = "Sound Field: %s (%d Probes)" % ["ON" if is_on else "OFF", ray_count]

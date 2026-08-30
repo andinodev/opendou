@@ -351,6 +351,44 @@ static func run_all() -> Array[String]:
 			if bee_node.position == init_pos:
 				failures.append("Test 9j Failed: OrbitingBeeEmitter position did not update after _process")
 
+	# Test 27: OpenDouAcousticDebugger3D node and Tactical HUD toggle button integration
+	var debug_node = instance.get_node_or_null("LevelGeometry/AcousticDebugger")
+	if not debug_node:
+		failures.append("Test 27a Failed: demo_cyberpunk_infiltration.tscn missing LevelGeometry/AcousticDebugger node")
+	elif not (debug_node is OpenDouAcousticDebugger3D):
+		failures.append("Test 27b Failed: AcousticDebugger node is not an instance of OpenDouAcousticDebugger3D")
+	else:
+		if debug_node.probe_ray_count != 24:
+			failures.append("Test 27c Failed: AcousticDebugger probe_ray_count expected 24, got %d" % debug_node.probe_ray_count)
+		if not debug_node.enabled:
+			failures.append("Test 27d Failed: AcousticDebugger enabled expected true by default")
+			
+	var btn_acoustics = instance.get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics")
+	if not btn_acoustics:
+		btn_acoustics = instance.get_node_or_null("TacticalHUD/ControlsPanel/Margin/HBox/BtnToggleAcoustics")
+	if not btn_acoustics:
+		failures.append("Test 27e Failed: TacticalHUD missing BtnToggleAcoustics button")
+	else:
+		if not btn_acoustics.text.contains("Sound Field"):
+			failures.append("Test 27f Failed: BtnToggleAcoustics text expected to contain 'Sound Field', got '%s'" % btn_acoustics.text)
+			
+	var lbl_sf = instance.get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSoundField")
+	if not lbl_sf:
+		failures.append("Test 27g Failed: TacticalHUD missing LblSoundField label")
+		
+	# Test toggle function in instance
+	if instance.has_method("_on_toggle_acoustics_pressed"):
+		var initial_state = instance.acoustic_debugger.enabled if instance.acoustic_debugger else true
+		instance._on_toggle_acoustics_pressed()
+		var new_state = instance.acoustic_debugger.enabled if instance.acoustic_debugger else false
+		if new_state == initial_state:
+			failures.append("Test 27h Failed: _on_toggle_acoustics_pressed did not toggle acoustic_debugger.enabled")
+		instance._on_toggle_acoustics_pressed()
+		if instance.acoustic_debugger and instance.acoustic_debugger.enabled != initial_state:
+			failures.append("Test 27i Failed: _on_toggle_acoustics_pressed second toggle did not restore enabled state")
+	else:
+		failures.append("Test 27j Failed: Scene instance missing _on_toggle_acoustics_pressed method")
+
 	demo.free()
 	instance.free()
 	return failures

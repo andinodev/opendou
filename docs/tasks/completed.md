@@ -6,6 +6,27 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-048` - Depurador Volumétrico de Campos Acústicos 3D en Tiempo Real (OpenDou Acoustic Sound Field Debugger 3D)**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Shader Visualizador Volumétrico (`acoustic_sound_field.gdshader`):**
+      * Shader 3D translucido sin sombreado (`unshaded`, `cull_disabled`, `blend_mix`, `depth_draw_opaque`).
+      * Gradiente radial procedural con efecto sonar pulsante en tiempo real (`sin(TIME * 2.5)`), borde de atenuación Fresnel y coloración adaptativa (Cyan para propagación directa despejada, Naranja/Rojo para colisiones u oclusiones).
+    * **Nodo Declarativo `OpenDouAcousticDebugger3D` (`opendou_acoustic_debugger_3d.gd`):**
+      * Nodo 3D de depuración volumétrica en tiempo real registrado en el editor con icono SVG nativo (`icon_acoustic_debugger.svg`).
+      * Muestreo radial configurativo (*starburst probing*) de 8 a 64 rayos (`probe_ray_count`, por defecto 24) para proyectar y adaptar la malla volumétrica del campo acústico (`ImmediateMesh`) contra la geometría circundante.
+      * Renderizado de anillo de radio crítico de proximidad 0 dB (`unit_size`) en alambre dorado.
+      * Trazado dinámico de rayos directos emisor-oyente con evaluación de oclusión multirrayo (Verde = despejado, Amarillo = difractado, Rojo = ocluido totalmente).
+      * Función `toggle_debug()` para conmutación inmediata en runtime.
+    * **Integración en Showcase AAA Cyberpunk Infiltration (`demo_cyberpunk_infiltration.tscn` y `.gd`):**
+      * Instancia declarativa de `AcousticDebugger` bajo `LevelGeometry` configurada con 24 sondas de muestreo acústico.
+      * Botón interactivo `BtnToggleAcoustics` (`"👁️ Sound Field: ON (G)"` / `"👁️ Sound Field: OFF (G)"`) en la barra inferior del Tactical HUD.
+      * Etiqueta de telemetría `LblSoundField` en el panel de métricas tácticas (`"Sound Field: ON (24 Probes)"`).
+      * Atajo de teclado interactivo `[G]` en `_unhandled_input()` para conmutación instantánea.
+    * **Suite de Pruebas Automatizadas:**
+      * Test 27 en `tests/test_cyberpunk_demo.gd` y suite completa de pruebas unitarias en `test_acoustic_debugger.gd`.
+      * 240 pruebas unitarias y de integración pasando al 100% (código de salida 0, 0 fallos).
+
 * **`TASK-047` - Motor de Detección Inteligente de Superficies en 3 Niveles & Integración Demo Cyberpunk (Dynamic Surface & Room Acoustic Harmonization)**
   * **Fecha:** 2026-08-30
   * **Resumen:**

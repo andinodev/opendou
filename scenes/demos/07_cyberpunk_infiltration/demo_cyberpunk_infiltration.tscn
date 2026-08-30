@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://cii5tsut4w0mc" path="res://addons/opendou/nodes/opendou_reflector_3d.gd" id="8_refl"]
 [ext_resource type="Script" uid="uid://ctbxqaxaxju70" path="res://addons/opendou/nodes/opendou_music_player.gd" id="9_music"]
 [ext_resource type="Script" uid="uid://da047uvlnsfhn" path="res://addons/opendou/nodes/opendou_audible_monitor.gd" id="10_monitor"]
+[ext_resource type="Script" uid="uid://bjggbw8iy7l6s" path="res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd" id="11_debugger"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.04, 0.05, 0.12, 1)
@@ -147,7 +148,7 @@ absorption = 1.0
 [node name="RooftopRoom" type="Area3D" parent="LevelGeometry/Sector1_Rooftop" unique_id=118274910]
 script = ExtResource("6_room")
 room_name = &"Rooftop_Exterior"
-floor_surface = &"Metal"
+floor_surface = &"Mud"
 calculated_rt60 = 9.793390945995817
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector1_Rooftop/RooftopRoom" unique_id=118274911]
@@ -173,8 +174,8 @@ autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Rain_Ambience"
-synth_preset = "Rain"
 bus_category = "Ambience"
+synth_preset = "Rain"
 
 [node name="Sector2_ServerRoom" type="Node3D" parent="LevelGeometry" unique_id=2017983675]
 
@@ -221,8 +222,8 @@ room_b = NodePath("../../Sector1_Rooftop/RooftopRoom")
 [node name="ServerRoomArea" type="Area3D" parent="LevelGeometry/Sector2_ServerRoom" unique_id=198274910]
 script = ExtResource("6_room")
 room_name = &"Server_Room"
+material_preset = "Metal"
 floor_surface = &"Metal"
-material_preset = "Wood"
 absorption_coefficient = 0.56
 calculated_rt60 = 2.07741935483871
 
@@ -255,8 +256,8 @@ autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Server_Hum"
-synth_preset = "Server_Hum"
 bus_category = "Ambience"
+synth_preset = "Server_Hum"
 
 [node name="ServerLight" type="OmniLight3D" parent="LevelGeometry/Sector2_ServerRoom" unique_id=27430178]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
@@ -303,8 +304,8 @@ material = SubResource("StandardMaterial3D_water")
 [node name="DrainageRoom" type="Area3D" parent="LevelGeometry/Sector3_FloodedDrainage" unique_id=178274910]
 script = ExtResource("6_room")
 room_name = &"Flooded_Drainage"
-floor_surface = &"Water"
 material_preset = "Glass"
+floor_surface = &"Water"
 custom_reverb_time = 3.5
 calculated_rt60 = 9.907692307692308
 snapshot_on_enter = &"Underwater_Muffle"
@@ -320,8 +321,8 @@ autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Water_Stream"
-synth_preset = "Water_Stream"
 bus_category = "Ambience"
+synth_preset = "Water_Stream"
 
 [node name="DrainageLight" type="OmniLight3D" parent="LevelGeometry/Sector3_FloodedDrainage" unique_id=1401071397]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
@@ -335,8 +336,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0, 0)
 [node name="ExtractionArenaRoom" type="Area3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=158274910]
 script = ExtResource("6_room")
 room_name = &"Extraction_Arena"
-floor_surface = &"Tile"
 material_preset = "Curtains"
+floor_surface = &"Tile"
 calculated_rt60 = 1.0171480144404332
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector4_ExtractionArena/ExtractionArenaRoom" unique_id=158274911]
@@ -467,8 +468,8 @@ omni_range = 18.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 0, 0)
 script = ExtResource("6_room")
 room_name = &"Biosphere_Sanctuary"
-floor_surface = &"Foliage"
-material_preset = "Curtains"
+material_preset = "Metal"
+floor_surface = &"Metal"
 calculated_rt60 = 0.8944444444444444
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector5_Biosphere/BiosphereRoom" unique_id=310100018]
@@ -489,8 +490,8 @@ autoplay = true
 max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Wind_Canopy"
-synth_preset = "Wind_Canopy"
 bus_category = "Ambience"
+synth_preset = "Wind_Canopy"
 
 [node name="Waterfall_FR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100002]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 3.5, -6)
@@ -500,8 +501,8 @@ autoplay = true
 max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Waterfall_Stream"
-synth_preset = "Waterfall_Stream"
 bus_category = "Ambience"
+synth_preset = "Waterfall_Stream"
 
 [node name="Bird_C" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100003]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 2, -8)
@@ -512,7 +513,6 @@ max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Bird_Chirp"
 synth_preset = "Bird_Chirp"
-bus_category = "SFX"
 
 [node name="Thunder_LFE" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100004]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, -0.5, 0)
@@ -523,7 +523,6 @@ max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Thunder_Rumble"
 synth_preset = "Thunder_Rumble"
-bus_category = "SFX"
 
 [node name="Cicada_SL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100005]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71, 1.5, 0)
@@ -533,8 +532,8 @@ autoplay = true
 max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Cicada_Swarm"
-synth_preset = "Cicada_Swarm"
 bus_category = "Ambience"
+synth_preset = "Cicada_Swarm"
 
 [node name="Frog_SR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100006]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89, 1.5, 0)
@@ -544,8 +543,8 @@ autoplay = true
 max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Frog_Croak"
-synth_preset = "Frog_Croak"
 bus_category = "Ambience"
+synth_preset = "Frog_Croak"
 
 [node name="Rain_RL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100007]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 2.5, 6)
@@ -555,8 +554,8 @@ autoplay = true
 max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Rain_Atmosphere"
-synth_preset = "Rain_Atmosphere"
 bus_category = "Ambience"
+synth_preset = "Rain_Atmosphere"
 
 [node name="Droplet_RR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100008]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 2.5, 6)
@@ -566,8 +565,8 @@ autoplay = true
 max_distance = 35.0
 script = ExtResource("4_p3d")
 event_name = &"Water_Droplet"
-synth_preset = "Water_Droplet"
 bus_category = "Ambience"
+synth_preset = "Water_Droplet"
 
 [node name="OrbitingBeeEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100009]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 85, 1.5, 0)
@@ -578,7 +577,14 @@ max_distance = 30.0
 script = ExtResource("4_p3d")
 event_name = &"Cyber_Hornet"
 synth_preset = "Cyber_Hornet"
-bus_category = "SFX"
+
+[node name="AcousticDebugger" type="Node3D" parent="LevelGeometry" unique_id=987654320]
+script = ExtResource("11_debugger")
+enabled = true
+probe_ray_count = 24
+show_unit_size_core = true
+show_occlusion_rays = true
+show_sound_field_mesh = true
 
 [node name="ChaosEmittersParent" type="Node3D" parent="LevelGeometry" unique_id=943152636]
 visible = false
@@ -612,20 +618,24 @@ volume_db = -36.647
 script = ExtResource("5_pglob")
 event_name = &"Footstep"
 switch_group = &"Surface"
+synth_preset = "None"
 
 [node name="WeaponAudio" type="AudioStreamPlayer" parent="Player" unique_id=1771967483]
 script = ExtResource("5_pglob")
 event_name = &"Gunshot_Rifle"
+synth_preset = "None"
 
 [node name="RadioAudio" type="AudioStreamPlayer" parent="Player" unique_id=1780149803]
 script = ExtResource("5_pglob")
 event_name = &"Radio_Transmission"
 bus_category = "Voice"
+synth_preset = "None"
 
 [node name="MusicAudio" type="AudioStreamPlayer" parent="Player" unique_id=259454720]
 volume_db = -23.146
 script = ExtResource("5_pglob")
 bus_category = "Music"
+synth_preset = "None"
 
 [node name="MusicPlayer" type="Node" parent="Player" unique_id=259454721]
 script = ExtResource("9_music")
@@ -748,6 +758,10 @@ text = "Ducking GR: 0.0 dB"
 layout_mode = 2
 text = "Music Stem: Stealth (Intensity: 0.00)"
 
+[node name="LblSoundField" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox" unique_id=987654324]
+layout_mode = 2
+text = "Sound Field: 24 Probes (ON)"
+
 [node name="LblDSP" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox" unique_id=132943054]
 layout_mode = 2
 text = "DSP Frame Time: 0.12 ms"
@@ -862,6 +876,10 @@ text = "📻 Radio"
 [node name="BtnToggleMonitor" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=987654322]
 layout_mode = 2
 text = "🔊 Monitor (F8)"
+
+[node name="BtnToggleAcoustics" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=987654323]
+layout_mode = 2
+text = "👁️ Sound Field: ON (G)"
 
 [node name="BtnLangEN" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=1795084415]
 layout_mode = 2
