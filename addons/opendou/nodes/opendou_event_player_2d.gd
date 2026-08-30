@@ -1,0 +1,199 @@
+@icon("res://addons/opendou/icons/icon_event_player_3d.svg")
+@tool
+class_name OpenDouEventPlayer2D
+extends AudioStreamPlayer2D
+
+## Declarative 2D Positional Audio Event Player for OpenDou.
+## Integrates 2D spatial positioning, voice virtualization, dynamic occlusion, and Game Syncs.
+
+const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
+const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
+const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
+const OcclusionManagerClass = preload("res://addons/opendou/runtime/spatial/occlusion_manager.gd")
+
+# ==============================================================================
+# EXPORT GROUPS
+# ==============================================================================
+
+@export_group("OpenDou Event")
+@export var event_name: StringName = &""
+@export var event_def: AudioEventDef = null
+@export var auto_play_event: bool = false
+@export var stop_on_tree_exit: bool = true
+
+@export_group("Game Syncs")
+@export var rtpc_bindings: Dictionary = {}
+@export var switch_group: StringName = &""
+@export var active_switch: StringName = &""
+@export var state_group: StringName = &""
+@export var active_state: StringName = &""
+
+@export_group("Spatial Acoustics & Occlusion")
+@export var enable_dynamic_occlusion: bool = false
+@export_flags_2d_physics var occlusion_collision_mask: int = 1
+@export var occlusion_refresh_interval: float = 0.05
+
+@export_group("Voice Management")
+@export_range(0.0, 100.0, 1.0) var base_priority: float = 50.0
+@export var virtualization_mode: int = 0
+@export var cull_distance: float = 1000.0
+
+@export_group("Mixing & Ducking")
+@export_enum("Master", "Music", "SFX", "Voice", "Ambience") var bus_category: String = "SFX"
+
+# ==============================================================================
+# RUNTIME STATE
+# ==============================================================================
+
+var active_instance: EventInstance = null
+var _event_manager: AudioEventManager = null
+var _occlusion_manager: OcclusionManager = null
+var _calculated_occlusion: float = 0.0
+var _occlusion_timer: float = 0.0
+
+func _init() -> void:
+	_occlusion_manager = OcclusionManagerClass.new()
+
+func _ready() -> void:
+	if not Engine.is_editor_hint() and auto_play_event:
+		play_event()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_EXIT_TREE:
+		if stop_on_tree_exit and active_instance != null:
+			active_instance.stop()
+
+func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
+		
+	if enable_dynamic_occlusion and is_inside_tree():
+		_occlusion_timer += delta
+		if _occlusion_timer >= occlusion_refresh_interval:
+			_occlusion_timer = 0.0
+			_update_occlusion()
+
+# ==============================================================================
+# PUBLIC API
+# ==============================================================================
+
+## Sets an explicit AudioEventManager instance for dependency injection or isolated tests.
+func set_event_manager(manager: AudioEventManager) -> void:
+	_event_manager = manager
+
+## Plays the configured or specified audio event.
+func play_event(p_event_name: StringName = &"") -> void:
+	var target_name: StringName = p_event_name if not p_event_name.is_empty() else event_name
+	var manager: AudioEventManager = _get_manager()
+	
+	if manager != null:
+		if event_def != null and p_event_name.is_empty():
+			active_instance = manager.post_event(event_def, self)
+		elif not target_name.is_empty():
+			active_instance = manager.post_event(target_name, self)
+	elif event_def != null:
+		active_instance = EventInstanceClass.new(event_def, self)
+		active_instance.play()
+	elif not target_name.is_empty():
+		var fallback_def = AudioEventDefClass.new(target_name)
+		fallback_def.target_bus = StringName(bus_category)
+		active_instance = EventInstanceClass.new(fallback_def, self)
+		active_instance.play()
+		
+	if active_instance != null:
+		active_instance.virtualization_mode = virtualization_mode
+		active_instance.max_distance = cull_distance
+		var cur_pos_2d: Vector2 = global_position if is_inside_tree() else position
+		active_instance.set_position(Vector3(cur_pos_2d.x, cur_pos_2d.y, 0.0))
+		
+		for param_name in rtpc_bindings:
+			active_instance.set_parameter(param_name, float(rtpc_bindings[param_name]), true)
+			
+		if not switch_group.is_empty() and not active_switch.is_empty():
+			set_switch(switch_group, active_switch)
+		if not state_group.is_empty() and not active_state.is_empty():
+			set_state(state_group, active_state)
+
+## Stops playback of the currently active event instance.
+func stop_event(fade_time: float = 0.0) -> void:
+	if active_instance != null:
+		active_instance.stop(fade_time)
+
+## Sets a local RTPC parameter value on this emitter and updates the active instance.
+func set_rtpc(param_name: StringName, value: float) -> void:
+	rtpc_bindings[param_name] = value
+	if active_instance != null:
+		active_instance.set_parameter(param_name, value)
+	var manager: AudioEventManager = _get_manager()
+	if manager != null:
+		manager.set_rtpc(param_name, value)
+
+## Sets the active switch value for a switch group on this emitter.
+func set_switch(group: StringName, switch_value: StringName) -> void:
+	switch_group = group
+	active_switch = switch_value
+	var manager: AudioEventManager = _get_manager()
+	if manager != null:
+		manager.set_switch(group, switch_value, self)
+
+## Sets a global game state from this emitter.
+func set_state(group: StringName, state_value: StringName) -> void:
+	state_group = group
+	active_state = state_value
+	var manager: AudioEventManager = _get_manager()
+	if manager != null:
+		manager.set_state(group, state_value)
+
+## Returns the latest calculated physical occlusion factor (0.0 = clear, 1.0 = fully occluded).
+func get_calculated_occlusion() -> float:
+	return _calculated_occlusion
+
+# ==============================================================================
+# INTERNAL HELPERS
+# ==============================================================================
+
+func _get_manager() -> AudioEventManager:
+	if _event_manager != null and is_instance_valid(_event_manager):
+		return _event_manager
+	if is_inside_tree():
+		var root = get_tree().root
+		if root != null and root.has_node("OpenDou"):
+			var node = root.get_node("OpenDou")
+			if node is AudioEventManager:
+				return node
+	if Engine.has_singleton("OpenDou"):
+		var s = Engine.get_singleton("OpenDou")
+		if s is AudioEventManager:
+			return s
+	return null
+
+func _update_occlusion() -> void:
+	var listener_pos: Vector2 = Vector2.ZERO
+	var manager = _get_manager()
+	if manager != null:
+		listener_pos = Vector2(manager.active_listener_position.x, manager.active_listener_position.y)
+	elif get_viewport() != null:
+		var cam: Camera2D = get_viewport().get_camera_2d()
+		if cam != null:
+			listener_pos = cam.global_position
+			
+	if not is_inside_tree() or get_world_2d() == null:
+		return
+		
+	var space_state = get_world_2d().direct_space_state
+	if space_state == null:
+		return
+		
+	var query = PhysicsRayQueryParameters2D.create(global_position, listener_pos, occlusion_collision_mask)
+	var hit = space_state.intersect_ray(query)
+	var ray_hits: Array[bool] = [not hit.is_empty()]
+	
+	if _occlusion_manager != null:
+		var occ_result = _occlusion_manager.evaluate_occlusion(
+			Vector3(global_position.x, global_position.y, 0.0),
+			Vector3(listener_pos.x, listener_pos.y, 0.0),
+			ray_hits
+		)
+		_calculated_occlusion = occ_result.occlusion_factor
+		if active_instance != null:
+			active_instance.set_target_lpf(occ_result.target_lpf, occ_result.volume_attenuation_db)

@@ -45,9 +45,9 @@ var bombardment_instances: Array[EventInstance] = []
 # Teleportation Sector Positions
 const SECTOR_POSITIONS: Dictionary = {
 	1: Vector3(-25.0, 1.0, 0.0), # Sector 1: Rooftop
-	2: Vector3(0.0, 1.0, 0.0),    # Sector 2: Server Room
-	3: Vector3(25.0, 1.0, 0.0),   # Sector 3: Flooded Drainage
-	4: Vector3(50.0, 1.0, 0.0)    # Sector 4: Extraction Arena
+	2: Vector3(0.0, 1.0, 0.0), # Sector 2: Server Room
+	3: Vector3(25.0, 1.0, 0.0), # Sector 3: Flooded Drainage
+	4: Vector3(50.0, 1.0, 0.0) # Sector 4: Extraction Arena
 }
 
 # Scene Node References
@@ -104,12 +104,14 @@ var stem_track_data: Array[Dictionary] = []
 
 func _init() -> void:
 	_setup_runtime_systems()
+	_start_music_audio()
 
 func _ready() -> void:
 	if not voice_pool:
 		_setup_runtime_systems()
 	_start_ambient_audio()
-	_start_music_audio()
+	if stem_players.is_empty():
+		_start_music_audio()
 	_connect_ui()
 	_update_hud()
 
@@ -174,20 +176,20 @@ func _start_ambient_audio() -> void:
 	if rain_audio:
 		rain_audio.stream = AudioSynthesizerClass.create_rain_ambient_loop(2.0)
 		rain_audio.volume_db = -12.0
-		rain_audio.unit_size = 2.5
+		rain_audio.unit_size = 8
 		rain_audio.max_distance = 15.0
 		rain_audio.play()
 	if server_audio:
 		server_audio.stream = AudioSynthesizerClass.create_server_ambient_loop(2.0)
 		server_audio.volume_db = -14.0
-		server_audio.unit_size = 2.5
+		server_audio.unit_size = 8
 		server_audio.max_distance = 15.0
 		server_audio.play()
 	if water_audio:
 		water_audio.stream = AudioSynthesizerClass.create_water_stream_ambient_loop(2.0)
-		water_audio.volume_db = -12.0
-		water_audio.unit_size = 2.5
-		water_audio.max_distance = 15.0
+		water_audio.volume_db = -10.0
+		water_audio.unit_size = 15
+		water_audio.max_distance = 25.0
 		water_audio.play()
 	if turret_audio:
 		turret_audio.stream = AudioSynthesizerClass.create_tone(880.0, 0.4, 0.2)
@@ -233,14 +235,14 @@ func load_music_suite(suite_name: StringName) -> void:
 	if tracks_to_create.is_empty():
 		if str(suite_name).contains("Exploration"):
 			tracks_to_create = [
-				{ "name": "Layer 1: Ambient_Pads", "min_intensity": 0.0, "max_intensity": 0.7, "bus_name": "Music" },
-				{ "name": "Layer 2: Nature_Foley", "min_intensity": 0.2, "max_intensity": 1.0, "bus_name": "Music" }
+				{"name": "Layer 1: Ambient_Pads", "min_intensity": 0.0, "max_intensity": 0.7, "bus_name": "Music"},
+				{"name": "Layer 2: Nature_Foley", "min_intensity": 0.2, "max_intensity": 1.0, "bus_name": "Music"}
 			]
 		else:
 			tracks_to_create = [
-				{ "name": "Layer 1: Ambient_Pads", "min_intensity": 0.0, "max_intensity": 0.5, "bus_name": "Music" },
-				{ "name": "Layer 2: Stealth_Bass", "min_intensity": 0.2, "max_intensity": 0.7, "bus_name": "Music" },
-				{ "name": "Layer 3: Combat_Drums", "min_intensity": 0.5, "max_intensity": 1.0, "bus_name": "Music" }
+				{"name": "Layer 1: Ambient_Pads", "min_intensity": 0.0, "max_intensity": 0.5, "bus_name": "Music"},
+				{"name": "Layer 2: Stealth_Bass", "min_intensity": 0.2, "max_intensity": 0.7, "bus_name": "Music"},
+				{"name": "Layer 3: Combat_Drums", "min_intensity": 0.5, "max_intensity": 1.0, "bus_name": "Music"}
 			]
 			
 	var music_parent = player if (player and player.is_inside_tree()) else self
@@ -270,7 +272,8 @@ func load_music_suite(suite_name: StringName) -> void:
 			p.stream = AudioSynthesizerClass.create_chord_loop(2.0)
 			
 		music_parent.add_child(p)
-		p.play()
+		if p.is_inside_tree():
+			p.play()
 		stem_players.append(p)
 		stem_track_data.append({
 			"name": t_name,

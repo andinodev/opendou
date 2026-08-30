@@ -124,23 +124,23 @@
 		"intensity": 0.85,
 		"playlist": [
 			{
-				"max_loops": 1.0,
-				"min_loops": 1.0,
+				"max_loops": 1,
+				"min_loops": 1,
 				"segment_name": "Combat_Intro"
 			},
 			{
-				"max_loops": 4.0,
-				"min_loops": 2.0,
+				"max_loops": 4,
+				"min_loops": 2,
 				"segment_name": "Combat_Loop"
 			},
 			{
-				"max_loops": 2.0,
-				"min_loops": 1.0,
+				"max_loops": 2,
+				"min_loops": 1,
 				"segment_name": "Boss_Encounter"
 			},
 			{
-				"max_loops": 1.0,
-				"min_loops": 1.0,
+				"max_loops": 1,
+				"min_loops": 1,
 				"segment_name": "Victory_Outro"
 			}
 		],
@@ -149,7 +149,7 @@
 			{
 				"audio_file_path": "",
 				"auto_enabled": false,
-				"auto_param": 0.0,
+				"auto_param": 0,
 				"auto_points": [
 					[
 						0.0,
@@ -185,7 +185,7 @@
 			{
 				"audio_file_path": "",
 				"auto_enabled": false,
-				"auto_param": 0.0,
+				"auto_param": 0,
 				"auto_points": [
 					[
 						0.0,
@@ -221,7 +221,7 @@
 			{
 				"audio_file_path": "",
 				"auto_enabled": false,
-				"auto_param": 0.0,
+				"auto_param": 0,
 				"auto_points": [
 					[
 						0.0,
@@ -257,7 +257,7 @@
 			{
 				"audio_file_path": "",
 				"auto_enabled": false,
-				"auto_param": 0.0,
+				"auto_param": 0,
 				"auto_points": [
 					[
 						0.0,
@@ -303,7 +303,43 @@
 			{
 				"audio_file_path": "",
 				"auto_enabled": false,
-				"auto_param": 0,
+				"auto_param": 0.0,
+				"auto_points": [
+					[
+						0.0,
+						1.0
+					],
+					[
+						0.5,
+						0.600000023841858
+					],
+					[
+						1.0,
+						1.0
+					]
+				],
+				"bus_name": "Music",
+				"color": "33bff2",
+				"is_muted": false,
+				"is_solo": false,
+				"left_trim": 0.0,
+				"max_intensity": 0.7,
+				"min_intensity": 0.0,
+				"name": "Layer 1: Ambient_Pads",
+				"right_trim": 1.0,
+				"sub_tracks": [
+					{
+						"audio_path": "",
+						"name": "Var 1",
+						"weight": 1.0
+					}
+				],
+				"volume_db": 0.0
+			},
+			{
+				"audio_file_path": "",
+				"auto_enabled": false,
+				"auto_param": 0.0,
 				"auto_points": [
 					[
 						0.0,

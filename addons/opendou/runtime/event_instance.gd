@@ -62,10 +62,11 @@ func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 		caller_id = p_caller.get_instance_id()
 		caller_node_ref = weakref(p_caller)
 		if p_caller is Node3D:
-			emitter_position = p_caller.global_position
+			emitter_position = p_caller.global_position if p_caller.is_inside_tree() else p_caller.position
 			has_spatial_position = true
 		elif p_caller is Node2D:
-			emitter_position = Vector3(p_caller.global_position.x, p_caller.global_position.y, 0.0)
+			var p2d = p_caller.global_position if p_caller.is_inside_tree() else p_caller.position
+			emitter_position = Vector3(p2d.x, p2d.y, 0.0)
 			has_spatial_position = true
 	
 	if definition:
@@ -149,10 +150,11 @@ func update_parameters(delta: float, global_rtpcs: Dictionary = {}) -> void:
 	if caller_node_ref:
 		var caller: Object = caller_node_ref.get_ref()
 		if caller and caller is Node3D:
-			emitter_position = caller.global_position
+			emitter_position = caller.global_position if caller.is_inside_tree() else caller.position
 			has_spatial_position = true
 		elif caller and caller is Node2D:
-			emitter_position = Vector3(caller.global_position.x, caller.global_position.y, 0.0)
+			var p2d = caller.global_position if caller.is_inside_tree() else caller.position
+			emitter_position = Vector3(p2d.x, p2d.y, 0.0)
 			has_spatial_position = true
 	
 	# 1. Start from base definition values and apply occlusion volume attenuation
