@@ -40,13 +40,13 @@ var tcp_status_btn: Button
 var detach_btn: Button
 var btn_toggle_profiler: Button
 var btn_modal_profiler: Button
+var btn_modal_banks: Button
 var btn_save: Button
 
 # Content Containers
 var content_container: VBoxContainer
 var main_hsplit: HSplitContainer
 var center_right_hsplit: HSplitContainer
-var workspace_mixer_vsplit: VSplitContainer
 var center_workspace_box: PanelContainer
 
 # Center Workspaces
@@ -64,9 +64,10 @@ var bank_panel: OpenDouBankPanel
 var mixer_drawer: OpenDouMixerDrawer
 var transport_bar: OpenDouTransportBar
 
-# Modal Dialogs for Clean Unrestricted Views
-var syncs_dialog: AcceptDialog
-var profiler_dialog: AcceptDialog
+# Modal Floating Windows for Clean Unrestricted Views
+var mixer_dialog: Window
+var syncs_dialog: Window
+var profiler_dialog: Window
 
 const SFX_EVENTS = [
 	&"Battlefield_Gunfire.tres",
@@ -172,9 +173,9 @@ func _build_ui() -> void:
 	syncs_btn_group.add_child(btn_toggle_syncs)
 	
 	btn_modal_syncs = Button.new()
-	btn_modal_syncs.text = "🗗"
-	btn_modal_syncs.tooltip_text = "Open Game Syncs in a dedicated Floating Modal"
-	btn_modal_syncs.custom_minimum_size = Vector2(24, 24)
+	btn_modal_syncs.text = "🎮 Syncs"
+	btn_modal_syncs.tooltip_text = "Open Game Syncs in an independent Floating Window"
+	btn_modal_syncs.custom_minimum_size = Vector2(68, 24)
 	btn_modal_syncs.pressed.connect(open_syncs_modal)
 	syncs_btn_group.add_child(btn_modal_syncs)
 	header_bar.add_child(syncs_btn_group)
@@ -216,10 +217,10 @@ func _build_ui() -> void:
 	
 	header_bar.add_child(VSeparator.new())
 	
-	# HDR Mixer Drawer Toggle
+	# HDR Mixer Modal Button
 	btn_toggle_mixer = Button.new()
 	btn_toggle_mixer.text = "🎚️ HDR"
-	btn_toggle_mixer.tooltip_text = "Toggle Global HDR Mixing Console (Pushes Canvas Up)"
+	btn_toggle_mixer.tooltip_text = "Open Global HDR Mixing Console & Ducking Matrix Floating Window"
 	btn_toggle_mixer.toggle_mode = true
 	btn_toggle_mixer.button_pressed = false
 	btn_toggle_mixer.toggled.connect(_on_toggle_mixer_toggled)
@@ -299,11 +300,18 @@ func _build_ui() -> void:
 	profiler_btn_group.add_child(btn_toggle_profiler)
 	
 	btn_modal_profiler = Button.new()
-	btn_modal_profiler.text = "🗗"
-	btn_modal_profiler.tooltip_text = "Open Profiler & SoundBanks in a dedicated Floating Modal"
-	btn_modal_profiler.custom_minimum_size = Vector2(24, 24)
+	btn_modal_profiler.text = "📊 Profiler"
+	btn_modal_profiler.tooltip_text = "Open Live Profiler in an independent Floating Window"
+	btn_modal_profiler.custom_minimum_size = Vector2(72, 24)
 	btn_modal_profiler.pressed.connect(open_profiler_modal)
 	profiler_btn_group.add_child(btn_modal_profiler)
+	
+	btn_modal_banks = Button.new()
+	btn_modal_banks.text = "📦 Banks"
+	btn_modal_banks.tooltip_text = "Open SoundBank Compiler in an independent Floating Window"
+	btn_modal_banks.custom_minimum_size = Vector2(68, 24)
+	btn_modal_banks.pressed.connect(open_banks_modal)
+	profiler_btn_group.add_child(btn_modal_banks)
 	header_bar.add_child(profiler_btn_group)
 	
 	content_container.add_child(header_panel)
@@ -333,18 +341,11 @@ func _build_ui() -> void:
 	center_right_hsplit.split_offset = 580
 	main_hsplit.add_child(center_right_hsplit)
 	
-	# Vertical Splitter for Center Workspaces vs Pushing HDR Mixer Drawer
-	workspace_mixer_vsplit = VSplitContainer.new()
-	workspace_mixer_vsplit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	workspace_mixer_vsplit.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	workspace_mixer_vsplit.split_offset = 480
-	center_right_hsplit.add_child(workspace_mixer_vsplit)
-	
-	# Column 2: Center Workspaces Container Stack
+	# Column 2: Center Workspaces Container Stack (Occupies 100% height)
 	center_workspace_box = PanelContainer.new()
 	center_workspace_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center_workspace_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	workspace_mixer_vsplit.add_child(center_workspace_box)
+	center_right_hsplit.add_child(center_workspace_box)
 	
 	# 2a. Graph Editor Canvas
 	graph_editor = OpenDouGraphEditorClass.new()
@@ -368,17 +369,6 @@ func _build_ui() -> void:
 	dialogue_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	dialogue_grid.visible = false
 	center_workspace_box.add_child(dialogue_grid)
-	
-	# 3. Slide-Out HDR Mixer Drawer (Pushing architecture inside VSplit)
-	mixer_drawer = OpenDouMixerDrawerClass.new()
-	mixer_drawer.visible = false
-	mixer_drawer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mixer_drawer.custom_minimum_size = Vector2(0, 200)
-	mixer_drawer.closed_requested.connect(func():
-		mixer_drawer.visible = false
-		btn_toggle_mixer.button_pressed = false
-	)
-	workspace_mixer_vsplit.add_child(mixer_drawer)
 	
 	# Column 3: Right Inspector & Profiler Tabs (Right Collapsible inside ScrollContainer)
 	right_tabs_scroll = ScrollContainer.new()
@@ -412,25 +402,114 @@ func _build_ui() -> void:
 	_create_modals()
 
 func _create_modals() -> void:
-	profiler_dialog = AcceptDialog.new()
-	profiler_dialog.title = "📊 OpenDou Live Profiler, Telemetry & SoundBanks"
-	profiler_dialog.size = Vector2i(780, 520)
-	add_child(profiler_dialog)
+	# 1. Independent Floating HDR Mixer & Ducking Window
+	mixer_dialog = Window.new()
+	mixer_dialog.title = "🎚️ OpenDou HDR Mixing Console & Ducking Matrix"
+	mixer_dialog.size = Vector2i(780, 460)
+	mixer_dialog.visible = false
+	mixer_dialog.wrap_controls = false
+	mixer_dialog.close_requested.connect(func():
+		mixer_dialog.visible = false
+		if btn_toggle_mixer:
+			btn_toggle_mixer.set_pressed_no_signal(false)
+	)
 	
-	syncs_dialog = AcceptDialog.new()
-	syncs_dialog.title = "🎛️ OpenDou Game Syncs & Simulation Manager"
-	syncs_dialog.size = Vector2i(450, 500)
+	mixer_drawer = OpenDouMixerDrawerClass.new()
+	mixer_drawer.anchors_preset = Control.PRESET_FULL_RECT
+	mixer_drawer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mixer_drawer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	mixer_drawer.custom_minimum_size = Vector2(0, 0)
+	mixer_drawer.closed_requested.connect(func():
+		mixer_dialog.visible = false
+		if btn_toggle_mixer:
+			btn_toggle_mixer.set_pressed_no_signal(false)
+	)
+	mixer_dialog.add_child(mixer_drawer)
+	add_child(mixer_dialog)
+	
+	# 2. Independent Floating Game Syncs Window
+	syncs_dialog = Window.new()
+	syncs_dialog.title = "🎮 OpenDou Game Syncs Manager"
+	syncs_dialog.size = Vector2i(460, 480)
+	syncs_dialog.visible = false
+	syncs_dialog.wrap_controls = false
+	syncs_dialog.close_requested.connect(func(): syncs_dialog.visible = false)
+	
+	var syncs_scroll = ScrollContainer.new()
+	syncs_scroll.anchors_preset = Control.PRESET_FULL_RECT
+	syncs_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	syncs_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	syncs_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	
+	var modal_syncs = OpenDouGameSyncsPanelClass.new()
+	modal_syncs.anchors_preset = Control.PRESET_FULL_RECT
+	modal_syncs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	modal_syncs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	modal_syncs.rtpc_value_changed.connect(_on_sync_rtpc_changed)
+	modal_syncs.state_changed.connect(_on_sync_state_changed)
+	modal_syncs.switch_changed.connect(_on_sync_switch_changed)
+	syncs_scroll.add_child(modal_syncs)
+	syncs_dialog.add_child(syncs_scroll)
 	add_child(syncs_dialog)
+	
+	# 3. Independent Floating Profiler & SoundBanks Window
+	profiler_dialog = Window.new()
+	profiler_dialog.title = "📊 OpenDou Live Profiler & SoundBanks"
+	profiler_dialog.size = Vector2i(840, 540)
+	profiler_dialog.visible = false
+	profiler_dialog.wrap_controls = false
+	profiler_dialog.close_requested.connect(func(): profiler_dialog.visible = false)
+	
+	var modal_tabs = TabContainer.new()
+	modal_tabs.name = "TabContainer"
+	modal_tabs.anchors_preset = Control.PRESET_FULL_RECT
+	modal_tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	modal_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	
+	var modal_profiler = OpenDouProfilerPanelClass.new()
+	modal_profiler.name = "📊 Live Profiler"
+	modal_tabs.add_child(modal_profiler)
+	
+	var modal_bank = OpenDouBankPanelClass.new()
+	modal_bank.name = "📦 SoundBanks"
+	modal_tabs.add_child(modal_bank)
+	
+	profiler_dialog.add_child(modal_tabs)
+	add_child(profiler_dialog)
 
-func open_profiler_modal() -> void:
-	if not profiler_dialog:
+func open_hdr_mixer_modal() -> void:
+	if not mixer_dialog:
 		return
-	profiler_dialog.popup_centered(Vector2i(780, 520))
+	mixer_dialog.popup_centered(Vector2i(780, 460))
+	mixer_dialog.visible = true
+	if mixer_drawer:
+		mixer_drawer.visible = true
+	if btn_toggle_mixer:
+		btn_toggle_mixer.set_pressed_no_signal(true)
 
 func open_syncs_modal() -> void:
 	if not syncs_dialog:
 		return
-	syncs_dialog.popup_centered(Vector2i(450, 500))
+	syncs_dialog.popup_centered(Vector2i(460, 480))
+	syncs_dialog.visible = true
+
+func open_profiler_modal() -> void:
+	if not profiler_dialog:
+		return
+	profiler_dialog.popup_centered(Vector2i(840, 540))
+	profiler_dialog.visible = true
+	var tabs = profiler_dialog.get_node_or_null("TabContainer")
+	if tabs and tabs is TabContainer:
+		tabs.current_tab = 0
+
+func open_banks_modal() -> void:
+	if not profiler_dialog:
+		return
+	profiler_dialog.popup_centered(Vector2i(840, 540))
+	profiler_dialog.visible = true
+	var tabs = profiler_dialog.get_node_or_null("TabContainer")
+	if tabs and tabs is TabContainer:
+		tabs.current_tab = 1
 
 func _wire_signals() -> void:
 	if music_timeline:
@@ -551,6 +630,11 @@ func _on_toggle_profiler_toggled(is_open: bool) -> void:
 	btn_toggle_profiler.text = "Profiler ▶" if is_open else "◀ Profiler"
 
 func _on_toggle_mixer_toggled(is_open: bool) -> void:
+	if is_open:
+		open_hdr_mixer_modal()
+	else:
+		if mixer_dialog:
+			mixer_dialog.visible = false
 	if mixer_drawer:
 		mixer_drawer.visible = is_open
 

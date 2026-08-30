@@ -277,11 +277,28 @@ static func run_all() -> Array[String]:
 		profiler.radar_view.update_radar_data([{ "event_name": "Test_Step", "world_position": Vector3(5, 0, 5), "is_virtual": false, "volume_db": 0.0 }])
 		profiler.radar_view.update_telemetry_metrics(8, 64, 0.02, 2048)
 
-	# Test Modal Dialog Openers
+	# Test Floating Tool Window Modals & Zero-Waste Center Layout (Task 2)
+	studio.open_hdr_mixer_modal()
 	studio.open_syncs_modal()
 	studio.open_profiler_modal()
-	if studio.syncs_dialog == null or studio.profiler_dialog == null:
-		failures.append("Test 6p Failed: Dedicated floating modals not initialized")
+	studio.open_banks_modal()
+	if studio.mixer_dialog == null or not (studio.mixer_dialog is Window):
+		failures.append("Test 6p1 Failed: mixer_dialog must be an initialized Window")
+	elif not studio.mixer_dialog.title.contains("HDR Mixing Console") or studio.mixer_dialog.size != Vector2i(780, 460):
+		failures.append("Test 6p2 Failed: mixer_dialog title or size mismatch")
+	
+	if studio.syncs_dialog == null or not (studio.syncs_dialog is Window):
+		failures.append("Test 6p3 Failed: syncs_dialog must be an initialized Window")
+	elif not studio.syncs_dialog.title.contains("Game Syncs") or studio.syncs_dialog.size != Vector2i(460, 480):
+		failures.append("Test 6p4 Failed: syncs_dialog title or size mismatch")
+		
+	if studio.profiler_dialog == null or not (studio.profiler_dialog is Window):
+		failures.append("Test 6p5 Failed: profiler_dialog must be an initialized Window")
+	elif not studio.profiler_dialog.title.contains("Live Profiler & SoundBanks") or studio.profiler_dialog.size != Vector2i(840, 540):
+		failures.append("Test 6p6 Failed: profiler_dialog title or size mismatch")
+		
+	if studio.center_workspace_box.get_parent() != studio.center_right_hsplit:
+		failures.append("Test 6p7 Failed: center_workspace_box should be direct child of center_right_hsplit without vertical splitter")
 
 	# Test Detach Window & Placeholder (Auto-maximized & Zero-Waste Root Layout)
 	if studio.dock_placeholder == null:

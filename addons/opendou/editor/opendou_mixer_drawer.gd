@@ -48,8 +48,9 @@ const DUCK_BUSES = [&"Voice", &"SFX", &"Music", &"Ambient"]
 func _init() -> void:
 	ducking_matrix = AudioDuckingMatrixClass.new()
 	snapshot_manager = AudioMixSnapshotManagerClass.new()
-	custom_minimum_size = Vector2(0, 240)
+	custom_minimum_size = Vector2(0, 0)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_build_ui()
 
 func _build_ui() -> void:
@@ -76,7 +77,7 @@ func _build_ui() -> void:
 	header_hbox.add_child(spacer)
 	
 	var btn_close = Button.new()
-	btn_close.text = "✖ Close Drawer"
+	btn_close.text = "✖ Close Window"
 	btn_close.pressed.connect(func(): closed_requested.emit())
 	header_hbox.add_child(btn_close)
 	main_vbox.add_child(header_hbox)
