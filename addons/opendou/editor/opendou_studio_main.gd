@@ -64,6 +64,11 @@ var bank_panel: OpenDouBankPanel
 var mixer_drawer: OpenDouMixerDrawer
 var transport_bar: OpenDouTransportBar
 
+var tab_container: TabContainer:
+	get: return right_tabs
+var radar_view:
+	get: return profiler_panel.radar_view if profiler_panel else null
+
 # Modal Floating Windows for Clean Unrestricted Views
 var mixer_dialog: Window
 var syncs_dialog: Window
@@ -514,12 +519,24 @@ func open_banks_modal() -> void:
 func _wire_signals() -> void:
 	if music_timeline:
 		music_timeline.dirty_changed.connect(_on_daw_dirty_changed)
-		music_timeline.bpm_changed.connect(func(_b): _on_daw_dirty_changed(true))
-		music_timeline.intensity_changed.connect(func(_i): _on_daw_dirty_changed(true))
+		music_timeline.bpm_changed.connect(func(_b: float) -> void: _on_daw_dirty_changed(true))
+		music_timeline.intensity_changed.connect(func(_i: float) -> void: _on_daw_dirty_changed(true))
+		if music_timeline.clock:
+			music_timeline.clock.beat_hit.connect(func(beat_idx: int, bar_idx: int) -> void:
+				if transport_bar and current_workspace == WorkspaceMode.MODE_MUSIC_DAW:
+					transport_bar.update_music_clock(bar_idx + 1, float(beat_idx + 1), music_timeline.is_dirty)
+			)
 	if game_syncs_panel:
 		game_syncs_panel.rtpc_value_changed.connect(_on_sync_rtpc_changed)
 		game_syncs_panel.state_changed.connect(_on_sync_state_changed)
 		game_syncs_panel.switch_changed.connect(_on_sync_switch_changed)
+	if transport_bar:
+		transport_bar.music_bpm_changed.connect(_on_transport_bpm_changed)
+		transport_bar.music_intensity_changed.connect(_on_transport_intensity_changed)
+		transport_bar.voice_locale_changed.connect(_on_transport_voice_locale_changed)
+		transport_bar.play_requested.connect(_on_transport_play_requested)
+		transport_bar.pause_requested.connect(_on_transport_pause_requested)
+		transport_bar.stop_requested.connect(_on_transport_stop_requested)
 
 func _on_daw_dirty_changed(dirty: bool) -> void:
 	_update_preset_selector_text(dirty)
@@ -562,7 +579,9 @@ func set_workspace_mode(mode: WorkspaceMode) -> void:
 			for i in range(SFX_EVENTS.size()):
 				event_selector.add_item("🎯 " + str(SFX_EVENTS[i]), i)
 			btn_toggle_syncs.button_pressed = true
+			if game_syncs_panel: game_syncs_panel.visible = true
 			if game_syncs_scroll: game_syncs_scroll.visible = true
+			if right_tabs: right_tabs.visible = true
 			if right_tabs_scroll: right_tabs_scroll.visible = true
 			btn_toggle_profiler.button_pressed = true
 			transport_bar.set_audition_event(SFX_EVENTS[0])
@@ -572,7 +591,9 @@ func set_workspace_mode(mode: WorkspaceMode) -> void:
 				event_selector.add_item("🎼 " + str(MUSIC_EVENTS[i]) + dirty_marker, i)
 			# Auto-collapse sidebars to give 100% width to Music Timeline
 			btn_toggle_syncs.button_pressed = false
+			if game_syncs_panel: game_syncs_panel.visible = false
 			if game_syncs_scroll: game_syncs_scroll.visible = false
+			if right_tabs: right_tabs.visible = false
 			if right_tabs_scroll: right_tabs_scroll.visible = false
 			btn_toggle_profiler.button_pressed = false
 			transport_bar.set_audition_event(MUSIC_EVENTS[0])
@@ -581,7 +602,9 @@ func set_workspace_mode(mode: WorkspaceMode) -> void:
 				event_selector.add_item("🗣️ " + str(DIALOGUE_EVENTS[i]), i)
 			# Auto-collapse sidebars to give 100% width to Localization Table
 			btn_toggle_syncs.button_pressed = false
+			if game_syncs_panel: game_syncs_panel.visible = false
 			if game_syncs_scroll: game_syncs_scroll.visible = false
+			if right_tabs: right_tabs.visible = false
 			if right_tabs_scroll: right_tabs_scroll.visible = false
 			btn_toggle_profiler.button_pressed = false
 			transport_bar.set_audition_event(DIALOGUE_EVENTS[0])
@@ -591,6 +614,38 @@ func _on_transport_rtpc_changed(rtpc_name: StringName, value: float) -> void:
 		game_syncs_panel.simulate_rtpc_override(rtpc_name, value)
 	if music_timeline and rtpc_name == &"CombatIntensity":
 		music_timeline.intensity_slider.value = value
+
+func _on_transport_bpm_changed(bpm: float) -> void:
+	if music_timeline:
+		music_timeline.clock.bpm = bpm
+		if music_timeline.bpm_spin:
+			music_timeline.bpm_spin.value = bpm
+		music_timeline._on_bpm_changed(bpm)
+
+func _on_transport_intensity_changed(val: float) -> void:
+	if music_timeline:
+		if music_timeline.intensity_slider:
+			music_timeline.intensity_slider.value = val
+		music_timeline._on_intensity_slider_changed(val)
+
+func _on_transport_voice_locale_changed(loc: String) -> void:
+	if dialogue_grid and dialogue_grid.dialogue_manager:
+		dialogue_grid.dialogue_manager.set_language(loc)
+	var locale_map = {"en": 0, "es": 1, "ja": 2, "zh": 3}
+	if locale_selector and locale_map.has(loc):
+		locale_selector.selected = locale_map[loc]
+
+func _on_transport_play_requested() -> void:
+	if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+		music_timeline._on_music_play_pressed()
+
+func _on_transport_pause_requested() -> void:
+	if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+		music_timeline._on_music_pause_pressed()
+
+func _on_transport_stop_requested() -> void:
+	if current_workspace == WorkspaceMode.MODE_MUSIC_DAW and music_timeline:
+		music_timeline._on_music_stop_pressed()
 
 func _on_sync_rtpc_changed(rtpc_name: StringName, value: float) -> void:
 	if transport_bar and transport_bar.master_vol_slider:
@@ -683,7 +738,7 @@ func get_editor_root_node() -> Node:
 	var ml = Engine.get_main_loop()
 	if ml is SceneTree and ml.root:
 		return ml.root
-	return null
+	return self
 
 var is_detached: bool = false
 var detached_window: Window
@@ -718,16 +773,19 @@ func detach_and_maximize() -> void:
 	detached_window.wrap_controls = false
 	detached_window.close_requested.connect(reattach_to_dock)
 	
-	content_container.anchors_preset = Control.PRESET_FULL_RECT
 	content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content_container.custom_minimum_size = Vector2(0, 0)
 	detached_window.add_child(content_container)
+	content_container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_child(detached_window)
 	
-	detached_window.popup_centered()
-	detached_window.mode = Window.MODE_MAXIMIZED
-	detached_window.grab_focus()
+	if root.is_inside_tree():
+		detached_window.popup_centered()
+		detached_window.mode = Window.MODE_MAXIMIZED
+		detached_window.grab_focus()
+	else:
+		detached_window.mode = Window.MODE_MAXIMIZED
 	
 	if detach_btn:
 		detach_btn.text = "📥 Dock"
@@ -748,6 +806,7 @@ func reattach_to_dock() -> void:
 		dock_placeholder.visible = false
 	if content_container:
 		add_child(content_container)
+		content_container.set_anchors_preset(Control.PRESET_FULL_RECT)
 		
 	if detach_btn:
 		detach_btn.text = "🗗 Detach"

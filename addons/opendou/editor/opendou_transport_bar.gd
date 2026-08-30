@@ -11,6 +11,10 @@ signal rtpc_changed(param_name: StringName, value: float)
 signal switch_changed(group_name: StringName, state_name: StringName)
 signal music_intensity_changed(intensity: float)
 signal music_bpm_changed(bpm: float)
+signal music_quantize_changed(quantize_index: int)
+signal voice_locale_changed(locale: String)
+signal raw_audition_toggled(is_raw: bool)
+signal voice_audition_requested()
 
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_playback_context.gd")
@@ -19,6 +23,7 @@ const OpenDouGraphSerializerClass = preload("res://addons/opendou/editor/opendou
 var is_playing: bool = false
 var is_paused: bool = false
 
+# Master Transport Buttons
 var play_btn: Button
 var pause_btn: Button
 var stop_btn: Button
@@ -28,6 +33,19 @@ var master_vol_spin: SpinBox
 
 var dynamic_controls_container: HBoxContainer
 var vu_meter_rect: Control
+
+# Dynamic Music DAW Controls
+var beat_counter_lbl: Label
+var dirty_marker_lbl: Label
+var bpm_spin: SpinBox
+var intensity_slider: HSlider
+var quantize_opt: OptionButton
+
+# Dynamic Voice Controls
+var vocal_rms_lbl: Label
+var voice_locale_opt: OptionButton
+var raw_direct_btn: Button
+var voice_audition_btn: Button
 
 var left_peak: float = 0.0
 var right_peak: float = 0.0
@@ -40,6 +58,10 @@ var current_workspace_mode: int = 0 # 0 = Graph, 1 = Music, 2 = Dialogue
 # Reference to active editor graph for live evaluation
 var active_graph_editor: GraphEdit = null
 var current_simulation_rtpcs: Dictionary = {}
+
+var rtpc_faders_container: HBoxContainer:
+	get:
+		return dynamic_controls_container
 
 func _init() -> void:
 	custom_minimum_size = Vector2(0, 36)
@@ -58,7 +80,7 @@ func _build_ui() -> void:
 	add_child(margin)
 	
 	var main_hbox = HBoxContainer.new()
-	main_hbox.add_theme_constant_override("separation", 16)
+	main_hbox.add_theme_constant_override("separation", 14)
 	margin.add_child(main_hbox)
 	
 	# 1. Transport Playback Controls (Compact 26px)
@@ -100,11 +122,9 @@ func _build_ui() -> void:
 	
 	# 3. Dynamic Contextual Controls Container
 	dynamic_controls_container = HBoxContainer.new()
-	dynamic_controls_container.add_theme_constant_override("separation", 14)
+	dynamic_controls_container.add_theme_constant_override("separation", 12)
 	dynamic_controls_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main_hbox.add_child(dynamic_controls_container)
-	
-	_populate_default_faders()
 	
 	main_hbox.add_child(VSeparator.new())
 	
@@ -118,6 +138,7 @@ func _build_ui() -> void:
 	master_vol_slider = HSlider.new()
 	master_vol_slider.min_value = -60.0
 	master_vol_slider.max_value = 6.0
+	master_vol_slider.step = 0.5
 	master_vol_slider.value = 0.0
 	master_vol_slider.custom_minimum_size = Vector2(65, 0)
 	master_vol_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -131,14 +152,8 @@ func _build_ui() -> void:
 	master_vol_spin.custom_minimum_size = Vector2(70, 0)
 	master_vol_spin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	
-	master_vol_slider.value_changed.connect(func(v):
-		if not is_equal_approx(master_vol_spin.value, v): master_vol_spin.value = v
-		if editor_audio_player: editor_audio_player.volume_db = v
-	)
-	master_vol_spin.value_changed.connect(func(v):
-		if not is_equal_approx(master_vol_slider.value, v): master_vol_slider.value = v
-		if editor_audio_player: editor_audio_player.volume_db = v
-	)
+	master_vol_slider.value_changed.connect(_on_master_slider_changed)
+	master_vol_spin.value_changed.connect(_on_master_spin_changed)
 	
 	vol_box.add_child(vol_lbl)
 	vol_box.add_child(master_vol_slider)
@@ -162,30 +177,70 @@ func set_workspace_context(mode: int) -> void:
 	match mode:
 		0: # Graph Workspace (SFX & RTPCs)
 			target_event_label.text = "Audition: [%s]" % str(current_event_name)
-			add_precision_fader(&"Distance", 0.0, 100.0, 15.0, 0.5, "m")
-			add_precision_fader(&"RPM", 0.0, 8000.0, 3200.0, 50.0, "RPM")
-			add_precision_fader(&"Pitch Jitter", 0.0, 0.5, 0.05, 0.01, "±")
+			_populate_graph_controls()
 			
 		1: # Music DAW Workspace
-			target_event_label.text = "Audition: [🎼 Dynamic_Combat_Suite]"
+			var ev_title = str(current_event_name)
+			if "Battlefield" in ev_title or "Chapter" in ev_title:
+				ev_title = "Dynamic_Combat_Suite.tres"
+			target_event_label.text = "Audition: [🎼 %s]" % ev_title
 			_add_music_transport_controls()
 			
 		2: # Dialogue Grid Workspace
-			target_event_label.text = "Audition: [🗣️ Dialogue_Voice_Bank]"
+			var ev_title = str(current_event_name)
+			if "Battlefield" in ev_title or "Combat" in ev_title:
+				ev_title = "Dialogue_Voice_Bank.tres"
+			target_event_label.text = "Audition: [🗣️ %s]" % ev_title
 			_add_dialogue_transport_controls()
 
+func _populate_graph_controls() -> void:
+	if "Vehicle" in str(current_event_name):
+		add_precision_fader(&"RPM", 0.0, 8000.0, 3200.0, 50.0, "RPM")
+		add_precision_fader(&"Speed", 0.0, 50.0, 15.0, 1.0, "m/s")
+	elif "Footstep" in str(current_event_name):
+		add_precision_fader(&"Pace", 0.5, 3.0, 1.0, 0.1, "x")
+	else:
+		add_precision_fader(&"Distance", 0.0, 100.0, 15.0, 0.5, "m")
+		add_precision_fader(&"RPM", 0.0, 8000.0, 3200.0, 50.0, "RPM")
+		add_precision_fader(&"Pitch Jitter", 0.0, 0.5, 0.05, 0.01, "±")
+
 func _add_music_transport_controls() -> void:
+	# Real-Time Beat/Bar Counter & Dirty Indicator
+	var beat_box = HBoxContainer.new()
+	beat_box.add_theme_constant_override("separation", 2)
+	
+	beat_counter_lbl = Label.new()
+	beat_counter_lbl.text = "⏱️ Bar 1 : Beat 1.0"
+	beat_counter_lbl.add_theme_font_size_override("font_size", 11)
+	beat_box.add_child(beat_counter_lbl)
+	
+	dirty_marker_lbl = Label.new()
+	dirty_marker_lbl.text = " *"
+	dirty_marker_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
+	dirty_marker_lbl.add_theme_font_size_override("font_size", 12)
+	dirty_marker_lbl.visible = false
+	beat_box.add_child(dirty_marker_lbl)
+	
+	dynamic_controls_container.add_child(beat_box)
+	dynamic_controls_container.add_child(VSeparator.new())
+	
 	# Master Tempo BPM Spinbox
 	var bpm_box = HBoxContainer.new()
 	bpm_box.add_theme_constant_override("separation", 4)
 	var bpm_lbl = Label.new()
-	bpm_lbl.text = "BPM:"
+	bpm_lbl.text = "Tempo:"
 	bpm_lbl.add_theme_font_size_override("font_size", 11)
-	var bpm_spin = SpinBox.new()
+	
+	bpm_spin = SpinBox.new()
 	bpm_spin.min_value = 40.0
 	bpm_spin.max_value = 240.0
 	bpm_spin.value = 120.0
-	bpm_spin.value_changed.connect(func(v): music_bpm_changed.emit(v))
+	bpm_spin.step = 1.0
+	bpm_spin.suffix = " BPM"
+	bpm_spin.custom_minimum_size = Vector2(85, 0)
+	bpm_spin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bpm_spin.value_changed.connect(func(v: float) -> void: music_bpm_changed.emit(v))
+	
 	bpm_box.add_child(bpm_lbl)
 	bpm_box.add_child(bpm_spin)
 	dynamic_controls_container.add_child(bpm_box)
@@ -196,69 +251,157 @@ func _add_music_transport_controls() -> void:
 	var int_lbl = Label.new()
 	int_lbl.text = "Intensity:"
 	int_lbl.add_theme_font_size_override("font_size", 11)
-	var int_slider = HSlider.new()
-	int_slider.min_value = 0.0
-	int_slider.max_value = 1.0
-	int_slider.step = 0.01
-	int_slider.value = 0.0
-	int_slider.custom_minimum_size = Vector2(85, 0)
-	int_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	int_slider.value_changed.connect(func(v): music_intensity_changed.emit(v))
+	
+	intensity_slider = HSlider.new()
+	intensity_slider.min_value = 0.0
+	intensity_slider.max_value = 1.0
+	intensity_slider.step = 0.01
+	intensity_slider.value = 0.0
+	intensity_slider.custom_minimum_size = Vector2(75, 0)
+	intensity_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	intensity_slider.value_changed.connect(func(v: float) -> void: music_intensity_changed.emit(v))
+	
 	int_box.add_child(int_lbl)
-	int_box.add_child(int_slider)
+	int_box.add_child(intensity_slider)
 	dynamic_controls_container.add_child(int_box)
 	
 	# Quantize Selector
-	var snap_opt = OptionButton.new()
-	snap_opt.add_item("🧲 Next Bar", 0)
-	snap_opt.add_item("🧲 Next Beat", 1)
-	snap_opt.add_item("⚡ Immediate", 2)
-	dynamic_controls_container.add_child(snap_opt)
+	quantize_opt = OptionButton.new()
+	quantize_opt.add_item("🧲 Next Bar", 0)
+	quantize_opt.add_item("🧲 Next Beat", 1)
+	quantize_opt.add_item("⚡ Immediate", 2)
+	quantize_opt.custom_minimum_size = Vector2(95, 24)
+	quantize_opt.item_selected.connect(func(idx: int) -> void: music_quantize_changed.emit(idx))
+	dynamic_controls_container.add_child(quantize_opt)
 
 func _add_dialogue_transport_controls() -> void:
+	# Quick Voice Line Audition Trigger
+	voice_audition_btn = Button.new()
+	voice_audition_btn.text = "🗣️ Audition"
+	voice_audition_btn.tooltip_text = "Audition selected dialogue line in Voice Bank"
+	voice_audition_btn.custom_minimum_size = Vector2(75, 24)
+	voice_audition_btn.pressed.connect(func() -> void:
+		voice_audition_requested.emit()
+		_on_play_pressed()
+	)
+	dynamic_controls_container.add_child(voice_audition_btn)
+	
+	# 2D Raw Direct Audition Toggle
+	raw_direct_btn = Button.new()
+	raw_direct_btn.text = "🎧 Raw 2D"
+	raw_direct_btn.tooltip_text = "Toggle Direct 2D Audition (Bypasses 3D distance attenuation and environmental reverbs)"
+	raw_direct_btn.toggle_mode = true
+	raw_direct_btn.button_pressed = true
+	raw_direct_btn.custom_minimum_size = Vector2(68, 24)
+	raw_direct_btn.toggled.connect(func(toggled_on: bool) -> void:
+		raw_audition_toggled.emit(toggled_on)
+	)
+	dynamic_controls_container.add_child(raw_direct_btn)
+	
+	# Vocal RMS Meter / Monitor
+	var rms_box = HBoxContainer.new()
+	rms_box.add_theme_constant_override("separation", 4)
+	
+	vocal_rms_lbl = Label.new()
+	vocal_rms_lbl.text = "🎙️ RMS: -18.4 dB [Nominal]"
+	vocal_rms_lbl.add_theme_font_size_override("font_size", 10)
+	rms_box.add_child(vocal_rms_lbl)
+	dynamic_controls_container.add_child(rms_box)
+	
+	# Locale Selector
 	var loc_box = HBoxContainer.new()
 	loc_box.add_theme_constant_override("separation", 4)
 	var loc_lbl = Label.new()
 	loc_lbl.text = "Locale:"
 	loc_lbl.add_theme_font_size_override("font_size", 11)
-	var loc_opt = OptionButton.new()
-	loc_opt.add_item("🇺🇸 EN", 0)
-	loc_opt.add_item("🇪🇸 ES", 1)
-	loc_opt.add_item("🇯🇵 JA", 2)
-	loc_opt.add_item("🇨🇳 ZH", 3)
+	
+	voice_locale_opt = OptionButton.new()
+	voice_locale_opt.add_item("🇺🇸 EN", 0)
+	voice_locale_opt.add_item("🇪🇸 ES", 1)
+	voice_locale_opt.add_item("🇯🇵 JA", 2)
+	voice_locale_opt.add_item("🇨🇳 ZH", 3)
+	voice_locale_opt.custom_minimum_size = Vector2(68, 24)
+	voice_locale_opt.item_selected.connect(func(idx: int) -> void:
+		var locales = ["en", "es", "ja", "zh"]
+		if idx >= 0 and idx < locales.size():
+			voice_locale_changed.emit(locales[idx])
+	)
 	loc_box.add_child(loc_lbl)
-	loc_box.add_child(loc_opt)
+	loc_box.add_child(voice_locale_opt)
 	dynamic_controls_container.add_child(loc_box)
 	
+	# Vocal Ducking Status Badge
 	var duck_lbl = Label.new()
 	duck_lbl.text = "Ducking: -12 dB (Voice Bus)"
 	duck_lbl.add_theme_font_size_override("font_size", 10)
 	dynamic_controls_container.add_child(duck_lbl)
 
+func update_music_clock(bar: int, beat: float, is_dirty: bool = false) -> void:
+	if beat_counter_lbl:
+		beat_counter_lbl.text = "⏱️ Bar %d : Beat %.1f" % [bar, beat]
+	if dirty_marker_lbl:
+		dirty_marker_lbl.visible = is_dirty
+
+func update_vocal_telemetry(rms_db: float, is_clipped: bool = false) -> void:
+	if vocal_rms_lbl:
+		var status = "⚠️ CLIPPING" if is_clipped else ("🎙️ Clean" if rms_db > -24.0 else "🎙️ Low")
+		vocal_rms_lbl.text = "RMS: %.1f dB [%s]" % [rms_db, status]
+
+func set_status_log(msg: String) -> void:
+	if target_event_label:
+		target_event_label.tooltip_text = msg
+
 func _populate_default_faders() -> void:
 	clear_dynamic_controls()
 	add_precision_fader(&"Distance", 0.0, 100.0, 15.0, 0.5, "m")
 	add_precision_fader(&"RPM", 0.0, 8000.0, 3200.0, 50.0, "RPM")
+	add_precision_fader(&"Pitch Jitter", 0.0, 0.5, 0.05, 0.01, "±")
 
 func clear_dynamic_controls() -> void:
 	current_simulation_rtpcs.clear()
+	beat_counter_lbl = null
+	dirty_marker_lbl = null
+	bpm_spin = null
+	intensity_slider = null
+	quantize_opt = null
+	vocal_rms_lbl = null
+	voice_locale_opt = null
+	raw_direct_btn = null
+	voice_audition_btn = null
 	for child in dynamic_controls_container.get_children():
-		child.queue_free()
+		dynamic_controls_container.remove_child(child)
+		child.free()
 
 func set_audition_event(event_name: StringName) -> void:
 	current_event_name = event_name
 	if target_event_label:
-		target_event_label.text = "Audition: [%s]" % str(current_event_name)
-		
-	clear_dynamic_controls()
-	if "Vehicle" in str(event_name):
-		add_precision_fader(&"RPM", 0.0, 8000.0, 3200.0, 50.0, "RPM")
-		add_precision_fader(&"Speed", 0.0, 50.0, 15.0, 1.0, "m/s")
-	elif "Footstep" in str(event_name):
-		add_precision_fader(&"Pace", 0.5, 3.0, 1.0, 0.1, "x")
-	else:
-		add_precision_fader(&"Distance", 0.0, 100.0, 10.0, 0.5, "m")
-		add_precision_fader(&"Pitch Jitter", 0.0, 0.5, 0.05, 0.01, "±")
+		match current_workspace_mode:
+			0: target_event_label.text = "Audition: [%s]" % str(current_event_name)
+			1: target_event_label.text = "Audition: [🎼 %s]" % str(current_event_name)
+			2: target_event_label.text = "Audition: [🗣️ %s]" % str(current_event_name)
+
+func _on_master_slider_changed(v: float) -> void:
+	if master_vol_spin and not is_equal_approx(master_vol_spin.value, v):
+		master_vol_spin.value = v
+	if editor_audio_player:
+		editor_audio_player.volume_db = v
+
+func _on_master_spin_changed(v: float) -> void:
+	if master_vol_slider and not is_equal_approx(master_vol_slider.value, v):
+		master_vol_slider.value = v
+	if editor_audio_player:
+		editor_audio_player.volume_db = v
+
+func set_target_event(event_name: StringName) -> void:
+	set_audition_event(event_name)
+
+func add_rtpc_fader(p_name: StringName, min_v: float, max_v: float, def_v: float) -> void:
+	var step_v = (max_v - min_v) / 100.0 if max_v > min_v else 1.0
+	add_precision_fader(p_name, min_v, max_v, def_v, step_v, "")
+
+func set_simulation_rtpc(p_name: StringName, value: float) -> void:
+	current_simulation_rtpcs[p_name] = value
+	rtpc_changed.emit(p_name, value)
 
 ## Populates simulation faders dynamically from persistent GameSyncs registry.
 func populate_from_game_syncs(rtpcs: Dictionary) -> void:
@@ -301,7 +444,7 @@ func add_precision_fader(p_name: StringName, min_v: float, max_v: float, def_v: 
 	spin.custom_minimum_size = Vector2(75, 0)
 	spin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	
-	slider.value_changed.connect(func(val):
+	slider.value_changed.connect(func(val: float) -> void:
 		if not is_equal_approx(spin.value, val): spin.value = val
 		current_simulation_rtpcs[p_name] = val
 		rtpc_changed.emit(p_name, val)
@@ -309,7 +452,7 @@ func add_precision_fader(p_name: StringName, min_v: float, max_v: float, def_v: 
 			editor_audio_player.pitch_scale = lerpf(0.6, 2.5, val / 8000.0)
 	)
 	
-	spin.value_changed.connect(func(val):
+	spin.value_changed.connect(func(val: float) -> void:
 		if not is_equal_approx(slider.value, val): slider.value = val
 		current_simulation_rtpcs[p_name] = val
 		rtpc_changed.emit(p_name, val)
