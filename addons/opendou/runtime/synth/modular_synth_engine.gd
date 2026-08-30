@@ -408,27 +408,191 @@ static func synthesize_wav(preset_dict: Dictionary, rng_seed: int = 0) -> AudioS
 		for i in range(num_samples):
 			master_buffer[i] = apply_drive(master_buffer[i], m_drive_type, m_drive_amt)
 
-	# Convert to 16-bit PCM PackedByteArray
-	var byte_data = PackedByteArray()
-	byte_data.resize(num_samples * 2)
-	for i in range(num_samples):
-		var s = clampf(master_buffer[i], -1.0, 1.0)
-		var s16: int = clampi(int(s * 32767.0), -32768, 32767)
-		byte_data.encode_s16(i * 2, s16)
+	# Check Stereo Panning & Master FX
+	var pan: float = float(preset_dict.get("pan", 0.0))
+	var fx_dict: Dictionary = preset_dict.get("fx", {})
+	var delay_dict: Dictionary = fx_dict.get("delay", {})
+	var reverb_dict: Dictionary = fx_dict.get("reverb", {})
+	var has_delay: bool = bool(delay_dict.get("enabled", false))
+	var has_reverb: bool = bool(reverb_dict.get("enabled", false))
+	var is_stereo_mode: bool = (absf(pan) > 0.001) or has_delay or has_reverb
 
 	var stream = AudioStreamWAV.new()
-	stream.data = byte_data
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
-	stream.stereo = false
 	var is_loop = bool(preset_dict.get("loop_mode", false))
-	if is_loop:
-		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		stream.loop_end = num_samples
+
+	if is_stereo_mode:
+		var stereo_buf = apply_stereo_panning(master_buffer, pan)
+		if has_delay:
+			var d_time = float(delay_dict.get("time_ms", 180.0))
+			var d_fbk = float(delay_dict.get("feedback", 0.35))
+			var d_damp = float(delay_dict.get("damping", 0.25))
+			var d_mix = float(delay_dict.get("mix", 0.25))
+			stereo_buf = apply_delay_fx(stereo_buf, d_time, d_fbk, d_damp, d_mix, sample_rate)
+		if has_reverb:
+			var r_size = float(reverb_dict.get("room_size", 0.65))
+			var r_damp = float(reverb_dict.get("damping", 0.35))
+			var r_mix = float(reverb_dict.get("mix", 0.20))
+			stereo_buf = apply_reverb_fx(stereo_buf, r_size, r_damp, r_mix, sample_rate)
+
+		var byte_data = PackedByteArray()
+		byte_data.resize(num_samples * 4) # 2 channels * 2 bytes per sample
+		for i in range(num_samples):
+			var sl = clampf(stereo_buf[i * 2], -1.0, 1.0)
+			var sr = clampf(stereo_buf[i * 2 + 1], -1.0, 1.0)
+			var s16_l: int = clampi(int(sl * 32767.0), -32768, 32767)
+			var s16_r: int = clampi(int(sr * 32767.0), -32768, 32767)
+			byte_data.encode_s16(i * 4, s16_l)
+			byte_data.encode_s16(i * 4 + 2, s16_r)
+
+		stream.data = byte_data
+		stream.format = AudioStreamWAV.FORMAT_16_BITS
+		stream.stereo = true
+		if is_loop:
+			stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			stream.loop_end = num_samples
+		else:
+			stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
 	else:
-		stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+		# Convert to 16-bit PCM Mono PackedByteArray
+		var byte_data = PackedByteArray()
+		byte_data.resize(num_samples * 2)
+		for i in range(num_samples):
+			var s = clampf(master_buffer[i], -1.0, 1.0)
+			var s16: int = clampi(int(s * 32767.0), -32768, 32767)
+			byte_data.encode_s16(i * 2, s16)
+
+		stream.data = byte_data
+		stream.format = AudioStreamWAV.FORMAT_16_BITS
+		stream.stereo = false
+		if is_loop:
+			stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			stream.loop_end = num_samples
+		else:
+			stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
 
 	return stream
+
+## Applies constant power stereo panning to mono samples.
+## Invariant: Gain_L^2 + Gain_R^2 == 1.0 (-3.01dB center).
+static func apply_stereo_panning(mono_samples: PackedFloat32Array, pan: float) -> PackedFloat32Array:
+	pan = clampf(pan, -1.0, 1.0)
+	var theta: float = ((pan + 1.0) * PI) / 4.0
+	var gain_l: float = cos(theta)
+	var gain_r: float = sin(theta)
+	var n_samples: int = mono_samples.size()
+	var stereo = PackedFloat32Array()
+	stereo.resize(n_samples * 2)
+	for i in range(n_samples):
+		var s: float = mono_samples[i]
+		stereo[i * 2] = s * gain_l
+		stereo[i * 2 + 1] = s * gain_r
+	return stereo
+
+## Applies ping-pong stereo feedback delay with low-pass damping.
+static func apply_delay_fx(stereo_samples: PackedFloat32Array, time_ms: float, feedback: float, damping: float, mix: float, sample_rate: int = 44100) -> PackedFloat32Array:
+	if mix <= 0.0001:
+		return stereo_samples.duplicate()
+	var num_frames: int = stereo_samples.size() / 2
+	if num_frames <= 0:
+		return stereo_samples
+	var dl: int = clampi(int(round(time_ms * sample_rate / 1000.0)), 1, 88200)
+	var dr: int = clampi(int(round(float(dl) * 1.333)), 1, 88200)
+	var buf_l = PackedFloat32Array()
+	var buf_r = PackedFloat32Array()
+	buf_l.resize(dl)
+	buf_r.resize(dr)
+	var ptr_l: int = 0
+	var ptr_r: int = 0
+	var damp_l: float = 0.0
+	var damp_r: float = 0.0
+	var out = PackedFloat32Array()
+	out.resize(num_frames * 2)
+	feedback = clampf(feedback, 0.0, 0.98)
+	damping = clampf(damping, 0.0, 0.95)
+	for i in range(num_frames):
+		var in_l: float = stereo_samples[i * 2]
+		var in_r: float = stereo_samples[i * 2 + 1]
+		var delayed_l: float = buf_l[ptr_l]
+		var delayed_r: float = buf_r[ptr_r]
+		damp_l = (1.0 - damping) * delayed_l + damping * damp_l
+		damp_r = (1.0 - damping) * delayed_r + damping * damp_r
+		buf_l[ptr_l] = in_l + damp_r * feedback
+		buf_r[ptr_r] = in_r + damp_l * feedback
+		ptr_l = (ptr_l + 1) % dl
+		ptr_r = (ptr_r + 1) % dr
+		out[i * 2] = (1.0 - mix) * in_l + mix * delayed_l
+		out[i * 2 + 1] = (1.0 - mix) * in_r + mix * delayed_r
+	return out
+
+## Applies Schroeder-Moorer FDN algorithmic space reverb with parallel combs and cascaded allpass diffusers.
+static func apply_reverb_fx(stereo_samples: PackedFloat32Array, room_size: float, damping: float, mix: float, sample_rate: int = 44100) -> PackedFloat32Array:
+	if mix <= 0.0001:
+		return stereo_samples.duplicate()
+	var num_frames: int = stereo_samples.size() / 2
+	if num_frames <= 0:
+		return stereo_samples
+	var comb_lens: Array[int] = [1116, 1188, 1277, 1356]
+	var comb_bufs: Array[PackedFloat32Array] = []
+	var comb_ptrs: Array[int] = [0, 0, 0, 0]
+	var comb_damps: Array[float] = [0.0, 0.0, 0.0, 0.0]
+	for l in comb_lens:
+		var b = PackedFloat32Array()
+		b.resize(l + 1)
+		comb_bufs.append(b)
+	var g_comb: float = 0.70 + 0.28 * clampf(room_size, 0.0, 1.0)
+	var d: float = clampf(damping, 0.0, 1.0) * 0.45
+	var ap_lens: Array[int] = [225, 556]
+	var ap_bufs: Array[PackedFloat32Array] = []
+	var ap_ptrs: Array[int] = [0, 0]
+	for l in ap_lens:
+		var b = PackedFloat32Array()
+		b.resize(l + 1)
+		ap_bufs.append(b)
+	var g_ap: float = 0.5
+	var out = PackedFloat32Array()
+	out.resize(num_frames * 2)
+	for i in range(num_frames):
+		var in_l: float = stereo_samples[i * 2]
+		var in_r: float = stereo_samples[i * 2 + 1]
+		var in_mono: float = (in_l + in_r) * 0.5
+		var comb_out_0: float = 0.0
+		var comb_out_1: float = 0.0
+		var comb_out_2: float = 0.0
+		var comb_out_3: float = 0.0
+		for c in range(4):
+			var b = comb_bufs[c]
+			var ptr: int = comb_ptrs[c]
+			var del: float = b[ptr]
+			comb_damps[c] = (1.0 - d) * del + d * comb_damps[c]
+			b[ptr] = in_mono + comb_damps[c] * g_comb
+			comb_ptrs[c] = (ptr + 1) % (comb_lens[c] + 1)
+			if c == 0: comb_out_0 = del
+			elif c == 1: comb_out_1 = del
+			elif c == 2: comb_out_2 = del
+			elif c == 3: comb_out_3 = del
+		var sum_l: float = comb_out_0 + comb_out_2
+		var sum_r: float = comb_out_1 + comb_out_3
+		for a in range(2):
+			var ab = ap_bufs[a]
+			var aptr: int = ap_ptrs[a]
+			var buf_val: float = ab[aptr]
+			var new_sum_l: float = -g_ap * sum_l + buf_val
+			ab[aptr] = sum_l + g_ap * new_sum_l
+			sum_l = new_sum_l
+			ap_ptrs[a] = (aptr + 1) % (ap_lens[a] + 1)
+		out[i * 2] = (1.0 - mix) * in_l + mix * sum_l
+		out[i * 2 + 1] = (1.0 - mix) * in_r + mix * sum_r
+	return out
+
+## Smooth exponential frequency glide / portamento between consecutive notes.
+static func apply_glide_pitch(freq_start: float, freq_target: float, glide_time_sec: float, progress_t: float) -> float:
+	if glide_time_sec <= 0.0001:
+		return freq_target
+	var alpha: float = clampf(progress_t / glide_time_sec, 0.0, 1.0)
+	if is_equal_approx(alpha, 1.0):
+		return freq_target
+	return freq_start * pow(freq_target / maxf(1.0, freq_start), alpha)
 
 static func _calculate_adsr(t: float, total_dur: float, a: float, d: float, s: float, r: float) -> float:
 	if total_dur <= 0.0:
