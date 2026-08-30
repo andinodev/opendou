@@ -1,4 +1,6 @@
-[gd_scene load_steps=14 format=3 uid="uid://b7cx84j1m89pq"]
+[gd_scene load_steps=15 format=3 uid="uid://b7cx84j1m89pq"]
+
+[ext_resource type="Script" path="res://scenes/demos/07_cyberpunk_infiltration/demo_cyberpunk_infiltration.gd" id="1_demo_script"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.04, 0.05, 0.12, 1)
@@ -66,6 +68,7 @@ radius = 0.5
 height = 1.8
 
 [node name="CyberpunkInfiltrationDemo" type="Node3D"]
+script = ExtResource("1_demo_script")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_cyberpunk")

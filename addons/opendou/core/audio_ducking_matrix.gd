@@ -38,6 +38,10 @@ func add_rule(source_bus: StringName, target_bus: StringName, attenuation_db: fl
 	var r = DuckingRule.new(source_bus, target_bus, attenuation_db, attack_time, release_time)
 	rules.append(r)
 
+## Alias for add_rule matching standard middleware nomenclature.
+func add_ducking_rule(source_bus: StringName, target_bus: StringName, attenuation_db: float, attack_time: float = 0.05, release_time: float = 0.35) -> void:
+	add_rule(source_bus, target_bus, attenuation_db, attack_time, release_time)
+
 ## Signals that a source bus is actively emitting audio (e.g. character is speaking or gun is firing).
 func set_bus_active(source_bus: StringName, is_active: bool) -> void:
 	active_source_buses[source_bus] = is_active
@@ -62,3 +66,10 @@ func get_ducking_attenuation_db(target_bus: StringName) -> float:
 		if r.target_bus == target_bus:
 			total_duck = minf(total_duck, r.current_duck_db)
 	return total_duck
+
+## Gets ducking attenuation (in dB) specifically between a source bus and target bus.
+func get_gain_reduction_db(source_bus: StringName, target_bus: StringName) -> float:
+	for r in rules:
+		if r.source_bus == source_bus and r.target_bus == target_bus:
+			return r.current_duck_db
+	return 0.0
