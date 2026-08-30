@@ -20,6 +20,12 @@ var rewind_time_lbl: Label
 var btn_play_pause: Button
 var radar_view: OpenDouRadarView
 
+# Audible Voices & Loudness Ranking
+var audible_tree: Tree
+var audible_header_lbl: Label
+var min_db_spin: SpinBox
+var audible_count_badge: Label
+
 # Session Recording & I/O Controls
 var btn_record_session: Button
 var rec_status_lbl: Label
@@ -246,6 +252,66 @@ func _build_ui() -> void:
 	radar_box.add_child(radar_view)
 	tab_container.add_child(radar_box)
 	
+	# Tab 4: Audible Voices & Loudness Ranking
+	var audible_box = VBoxContainer.new()
+	audible_box.name = "🔊 Audible & Loudness"
+	audible_box.add_theme_constant_override("separation", 6)
+	
+	var a_opts_hbox = HBoxContainer.new()
+	a_opts_hbox.add_theme_constant_override("separation", 8)
+	
+	audible_header_lbl = Label.new()
+	audible_header_lbl.text = "Audible Voices (Sorted by Loudness / Effective dB):"
+	audible_header_lbl.add_theme_font_size_override("font_size", 12)
+	audible_header_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	a_opts_hbox.add_child(audible_header_lbl)
+	
+	audible_count_badge = Label.new()
+	audible_count_badge.text = "[6 Audible]"
+	audible_count_badge.add_theme_color_override("font_color", Color(0.2, 0.9, 0.5, 1.0))
+	audible_count_badge.add_theme_font_size_override("font_size", 11)
+	a_opts_hbox.add_child(audible_count_badge)
+	
+	var th_lbl = Label.new()
+	th_lbl.text = "Threshold:"
+	th_lbl.add_theme_font_size_override("font_size", 9)
+	a_opts_hbox.add_child(th_lbl)
+	
+	min_db_spin = SpinBox.new()
+	min_db_spin.min_value = -80.0
+	min_db_spin.max_value = 0.0
+	min_db_spin.step = 1.0
+	min_db_spin.value = -55.0
+	min_db_spin.suffix = "dB"
+	min_db_spin.custom_minimum_size = Vector2(70, 0)
+	min_db_spin.value_changed.connect(func(_v):
+		_populate_sample_audible_telemetry()
+	)
+	a_opts_hbox.add_child(min_db_spin)
+	audible_box.add_child(a_opts_hbox)
+	
+	audible_tree = Tree.new()
+	audible_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	audible_tree.columns = 5
+	audible_tree.set_column_title(0, "Rank & Voice / Emitter")
+	audible_tree.set_column_title(1, "Bus")
+	audible_tree.set_column_title(2, "Effective Level (dB / VU)")
+	audible_tree.set_column_title(3, "Distance")
+	audible_tree.set_column_title(4, "Modifiers (Occl / Duck)")
+	audible_tree.set_column_expand(0, true)
+	audible_tree.set_column_expand(1, false)
+	audible_tree.set_column_expand(2, true)
+	audible_tree.set_column_expand(3, false)
+	audible_tree.set_column_expand(4, true)
+	audible_tree.set_column_custom_minimum_width(0, 140)
+	audible_tree.set_column_custom_minimum_width(1, 60)
+	audible_tree.set_column_custom_minimum_width(2, 130)
+	audible_tree.set_column_custom_minimum_width(3, 60)
+	audible_tree.set_column_custom_minimum_width(4, 120)
+	audible_tree.column_titles_visible = true
+	audible_box.add_child(audible_tree)
+	tab_container.add_child(audible_box)
+	
 	# Seed initial realistic DSP history
 	for i in range(max_dsp_history):
 		dsp_history.append(38.0 + sin(float(i) * 0.4) * 12.0 + randf_range(-4.0, 6.0))
@@ -329,6 +395,102 @@ func _populate_sample_telemetry() -> void:
 		item.set_text(1, s["state"])
 		item.set_text(2, s["priority"])
 		item.set_text(3, s["dist"])
+		
+	_populate_sample_audible_telemetry()
+
+func _populate_sample_audible_telemetry() -> void:
+	if not audible_tree:
+		return
+	audible_tree.clear()
+	var root = audible_tree.create_item()
+	
+	var samples = [
+		{ "rank": "#1", "name": "Player_Gunfire", "bus": "SFX", "db": -2.1, "vu": "██████████", "dist": "0.0 m", "mod": "Direct (No Occl)" },
+		{ "rank": "#2", "name": "HQ_Radio_Transmission", "bus": "Voice", "db": -6.0, "vu": "████████░░", "dist": "0.0 m", "mod": "Master Dialogue" },
+		{ "rank": "#3", "name": "Turret_Scan", "bus": "SFX", "db": -16.0, "vu": "██████░░░░", "dist": "10.0 m", "mod": "🛡️ Occl (15%)" },
+		{ "rank": "#4", "name": "Rain_Ambience", "bus": "Ambience", "db": -18.5, "vu": "█████░░░░░", "dist": "12.0 m", "mod": "3D Rolloff" },
+		{ "rank": "#5", "name": "Exploration_Music_Stem", "bus": "Music", "db": -20.0, "vu": "████░░░░░░", "dist": "0.0 m", "mod": "🦆 Duck (-14dB)" },
+		{ "rank": "#6", "name": "Server_Hum", "bus": "Ambience", "db": -26.0, "vu": "███░░░░░░░", "dist": "25.0 m", "mod": "🚪 Airlock Diffract" }
+	]
+	
+	var count = 0
+	var th = min_db_spin.value if min_db_spin else -55.0
+	for s in samples:
+		if float(s["db"]) < th:
+			continue
+		count += 1
+		var item = audible_tree.create_item(root)
+		item.set_text(0, "%s 🔊 %s" % [s["rank"], s["name"]])
+		item.set_text(1, "[%s]" % s["bus"])
+		item.set_text(2, "%+.1f dB  [%s]" % [s["db"], s["vu"]])
+		item.set_text(3, s["dist"])
+		item.set_text(4, s["mod"])
+		
+		# Color coding
+		if float(s["db"]) > -6.0:
+			item.set_custom_color(2, Color(1.0, 0.35, 0.35))
+		elif float(s["db"]) > -18.0:
+			item.set_custom_color(2, Color(1.0, 0.8, 0.2))
+		else:
+			item.set_custom_color(2, Color(0.2, 0.9, 0.5))
+			
+	if audible_count_badge:
+		audible_count_badge.text = "[%d Audible]" % count
+
+## Updates the Audible Voices tree with live telemetry data from OpenDouAudibleMonitor or runtime collector.
+func update_audible_voices(voices_data: Array) -> void:
+	if not audible_tree:
+		return
+	audible_tree.clear()
+	var root = audible_tree.create_item()
+	var count = 0
+	var th = min_db_spin.value if min_db_spin else -55.0
+	
+	for i in range(voices_data.size()):
+		var v = voices_data[i]
+		var eff_db = float(v.get("effective_db", -60.0))
+		if eff_db < th:
+			continue
+		count += 1
+		var item = audible_tree.create_item(root)
+		var event_n = str(v.get("event_name", "Voice_%d" % i))
+		var bus_n = str(v.get("bus_category", "SFX"))
+		var dist = float(v.get("distance", 0.0))
+		var occ = float(v.get("occlusion_factor", 0.0))
+		var duck = float(v.get("ducking_attenuation_db", 0.0))
+		
+		var mod_str = ""
+		if occ > 0.05:
+			mod_str += "[🛡️ Occl %.0f%%] " % (occ * 100.0)
+		if duck < -0.5:
+			mod_str += "[🦆 Duck %+.0fdB] " % duck
+		if mod_str.is_empty():
+			mod_str = "Direct"
+			
+		var vu_blocks = _format_vu_meter_string(eff_db)
+		item.set_text(0, "#%d 🔊 %s" % [count, event_n])
+		item.set_text(1, "[%s]" % bus_n)
+		item.set_text(2, "%+.1f dB  [%s]" % [eff_db, vu_blocks])
+		item.set_text(3, "%.1f m" % dist if dist > 0.0 else "0.0 m")
+		item.set_text(4, mod_str)
+		
+		if eff_db > -6.0:
+			item.set_custom_color(2, Color(1.0, 0.35, 0.35))
+		elif eff_db > -18.0:
+			item.set_custom_color(2, Color(1.0, 0.8, 0.2))
+		else:
+			item.set_custom_color(2, Color(0.2, 0.9, 0.5))
+		
+	if audible_count_badge:
+		audible_count_badge.text = "[%d Audible]" % count
+
+func _format_vu_meter_string(db_val: float) -> String:
+	var norm = clampf((db_val + 60.0) / 60.0, 0.0, 1.0)
+	var filled = int(round(norm * 10.0))
+	var s = ""
+	for j in range(10):
+		s += "█" if j < filled else "░"
+	return s
 
 func _process(delta: float) -> void:
 	if not is_paused_scrubbing:

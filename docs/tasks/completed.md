@@ -6,6 +6,24 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-043` - Monitor de Voces Audibles e Inspector de Intensidad Sonora (OpenDou Audible Monitor)**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Motor de Telemetría de Percepción Sonora (`AudibleVoiceMonitor`):**
+      * Algoritmo de cálculo de sonoridad efectiva en dB ($dB_{\text{eff}} = \text{base\_db} + \text{attenuation\_db} + \text{occlusion\_db} + \text{ducking\_db}$) para cualquier emisor 2D/3D o instancia virtualizada.
+      * Soporte de modelos de atenuación espacial inversa, lineal y logarítmica con umbral mínimo de corte (por defecto $-55\text{ dB}$).
+      * Clasificación dinámica por categorías de bus (`Voice`, `SFX`, `Music`, `Ambience`).
+    * **Overlay HUD In-Game Declarativo (`OpenDouAudibleMonitor`):**
+      * CanvasLayer desacoplado con UI cyberpunk flotante en esquina superior derecha.
+      * Lista reactiva ordenada por intensidad sonora con barras VU coloreadas por nivel (Rojo > -6dB, Amarillo > -18dB, Verde > -36dB, Cyan <= -36dB).
+      * Insignias de metadatos espaciales: distancia en metros, oclusión acústica (`[🛡️ Occl]`) y atenuación por ducking (`[🦆 Duck -XdB]`).
+      * Atajo configurable (`F8`) y botón táctil interactivo en HUD.
+    * **Integración en Editor Profiler Studio (`OpenDouProfilerPanel`):**
+      * Pestaña `🔊 Audible & Loudness` en el Live Profiler con ranking en tiempo real de emisores activos, filtrado por umbral de dB y vúmetros por voz.
+    * **Integración en Showcase AAA Cyberpunk (`demo_cyberpunk_infiltration.tscn`):**
+      * Nodo declarativo `AudibleMonitor` integrado y botón `🔊 Monitor (F8)` en la barra de control táctica.
+    * **Suite de Pruebas Automatizadas:** 183 pruebas unitarias e integración en `test_runner_cli.gd` pasando al 100% (código de salida 0).
+
 * **`TASK-042` - Suite de Nodos Declarativos de Audio (OpenDou Declarative Nodes)**
   * **Fecha:** 2026-08-30
   * **Resumen:**

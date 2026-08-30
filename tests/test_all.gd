@@ -170,7 +170,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r32)
 	
 	var r33 = TestCyberpunkDemoClass.run_all()
-	total_tests += 21
+	total_tests += 23
 	all_failures.append_array(r33)
 	
 	var r34 = TestDeclarativeNodesClass.run_all()

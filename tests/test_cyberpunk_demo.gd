@@ -261,6 +261,17 @@ static func run_all() -> Array[String]:
 	if demo.active_music_suite != &"Dynamic_Combat_Suite.tres" or demo.stem_players.size() < 3:
 		failures.append("Test 6e Failed: Failed to switch to Dynamic_Combat_Suite.tres multi-stem configuration")
 
+	# Test 23: OpenDouAudibleMonitor & Toggle Button integration in HUD
+	var monitor_node = instance.get_node_or_null("AudibleMonitor")
+	if not monitor_node:
+		failures.append("Test 7a Failed: demo_cyberpunk_infiltration.tscn missing AudibleMonitor node")
+	elif not (monitor_node is OpenDouAudibleMonitor):
+		failures.append("Test 7b Failed: AudibleMonitor node is not an instance of OpenDouAudibleMonitor")
+		
+	var btn_monitor = instance.get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleMonitor")
+	if not btn_monitor:
+		failures.append("Test 7c Failed: TacticalHUD BottomBar missing BtnToggleMonitor button")
+
 	demo.free()
 	instance.free()
 	return failures

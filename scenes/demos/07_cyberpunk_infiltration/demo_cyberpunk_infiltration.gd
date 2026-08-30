@@ -91,11 +91,14 @@ var stem_track_data: Array[Dictionary] = []
 @onready var btn_toggle_airlock: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAirlock")
 @onready var btn_bombardment: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnBombardment")
 @onready var btn_radio: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnRadio")
+@onready var btn_toggle_monitor: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleMonitor")
 @onready var slider_intensity: HSlider = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/SliderIntensity")
 @onready var btn_lang_en: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangEN")
 @onready var btn_lang_es: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangES")
 @onready var btn_lang_ja: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangJA")
 @onready var btn_lang_zh: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangZH")
+
+@onready var audible_monitor: Node = get_node_or_null("AudibleMonitor")
 
 @onready var lbl_sector: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSector")
 @onready var lbl_surface: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSurface")
@@ -120,6 +123,8 @@ func _ready() -> void:
 	_start_ambient_audio()
 	if stem_players.is_empty():
 		_start_music_audio()
+	if audible_monitor and audible_monitor.has_method("set_ducking_matrix"):
+		audible_monitor.set_ducking_matrix(ducking_matrix)
 	_connect_ui()
 	_update_hud()
 
@@ -329,6 +334,16 @@ func _connect_ui() -> void:
 		btn_radio.pressed.connect(func():
 			var cur_lang = dialogue_manager.current_language if dialogue_manager else "en"
 			play_tactical_radio_line(&"sec_clear_01", cur_lang)
+		)
+	if btn_toggle_monitor:
+		btn_toggle_monitor.pressed.connect(func():
+			if audible_monitor:
+				if audible_monitor.has_method("toggle_overlay"):
+					audible_monitor.toggle_overlay()
+				elif "is_overlay_visible" in audible_monitor:
+					audible_monitor.is_overlay_visible = not audible_monitor.is_overlay_visible
+				elif "visible" in audible_monitor:
+					audible_monitor.visible = not audible_monitor.visible
 		)
 	if slider_intensity:
 		slider_intensity.value_changed.connect(func(v: float): set_combat_intensity(v))
