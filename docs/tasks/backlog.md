@@ -136,10 +136,10 @@ Este archivo almacena el banco de tareas pendientes y planificadas para **OpenDo
 
 ## 🎼 19. Gestor de Playlists Musicales y Jerarquía (`TASK-033`)
 
-* [ ] `TASK-033.1`: **Secuenciador de Playlists (`MusicPlaylistManager`):**
+* [x] `TASK-033.1`: **Secuenciador de Playlists (`MusicPlaylistManager`):**
   * Orquestación de flujo de estados musicales (`Intro` $\rightarrow$ `Loop_A (2 a 4 veces)` $\rightarrow$ `Transición` $\rightarrow$ `Loop_B` $\rightarrow$ `Outro`).
-* [ ] `TASK-033.2`: **Reglas de Aleatoriedad y Repetición de Segmentos:**
+* [x] `TASK-033.2`: **Reglas de Aleatoriedad y Repetición de Segmentos:**
   * Lógica no lineal para evitar repetición predecible entre secciones de combate y exploración.
-* [ ] `TASK-033.3`: **Integración de Deshacer/Rehacer (`UndoRedo`):**
+* [x] `TASK-033.3`: **Integración de Deshacer/Rehacer (`UndoRedo`):**
   * Conexión completa al historial del editor de Godot para todas las acciones del DAW.
 

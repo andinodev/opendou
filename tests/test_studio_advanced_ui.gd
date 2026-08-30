@@ -108,6 +108,31 @@ static func run_all() -> Array[String]:
 	if timeline.stem_players[0].bus != &"Music_Pads":
 		failures.append("Test 2v Failed: Stem player bus assignment failed")
 		
+	# Test TASK-033: Music Playlist Manager & State Hierarchy
+	var pl_mgr = timeline.playlist_manager
+	if pl_mgr.items.size() != 4:
+		failures.append("Test 2w Failed: Expected 4 default playlist items")
+	var started_seg = pl_mgr.start_playlist()
+	if started_seg != &"Combat_Intro":
+		failures.append("Test 2x Failed: Playlist start segment mismatch")
+	var next_seg = pl_mgr.advance_loop()
+	if next_seg != &"Combat_Loop":
+		failures.append("Test 2y Failed: Playlist did not advance from intro to loop")
+		
+	# Test Playlist Item Reordering & Serialization
+	pl_mgr.move_item_up(1)
+	if pl_mgr.items[0].segment_name != &"Combat_Loop":
+		failures.append("Test 2z Failed: Playlist move item up failed")
+	var serialized_pl = pl_mgr.serialize()
+	if serialized_pl.size() != 4:
+		failures.append("Test 2aa Failed: Playlist serialization item count mismatch")
+		
+	# Test Playlist Play Toggle in Timeline
+	timeline._on_playlist_play_toggled(true)
+	if not timeline.is_playlist_mode:
+		failures.append("Test 2ab Failed: Timeline playlist mode not toggled on")
+	timeline._on_playlist_play_toggled(false)
+	
 	# Test Post-Exit Tail Decayer trigger
 	timeline._on_music_play_pressed()
 	timeline._on_trigger_transition_pressed()

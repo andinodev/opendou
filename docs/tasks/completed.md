@@ -8,6 +8,15 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ### 2026-08-29
 
+* **`TASK-033` - Gestor de Playlists Musicales y Jerarquía de Estados (Music Playlist Manager)**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Motor de Playlists No Lineales (`MusicPlaylistManager`):** Estructura jerárquica de secuencias (`Intro` $\rightarrow$ `Loop A (2-4x)` $\rightarrow$ `Bridge` $\rightarrow$ `Loop B` $\rightarrow$ `Outro`) con conteo de loops configurables por paso.
+    * **Pestaña "🎼 Playlist" en el DAW:** Inspector integrado para añadir, reordenar (`⬆️`/`⬇️`), eliminar segmentos y alternar el bucle global de playlist.
+    * **Avance y Transición Automática:** El secuenciador evalúa los ciclos completados en tiempo real y conmuta al siguiente segmento automáticamente sin romper el pulso rítmico ni la cuantización.
+    * **Persistencia Completa:** Guardado y recarga de listas de reproducción en `res://opendou_music_suites.json`.
+    * **Suite de Pruebas:** 135 / 135 pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
 * **`TASK-032` - Automatizaciones RTPC en Línea de Tiempo y Ruteo de Buses**
   * **Fecha:** 2026-08-29
   * **Resumen:**

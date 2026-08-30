@@ -2,7 +2,7 @@
 class_name OpenDouMusicTimeline
 extends PanelContainer
 
-## Professional DAW-style interactive music timeline with Rhythmic BPM Grid Ruler, Multi-Track Headers (Mute, Solo, Volume Fader, Audio File Picker, Bus Routing, Automation Curves, Delete, Random Sub-Tracks), Structural Cues (Pre-Entry, Exit), Post-Exit Reverb Tails, Clip Trim Handles, Dynamic Track CRUD ([+ Add Track]), Persistent Suite Serialization (JSON / .tres), Metronome, Horizontal Zoom, and Quantized Transition Matrix.
+## Professional DAW-style interactive music timeline with Rhythmic BPM Grid Ruler, Multi-Track Headers (Mute, Solo, Volume Fader, Audio File Picker, Bus Routing, Automation Curves, Delete, Random Sub-Tracks), Structural Cues (Pre-Entry, Exit), Post-Exit Reverb Tails, Clip Trim Handles, Dynamic Track CRUD ([+ Add Track]), Music Playlist Sequencer & State Hierarchy, Persistent Suite Serialization (JSON / .tres), Metronome, Horizontal Zoom, and Quantized Transition Matrix.
 
 signal bpm_changed(new_bpm: float)
 signal intensity_changed(new_intensity: float)
@@ -11,11 +11,13 @@ signal stinger_requested(stinger_name: StringName, sync_mode: int)
 signal dirty_changed(is_dirty: bool)
 signal track_added(track_name: String)
 signal track_deleted(track_name: String)
+signal playlist_segment_changed(segment_name: StringName)
 
 const MusicClockClass = preload("res://addons/opendou/core/music/music_clock.gd")
 const MusicSegmentClass = preload("res://addons/opendou/core/music/music_segment.gd")
 const MusicTransitionMatrixClass = preload("res://addons/opendou/core/music/music_transition_matrix.gd")
 const MusicStingerQueueClass = preload("res://addons/opendou/core/music/music_stinger_queue.gd")
+const MusicPlaylistManagerClass = preload("res://addons/opendou/core/music/music_playlist_manager.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 const MUSIC_SUITES_SAVE_PATH = "res://opendou_music_suites.json"
@@ -40,7 +42,7 @@ class TrackLaneData:
 	var bus_name: StringName = &"Master"
 	var automation_enabled: bool = false
 	var automation_parameter: int = 0 # 0 = Volume, 1 = LPF Cutoff, 2 = RTPC: CombatIntensity
-	var automation_points: Array[Vector2] = [Vector2(0.0, 1.0), Vector2(0.5, 0.6), Vector2(1.0, 1.0)] # x = time ratio (0..1), y = normalized (0..1)
+	var automation_points: Array[Vector2] = [Vector2(0.0, 1.0), Vector2(0.5, 0.6), Vector2(1.0, 1.0)]
 	var selected_point_index: int = -1
 	
 	var row_container: HBoxContainer
@@ -83,6 +85,7 @@ class TrackLaneData:
 var clock: MusicClock
 var transition_matrix: MusicTransitionMatrix
 var stinger_queue: MusicStingerQueue
+var playlist_manager: MusicPlaylistManager
 
 # Toolbar Controls
 var play_btn: Button
@@ -111,13 +114,24 @@ var exit_cue_bar: float = 8.0 # Bar position where loop cycles or exits
 var post_exit_tail_sec: float = 2.0 # Reverb/cymbal decay duration
 var dragging_cue_marker: int = 0 # 1 = entry cue, 2 = exit cue
 
-# Right Matrix Controls
+# Right Matrix & Playlist Tabs
+var right_tab_container: TabContainer
 var transition_target_opt: OptionButton
 var sync_mode_opt: OptionButton
 var fade_duration_spinbox: SpinBox
 var tail_duration_spinbox: SpinBox
 var btn_stinger_victory: Button
 var btn_stinger_danger: Button
+
+# Playlist Sequencer Controls (TASK-033)
+var playlist_item_list: ItemList
+var btn_playlist_add: Button
+var btn_playlist_up: Button
+var btn_playlist_down: Button
+var btn_playlist_del: Button
+var btn_playlist_loop: Button
+var btn_playlist_play: Button
+var is_playlist_mode: bool = false
 
 # Playback & Dragging State
 var is_playing: bool = false
@@ -146,6 +160,13 @@ func _init() -> void:
 	clock = MusicClockClass.new(120.0, 4, 4)
 	transition_matrix = MusicTransitionMatrixClass.new()
 	stinger_queue = MusicStingerQueueClass.new()
+	playlist_manager = MusicPlaylistManagerClass.new()
+	
+	# Default playlist entries
+	playlist_manager.add_item(&"Combat_Intro", 1, 1)
+	playlist_manager.add_item(&"Combat_Loop", 2, 4)
+	playlist_manager.add_item(&"Boss_Encounter", 1, 2)
+	playlist_manager.add_item(&"Victory_Outro", 1, 1)
 	
 	custom_minimum_size = Vector2(0, 0)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -313,7 +334,7 @@ func _build_ui() -> void:
 	
 	main_vbox.add_child(toolbar)
 	
-	# 2. Main Splitter (DAW Multi-Track Lanes on Left, Transition Matrix on Right)
+	# 2. Main Splitter (DAW Multi-Track Lanes on Left, Inspector Tabs on Right)
 	var split = HSplitContainer.new()
 	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -379,20 +400,24 @@ func _build_ui() -> void:
 	
 	split.add_child(seq_vbox)
 	
-	# 3. Transition Matrix & Stinger Inspector (Right Panel)
-	var right_panel = VBoxContainer.new()
-	right_panel.custom_minimum_size = Vector2(240, 0)
-	right_panel.add_theme_constant_override("separation", 8)
+	# 3. Right Inspector TabContainer (Transitions & Playlist Sequencer)
+	right_tab_container = TabContainer.new()
+	right_tab_container.custom_minimum_size = Vector2(250, 0)
+	
+	# Tab 1: Transitions & Stingers
+	var trans_tab = VBoxContainer.new()
+	trans_tab.name = "🔀 Transitions"
+	trans_tab.add_theme_constant_override("separation", 8)
 	
 	var trans_title = Label.new()
-	trans_title.text = "🔀 Quantized Transition Matrix"
+	trans_title.text = "Quantized Transition Matrix"
 	trans_title.add_theme_font_size_override("font_size", 11)
-	right_panel.add_child(trans_title)
+	trans_tab.add_child(trans_title)
 	
 	var target_lbl = Label.new()
 	target_lbl.text = "Target Segment:"
 	target_lbl.add_theme_font_size_override("font_size", 10)
-	right_panel.add_child(target_lbl)
+	trans_tab.add_child(target_lbl)
 	
 	transition_target_opt = OptionButton.new()
 	transition_target_opt.add_item("Segment: Combat_Loop", 0)
@@ -400,24 +425,24 @@ func _build_ui() -> void:
 	transition_target_opt.add_item("Segment: Boss_Encounter", 2)
 	transition_target_opt.add_item("Segment: Victory_Outro", 3)
 	transition_target_opt.item_selected.connect(func(_idx): mark_dirty(true))
-	right_panel.add_child(transition_target_opt)
+	trans_tab.add_child(transition_target_opt)
 	
 	var sync_lbl = Label.new()
 	sync_lbl.text = "Quantize Exit Rule:"
 	sync_lbl.add_theme_font_size_override("font_size", 10)
-	right_panel.add_child(sync_lbl)
+	trans_tab.add_child(sync_lbl)
 	
 	sync_mode_opt = OptionButton.new()
 	sync_mode_opt.add_item("⏱️ Next Bar (Downbeat)", 0)
 	sync_mode_opt.add_item("🎵 Next Beat", 1)
 	sync_mode_opt.add_item("⚡ Immediate", 2)
 	sync_mode_opt.item_selected.connect(func(_idx): mark_dirty(true))
-	right_panel.add_child(sync_mode_opt)
+	trans_tab.add_child(sync_mode_opt)
 	
 	var fade_lbl = Label.new()
 	fade_lbl.text = "Crossfade Duration (s):"
 	fade_lbl.add_theme_font_size_override("font_size", 10)
-	right_panel.add_child(fade_lbl)
+	trans_tab.add_child(fade_lbl)
 	
 	fade_duration_spinbox = SpinBox.new()
 	fade_duration_spinbox.min_value = 0.1
@@ -425,12 +450,12 @@ func _build_ui() -> void:
 	fade_duration_spinbox.step = 0.1
 	fade_duration_spinbox.value = 1.5
 	fade_duration_spinbox.value_changed.connect(func(_v): mark_dirty(true))
-	right_panel.add_child(fade_duration_spinbox)
+	trans_tab.add_child(fade_duration_spinbox)
 	
 	var tail_lbl = Label.new()
 	tail_lbl.text = "Post-Exit Tail (s):"
 	tail_lbl.add_theme_font_size_override("font_size", 10)
-	right_panel.add_child(tail_lbl)
+	trans_tab.add_child(tail_lbl)
 	
 	tail_duration_spinbox = SpinBox.new()
 	tail_duration_spinbox.min_value = 0.5
@@ -442,19 +467,19 @@ func _build_ui() -> void:
 		if ruler_canvas: ruler_canvas.queue_redraw()
 		mark_dirty(true)
 	)
-	right_panel.add_child(tail_duration_spinbox)
+	trans_tab.add_child(tail_duration_spinbox)
 	
 	var btn_trigger_trans = Button.new()
 	btn_trigger_trans.text = "🔀 Trigger Transition"
 	btn_trigger_trans.pressed.connect(_on_trigger_transition_pressed)
-	right_panel.add_child(btn_trigger_trans)
+	trans_tab.add_child(btn_trigger_trans)
 	
-	right_panel.add_child(HSeparator.new())
+	trans_tab.add_child(HSeparator.new())
 	
 	var stinger_title = Label.new()
 	stinger_title.text = "💥 Rhythmic Stingers"
 	stinger_title.add_theme_font_size_override("font_size", 11)
-	right_panel.add_child(stinger_title)
+	trans_tab.add_child(stinger_title)
 	
 	btn_stinger_victory = Button.new()
 	btn_stinger_victory.text = "🎺 Stinger: Victory_Brass"
@@ -474,7 +499,7 @@ func _build_ui() -> void:
 			btn_stinger_victory.modulate = Color.WHITE
 			stop_audition_stinger()
 	)
-	right_panel.add_child(btn_stinger_victory)
+	trans_tab.add_child(btn_stinger_victory)
 	
 	btn_stinger_danger = Button.new()
 	btn_stinger_danger.text = "⚠️ Stinger: Danger_Hit"
@@ -494,9 +519,124 @@ func _build_ui() -> void:
 			btn_stinger_danger.modulate = Color.WHITE
 			stop_audition_stinger()
 	)
-	right_panel.add_child(btn_stinger_danger)
+	trans_tab.add_child(btn_stinger_danger)
 	
-	split.add_child(right_panel)
+	right_tab_container.add_child(trans_tab)
+	
+	# Tab 2: Playlist Sequencer & Hierarchy (TASK-033)
+	var play_tab = VBoxContainer.new()
+	play_tab.name = "🎼 Playlist"
+	play_tab.add_theme_constant_override("separation", 6)
+	
+	var play_toolbar = HBoxContainer.new()
+	play_toolbar.add_theme_constant_override("separation", 4)
+	
+	btn_playlist_play = Button.new()
+	btn_playlist_play.text = "▶ Play List"
+	btn_playlist_play.tooltip_text = "Execute Non-Linear Music Playlist Hierarchy"
+	btn_playlist_play.toggle_mode = true
+	btn_playlist_play.toggled.connect(_on_playlist_play_toggled)
+	play_toolbar.add_child(btn_playlist_play)
+	
+	btn_playlist_loop = Button.new()
+	btn_playlist_loop.text = "🔁"
+	btn_playlist_loop.tooltip_text = "Loop entire playlist sequence"
+	btn_playlist_loop.toggle_mode = true
+	btn_playlist_loop.button_pressed = true
+	btn_playlist_loop.toggled.connect(func(is_l):
+		if playlist_manager: playlist_manager.is_looping_playlist = is_l
+		mark_dirty(true)
+	)
+	play_toolbar.add_child(btn_playlist_loop)
+	
+	btn_playlist_add = Button.new()
+	btn_playlist_add.text = "➕"
+	btn_playlist_add.tooltip_text = "Add Segment to Playlist"
+	btn_playlist_add.pressed.connect(func():
+		var target_seg = transition_target_opt.get_item_text(transition_target_opt.selected).replace("Segment: ", "")
+		playlist_manager.add_item(StringName(target_seg), 1, 2)
+		_refresh_playlist_ui()
+		mark_dirty(true)
+	)
+	play_toolbar.add_child(btn_playlist_add)
+	
+	btn_playlist_up = Button.new()
+	btn_playlist_up.text = "⬆️"
+	btn_playlist_up.tooltip_text = "Move Selected Segment Up"
+	btn_playlist_up.pressed.connect(func():
+		var sel = playlist_item_list.get_selected_items()
+		if sel.size() > 0:
+			playlist_manager.move_item_up(sel[0])
+			_refresh_playlist_ui()
+			mark_dirty(true)
+	)
+	play_toolbar.add_child(btn_playlist_up)
+	
+	btn_playlist_down = Button.new()
+	btn_playlist_down.text = "⬇️"
+	btn_playlist_down.tooltip_text = "Move Selected Segment Down"
+	btn_playlist_down.pressed.connect(func():
+		var sel = playlist_item_list.get_selected_items()
+		if sel.size() > 0:
+			playlist_manager.move_item_down(sel[0])
+			_refresh_playlist_ui()
+			mark_dirty(true)
+	)
+	play_toolbar.add_child(btn_playlist_down)
+	
+	btn_playlist_del = Button.new()
+	btn_playlist_del.text = "🗑️"
+	btn_playlist_del.tooltip_text = "Remove Selected Segment from Playlist"
+	btn_playlist_del.pressed.connect(func():
+		var sel = playlist_item_list.get_selected_items()
+		if sel.size() > 0:
+			playlist_manager.remove_item_at(sel[0])
+			_refresh_playlist_ui()
+			mark_dirty(true)
+	)
+	play_toolbar.add_child(btn_playlist_del)
+	
+	play_tab.add_child(play_toolbar)
+	
+	playlist_item_list = ItemList.new()
+	playlist_item_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	playlist_item_list.custom_minimum_size = Vector2(0, 180)
+	play_tab.add_child(playlist_item_list)
+	
+	right_tab_container.add_child(play_tab)
+	split.add_child(right_tab_container)
+	
+	_refresh_playlist_ui()
+
+func _refresh_playlist_ui() -> void:
+	if not playlist_item_list or not playlist_manager:
+		return
+	playlist_item_list.clear()
+	for i in range(playlist_manager.items.size()):
+		var it = playlist_manager.items[i]
+		var is_cur = (playlist_manager.is_active and playlist_manager.current_index == i)
+		var prefix = "▶ " if is_cur else "  "
+		var loops_str = "%dx" % it.loop_count_min if it.loop_count_min == it.loop_count_max else "%d-%dx" % [it.loop_count_min, it.loop_count_max]
+		playlist_item_list.add_item("%s%d. %s (%s)" % [prefix, i + 1, it.segment_name, loops_str])
+		if is_cur:
+			playlist_item_list.set_item_custom_fg_color(i, Color(0.3, 1.0, 0.4))
+
+func _on_playlist_play_toggled(is_on: bool) -> void:
+	is_playlist_mode = is_on
+	if is_on:
+		btn_playlist_play.text = "⏹ Stop List"
+		btn_playlist_play.modulate = Color(0.3, 1.0, 0.4)
+		var first_seg = playlist_manager.start_playlist()
+		_refresh_playlist_ui()
+		if not first_seg.is_empty():
+			playlist_segment_changed.emit(first_seg)
+		_on_music_play_pressed()
+	else:
+		btn_playlist_play.text = "▶ Play List"
+		btn_playlist_play.modulate = Color.WHITE
+		playlist_manager.stop_playlist()
+		_refresh_playlist_ui()
+		_on_music_stop_pressed()
 
 ## Marks the DAW as dirty or clean, notifying parent editor.
 func mark_dirty(dirty: bool = true) -> void:
@@ -728,7 +868,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	var auto_header_box = HBoxContainer.new()
 	auto_header_box.add_theme_constant_override("margin_left", 8)
 	auto_header_box.add_theme_constant_override("separation", 6)
-	auto_header.add_child(auto_header_box)
+	auto_header_box.add_child(auto_header_box)
 	
 	var auto_lbl = Label.new()
 	auto_lbl.text = "📈 Curve:"
@@ -896,7 +1036,6 @@ func _on_automation_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent)
 		var mb = ev as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
-				# Check if clicked near an existing point
 				var clicked_pt = -1
 				for i in range(t.automation_points.size()):
 					var pt = t.automation_points[i]
@@ -909,7 +1048,6 @@ func _on_automation_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent)
 					t.selected_point_index = clicked_pt
 					dragging_auto_track = t
 				else:
-					# Add new point at mouse position
 					var new_x = clampf(mb.position.x / total_w, 0.0, 1.0)
 					var new_y = clampf(1.0 - (mb.position.y / size.y), 0.0, 1.0)
 					t.automation_points.append(Vector2(new_x, new_y))
@@ -923,7 +1061,6 @@ func _on_automation_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent)
 					dragging_auto_track = null
 					mark_dirty(true)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			# Delete point on right click if more than 2 points
 			if t.automation_points.size() > 2:
 				for i in range(t.automation_points.size()):
 					var pt = t.automation_points[i]
@@ -973,7 +1110,7 @@ func _on_ruler_gui_input(ev: InputEvent) -> void:
 			exit_cue_bar = clampf(bar_pos, entry_cue_bar + 0.5, 16.0)
 		ruler_canvas.queue_redraw()
 
-## Persists the active music suites, tracks, cues, tails, bus routing, and automation curves to disk.
+## Persists the active music suites, tracks, cues, tails, bus routing, automation curves, and playlists to disk.
 func save_to_disk() -> void:
 	var root_dict = {}
 	if FileAccess.file_exists(MUSIC_SUITES_SAVE_PATH):
@@ -989,6 +1126,7 @@ func save_to_disk() -> void:
 		"entry_cue": entry_cue_bar,
 		"exit_cue": exit_cue_bar,
 		"tail_sec": post_exit_tail_sec,
+		"playlist": playlist_manager.serialize() if playlist_manager else [],
 		"tracks": []
 	}
 	for t in tracks:
@@ -1049,6 +1187,12 @@ func load_from_disk(suite_name: StringName) -> void:
 				exit_cue_bar = float(s_data.get("exit_cue", 8.0))
 				post_exit_tail_sec = float(s_data.get("tail_sec", 2.0))
 				if tail_duration_spinbox: tail_duration_spinbox.value = post_exit_tail_sec
+				
+				if s_data.has("playlist") and playlist_manager:
+					var pl_arr = s_data.get("playlist")
+					if pl_arr is Array:
+						playlist_manager.deserialize(pl_arr)
+						_refresh_playlist_ui()
 				
 				var track_list = s_data.get("tracks", [])
 				for td in track_list:
@@ -1331,7 +1475,17 @@ func _process(delta: float) -> void:
 		
 		# Check loop or stop at end of active exit cue
 		if clock.current_time_sec >= loop_length:
-			if loop_btn and loop_btn.button_pressed:
+			if is_playlist_mode and playlist_manager and playlist_manager.is_active:
+				var next_seg = playlist_manager.advance_loop()
+				_refresh_playlist_ui()
+				if next_seg.is_empty():
+					_on_playlist_play_toggled(false)
+					return
+				else:
+					playlist_segment_changed.emit(next_seg)
+					_on_trigger_transition_pressed()
+					clock.current_time_sec = fposmod(clock.current_time_sec, loop_length)
+			elif loop_btn and loop_btn.button_pressed:
 				clock.current_time_sec = fposmod(clock.current_time_sec, loop_length)
 				_pick_random_variations_on_loop()
 			else:
@@ -1478,14 +1632,11 @@ func _on_draw_automation_curve(t: TrackLaneData, canvas: Control) -> void:
 		return
 		
 	var total_w = size.x * zoom_factor
-	# Dark Background
 	canvas.draw_rect(Rect2(Vector2.ZERO, size), Color(0.06, 0.08, 0.1, 1.0))
 	canvas.draw_rect(Rect2(Vector2.ZERO, size), Color(0.2, 0.25, 0.3, 0.5), false, 1.0)
 	
-	# Reference Grid Lines (0.25, 0.5, 0.75)
 	canvas.draw_line(Vector2(0, size.y * 0.5), Vector2(size.x, size.y * 0.5), Color(0.15, 0.2, 0.25, 0.7), 1.0)
 	
-	# Draw Automation Curve Lines
 	if t.automation_points.size() >= 2:
 		var line_col = Color(1.0, 0.85, 0.2, 0.9)
 		for i in range(t.automation_points.size() - 1):
@@ -1495,7 +1646,6 @@ func _on_draw_automation_curve(t: TrackLaneData, canvas: Control) -> void:
 			var p1_v = Vector2(p1.x * total_w, (1.0 - p1.y) * size.y)
 			canvas.draw_line(p0_v, p1_v, line_col, 2.0)
 			
-	# Draw Points / Handles
 	for i in range(t.automation_points.size()):
 		var p = t.automation_points[i]
 		var pv = Vector2(p.x * total_w, (1.0 - p.y) * size.y)
@@ -1504,6 +1654,5 @@ func _on_draw_automation_curve(t: TrackLaneData, canvas: Control) -> void:
 		canvas.draw_circle(pv, 4.0 if is_sel else 3.0, pt_col)
 		canvas.draw_circle(pv, 4.0 if is_sel else 3.0, Color.BLACK, false, 1.0)
 		
-	# Playhead cursor
 	var playhead_x = current_playhead_ratio * total_w
 	canvas.draw_line(Vector2(playhead_x, 0), Vector2(playhead_x, size.y), Color(1.0, 0.35, 0.35, 0.9), 1.5)
