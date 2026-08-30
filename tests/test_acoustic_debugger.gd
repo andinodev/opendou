@@ -127,5 +127,137 @@ static func run_all() -> Array[String]:
 		if not plugin_code.contains('remove_custom_type("OpenDouAcousticDebugger3D"') and not plugin_code.contains("remove_custom_type('OpenDouAcousticDebugger3D'"):
 			failures.append("Test 7e Failed: plugin.gd missing remove_custom_type for OpenDouAcousticDebugger3D")
 			
+	# Test 8: show_in_editor default (false), display_mode enum, sphere parameters
+	if debugger.get("show_in_editor") != false:
+		failures.append("Test 8a Failed: show_in_editor default should be false, got %s" % str(debugger.get("show_in_editor")))
+	if debugger.get("display_mode") != 0:
+		failures.append("Test 8b Failed: display_mode default should be 0 (Only_Selected), got %s" % str(debugger.get("display_mode")))
+	if debugger.get("sphere_rings") != 8:
+		failures.append("Test 8c Failed: sphere_rings default should be 8, got %s" % str(debugger.get("sphere_rings")))
+	if debugger.get("sphere_segments") != 16:
+		failures.append("Test 8d Failed: sphere_segments default should be 16, got %s" % str(debugger.get("sphere_segments")))
+	if not (debugger.get("selected_emitters") is Array):
+		failures.append("Test 8e Failed: selected_emitters should be an Array")
+		
+	# Test 9: 3D Geodesic / Spherical Probe Direction Generator
+	if not debugger.has_method("generate_sphere_probe_directions"):
+		failures.append("Test 9a Failed: debugger missing generate_sphere_probe_directions method")
+	else:
+		var empty_dirs = debugger.generate_sphere_probe_directions(0, 0)
+		if empty_dirs.size() != 0:
+			failures.append("Test 9b Failed: generate_sphere_probe_directions(0,0) should be empty")
+			
+		var dirs = debugger.generate_sphere_probe_directions(8, 16)
+		# 1 top pole + (8-1)*16 intermediate ring points + 1 bottom pole = 114
+		var expected_count = 2 + (8 - 1) * 16
+		if dirs.size() != expected_count:
+			failures.append("Test 9c Failed: Expected %d sphere directions, got %d" % [expected_count, dirs.size()])
+		else:
+			var has_north_pole = false
+			var has_south_pole = false
+			var has_equator = false
+			for d in dirs:
+				if not is_equal_approx(d.length(), 1.0):
+					failures.append("Test 9d Failed: Sphere probe direction %s is not normalized (length: %f)" % [str(d), d.length()])
+					break
+				if d.is_equal_approx(Vector3.UP):
+					has_north_pole = true
+				if d.is_equal_approx(Vector3.DOWN):
+					has_south_pole = true
+				if is_zero_approx(d.y):
+					has_equator = true
+			if not has_north_pole:
+				failures.append("Test 9e Failed: Sphere directions missing North Pole Vector3.UP")
+			if not has_south_pole:
+				failures.append("Test 9f Failed: Sphere directions missing South Pole Vector3.DOWN")
+			if not has_equator:
+				failures.append("Test 9g Failed: Sphere directions missing equatorial points")
+				
+	# Test 10: 3D Spherical Bubble Mesh calculation
+	if not debugger.has_method("calculate_spherical_bubble_mesh"):
+		failures.append("Test 10a Failed: debugger missing calculate_spherical_bubble_mesh method")
+	else:
+		var center = Vector3(0.0, 5.0, 0.0)
+		var test_dist = 15.0
+		var bubble_mesh = debugger.calculate_spherical_bubble_mesh(center, test_dist, null, 8, 16)
+		if not bubble_mesh.has("vertices") or not bubble_mesh.has("normals") or not bubble_mesh.has("colors") or not bubble_mesh.has("indices"):
+			failures.append("Test 10b Failed: calculate_spherical_bubble_mesh missing required dict keys")
+		else:
+			var verts: PackedVector3Array = bubble_mesh["vertices"]
+			var norms: PackedVector3Array = bubble_mesh["normals"]
+			var cols: PackedColorArray = bubble_mesh["colors"]
+			var idxs: PackedInt32Array = bubble_mesh["indices"]
+			
+			if verts.size() != 114:
+				failures.append("Test 10c Failed: Expected 114 vertices, got %d" % verts.size())
+			if norms.size() != 114:
+				failures.append("Test 10d Failed: Expected 114 normals, got %d" % norms.size())
+			if cols.size() != 114:
+				failures.append("Test 10e Failed: Expected 114 colors, got %d" % cols.size())
+			if idxs.size() == 0 or idxs.size() % 3 != 0:
+				failures.append("Test 10f Failed: Expected non-empty multiple of 3 indices, got %d" % idxs.size())
+			if verts.size() > 0:
+				var first_vert_dist = center.distance_to(verts[0])
+				if not is_equal_approx(first_vert_dist, test_dist):
+					failures.append("Test 10g Failed: Vertex distance should equal max_dist %f, got %f" % [test_dist, first_vert_dist])
+			if cols.size() > 0:
+				var expected_cyan = Color(0.1, 0.85, 1.0, 0.45)
+				if not cols[0].is_equal_approx(expected_cyan):
+					failures.append("Test 10h Failed: Unobstructed vertex color should be cyan %s, got %s" % [str(expected_cyan), str(cols[0])])
+					
+	# Test 11: Emitter filtering and display_mode logic
+	if not debugger.has_method("_get_emitters_to_render"):
+		failures.append("Test 11a Failed: debugger missing _get_emitters_to_render method")
+	else:
+		# Create test root and test AudioStreamPlayer3D children
+		var test_root = Node3D.new()
+		var player1 = AudioStreamPlayer3D.new()
+		player1.name = "Player1"
+		player1.set_meta("playing", true)
+		test_root.add_child(player1)
+		
+		var player2 = AudioStreamPlayer3D.new()
+		player2.name = "Player2"
+		player2.set_meta("playing", false)
+		test_root.add_child(player2)
+		
+		test_root.add_child(debugger)
+		
+		# In editor with show_in_editor = false -> returns empty
+		debugger.show_in_editor = false
+		if Engine.is_editor_hint():
+			var editor_emitters = debugger._get_emitters_to_render()
+			if editor_emitters.size() != 0:
+				failures.append("Test 11b Failed: In editor with show_in_editor=false should return empty list")
+				
+		# In active game / tool with show_in_editor = true:
+		debugger.show_in_editor = true
+		
+		# display_mode = 0 (Only_Selected): selected_emitters points to player2
+		debugger.display_mode = 0
+		var sel_paths: Array[NodePath] = [NodePath("Player2")]
+		debugger.selected_emitters = sel_paths
+		var selected_res = debugger._get_emitters_to_render()
+		if not selected_res.has(player2) or selected_res.has(player1):
+			failures.append("Test 11c Failed: display_mode=Only_Selected did not filter correctly to selected_emitters")
+			
+		# display_mode = 1 (Active_Audible_Only): only playing player1
+		debugger.display_mode = 1
+		var active_res = debugger._get_emitters_to_render()
+		if not active_res.has(player1) or active_res.has(player2):
+			failures.append("Test 11d Failed: display_mode=Active_Audible_Only should only include playing emitters")
+			
+		# display_mode = 2 (All_Emitters): includes both player1 and player2
+		debugger.display_mode = 2
+		var all_res = debugger._get_emitters_to_render()
+		if not all_res.has(player1) or not all_res.has(player2):
+			failures.append("Test 11e Failed: display_mode=All_Emitters should include all visible emitters")
+			
+		test_root.remove_child(debugger)
+		player1.free()
+		player2.free()
+		test_root.free()
+		
 	debugger.free()
 	return failures
+

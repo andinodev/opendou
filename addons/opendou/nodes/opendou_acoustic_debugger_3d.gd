@@ -4,10 +4,16 @@ class_name OpenDouAcousticDebugger3D
 extends Node3D
 
 ## Declarative 3D Volumetric Acoustic Sound Field Debugger for OpenDou.
-## Visualizes dynamic wall-conforming sound field meshes, portal leakage paths,
+## Visualizes dynamic wall-conforming 3D geodesic iso-bubble sound field meshes, portal leakage paths,
 ## unit_size near-attenuation cores, and emitter-to-listener ray occlusion in real-time.
 
 const SHADER_PATH = "res://addons/opendou/shaders/acoustic_sound_field.gdshader"
+
+enum DisplayMode {
+	ONLY_SELECTED = 0,
+	ACTIVE_AUDIBLE_ONLY = 1,
+	ALL_EMITTERS = 2
+}
 
 # ==============================================================================
 # EXPORTED CONFIGURATION
@@ -21,6 +27,11 @@ const SHADER_PATH = "res://addons/opendou/shaders/acoustic_sound_field.gdshader"
 			_immediate_mesh.clear_surfaces()
 		set_process(enabled)
 
+@export var show_in_editor: bool = false
+@export_enum("Only_Selected", "Active_Audible_Only", "All_Emitters") var display_mode: int = 0
+@export var selected_emitters: Array[NodePath] = []
+@export_range(4, 16, 1) var sphere_rings: int = 8
+@export_range(6, 32, 2) var sphere_segments: int = 16
 @export_range(8, 64, 4) var probe_ray_count: int = 24
 @export var show_unit_size_core: bool = true
 @export var show_occlusion_rays: bool = true
@@ -80,6 +91,144 @@ func _setup_rendering_components() -> void:
 func toggle_debug() -> bool:
 	enabled = not enabled
 	return enabled
+
+## Generates a 3D spherical / geodesic distribution of normalized ray probe directions.
+## Includes North Pole (0, 1, 0), South Pole (0, -1, 0), and latitude ring samples.
+func generate_sphere_probe_directions(rings: int = 8, segments: int = 16) -> Array[Vector3]:
+	var dirs: Array[Vector3] = []
+	if rings <= 0 or segments <= 0:
+		return dirs
+		
+	# North Pole
+	dirs.append(Vector3.UP)
+	
+	# Intermediate latitude rings (from phi = PI/rings to (rings-1)*PI/rings)
+	for r in range(1, rings):
+		var phi: float = (float(r) / float(rings)) * PI
+		var sin_phi: float = sin(phi)
+		var cos_phi: float = cos(phi)
+		
+		for s in range(segments):
+			var theta: float = (float(s) / float(segments)) * TAU
+			var dir: Vector3 = Vector3(
+				sin_phi * cos(theta),
+				cos_phi,
+				sin_phi * sin(theta)
+			).normalized()
+			dirs.append(dir)
+			
+	# South Pole
+	dirs.append(Vector3.DOWN)
+	
+	return dirs
+
+## Calculates a 3D volumetric iso-bubble mesh with collision ray probing.
+## Collisions truncate the mesh surface and color vertices with occluded_color (Orange/Red).
+## Returns a Dictionary with "vertices", "normals", "colors", and "indices".
+func calculate_spherical_bubble_mesh(
+	emitter_pos: Vector3,
+	max_dist: float,
+	space_state: PhysicsDirectSpaceState3D = null,
+	rings: int = 8,
+	segments: int = 16
+) -> Dictionary:
+	var vertices: PackedVector3Array = PackedVector3Array()
+	var normals: PackedVector3Array = PackedVector3Array()
+	var colors: PackedColorArray = PackedColorArray()
+	var indices: PackedInt32Array = PackedInt32Array()
+	
+	if rings <= 0 or segments <= 0 or max_dist <= 0.0:
+		return {
+			"vertices": vertices,
+			"normals": normals,
+			"colors": colors,
+			"indices": indices
+		}
+		
+	var dirs = generate_sphere_probe_directions(rings, segments)
+	var dir_count = dirs.size()
+	if dir_count == 0:
+		return {
+			"vertices": vertices,
+			"normals": normals,
+			"colors": colors,
+			"indices": indices
+		}
+		
+	var col_clear: Color = Color(0.1, 0.85, 1.0, 0.45)
+	var col_occluded: Color = Color(1.0, 0.35, 0.1, 0.45)
+	
+	# Compute vertex positions, normals and colors
+	for dir in dirs:
+		var target_pos: Vector3 = emitter_pos + dir * max_dist
+		var final_pos: Vector3 = target_pos
+		var vert_col: Color = col_clear
+		
+		if space_state != null:
+			var query = PhysicsRayQueryParameters3D.create(emitter_pos, target_pos, collision_mask)
+			query.hit_from_inside = false
+			var hit = space_state.intersect_ray(query)
+			if not hit.is_empty() and hit.has("position"):
+				final_pos = hit["position"]
+				vert_col = col_occluded
+				
+		vertices.append(final_pos)
+		normals.append(dir)
+		colors.append(vert_col)
+		
+	# Compute triangular indices connecting the spherical grid
+	# Index 0: North Pole
+	# Ring r (r in 1..rings-1): starts at 1 + (r - 1) * segments
+	# Index dir_count - 1: South Pole
+	
+	# 1. North Pole cap triangles (r = 1)
+	for s in range(segments):
+		var s_next = (s + 1) % segments
+		var v0 = 0
+		var v1 = 1 + s
+		var v2 = 1 + s_next
+		indices.append(v0)
+		indices.append(v2)
+		indices.append(v1)
+		
+	# 2. Intermediate ring quads (r = 1 to rings - 2)
+	for r in range(1, rings - 1):
+		var r_start = 1 + (r - 1) * segments
+		var next_start = 1 + r * segments
+		for s in range(segments):
+			var s_next = (s + 1) % segments
+			var tl = r_start + s
+			var tr = r_start + s_next
+			var bl = next_start + s
+			var br = next_start + s_next
+			
+			# Triangle 1
+			indices.append(tl)
+			indices.append(br)
+			indices.append(tr)
+			
+			# Triangle 2
+			indices.append(tl)
+			indices.append(bl)
+			indices.append(br)
+			
+	# 3. South Pole cap triangles (r = rings - 1)
+	var bot_idx = dir_count - 1
+	var last_ring_start = 1 + (rings - 2) * segments
+	for s in range(segments):
+		var s_next = (s + 1) % segments
+		var v1 = last_ring_start + s
+		var v2 = last_ring_start + s_next
+		indices.append(bot_idx)
+		indices.append(v1)
+		indices.append(v2)
+		
+	return {
+		"vertices": vertices,
+		"normals": normals,
+		"colors": colors,
+		"indices": indices
+	}
 
 ## Calculates radial ray probe distances from an emitter position outward to max_dist.
 ## Returns an array of dictionaries: {"dir": Vector3, "dist": float, "is_hit": bool, "hit_pos": Vector3}.
@@ -179,13 +328,13 @@ func _render_acoustic_sound_fields() -> void:
 			has_listener = true
 			
 	# Discover 3D audio emitters in the scene
-	var emitters = _find_active_emitters()
+	var emitters = _get_emitters_to_render()
 	if emitters.is_empty():
 		return
 		
 	var self_xform_inv: Transform3D = global_transform.affine_inverse()
 	
-	# Render sound field meshes
+	# Render 3D volumetric sound field bubble meshes
 	if show_sound_field_mesh:
 		_immediate_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _shader_material)
 		for emitter in emitters:
@@ -195,36 +344,23 @@ func _render_acoustic_sound_fields() -> void:
 			var max_dist = float(emitter.get("max_distance")) if "max_distance" in emitter else 20.0
 			max_dist = maxf(max_dist, 5.0)
 			
-			var starburst = calculate_starburst_distances(e_pos, probe_ray_count, max_dist, space_state)
-			var count = starburst.size()
-			if count < 3:
-				continue
-				
-			var center_local: Vector3 = self_xform_inv * (e_pos + Vector3(0, 0.05, 0))
-			var center_color: Color = Color(0.1, 0.9, 1.0, 0.5)
+			var bubble = calculate_spherical_bubble_mesh(e_pos, max_dist, space_state, sphere_rings, sphere_segments)
+			var vertices: PackedVector3Array = bubble.get("vertices", PackedVector3Array())
+			var normals: PackedVector3Array = bubble.get("normals", PackedVector3Array())
+			var colors: PackedColorArray = bubble.get("colors", PackedColorArray())
+			var indices: PackedInt32Array = bubble.get("indices", PackedInt32Array())
 			
-			for i in range(count):
-				var p1 = starburst[i]
-				var p2 = starburst[(i + 1) % count]
-				
-				var v1_local: Vector3 = self_xform_inv * (p1["hit_pos"] + Vector3(0, 0.05, 0))
-				var v2_local: Vector3 = self_xform_inv * (p2["hit_pos"] + Vector3(0, 0.05, 0))
-				
-				var c1: Color = Color(1.0, 0.35, 0.1, 0.45) if p1["is_hit"] else Color(0.1, 0.85, 1.0, 0.45)
-				var c2: Color = Color(1.0, 0.35, 0.1, 0.45) if p2["is_hit"] else Color(0.1, 0.85, 1.0, 0.45)
-				
-				# Triangle: Center -> V1 -> V2
-				_immediate_mesh.surface_set_color(center_color)
-				_immediate_mesh.surface_set_uv(Vector2(0.5, 0.5))
-				_immediate_mesh.surface_add_vertex(center_local)
-				
-				_immediate_mesh.surface_set_color(c1)
-				_immediate_mesh.surface_set_uv(Vector2(0.5 + p1["dir"].x * 0.5, 0.5 + p1["dir"].z * 0.5))
-				_immediate_mesh.surface_add_vertex(v1_local)
-				
-				_immediate_mesh.surface_set_color(c2)
-				_immediate_mesh.surface_set_uv(Vector2(0.5 + p2["dir"].x * 0.5, 0.5 + p2["dir"].z * 0.5))
-				_immediate_mesh.surface_add_vertex(v2_local)
+			var vert_count = vertices.size()
+			if not indices.is_empty() and vert_count > 0:
+				for idx in indices:
+					if idx >= 0 and idx < vert_count:
+						var local_v: Vector3 = self_xform_inv * vertices[idx]
+						var local_n: Vector3 = (self_xform_inv.basis * normals[idx]).normalized() if idx < normals.size() else Vector3.UP
+						var c: Color = colors[idx] if idx < colors.size() else Color(0.1, 0.85, 1.0, 0.45)
+						
+						_immediate_mesh.surface_set_normal(local_n)
+						_immediate_mesh.surface_set_color(c)
+						_immediate_mesh.surface_add_vertex(local_v)
 		_immediate_mesh.surface_end()
 		
 	# Render unit_size core rings and direct occlusion lines
@@ -265,9 +401,107 @@ func _render_acoustic_sound_fields() -> void:
 			_immediate_mesh.surface_add_vertex(p_end)
 	_immediate_mesh.surface_end()
 
-func _find_active_emitters() -> Array[Node3D]:
+## Resolves the list of active AudioStreamPlayer3D emitters to render based on display_mode and selection.
+func _get_emitters_to_render() -> Array[Node3D]:
 	var result: Array[Node3D] = []
-	var root = get_tree().current_scene if (get_tree() != null and get_tree().current_scene != null) else get_parent()
+	
+	# In editor, if show_in_editor is disabled, return immediately
+	if Engine.is_editor_hint() and not show_in_editor:
+		return result
+		
+	var all_emitters = _find_all_scene_emitters()
+	if all_emitters.is_empty():
+		return result
+		
+	match display_mode:
+		DisplayMode.ONLY_SELECTED: # 0
+			var explicit_found: Array[Node3D] = []
+			
+			# 1. Try selected_emitters NodePaths
+			for path in selected_emitters:
+				if path.is_empty():
+					continue
+				var node = get_node_or_null(path)
+				if node == null and get_parent() != null and not path.is_absolute():
+					node = get_parent().get_node_or_null(path)
+				if node == null:
+					var p_str = String(path)
+					for em in all_emitters:
+						if em.name == p_str or String(em.name) == p_str.get_file():
+							node = em
+							break
+				if node is Node3D and node.visible:
+					if not explicit_found.has(node):
+						explicit_found.append(node)
+						
+			# 2. In editor, check EditorInterface selection
+			if Engine.is_editor_hint() and explicit_found.is_empty():
+				if ClassDB.class_exists("EditorInterface"):
+					var ei = Engine.get_singleton("EditorInterface") if Engine.has_singleton("EditorInterface") else null
+					if ei != null:
+						var selection = ei.get_selection()
+						if selection != null:
+							for sel_node in selection.get_selected_nodes():
+								if sel_node is Node3D and all_emitters.has(sel_node):
+									if not explicit_found.has(sel_node):
+										explicit_found.append(sel_node)
+										
+			# 3. If in runtime and no explicit selection was provided, fall back to closest playing emitter
+			if not Engine.is_editor_hint() and explicit_found.is_empty() and selected_emitters.is_empty():
+				var ref_pos = global_position
+				if listener_node != null and is_instance_valid(listener_node) and listener_node.is_inside_tree():
+					ref_pos = listener_node.global_position
+				var closest_emitter: Node3D = null
+				var min_dist: float = INF
+				for emitter in all_emitters:
+					var is_playing = bool(emitter.get("playing")) if "playing" in emitter else false
+					if is_playing:
+						var d = ref_pos.distance_squared_to(emitter.global_position)
+						if d < min_dist:
+							min_dist = d
+							closest_emitter = emitter
+				if closest_emitter != null:
+					explicit_found.append(closest_emitter)
+				elif not all_emitters.is_empty():
+					explicit_found.append(all_emitters[0])
+					
+			result = explicit_found
+			
+		DisplayMode.ACTIVE_AUDIBLE_ONLY: # 1
+			for emitter in all_emitters:
+				if _is_emitter_playing(emitter):
+					result.append(emitter)
+					
+		DisplayMode.ALL_EMITTERS: # 2
+			result = all_emitters
+			
+		_:
+			result = all_emitters
+			
+	if result.size() > max_display_emitters:
+		result = result.slice(0, max_display_emitters)
+		
+	return result
+
+func _is_emitter_playing(emitter: Node3D) -> bool:
+	if emitter == null:
+		return false
+	if emitter.has_meta("playing"):
+		return bool(emitter.get_meta("playing"))
+	if "playing" in emitter:
+		return bool(emitter.get("playing"))
+	if emitter.has_method("is_playing"):
+		return emitter.call("is_playing")
+	return false
+
+func _find_all_scene_emitters() -> Array[Node3D]:
+	var result: Array[Node3D] = []
+	var root: Node = null
+	if is_inside_tree() and get_tree() != null and get_tree().current_scene != null:
+		root = get_tree().current_scene
+	elif get_parent() != null:
+		root = get_parent()
+		
 	if root == null:
 		return result
 		
@@ -275,6 +509,8 @@ func _find_active_emitters() -> Array[Node3D]:
 	for cand in candidates:
 		if cand is Node3D and cand.visible:
 			result.append(cand)
-			if result.size() >= max_display_emitters:
-				break
 	return result
+
+func _find_active_emitters() -> Array[Node3D]:
+	return _get_emitters_to_render()
+
