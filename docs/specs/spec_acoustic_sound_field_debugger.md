@@ -1,92 +1,76 @@
-# Technical Specification: 3D Volumetric Acoustic Sound Field Debugger
-
-**Module:** `addons/opendou/nodes`, `addons/opendou/shaders`, `addons/opendou/runtime/spatial`
-**Author:** `OpenDou Audio Architecture Team`
-**Date:** `2026-08-30`
-**Status:** `Approved / Ready for Implementation`
-
----
-
 ## 1. Objective & Vision
 
-Provide developers and sound designers with an **in-game and in-editor real-time 3D acoustic sound field debugger** (`OpenDouAcousticDebugger3D`).
+Provide developers and sound designers with an **in-game and in-editor real-time 3D Volumetric Acoustic Iso-Bubble Debugger** (`OpenDouAcousticDebugger3D`).
 
-Instead of rigid bounding spheres that pass through solid walls, this system renders:
-1. **Adaptive Geometry-Conforming Sound Field Mesh:** A dynamic 3D perimeter starburst/mesh projected from active 3D audio emitters (`unit_size` core to `max_distance`). Ray probes cast against the physics world compress the perimeter against solid walls (turning orange/red) and expand through open doors, airlocks, and portals (turning bright cyan/green).
-2. **Volumetric Acoustic GDShader (`acoustic_sound_field.gdshader`):** Transparent Fresnel glow with pulsating acoustic wave ripples radiating outward and vertex-color-based occlusion blending.
-3. **Emitter-to-Listener Direct Occlusion Rays:** Multi-ray debug lines between emitters and the player listener (Green = Clear Line of Sight, Yellow = Diffracted around portal, Red = Fully Occluded by obstacle).
-4. **Interactive In-Game & Editor Toggle:** Hotkey `[ G ]` and HUD toggle button to inspect sound propagation dynamically in scenes like `demo_cyberpunk_infiltration.tscn`.
+Key Improvements:
+1. **Editor Stealth & Cleanliness:** Off by default in editor (`show_in_editor = false`). Only renders for **explicitly selected audio emitters** in the Godot Editor or targeted nodes.
+2. **True 3D Deformable Geodesic Iso-Bubble:** Replaces flat 2D discs with an organic **3D Geodesic Sphere Mesh (IcoSphere / Fibonacci Sphere sampling)** with 3D multi-axis ray probes that flatten against floors/ceilings and compress against walls in Orange/Red while stretching through open doorways/portals in Cyan.
+3. **Volumetric Holographic Fresnel Bubble Shader (`acoustic_sound_field.gdshader`):** Transparent Fresnel rim glow + animated 3D acoustic wave ripples and grid lines.
+4. **Multi-Selection & Focused Targeting:** Renders only the active/selected emitter(s) (`display_mode = Only_Selected`) to eliminate visual clutter.
 
 ---
 
-## 2. Architecture & Sound Field Mesh Generation
+## 2. 3D Geodesic Iso-Bubble Architecture
 
 ```text
-                           WALL 🧱 (Ray hits at 3.0m)
-                     ┌────────────────────────────────┐
-                     │ 🔴 (Compressed boundary)       │
-                     │       ▲                        │
-                     │       │ ray                    │
-                     │  ┌─────────┐                   │    OPEN AIRLOCK / PORTAL 🚪
-                     │  │ 🔊 Core │ ─── ray (18m) ────┼───────────────────────────────▶ 🟢 (Expands to max_dist)
-                     │  │(Unit 3m)│                   │
-                     │  └─────────┘                   │
-                     │       │ ray                    │
-                     │       ▼                        │
-                     │ 🔴 (Compressed boundary)       │
-                     └────────────────────────────────┘
+               ┌───────────────────────┐  TECHO 🧱 (Rayo superior choca a 4m)
+               │     🔴 (Se aplana)    │
+               │         ▲             │
+               │       ╱ │ ╲           │
+      PARED 🧱 │ 🔴 ─── 🔊 Core ─── 🟢 ┼──────────▶ PASILLO / PUERTA ABIERTA 🚪
+   (Se aplana) │       ╲ │ ╱           │            (Se estira como gota 3D)
+               │         ▼             │
+               │     🔴 (Se aplana)    │
+               └───────────────────────┘  SUELO 🧱 (Se apoya en el piso)
 ```
 
-### 2.1. Starburst Ray Probe Algorithm
-For each active `AudioStreamPlayer3D` or `OpenDouEventPlayer3D`:
-1. Emit $N$ ray probes (default $N = 24$ or $32$) uniformly distributed around the azimuth $[0, 2\pi]$ at the emitter height (with optional vertical fan $\pm 30^\circ$).
-2. Ray length target: $R_{target} = \max(\text{unit\_size} + 1.0, \text{max\_distance})$.
-3. Physics Raycast:
+### 2.1. Geodesic 3D Ray Sampling Algorithm
+For each selected / targeted 3D audio emitter:
+1. Generate $N$ spherical unit vectors ($\vec{u}_i$) using **Fibonacci Sphere / Geodesic Distribution** or $(\theta, \phi)$ rings ($N = 42$ to $64$ vertices with regular triangular indexing).
+2. Cast 3D physics ray from `emitter_pos` along $\vec{u}_i$ up to `max_distance`:
    $$R_i = \begin{cases}
-     \|\text{hit\_pos} - \text{emitter\_pos}\| & \text{if ray hits static/CSG collider} \\
-     R_{target} & \text{if unobstructed}
+     \|\text{hit\_pos} - \text{emitter\_pos}\| & \text{if ray hits geometry} \\
+     \text{max\_distance} & \text{if unobstructed}
    \end{cases}$$
-4. Construct triangle fan mesh:
-   * Center vertex $V_0 = \text{emitter\_pos}$ with color Gold/Cyan.
-   * Outer perimeter vertices $V_i = \text{emitter\_pos} + \text{dir}_i \cdot R_i$.
-   * Vertex color $C_i$:
-     * If $R_i < R_{target} \cdot 0.95$: Occluded vertex (Orange/Red $C_i = \text{Color}(1.0, 0.35, 0.1, 0.45)$).
-     * If $R_i \ge R_{target} \cdot 0.95$: Clear path / portal leak (Bright Cyan $C_i = \text{Color}(0.1, 0.9, 1.0, 0.6)$).
-5. Generate inner core circle at radius $r = \text{unit\_size}$ representing the zero-attenuation zone ($0\text{dB}$).
+3. Position vertex $V_i = \text{emitter\_pos} + \vec{u}_i \cdot R_i$.
+4. Assign vertex color $C_i$:
+   * If occluded ($R_i < \text{max\_distance} \cdot 0.95$): Orange/Red $C_i = \text{Color}(1.0, 0.3, 0.1, 0.5)$.
+   * If unobstructed / open portal ($R_i \ge \text{max\_distance} \cdot 0.95$): Bright Cyan $C_i = \text{Color}(0.1, 0.85, 1.0, 0.6)$.
+5. Build 3D indexed triangle mesh (`ImmediateMesh`) with normal calculations for smooth Fresnel shading.
+6. Render inner 3D `unit_size` sphere core (Gold).
 
 ---
 
-## 3. Volumetric Acoustic Shader (`acoustic_sound_field.gdshader`)
+## 3. Volumetric Holographic Fresnel Bubble Shader (`acoustic_sound_field.gdshader`)
 
 ```glsl
 shader_type spatial;
 render_mode blend_add, depth_draw_never, cull_disabled, unshaded;
 
-uniform vec4 base_color : source_color = vec4(0.1, 0.8, 1.0, 0.4);
-uniform vec4 occluded_color : source_color = vec4(1.0, 0.3, 0.1, 0.4);
-uniform float wave_speed = 3.0;
-uniform float wave_frequency = 4.0;
-uniform float pulse_intensity = 0.5;
+uniform vec4 base_color : source_color = vec4(0.1, 0.85, 1.0, 0.45);
+uniform vec4 occluded_color : source_color = vec4(1.0, 0.35, 0.1, 0.45);
+uniform float fresnel_power : hint_range(0.5, 8.0) = 2.5;
+uniform float wave_speed : hint_range(0.1, 10.0) = 2.5;
+uniform float wave_frequency : hint_range(0.5, 20.0) = 3.0;
 
 void fragment() {
-    float dist = length(UV - vec2(0.5));
-    float wave = sin((dist * wave_frequency - TIME * wave_speed) * 6.28318) * 0.5 + 0.5;
-    vec4 final_col = mix(COLOR, base_color, 0.3);
-    ALBEDO = final_col.rgb * (1.0 + wave * pulse_intensity);
-    ALPHA = final_col.a * (0.6 + 0.4 * wave);
+    float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), fresnel_power);
+    float wave = sin((length(VERTEX) * wave_frequency - TIME * wave_speed) * 6.28318) * 0.5 + 0.5;
+    vec4 final_col = mix(COLOR, base_color, 0.2);
+    ALBEDO = final_col.rgb * (1.0 + wave * 0.4);
+    ALPHA = clamp(final_col.a * (0.3 + 0.7 * fresnel + 0.3 * wave), 0.0, 1.0);
 }
 ```
 
 ---
 
-## 4. Emitter-to-Listener Multi-Ray Occlusion Visualizer
+## 4. Selection & Display Modes
 
-Between each active emitter and the listener position (e.g. `Player` camera / AudioListener3D):
-* Cast 3 parallel rays: Center, Left ($+0.4\text{m}$ offset), Right ($-0.4\text{m}$ offset).
-* Color code:
-  * **3 Rays Clear:** Green Line (`Color(0.2, 1.0, 0.3, 0.8)`).
-  * **1-2 Rays Hit:** Yellow/Orange Line (`Color(1.0, 0.8, 0.1, 0.8)`) — Partial Diffraction.
-  * **3 Rays Blocked:** Red Line (`Color(1.0, 0.15, 0.15, 0.7)`) — Full Wall Occlusion.
+* **`display_mode` Enum:**
+  * `Only_Selected` (Default): In Editor, renders only when one or more audio emitter nodes are selected in the Scene Tree. In Game, targets selected or focused emitters.
+  * `Active_Audible_Only`: Renders currently playing emitters within hearing range.
+  * `All_Emitters`: Global diagnostic mode.
+* **`show_in_editor` (bool, default `false`):** Master switch for editor viewport rendering.
 
 ---
 
