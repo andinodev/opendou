@@ -225,7 +225,7 @@ room_name = &"Server_Room"
 material_preset = "Metal"
 floor_surface = &"Metal"
 absorption_coefficient = 0.56
-calculated_rt60 = 2.07741935483871
+calculated_rt60 = 12.0
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector2_ServerRoom/ServerRoomArea" unique_id=198274911]
 shape = SubResource("BoxShape3D_server")
@@ -470,7 +470,7 @@ script = ExtResource("6_room")
 room_name = &"Biosphere_Sanctuary"
 material_preset = "Metal"
 floor_surface = &"Metal"
-calculated_rt60 = 0.8944444444444444
+calculated_rt60 = 12.0
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector5_Biosphere/BiosphereRoom" unique_id=310100018]
 shape = SubResource("BoxShape3D_biosphere")
@@ -484,6 +484,7 @@ room_b = NodePath("../../Sector4_ExtractionArena/ExtractionArenaRoom")
 
 [node name="CanopyWind_FL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100001]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 3.5, -6)
+visible = false
 volume_db = -8.0
 unit_size = 5.0
 autoplay = true
@@ -495,6 +496,7 @@ synth_preset = "Wind_Canopy"
 
 [node name="Waterfall_FR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100002]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 3.5, -6)
+visible = false
 volume_db = -8.0
 unit_size = 5.0
 autoplay = true
@@ -506,6 +508,7 @@ synth_preset = "Waterfall_Stream"
 
 [node name="Bird_C" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100003]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 2, -8)
+visible = false
 volume_db = -6.0
 unit_size = 5.0
 autoplay = true
@@ -515,7 +518,8 @@ event_name = &"Bird_Chirp"
 synth_preset = "Bird_Chirp"
 
 [node name="Thunder_LFE" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100004]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, -0.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 0.38746023, 0)
+visible = false
 volume_db = -4.0
 unit_size = 6.0
 autoplay = true
@@ -526,6 +530,7 @@ synth_preset = "Thunder_Rumble"
 
 [node name="Cicada_SL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100005]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71, 1.5, 0)
+visible = false
 volume_db = -9.0
 unit_size = 5.0
 autoplay = true
@@ -537,6 +542,7 @@ synth_preset = "Cicada_Swarm"
 
 [node name="Frog_SR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100006]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89, 1.5, 0)
+visible = false
 volume_db = -7.0
 unit_size = 5.0
 autoplay = true
@@ -548,6 +554,7 @@ synth_preset = "Frog_Croak"
 
 [node name="Rain_RL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100007]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 2.5, 6)
+visible = false
 volume_db = -9.0
 unit_size = 5.0
 autoplay = true
@@ -559,6 +566,7 @@ synth_preset = "Rain_Atmosphere"
 
 [node name="Droplet_RR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100008]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 2.5, 6)
+visible = false
 volume_db = -7.0
 unit_size = 5.0
 autoplay = true
@@ -570,6 +578,7 @@ synth_preset = "Water_Droplet"
 
 [node name="OrbitingBeeEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100009]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 85, 1.5, 0)
+visible = false
 volume_db = -8.0
 unit_size = 4.0
 autoplay = true
@@ -580,11 +589,6 @@ synth_preset = "Cyber_Hornet"
 
 [node name="AcousticDebugger" type="Node3D" parent="LevelGeometry" unique_id=987654320]
 script = ExtResource("11_debugger")
-enabled = true
-probe_ray_count = 24
-show_unit_size_core = true
-show_occlusion_rays = true
-show_sound_field_mesh = true
 
 [node name="ChaosEmittersParent" type="Node3D" parent="LevelGeometry" unique_id=943152636]
 visible = false
@@ -760,7 +764,7 @@ text = "Music Stem: Stealth (Intensity: 0.00)"
 
 [node name="LblSoundField" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox" unique_id=987654324]
 layout_mode = 2
-text = "Sound Field: 24 Probes (ON)"
+text = "Sound Field: Focused (3D Iso-Bubble)"
 
 [node name="LblDSP" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox" unique_id=132943054]
 layout_mode = 2
@@ -879,7 +883,7 @@ text = "🔊 Monitor (F8)"
 
 [node name="BtnToggleAcoustics" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=987654323]
 layout_mode = 2
-text = "👁️ Sound Field: ON (G)"
+text = "👁️ 3D Bubble: FOCUSED (G)"
 
 [node name="BtnLangEN" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=1795084415]
 layout_mode = 2

@@ -382,11 +382,29 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_toggle_acoustics_pressed() -> void:
 	if not acoustic_debugger:
 		acoustic_debugger = get_node_or_null("LevelGeometry/AcousticDebugger")
+	if not btn_toggle_acoustics:
+		btn_toggle_acoustics = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics") if get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics") else get_node_or_null("UI/ControlsPanel/Margin/HBox/BtnToggleAcoustics")
+	if not lbl_sound_field:
+		lbl_sound_field = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSoundField") if get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSoundField") else get_node_or_null("UI/HUDPanel/Margin/VBox/LblSoundField")
+
 	if acoustic_debugger:
-		acoustic_debugger.toggle_debug()
+		if not acoustic_debugger.enabled:
+			acoustic_debugger.enabled = true
+			acoustic_debugger.display_mode = 0 # Focused (Only_Selected)
+		elif acoustic_debugger.display_mode == 0:
+			acoustic_debugger.display_mode = 1 # All Active (Active_Audible_Only)
+		else:
+			acoustic_debugger.enabled = false
+
 	if btn_toggle_acoustics:
-		var is_on = acoustic_debugger.enabled if acoustic_debugger else false
-		btn_toggle_acoustics.text = "👁️ Sound Field: %s (G)" % ("ON" if is_on else "OFF")
+		var btn_txt = "👁️ 3D Bubble: OFF (G)"
+		if acoustic_debugger and acoustic_debugger.enabled:
+			if acoustic_debugger.display_mode == 0:
+				btn_txt = "👁️ 3D Bubble: FOCUSED (G)"
+			else:
+				btn_txt = "👁️ 3D Bubble: ALL ACTIVE (G)"
+		btn_toggle_acoustics.text = btn_txt
+
 	_update_hud()
 
 func _on_back_pressed() -> void:
@@ -764,6 +782,5 @@ func _update_hud() -> void:
 		lbl_voices.text = "Voices: %d Phys / %d Virt" % [phys, virt]
 		
 	if lbl_sound_field:
-		var is_on = acoustic_debugger.enabled if acoustic_debugger else false
-		var ray_count = acoustic_debugger.probe_ray_count if acoustic_debugger else 24
-		lbl_sound_field.text = "Sound Field: %s (%d Probes)" % ["ON" if is_on else "OFF", ray_count]
+		var mode_str = "OFF" if not (acoustic_debugger and acoustic_debugger.enabled) else ("Focused (3D Iso-Bubble)" if acoustic_debugger.display_mode == 0 else "All Active (3D)")
+		lbl_sound_field.text = "Sound Field: %s" % mode_str

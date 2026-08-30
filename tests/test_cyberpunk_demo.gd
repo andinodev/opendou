@@ -351,7 +351,7 @@ static func run_all() -> Array[String]:
 			if bee_node.position == init_pos:
 				failures.append("Test 9j Failed: OrbitingBeeEmitter position did not update after _process")
 
-	# Test 27: OpenDouAcousticDebugger3D node and Tactical HUD toggle button integration
+	# Test 27: OpenDouAcousticDebugger3D node and Tactical HUD 3-state cycling toggle
 	var debug_node = instance.get_node_or_null("LevelGeometry/AcousticDebugger")
 	if not debug_node:
 		failures.append("Test 27a Failed: demo_cyberpunk_infiltration.tscn missing LevelGeometry/AcousticDebugger node")
@@ -368,26 +368,59 @@ static func run_all() -> Array[String]:
 		btn_acoustics = instance.get_node_or_null("TacticalHUD/ControlsPanel/Margin/HBox/BtnToggleAcoustics")
 	if not btn_acoustics:
 		failures.append("Test 27e Failed: TacticalHUD missing BtnToggleAcoustics button")
-	else:
-		if not btn_acoustics.text.contains("Sound Field"):
-			failures.append("Test 27f Failed: BtnToggleAcoustics text expected to contain 'Sound Field', got '%s'" % btn_acoustics.text)
 			
 	var lbl_sf = instance.get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSoundField")
 	if not lbl_sf:
-		failures.append("Test 27g Failed: TacticalHUD missing LblSoundField label")
+		failures.append("Test 27f Failed: TacticalHUD missing LblSoundField label")
 		
-	# Test toggle function in instance
+	# Test 3-state cycling of _on_toggle_acoustics_pressed() in instance:
+	# Initial (Focused): enabled = true, display_mode = 0
+	# Cycle 1 -> All Active: enabled = true, display_mode = 1
+	# Cycle 2 -> OFF: enabled = false
+	# Cycle 3 -> Focused: enabled = true, display_mode = 0
 	if instance.has_method("_on_toggle_acoustics_pressed"):
-		var initial_state = instance.acoustic_debugger.enabled if instance.acoustic_debugger else true
+		if instance.acoustic_debugger == null:
+			instance.acoustic_debugger = instance.get_node_or_null("LevelGeometry/AcousticDebugger")
+		if instance.lbl_sound_field == null:
+			instance.lbl_sound_field = instance.get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSoundField")
+		if instance.btn_toggle_acoustics == null:
+			instance.btn_toggle_acoustics = instance.get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics")
+			
+		instance._update_hud()
+		
+		# Initial state
+		if instance.lbl_sound_field:
+			if instance.lbl_sound_field.text != "Sound Field: Focused (3D Iso-Bubble)":
+				failures.append("Test 27g Failed: Initial lbl_sound_field expected 'Sound Field: Focused (3D Iso-Bubble)', got '%s'" % instance.lbl_sound_field.text)
+				
+		# 1st toggle: Focused (0) -> All Active (1)
 		instance._on_toggle_acoustics_pressed()
-		var new_state = instance.acoustic_debugger.enabled if instance.acoustic_debugger else false
-		if new_state == initial_state:
-			failures.append("Test 27h Failed: _on_toggle_acoustics_pressed did not toggle acoustic_debugger.enabled")
+		if not instance.acoustic_debugger.enabled or instance.acoustic_debugger.display_mode != 1:
+			failures.append("Test 27h Failed: 1st toggle expected enabled=true & display_mode=1 (All Active), got enabled=%s, mode=%d" % [str(instance.acoustic_debugger.enabled), instance.acoustic_debugger.display_mode])
+		if btn_acoustics and btn_acoustics.text != "👁️ 3D Bubble: ALL ACTIVE (G)":
+			failures.append("Test 27i Failed: 1st toggle button text expected '👁️ 3D Bubble: ALL ACTIVE (G)', got '%s'" % btn_acoustics.text)
+		if lbl_sf and lbl_sf.text != "Sound Field: All Active (3D)":
+			failures.append("Test 27j Failed: 1st toggle lbl_sound_field expected 'Sound Field: All Active (3D)', got '%s'" % lbl_sf.text)
+			
+		# 2nd toggle: All Active (1) -> OFF (enabled=false)
 		instance._on_toggle_acoustics_pressed()
-		if instance.acoustic_debugger and instance.acoustic_debugger.enabled != initial_state:
-			failures.append("Test 27i Failed: _on_toggle_acoustics_pressed second toggle did not restore enabled state")
+		if instance.acoustic_debugger.enabled:
+			failures.append("Test 27k Failed: 2nd toggle expected enabled=false (OFF), got enabled=true")
+		if btn_acoustics and btn_acoustics.text != "👁️ 3D Bubble: OFF (G)":
+			failures.append("Test 27l Failed: 2nd toggle button text expected '👁️ 3D Bubble: OFF (G)', got '%s'" % btn_acoustics.text)
+		if lbl_sf and lbl_sf.text != "Sound Field: OFF":
+			failures.append("Test 27m Failed: 2nd toggle lbl_sound_field expected 'Sound Field: OFF', got '%s'" % lbl_sf.text)
+			
+		# 3rd toggle: OFF -> Focused (0, enabled=true)
+		instance._on_toggle_acoustics_pressed()
+		if not instance.acoustic_debugger.enabled or instance.acoustic_debugger.display_mode != 0:
+			failures.append("Test 27n Failed: 3rd toggle expected enabled=true & display_mode=0 (Focused), got enabled=%s, mode=%d" % [str(instance.acoustic_debugger.enabled), instance.acoustic_debugger.display_mode])
+		if btn_acoustics and btn_acoustics.text != "👁️ 3D Bubble: FOCUSED (G)":
+			failures.append("Test 27o Failed: 3rd toggle button text expected '👁️ 3D Bubble: FOCUSED (G)', got '%s'" % btn_acoustics.text)
+		if lbl_sf and lbl_sf.text != "Sound Field: Focused (3D Iso-Bubble)":
+			failures.append("Test 27p Failed: 3rd toggle lbl_sound_field expected 'Sound Field: Focused (3D Iso-Bubble)', got '%s'" % lbl_sf.text)
 	else:
-		failures.append("Test 27j Failed: Scene instance missing _on_toggle_acoustics_pressed method")
+		failures.append("Test 27q Failed: Scene instance missing _on_toggle_acoustics_pressed method")
 
 	demo.free()
 	instance.free()

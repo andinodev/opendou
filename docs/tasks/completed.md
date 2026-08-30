@@ -6,6 +6,26 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-049` - 3D Volumetric Acoustic Iso-Bubble & Multi-Selection Debugger (Depurador Volumétrico 3D de Burbujas Acústicas Iso-Superficie y Selección Múltiple)**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Algoritmo de Burbuja Geodésica 3D (`calculate_spherical_bubble_mesh` en `opendou_acoustic_debugger_3d.gd`):**
+      * Generación procedural de distribución esférica de vectores sonda de rayos 3D (`generate_sphere_probe_directions`) con muestreo de polos norte/sur y anillos de latitud y longitud (`sphere_rings`, `sphere_segments`).
+      * Trazado de rayos físicos contra `PhysicsDirectSpaceState3D` adaptando la superficie 3D de la malla (`ImmediateMesh`) a la geometría y obstáculos colindantes en tiempo real.
+      * Coloración de vértices adaptativa por punto de colisión (Cian para propagación libre sin impedimento, Naranja/Rojo con colisión de pared o geometría ocluida).
+      * Generación de índices triangulares cerrada e indexada para renderizado continuo y eficiente.
+    * **Soporte de Modos de Visualización y Selección Múltiple (`display_mode`):**
+      * `DisplayMode.ONLY_SELECTED` (0): Muestra la burbuja 3D enfocada en emisores seleccionados (`selected_emitters`), selección activa en el árbol de escenas del editor (`EditorInterface.get_selection()`) o el emisor activo más próximo al oyente en tiempo de ejecución.
+      * `DisplayMode.ACTIVE_AUDIBLE_ONLY` (1): Renderiza las burbujas 3D de todos los emisores activos que se encuentren reproduciendo audio audible.
+      * `DisplayMode.ALL_EMITTERS` (2): Renderiza todos los emisores presentes en la escena.
+    * **Integración de Ciclo de 3 Estados en Cyberpunk Demo (`demo_cyberpunk_infiltration.gd` y `.tscn`):**
+      * Conmutación cíclica al presionar botón o tecla `[G]`: `OFF` ➔ `Focused (3D Iso-Bubble)` ➔ `All Active (3D)` ➔ `OFF`.
+      * Actualización reactiva del texto del botón táctico: `"👁️ 3D Bubble: OFF (G)"`, `"👁️ 3D Bubble: FOCUSED (G)"`, `"👁️ 3D Bubble: ALL ACTIVE (G)"`.
+      * Actualización de la etiqueta HUD `LblSoundField`: `"Sound Field: Focused (3D Iso-Bubble)"`, `"Sound Field: All Active (3D)"`, `"Sound Field: OFF"`.
+    * **Suite de Pruebas Automatizadas:**
+      * Tests unitarios en `test_acoustic_debugger.gd` y Test 27 en `tests/test_cyberpunk_demo.gd` verificando la generación esférica geodésica, el mallado iso-superficial 3D, el filtrado de emisores seleccionados/activos y el ciclo de 3 estados del HUD.
+      * 240 pruebas unitarias y de integración pasando al 100% (código de salida 0, 0 fallos).
+
 * **`TASK-048` - Depurador Volumétrico de Campos Acústicos 3D en Tiempo Real (OpenDou Acoustic Sound Field Debugger 3D)**
   * **Fecha:** 2026-08-30
   * **Resumen:**
