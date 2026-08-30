@@ -22,7 +22,7 @@ const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthe
 @export var stop_on_tree_exit: bool = true
 
 @export_group("Procedural Synthesis")
-@export_enum("None", "Rain", "Server_Hum", "Water_Stream", "Turret_Scan", "Radio_Beacon", "Footstep", "Gunshot", "Engine", "Tone") var synth_preset: String = "None"
+@export_enum("None", "Rain", "Server_Hum", "Water_Stream", "Turret_Scan", "Radio_Beacon", "Footstep", "Gunshot", "Engine", "Tone", "Wind_Canopy", "Bird_Chirp", "Thunder_Rumble", "Cicada_Swarm", "Frog_Croak", "Water_Droplet") var synth_preset: String = "None"
 @export var synth_duration: float = 2.0
 @export var synth_frequency: float = 440.0
 
@@ -171,14 +171,38 @@ func _apply_synth_preset() -> void:
 			stream = AudioSynthesizerClass.create_engine_loop(120.0, synth_duration)
 		"Tone":
 			stream = AudioSynthesizerClass.create_tone(synth_frequency, synth_duration)
+		"Wind_Canopy":
+			stream = AudioSynthesizerClass.create_canopy_wind_loop(synth_duration)
+		"Bird_Chirp":
+			stream = AudioSynthesizerClass.create_bird_chirp(synth_frequency if synth_frequency != 440.0 else 2400.0, synth_duration if synth_duration != 2.0 else 0.35)
+		"Thunder_Rumble":
+			stream = AudioSynthesizerClass.create_thunder_rumble(synth_duration if synth_duration != 2.0 else 2.5)
+		"Cicada_Swarm":
+			stream = AudioSynthesizerClass.create_cicada_swarm_loop(synth_duration)
+		"Frog_Croak":
+			stream = AudioSynthesizerClass.create_frog_croak(synth_duration if synth_duration != 2.0 else 0.45)
+		"Water_Droplet":
+			stream = AudioSynthesizerClass.create_water_droplet(synth_frequency if synth_frequency != 440.0 else 1200.0)
 
 func _auto_infer_synth_preset() -> void:
 	var n: String = str(event_name).to_lower()
-	if n.contains("rain"):
+	if n.contains("wind") or n.contains("canopy"):
+		synth_preset = "Wind_Canopy"
+	elif n.contains("bird") or n.contains("chirp") or n.contains("avian"):
+		synth_preset = "Bird_Chirp"
+	elif n.contains("thunder") or n.contains("lightning") or n.contains("rumble"):
+		synth_preset = "Thunder_Rumble"
+	elif n.contains("cicada") or n.contains("insect") or n.contains("swarm"):
+		synth_preset = "Cicada_Swarm"
+	elif n.contains("frog") or n.contains("croak") or n.contains("amphibian"):
+		synth_preset = "Frog_Croak"
+	elif n.contains("droplet") or n.contains("drip"):
+		synth_preset = "Water_Droplet"
+	elif n.contains("rain"):
 		synth_preset = "Rain"
 	elif n.contains("server"):
 		synth_preset = "Server_Hum"
-	elif n.contains("water"):
+	elif n.contains("water") or n.contains("stream"):
 		synth_preset = "Water_Stream"
 	elif n.contains("turret"):
 		synth_preset = "Turret_Scan"
@@ -190,3 +214,4 @@ func _auto_infer_synth_preset() -> void:
 		synth_preset = "Footstep"
 	if synth_preset != "None":
 		_apply_synth_preset()
+

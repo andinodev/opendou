@@ -73,9 +73,8 @@ static func create_footstep(surface: StringName, variation: int = 1) -> AudioStr
 	return stream
 
 ## Creates a gunshot burst AudioStreamWAV.
-static func create_gunshot() -> AudioStreamWAV:
+static func create_gunshot(duration: float = 0.3) -> AudioStreamWAV:
 	var sample_rate: int = 44100
-	var duration: float = 0.35
 	var num_samples: int = int(duration * sample_rate)
 	var byte_data = PackedByteArray()
 	byte_data.resize(num_samples * 2)
@@ -390,3 +389,198 @@ static func create_nature_foley_loop(duration_sec: float = 2.0) -> AudioStreamWA
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_end = num_samples
 	return stream
+
+## Creates a lush looping canopy wind atmospheric sound with undulating gusts and foliage rustle.
+static func create_canopy_wind_loop(duration: float = 3.0, sample_rate: int = 44100) -> AudioStreamWAV:
+	var num_samples: int = int(duration * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	var lp_filter: float = 0.0
+	var mid_filter: float = 0.0
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var white: float = (randf() * 2.0 - 1.0)
+		# Gust modulation with sinusoidal LFOs aligned to loop duration
+		var lfo1: float = sin(t / duration * TAU * 1.0) * 0.5 + 0.5
+		var lfo2: float = sin(t / duration * TAU * 2.0) * 0.3 + 0.5
+		var gust_intensity: float = (lfo1 * 0.6 + lfo2 * 0.4)
+		
+		# Low frequency wind body
+		var alpha_lp: float = 0.04 + gust_intensity * 0.04
+		lp_filter = (lp_filter * (1.0 - alpha_lp)) + (white * alpha_lp)
+		
+		# Foliage mid-high rustle
+		var alpha_mid: float = 0.18 + gust_intensity * 0.12
+		mid_filter = (mid_filter * (1.0 - alpha_mid)) + (white * alpha_mid)
+		var rustle: float = (mid_filter - lp_filter) * (0.2 + gust_intensity * 0.3)
+		
+		# Subtle sub body
+		var sub_wind: float = sin(t * 45.0 * TAU) * 0.08 * gust_intensity
+		
+		var sample: float = (lp_filter * 1.6 + rustle + sub_wind) * (0.7 + gust_intensity * 0.3)
+		var s16: int = clampi(int(sample * 24000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+		
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	stream.stereo = false
+	return stream
+
+## Creates a vibrant avian bird chirp with dynamic pitch bends and rapid trill.
+static func create_bird_chirp(base_frequency: float = 2400.0, duration: float = 0.35, sample_rate: int = 44100) -> AudioStreamWAV:
+	var num_samples: int = int(duration * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	var phase: float = 0.0
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var progress: float = t / duration
+		# Rapid ascending sweep followed by descent + trill vibrato
+		var freq_sweep: float = base_frequency * (1.0 + sin(progress * PI) * 0.45 + sin(progress * TAU * 4.0) * 0.12)
+		phase += freq_sweep * (1.0 / sample_rate) * TAU
+		# Smooth bell amplitude envelope
+		var env: float = sin(progress * PI)
+		if env < 0.0:
+			env = 0.0
+		env = pow(env, 1.2)
+		var sample: float = (sin(phase) * 0.75 + sin(phase * 2.0) * 0.25) * env
+		var s16: int = clampi(int(sample * 28000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+		
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	stream.stereo = false
+	return stream
+
+## Creates a deep procedural thunder rumble with explosive transient and rolling sub-bass aftershocks.
+static func create_thunder_rumble(duration: float = 2.5, sample_rate: int = 44100) -> AudioStreamWAV:
+	var num_samples: int = int(duration * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	var noise_filter: float = 0.0
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var white: float = (randf() * 2.0 - 1.0)
+		noise_filter = (noise_filter * 0.94) + (white * 0.06)
+		
+		# Initial crack impact
+		var crack_env: float = exp(-18.0 * t)
+		var crack: float = (sin(t * 110.0 * TAU) * 0.5 + (randf() * 2.0 - 1.0) * 0.5) * crack_env
+		
+		# Rolling sub rumble swells
+		var rumble_env: float = exp(-1.8 * t) * (1.0 + sin(t * 5.5 * TAU) * 0.35 + sin(t * 2.2 * TAU) * 0.25)
+		var sub_f: float = 48.0 + sin(t * 3.0 * TAU) * 12.0
+		var sub: float = sin(t * sub_f * TAU) * 0.45
+		
+		var sample: float = (crack * 0.6 + (noise_filter * 1.8 + sub) * rumble_env * 0.8)
+		var s16: int = clampi(int(sample * 30000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+		
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	stream.stereo = false
+	return stream
+
+## Creates a dense looping cicada swarm texture with pulsating high-frequency carrier buzzing.
+static func create_cicada_swarm_loop(duration: float = 2.0, sample_rate: int = 44100) -> AudioStreamWAV:
+	var num_samples: int = int(duration * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		# Rapid rhythmic buzzing pulse (aligned with loop duration: 16 cycles / 2.0s = 8Hz)
+		var pulse: float = maxf(0.0, sin(t / duration * TAU * 16.0))
+		pulse = pulse * pulse
+		
+		# High frequency cicada carriers
+		var c1: float = sin(t * 5200.0 * TAU) * 0.35
+		var c2: float = sin(t * 5850.0 * TAU) * 0.30
+		var c3: float = sin(t * 6600.0 * TAU) * 0.25
+		var white_hiss: float = (randf() * 2.0 - 1.0) * 0.1
+		
+		var sample: float = (c1 + c2 + c3 + white_hiss) * (0.25 + pulse * 0.75) * 0.55
+		var s16: int = clampi(int(sample * 24000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+		
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	stream.stereo = false
+	return stream
+
+## Creates a guttural amphibian frog croak / ribbit with formant modulation.
+static func create_frog_croak(duration: float = 0.45, sample_rate: int = 44100) -> AudioStreamWAV:
+	var num_samples: int = int(duration * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var progress: float = t / duration
+		# Formant pulse modulation (~36Hz guttural rate)
+		var pulse: float = maxf(0.0, sin(t * 36.0 * TAU))
+		pulse = pow(pulse, 3.0)
+		
+		# Low resonance ribbit carriers
+		var pitch_drift: float = 1.0 + sin(progress * PI) * 0.15
+		var f1: float = 260.0 * pitch_drift
+		var f2: float = 620.0 * pitch_drift
+		var f3: float = 940.0 * pitch_drift
+		var carrier: float = sin(t * f1 * TAU) * 0.5 + sin(t * f2 * TAU) * 0.35 + sin(t * f3 * TAU) * 0.15
+		
+		# Amplitude envelope
+		var env: float = sin(progress * PI)
+		if env < 0.0:
+			env = 0.0
+		
+		var sample: float = carrier * pulse * env * 0.8
+		var s16: int = clampi(int(sample * 28000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+		
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	stream.stereo = false
+	return stream
+
+## Creates a resonant water droplet ping with snappy upward pitch inflection.
+static func create_water_droplet(pitch: float = 1200.0, sample_rate: int = 44100) -> AudioStreamWAV:
+	var duration: float = 0.12
+	var num_samples: int = int(duration * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	var phase: float = 0.0
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var progress: float = t / duration
+		# Snappy pitch upward inflection
+		var cur_freq: float = pitch * (0.65 + 0.75 * exp(-12.0 * progress))
+		phase += cur_freq * (1.0 / sample_rate) * TAU
+		
+		var env: float = exp(-28.0 * progress)
+		var sample: float = sin(phase) * env * 0.7
+		var s16: int = clampi(int(sample * 28000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+		
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	stream.stereo = false
+	return stream
+
