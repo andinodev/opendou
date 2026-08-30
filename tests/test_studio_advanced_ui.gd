@@ -408,5 +408,37 @@ static func run_all() -> Array[String]:
 		
 	studio_test.free()
 	
+	# Test 8: Workspace Canvas Polish & Sizing Verification (Task 4)
+	var tl_test = OpenDouMusicTimelineClass.new()
+	if tl_test.size_flags_horizontal != Control.SIZE_EXPAND_FILL or tl_test.size_flags_vertical != Control.SIZE_EXPAND_FILL:
+		failures.append("Test 8a Failed: Music timeline root container must have SIZE_EXPAND_FILL flags")
+	if tl_test.tracks.is_empty() or tl_test.tracks[0].header_panel == null or tl_test.tracks[0].header_panel.custom_minimum_size.x != 280.0:
+		failures.append("Test 8b Failed: Music timeline track header width must be 280px")
+	if tl_test.tracks[0].var_btn == null or not tl_test.tracks[0].var_btn.text.contains("Var:"):
+		failures.append("Test 8c Failed: Music timeline variation badge should display variation count")
+	if tl_test.entry_cue_bar != 0.0 or tl_test.exit_cue_bar != 8.0:
+		failures.append("Test 8d Failed: Music timeline default entry/exit cue bars mismatch")
+		
+	# Test ruler and waveform draw routines with cues and multiple variations
+	tl_test._on_track_variation_clicked(tl_test.tracks[0])
+	if tl_test.ruler_canvas:
+		tl_test.ruler_canvas.size = Vector2(800, 34)
+		tl_test._on_draw_timeline_ruler()
+	if not tl_test.tracks.is_empty() and tl_test.tracks[0].waveform_canvas:
+		tl_test.tracks[0].waveform_canvas.size = Vector2(520, 60)
+		tl_test._on_draw_track_waveform(tl_test.tracks[0], tl_test.tracks[0].waveform_canvas)
+	tl_test.free()
+	
+	var dlg_test = OpenDouDialogueGridClass.new()
+	if dlg_test.size_flags_horizontal != Control.SIZE_EXPAND_FILL or dlg_test.size_flags_vertical != Control.SIZE_EXPAND_FILL:
+		failures.append("Test 8e Failed: Dialogue grid root container must have SIZE_EXPAND_FILL flags")
+	if dlg_test.grid_tree == null or dlg_test.grid_tree.columns != 6:
+		failures.append("Test 8f Failed: Dialogue grid must have 6 columns")
+	if dlg_test.grid_tree.get_column_title(0) != "Dialogue ID Key" or dlg_test.grid_tree.get_column_title(5) != "Audition":
+		failures.append("Test 8g Failed: Dialogue grid column titles mismatch")
+	if dlg_test.grid_tree.size_flags_vertical != Control.SIZE_EXPAND_FILL or dlg_test.grid_tree.size_flags_horizontal != Control.SIZE_EXPAND_FILL:
+		failures.append("Test 8h Failed: Dialogue grid tree must have horizontal and vertical SIZE_EXPAND_FILL")
+	dlg_test.free()
+	
 	return failures
 

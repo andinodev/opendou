@@ -118,10 +118,10 @@
 		]
 	},
 	"Dynamic_Combat_Suite.tres": {
-		"bpm": 50.0,
+		"bpm": 140.0,
 		"entry_cue": 0.0,
-		"exit_cue": 8.25,
-		"intensity": 0.61,
+		"exit_cue": 8.0,
+		"intensity": 0.85,
 		"playlist": [
 			{
 				"max_loops": 1,
@@ -250,21 +250,6 @@
 						"audio_path": "",
 						"name": "Var 1",
 						"weight": 1.0
-					},
-					{
-						"audio_path": "",
-						"name": "Var 2",
-						"weight": 1.0
-					},
-					{
-						"audio_path": "",
-						"name": "Var 3",
-						"weight": 1.0
-					},
-					{
-						"audio_path": "",
-						"name": "Var 4",
-						"weight": 1.0
 					}
 				],
 				"volume_db": 0.0
@@ -301,50 +286,9 @@
 						"audio_path": "",
 						"name": "Var 1",
 						"weight": 1.0
-					},
-					{
-						"audio_path": "",
-						"name": "Var 2",
-						"weight": 1.0
 					}
 				],
 				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"auto_enabled": false,
-				"auto_param": 0,
-				"auto_points": [
-					[
-						0.0,
-						1.0
-					],
-					[
-						0.5,
-						0.600000023841858
-					],
-					[
-						1.0,
-						1.0
-					]
-				],
-				"bus_name": "Music_Percussion",
-				"color": "fa3399",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.5,
-				"name": "Layer 5: Combat_Drums",
-				"right_trim": 1.0,
-				"sub_tracks": [
-					{
-						"audio_path": "",
-						"name": "Var 1",
-						"weight": 1.0
-					}
-				],
-				"volume_db": -3.0
 			}
 		]
 	},

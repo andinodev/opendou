@@ -15,6 +15,41 @@
 			"max": 8000.0,
 			"min": 0.0
 		},
+		"RTPC_10": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_11": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_5": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_6": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_7": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_8": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_9": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
 		"Speed": {
 			"default": 0.0,
 			"max": 50.0,

@@ -121,6 +121,7 @@ func _init() -> void:
 	playlist_manager.add_item(&"Boss_Encounter", 1, 2)
 	playlist_manager.add_item(&"Victory_Outro", 1, 1)
 	
+	anchors_preset = Control.PRESET_FULL_RECT
 	custom_minimum_size = Vector2(0, 0)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -276,6 +277,9 @@ func _build_ui() -> void:
 	add_child(add_track_dialog)
 	
 	var margin = MarginContainer.new()
+	margin.anchors_preset = Control.PRESET_FULL_RECT
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	margin.add_theme_constant_override("margin_left", 8)
 	margin.add_theme_constant_override("margin_top", 8)
 	margin.add_theme_constant_override("margin_right", 8)
@@ -283,6 +287,8 @@ func _build_ui() -> void:
 	add_child(margin)
 	
 	var main_vbox = VBoxContainer.new()
+	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main_vbox.add_theme_constant_override("separation", 8)
 	margin.add_child(main_vbox)
 	
@@ -780,9 +786,9 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	
 	# Random Variation Button
 	var v_btn = Button.new()
-	v_btn.text = "🎲 1"
+	v_btn.text = "🎲 Var: 1"
 	v_btn.tooltip_text = "Add / Cycle Random Sub-Tracks for this layer"
-	v_btn.custom_minimum_size = Vector2(26, 18)
+	v_btn.custom_minimum_size = Vector2(58, 18)
 	v_btn.pressed.connect(func(): _on_track_variation_clicked(t))
 	t.var_btn = v_btn
 	top_title_box.add_child(v_btn)
@@ -1065,7 +1071,7 @@ func _on_track_variation_clicked(t: OpenDouTrackLaneData) -> void:
 	t.sub_tracks.append({"name": new_var_name, "audio_path": t.audio_file_path, "weight": 1.0})
 	t.active_sub_index = t.sub_tracks.size() - 1
 	if t.var_btn:
-		t.var_btn.text = "🎲 %d" % t.sub_tracks.size()
+		t.var_btn.text = "🎲 Var: %d" % t.sub_tracks.size()
 	if t.file_label:
 		t.file_label.text = "%s (%s)" % [t.audio_file_path.get_file() if not t.audio_file_path.is_empty() else "Procedural Synth", new_var_name]
 	mark_dirty(true)
@@ -1391,7 +1397,7 @@ func load_from_disk(suite_name: StringName) -> void:
 							for s_item in arr:
 								if s_item is Dictionary:
 									t.sub_tracks.append(s_item)
-							if t.var_btn: t.var_btn.text = "🎲 %d" % t.sub_tracks.size()
+							if t.var_btn: t.var_btn.text = "🎲 Var: %d" % t.sub_tracks.size()
 					if t.vol_slider: t.vol_slider.value = t.volume_db
 					if t.mute_btn: t.mute_btn.set_pressed_no_signal(t.is_muted)
 					if t.solo_btn: t.solo_btn.set_pressed_no_signal(t.is_solo)
@@ -1799,6 +1805,11 @@ func _on_draw_track_waveform(t: OpenDouTrackLaneData, canvas: Control) -> void:
 	# 6. Playhead Line
 	var playhead_x = current_playhead_ratio * size.x * zoom_factor
 	canvas.draw_line(Vector2(playhead_x, 0), Vector2(playhead_x, size.y), Color(1.0, 0.35, 0.35, 0.9), 1.5)
+	
+	# 7. Sub-track variation badge
+	if t.sub_tracks.size() > 1:
+		var var_badge_text = "[ 🎲 Var: %d/%d ]" % [t.active_sub_index + 1, t.sub_tracks.size()]
+		canvas.draw_string(ThemeDB.fallback_font, Vector2(left_trim_x + 10, 16), var_badge_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.85, 0.9, 1.0, 0.85))
 
 ## Draws the interactive automation curve with handles and real-time cursor (TASK-032).
 func _on_draw_automation_curve(t: OpenDouTrackLaneData, canvas: Control) -> void:
