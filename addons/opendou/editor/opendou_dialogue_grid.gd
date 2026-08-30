@@ -75,6 +75,7 @@ func _init() -> void:
 	
 	anchors_preset = Control.PRESET_FULL_RECT
 	custom_minimum_size = Vector2(0, 0)
+	clip_contents = true
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_build_ui()
@@ -84,10 +85,10 @@ func _build_ui() -> void:
 	margin.anchors_preset = Control.PRESET_FULL_RECT
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 8)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_right", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
+	margin.add_theme_constant_override("margin_left", 6)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_right", 6)
+	margin.add_theme_constant_override("margin_bottom", 6)
 	add_child(margin)
 	
 	var main_vbox = VBoxContainer.new()
@@ -127,12 +128,14 @@ func _build_ui() -> void:
 	var btn_add_key = Button.new()
 	btn_add_key.text = "➕ Add Dialogue Key"
 	btn_add_key.tooltip_text = "Add new dialogue row with actor, subtitles and localized audio stems"
+	btn_add_key.custom_minimum_size = Vector2(0, 22)
 	btn_add_key.pressed.connect(_on_add_key_pressed)
 	toolbar.add_child(btn_add_key)
 	
 	popout_btn = Button.new()
 	popout_btn.text = "🗗 Popout Window"
 	popout_btn.tooltip_text = "Open dialogue spreadsheet in detached multi-monitor window"
+	popout_btn.custom_minimum_size = Vector2(0, 22)
 	popout_btn.pressed.connect(toggle_popout_window)
 	toolbar.add_child(popout_btn)
 	
@@ -142,6 +145,7 @@ func _build_ui() -> void:
 	grid_tree = Tree.new()
 	grid_tree.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid_tree.clip_contents = true
 	grid_tree.columns = 6
 	grid_tree.column_titles_visible = true
 	grid_tree.set_column_title(0, "Dialogue ID Key")
@@ -151,12 +155,12 @@ func _build_ui() -> void:
 	grid_tree.set_column_title(4, "Status")
 	grid_tree.set_column_title(5, "Audition")
 	
-	grid_tree.set_column_custom_minimum_width(0, 160)
-	grid_tree.set_column_custom_minimum_width(1, 130)
-	grid_tree.set_column_custom_minimum_width(2, 220)
-	grid_tree.set_column_custom_minimum_width(3, 160)
-	grid_tree.set_column_custom_minimum_width(4, 90)
-	grid_tree.set_column_custom_minimum_width(5, 75)
+	grid_tree.set_column_custom_minimum_width(0, 110)
+	grid_tree.set_column_custom_minimum_width(1, 90)
+	grid_tree.set_column_custom_minimum_width(2, 120)
+	grid_tree.set_column_custom_minimum_width(3, 90)
+	grid_tree.set_column_custom_minimum_width(4, 65)
+	grid_tree.set_column_custom_minimum_width(5, 55)
 	
 	for col in range(6):
 		grid_tree.set_column_expand(col, true)
@@ -279,6 +283,10 @@ func toggle_popout_window() -> void:
 		get_tree().root.add_child(detached_window)
 		reparent(detached_window)
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 0)
+		detached_window.size_changed.connect(func():
+			position = Vector2.ZERO
+			size = Vector2(detached_window.size)
+		)
 		popout_btn.text = "📥 Embed Grid"
 		detached_window.popup_centered()
 	else:

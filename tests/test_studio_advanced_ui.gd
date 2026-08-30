@@ -309,6 +309,15 @@ static func run_all() -> Array[String]:
 		failures.append("Test 6h3 Failed: content_container anchors_preset should be PRESET_FULL_RECT")
 	if studio.content_container.size_flags_vertical != Control.SIZE_EXPAND_FILL:
 		failures.append("Test 6h4 Failed: content_container size_flags_vertical should be SIZE_EXPAND_FILL")
+	if not studio.content_container.clip_contents:
+		failures.append("Test 6h4b Failed: content_container must have clip_contents enabled")
+		
+	# Test window size synchronization
+	studio.detached_window.size = Vector2i(1280, 720)
+	studio._on_detached_window_resized()
+	if studio.content_container.size != Vector2(1280, 720) or studio.content_container.position != Vector2.ZERO:
+		failures.append("Test 6h4c Failed: content_container failed to synchronize dimensions to detached_window size")
+		
 	studio.reattach_to_dock()
 	if studio.is_detached:
 		failures.append("Test 6h5 Failed: Studio is_detached flag should be false after reattach_to_dock()")
@@ -412,6 +421,8 @@ static func run_all() -> Array[String]:
 	var tl_test = OpenDouMusicTimelineClass.new()
 	if tl_test.size_flags_horizontal != Control.SIZE_EXPAND_FILL or tl_test.size_flags_vertical != Control.SIZE_EXPAND_FILL:
 		failures.append("Test 8a Failed: Music timeline root container must have SIZE_EXPAND_FILL flags")
+	if not tl_test.clip_contents:
+		failures.append("Test 8a2 Failed: Music timeline must have clip_contents enabled")
 	if tl_test.tracks.is_empty() or tl_test.tracks[0].header_panel == null or tl_test.tracks[0].header_panel.custom_minimum_size.x != 280.0:
 		failures.append("Test 8b Failed: Music timeline track header width must be 280px")
 	if tl_test.tracks[0].var_btn == null or not tl_test.tracks[0].var_btn.text.contains("Var:"):
@@ -432,6 +443,8 @@ static func run_all() -> Array[String]:
 	var dlg_test = OpenDouDialogueGridClass.new()
 	if dlg_test.size_flags_horizontal != Control.SIZE_EXPAND_FILL or dlg_test.size_flags_vertical != Control.SIZE_EXPAND_FILL:
 		failures.append("Test 8e Failed: Dialogue grid root container must have SIZE_EXPAND_FILL flags")
+	if not dlg_test.clip_contents:
+		failures.append("Test 8e2 Failed: Dialogue grid must have clip_contents enabled")
 	if dlg_test.grid_tree == null or dlg_test.grid_tree.columns != 6:
 		failures.append("Test 8f Failed: Dialogue grid must have 6 columns")
 	if dlg_test.grid_tree.get_column_title(0) != "Dialogue ID Key" or dlg_test.grid_tree.get_column_title(5) != "Audition":
@@ -439,6 +452,11 @@ static func run_all() -> Array[String]:
 	if dlg_test.grid_tree.size_flags_vertical != Control.SIZE_EXPAND_FILL or dlg_test.grid_tree.size_flags_horizontal != Control.SIZE_EXPAND_FILL:
 		failures.append("Test 8h Failed: Dialogue grid tree must have horizontal and vertical SIZE_EXPAND_FILL")
 	dlg_test.free()
+	
+	var ge_test = OpenDouGraphEditorClass.new()
+	if not ge_test.clip_contents:
+		failures.append("Test 8i Failed: Graph editor must have clip_contents enabled")
+	ge_test.free()
 	
 	return failures
 

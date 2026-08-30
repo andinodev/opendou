@@ -123,6 +123,7 @@ func _init() -> void:
 	
 	anchors_preset = Control.PRESET_FULL_RECT
 	custom_minimum_size = Vector2(0, 0)
+	clip_contents = true
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_build_ui()
@@ -280,21 +281,21 @@ func _build_ui() -> void:
 	margin.anchors_preset = Control.PRESET_FULL_RECT
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 8)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_right", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
+	margin.add_theme_constant_override("margin_left", 6)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_right", 6)
+	margin.add_theme_constant_override("margin_bottom", 6)
 	add_child(margin)
 	
 	var main_vbox = VBoxContainer.new()
 	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_vbox.add_theme_constant_override("separation", 8)
+	main_vbox.add_theme_constant_override("separation", 6)
 	margin.add_child(main_vbox)
 	
 	# 1. Top Transport & Rhythmic Settings Toolbar
 	var toolbar = HBoxContainer.new()
-	toolbar.add_theme_constant_override("separation", 10)
+	toolbar.add_theme_constant_override("separation", 4)
 	
 	var title_lbl = Label.new()
 	title_lbl.text = "🎼 Music DAW"
@@ -305,28 +306,32 @@ func _build_ui() -> void:
 	
 	# Dedicated DAW Transport Controls
 	play_btn = Button.new()
-	play_btn.text = "▶ Play"
+	play_btn.text = "▶"
 	play_btn.tooltip_text = "Start Interactive Music Sequencer"
+	play_btn.custom_minimum_size = Vector2(28, 22)
 	play_btn.pressed.connect(_on_music_play_pressed)
 	toolbar.add_child(play_btn)
 	
 	pause_btn = Button.new()
-	pause_btn.text = "⏸ Pause"
+	pause_btn.text = "⏸"
 	pause_btn.tooltip_text = "Pause Sequencer Playhead"
+	pause_btn.custom_minimum_size = Vector2(28, 22)
 	pause_btn.pressed.connect(_on_music_pause_pressed)
 	toolbar.add_child(pause_btn)
 	
 	stop_btn = Button.new()
-	stop_btn.text = "⏹ Stop"
+	stop_btn.text = "⏹"
 	stop_btn.tooltip_text = "Stop & Rewind to Bar 1 Beat 1"
+	stop_btn.custom_minimum_size = Vector2(28, 22)
 	stop_btn.pressed.connect(_on_music_stop_pressed)
 	toolbar.add_child(stop_btn)
 	
 	loop_btn = Button.new()
-	loop_btn.text = "🔁 Loop"
+	loop_btn.text = "🔁"
 	loop_btn.tooltip_text = "Loop 8-Bar Segment"
 	loop_btn.toggle_mode = true
 	loop_btn.button_pressed = true
+	loop_btn.custom_minimum_size = Vector2(28, 22)
 	toolbar.add_child(loop_btn)
 	
 	toolbar.add_child(VSeparator.new())
@@ -342,14 +347,16 @@ func _build_ui() -> void:
 	bpm_spinbox.max_value = 240.0
 	bpm_spinbox.value = 120.0
 	bpm_spinbox.step = 1.0
+	bpm_spinbox.custom_minimum_size = Vector2(55, 22)
 	bpm_spinbox.value_changed.connect(_on_bpm_changed)
 	toolbar.add_child(bpm_spinbox)
 	
 	# Metronome Toggle
 	metronome_btn = Button.new()
-	metronome_btn.text = "🔔 Metronome"
+	metronome_btn.text = "🔔"
 	metronome_btn.tooltip_text = "Enable Audible Metronome Click on Beats"
 	metronome_btn.toggle_mode = true
+	metronome_btn.custom_minimum_size = Vector2(28, 22)
 	toolbar.add_child(metronome_btn)
 	
 	toolbar.add_child(VSeparator.new())
@@ -366,6 +373,7 @@ func _build_ui() -> void:
 	snap_selector.add_item("🧲 1 Beat", 2)
 	snap_selector.add_item("🧲 1/2 Beat", 3)
 	snap_selector.add_item("Off", 4)
+	snap_selector.custom_minimum_size = Vector2(65, 22)
 	toolbar.add_child(snap_selector)
 	
 	# Horizontal Zoom
@@ -380,7 +388,8 @@ func _build_ui() -> void:
 	zoom_spinbox.value = 100.0
 	zoom_spinbox.step = 10.0
 	zoom_spinbox.suffix = "%"
-	zoom_spinbox.value_changed.connect(func(v):
+	zoom_spinbox.custom_minimum_size = Vector2(55, 22)
+	zoom_spinbox.value_changed.connect(func(v: float) -> void:
 		zoom_factor = v / 100.0
 		if ruler_canvas: ruler_canvas.queue_redraw()
 		for t in tracks:
@@ -412,14 +421,14 @@ func _build_ui() -> void:
 	intensity_slider.max_value = 1.0
 	intensity_slider.step = 0.01
 	intensity_slider.value = 0.0
-	intensity_slider.custom_minimum_size = Vector2(130, 20)
+	intensity_slider.custom_minimum_size = Vector2(70, 16)
 	intensity_slider.value_changed.connect(_on_intensity_slider_changed)
 	toolbar.add_child(intensity_slider)
 	
 	intensity_lbl = Label.new()
 	intensity_lbl.text = "0% (Explore)"
 	intensity_lbl.add_theme_font_size_override("font_size", 10)
-	intensity_lbl.custom_minimum_size = Vector2(85, 0)
+	intensity_lbl.custom_minimum_size = Vector2(55, 0)
 	toolbar.add_child(intensity_lbl)
 	
 	main_vbox.add_child(toolbar)
@@ -428,7 +437,7 @@ func _build_ui() -> void:
 	var split = HSplitContainer.new()
 	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	split.split_offset = 320
+	split.split_offset = 0
 	main_vbox.add_child(split)
 	
 	# Sequencer Container
@@ -478,12 +487,14 @@ func _build_ui() -> void:
 	scroll_container = ScrollContainer.new()
 	scroll_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll_container.clip_contents = true
 	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	
 	lanes_vbox = VBoxContainer.new()
 	lanes_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lanes_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	lanes_vbox.clip_contents = true
 	lanes_vbox.add_theme_constant_override("separation", 6)
 	scroll_container.add_child(lanes_vbox)
 	seq_vbox.add_child(scroll_container)
@@ -492,7 +503,7 @@ func _build_ui() -> void:
 	
 	# 3. Right Inspector TabContainer (Transitions & Playlist Sequencer)
 	right_tab_container = TabContainer.new()
-	right_tab_container.custom_minimum_size = Vector2(250, 0)
+	right_tab_container.custom_minimum_size = Vector2(180, 0)
 	
 	# Tab 1: Transitions & Stingers
 	var trans_tab = VBoxContainer.new()

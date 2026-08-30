@@ -22,6 +22,8 @@ var click_spawn_position: Vector2 = Vector2(200, 200)
 
 func _init() -> void:
 	right_disconnects = true
+	clip_contents = true
+	custom_minimum_size = Vector2(0, 0)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	connection_request.connect(_on_connection_request)

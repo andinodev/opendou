@@ -64,7 +64,8 @@ var rtpc_faders_container: HBoxContainer:
 		return dynamic_controls_container
 
 func _init() -> void:
-	custom_minimum_size = Vector2(0, 36)
+	custom_minimum_size = Vector2(0, 32)
+	clip_contents = true
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_build_ui()
 
@@ -73,36 +74,39 @@ func _build_ui() -> void:
 	add_child(editor_audio_player)
 	
 	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_top", 4)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 4)
+	margin.anchors_preset = Control.PRESET_FULL_RECT
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 3)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 3)
 	add_child(margin)
 	
 	var main_hbox = HBoxContainer.new()
-	main_hbox.add_theme_constant_override("separation", 14)
+	main_hbox.add_theme_constant_override("separation", 6)
+	main_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_child(main_hbox)
 	
-	# 1. Transport Playback Controls (Compact 26px)
+	# 1. Transport Playback Controls (Compact 22px)
 	var buttons_hbox = HBoxContainer.new()
-	buttons_hbox.add_theme_constant_override("separation", 6)
+	buttons_hbox.add_theme_constant_override("separation", 4)
 	
 	play_btn = Button.new()
 	play_btn.text = "▶"
 	play_btn.tooltip_text = "Play Event (Space)"
-	play_btn.custom_minimum_size = Vector2(34, 26)
+	play_btn.custom_minimum_size = Vector2(28, 22)
 	play_btn.pressed.connect(_on_play_pressed)
 	
 	pause_btn = Button.new()
 	pause_btn.text = "⏸"
 	pause_btn.tooltip_text = "Pause"
-	pause_btn.custom_minimum_size = Vector2(34, 26)
+	pause_btn.custom_minimum_size = Vector2(28, 22)
 	pause_btn.pressed.connect(_on_pause_pressed)
 	
 	stop_btn = Button.new()
 	stop_btn.text = "⏹"
 	stop_btn.tooltip_text = "Stop All (Esc)"
-	stop_btn.custom_minimum_size = Vector2(34, 26)
+	stop_btn.custom_minimum_size = Vector2(28, 22)
 	stop_btn.pressed.connect(_on_stop_pressed)
 	
 	buttons_hbox.add_child(play_btn)
@@ -431,7 +435,7 @@ func add_precision_fader(p_name: StringName, min_v: float, max_v: float, def_v: 
 	slider.max_value = max_v
 	slider.step = step_v
 	slider.value = def_v
-	slider.custom_minimum_size = Vector2(75, 0)
+	slider.custom_minimum_size = Vector2(55, 0)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	
@@ -441,7 +445,7 @@ func add_precision_fader(p_name: StringName, min_v: float, max_v: float, def_v: 
 	spin.step = step_v
 	spin.value = def_v
 	spin.suffix = unit
-	spin.custom_minimum_size = Vector2(75, 0)
+	spin.custom_minimum_size = Vector2(60, 0)
 	spin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	
 	slider.value_changed.connect(func(val: float) -> void:

@@ -146,6 +146,7 @@ func _build_ui() -> void:
 	content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content_container.custom_minimum_size = Vector2(0, 0)
+	content_container.clip_contents = true
 	content_container.add_theme_constant_override("separation", 2)
 	add_child(content_container)
 	
@@ -155,38 +156,18 @@ func _build_ui() -> void:
 	
 	var header_margin = MarginContainer.new()
 	header_margin.add_theme_constant_override("margin_left", 6)
-	header_margin.add_theme_constant_override("margin_top", 4)
+	header_margin.add_theme_constant_override("margin_top", 3)
 	header_margin.add_theme_constant_override("margin_right", 6)
-	header_margin.add_theme_constant_override("margin_bottom", 4)
+	header_margin.add_theme_constant_override("margin_bottom", 3)
 	header_panel.add_child(header_margin)
 	
 	header_bar = HBoxContainer.new()
-	header_bar.add_theme_constant_override("separation", 6)
+	header_bar.add_theme_constant_override("separation", 4)
 	header_margin.add_child(header_bar)
 	
-	# Left Panel Toggle (Accordion + Modal Popout)
-	var syncs_btn_group = HBoxContainer.new()
-	syncs_btn_group.add_theme_constant_override("separation", 2)
-	
-	btn_toggle_syncs = Button.new()
-	btn_toggle_syncs.text = "◀ Syncs"
-	btn_toggle_syncs.tooltip_text = "Toggle Game Syncs Sidebar (Left)"
-	btn_toggle_syncs.toggle_mode = true
-	btn_toggle_syncs.button_pressed = true
-	btn_toggle_syncs.toggled.connect(_on_toggle_syncs_toggled)
-	btn_toggle_syncs.custom_minimum_size = Vector2(58, 24)
-	syncs_btn_group.add_child(btn_toggle_syncs)
-	
-	btn_modal_syncs = Button.new()
-	btn_modal_syncs.text = "🎮 Syncs"
-	btn_modal_syncs.tooltip_text = "Open Game Syncs in an independent Floating Window"
-	btn_modal_syncs.custom_minimum_size = Vector2(68, 24)
-	btn_modal_syncs.pressed.connect(open_syncs_modal)
-	syncs_btn_group.add_child(btn_modal_syncs)
-	header_bar.add_child(syncs_btn_group)
-	
+	# Title & Brand
 	var title_lbl = Label.new()
-	title_lbl.text = " 🎧 OpenDou"
+	title_lbl.text = "🎧 OpenDou"
 	title_lbl.add_theme_font_size_override("font_size", 11)
 	header_bar.add_child(title_lbl)
 	
@@ -201,6 +182,7 @@ func _build_ui() -> void:
 	btn_mode_graph.toggle_mode = true
 	btn_mode_graph.button_pressed = true
 	btn_mode_graph.button_group = ws_group
+	btn_mode_graph.custom_minimum_size = Vector2(62, 22)
 	btn_mode_graph.pressed.connect(func(): set_workspace_mode(WorkspaceMode.MODE_GRAPH))
 	header_bar.add_child(btn_mode_graph)
 	
@@ -209,6 +191,7 @@ func _build_ui() -> void:
 	btn_mode_music.tooltip_text = "Interactive Music Timeline & Sequencer"
 	btn_mode_music.toggle_mode = true
 	btn_mode_music.button_group = ws_group
+	btn_mode_music.custom_minimum_size = Vector2(62, 22)
 	btn_mode_music.pressed.connect(func(): set_workspace_mode(WorkspaceMode.MODE_MUSIC_DAW))
 	header_bar.add_child(btn_mode_music)
 	
@@ -217,19 +200,42 @@ func _build_ui() -> void:
 	btn_mode_dialogue.tooltip_text = "Voice-Over & Localization Spreadsheet Table"
 	btn_mode_dialogue.toggle_mode = true
 	btn_mode_dialogue.button_group = ws_group
+	btn_mode_dialogue.custom_minimum_size = Vector2(62, 22)
 	btn_mode_dialogue.pressed.connect(func(): set_workspace_mode(WorkspaceMode.MODE_DIALOGUE_GRID))
 	header_bar.add_child(btn_mode_dialogue)
 	
 	header_bar.add_child(VSeparator.new())
 	
-	# HDR Mixer Modal Button
+	# Floating Tool Launchers (Opción A: Independent Superposed Windows)
+	btn_modal_syncs = Button.new()
+	btn_modal_syncs.text = "🎮 Syncs"
+	btn_modal_syncs.tooltip_text = "Open Game Syncs in an independent Floating Window"
+	btn_modal_syncs.custom_minimum_size = Vector2(60, 22)
+	btn_modal_syncs.pressed.connect(open_syncs_modal)
+	header_bar.add_child(btn_modal_syncs)
+	
 	btn_toggle_mixer = Button.new()
 	btn_toggle_mixer.text = "🎚️ HDR"
 	btn_toggle_mixer.tooltip_text = "Open Global HDR Mixing Console & Ducking Matrix Floating Window"
 	btn_toggle_mixer.toggle_mode = true
 	btn_toggle_mixer.button_pressed = false
+	btn_toggle_mixer.custom_minimum_size = Vector2(56, 22)
 	btn_toggle_mixer.toggled.connect(_on_toggle_mixer_toggled)
 	header_bar.add_child(btn_toggle_mixer)
+	
+	btn_modal_profiler = Button.new()
+	btn_modal_profiler.text = "📊 Profiler"
+	btn_modal_profiler.tooltip_text = "Open Live Profiler in an independent Floating Window"
+	btn_modal_profiler.custom_minimum_size = Vector2(66, 22)
+	btn_modal_profiler.pressed.connect(open_profiler_modal)
+	header_bar.add_child(btn_modal_profiler)
+	
+	btn_modal_banks = Button.new()
+	btn_modal_banks.text = "📦 Banks"
+	btn_modal_banks.tooltip_text = "Open SoundBank Compiler in an independent Floating Window"
+	btn_modal_banks.custom_minimum_size = Vector2(58, 22)
+	btn_modal_banks.pressed.connect(open_banks_modal)
+	header_bar.add_child(btn_modal_banks)
 	
 	header_bar.add_child(VSeparator.new())
 	
@@ -239,36 +245,44 @@ func _build_ui() -> void:
 	event_selector.add_item("🎯 Vehicle_Engine_RPM.tres", 1)
 	event_selector.add_item("🎯 Footstep_Surface.tres", 2)
 	event_selector.item_selected.connect(_on_event_preset_selected)
-	event_selector.custom_minimum_size = Vector2(140, 24)
+	event_selector.custom_minimum_size = Vector2(110, 22)
 	header_bar.add_child(event_selector)
 	
 	# Save Button
 	btn_save = Button.new()
 	btn_save.text = "💾 Save"
 	btn_save.tooltip_text = "Save active suite/event to disk (Ctrl+S)"
-	btn_save.custom_minimum_size = Vector2(58, 24)
+	btn_save.custom_minimum_size = Vector2(48, 22)
 	btn_save.pressed.connect(_on_save_pressed)
 	header_bar.add_child(btn_save)
 	
-	# Locale Selector
+	# Contextual Locale Selector (Visible only in Voice Mode)
 	locale_selector = OptionButton.new()
 	locale_selector.add_item("🇺🇸 EN", 0)
 	locale_selector.add_item("🇪🇸 ES", 1)
 	locale_selector.add_item("🇯🇵 JA", 2)
 	locale_selector.add_item("🇨🇳 ZH", 3)
 	locale_selector.item_selected.connect(_on_locale_selected)
-	locale_selector.custom_minimum_size = Vector2(70, 24)
+	locale_selector.custom_minimum_size = Vector2(62, 22)
+	locale_selector.visible = false
 	header_bar.add_child(locale_selector)
 	
-	# Snapshot Mix Profile Selector
+	# Contextual Snapshot Mix Profile Selector (Visible only in Music Mode)
 	snap_selector = OptionButton.new()
 	snap_selector.add_item("📸 Default", 0)
 	snap_selector.add_item("📸 Tinnitus", 1)
 	snap_selector.add_item("📸 Pause", 2)
 	snap_selector.add_item("📸 Water", 3)
 	snap_selector.item_selected.connect(_on_snapshot_selected)
-	snap_selector.custom_minimum_size = Vector2(85, 24)
+	snap_selector.custom_minimum_size = Vector2(75, 22)
+	snap_selector.visible = false
 	header_bar.add_child(snap_selector)
+	
+	# Hidden Sidebar buttons kept for API compatibility
+	btn_toggle_syncs = Button.new()
+	btn_toggle_syncs.visible = false
+	btn_toggle_profiler = Button.new()
+	btn_toggle_profiler.visible = false
 	
 	var spacer = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -280,7 +294,7 @@ func _build_ui() -> void:
 	tcp_status_btn.tooltip_text = "Hot-connect to game session on localhost:3016"
 	tcp_status_btn.toggle_mode = true
 	tcp_status_btn.toggled.connect(_on_tcp_toggled)
-	tcp_status_btn.custom_minimum_size = Vector2(65, 24)
+	tcp_status_btn.custom_minimum_size = Vector2(56, 22)
 	header_bar.add_child(tcp_status_btn)
 	
 	# Detach / Attach Button
@@ -288,36 +302,8 @@ func _build_ui() -> void:
 	detach_btn.text = "🗗 Detach"
 	detach_btn.tooltip_text = "Detach Studio to floating multi-monitor window"
 	detach_btn.pressed.connect(toggle_detach_window)
-	detach_btn.custom_minimum_size = Vector2(64, 24)
+	detach_btn.custom_minimum_size = Vector2(56, 22)
 	header_bar.add_child(detach_btn)
-	
-	# Right Panel Toggle (Accordion + Modal Popout)
-	var profiler_btn_group = HBoxContainer.new()
-	profiler_btn_group.add_theme_constant_override("separation", 2)
-	
-	btn_toggle_profiler = Button.new()
-	btn_toggle_profiler.text = "Profiler ▶"
-	btn_toggle_profiler.tooltip_text = "Toggle Profiler & SoundBanks Panel (Right)"
-	btn_toggle_profiler.toggle_mode = true
-	btn_toggle_profiler.button_pressed = true
-	btn_toggle_profiler.toggled.connect(_on_toggle_profiler_toggled)
-	btn_toggle_profiler.custom_minimum_size = Vector2(68, 24)
-	profiler_btn_group.add_child(btn_toggle_profiler)
-	
-	btn_modal_profiler = Button.new()
-	btn_modal_profiler.text = "📊 Profiler"
-	btn_modal_profiler.tooltip_text = "Open Live Profiler in an independent Floating Window"
-	btn_modal_profiler.custom_minimum_size = Vector2(72, 24)
-	btn_modal_profiler.pressed.connect(open_profiler_modal)
-	profiler_btn_group.add_child(btn_modal_profiler)
-	
-	btn_modal_banks = Button.new()
-	btn_modal_banks.text = "📦 Banks"
-	btn_modal_banks.tooltip_text = "Open SoundBank Compiler in an independent Floating Window"
-	btn_modal_banks.custom_minimum_size = Vector2(68, 24)
-	btn_modal_banks.pressed.connect(open_banks_modal)
-	profiler_btn_group.add_child(btn_modal_banks)
-	header_bar.add_child(profiler_btn_group)
 	
 	content_container.add_child(header_panel)
 	
@@ -325,14 +311,15 @@ func _build_ui() -> void:
 	main_hsplit = HSplitContainer.new()
 	main_hsplit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main_hsplit.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_hsplit.split_offset = 180
+	main_hsplit.split_offset = 0
 	content_container.add_child(main_hsplit)
 	
-	# Column 1: Game Syncs Manager (Left Collapsible inside ScrollContainer)
+	# Column 1: Game Syncs Manager (Collapsed by default, floating modal available)
 	game_syncs_scroll = ScrollContainer.new()
 	game_syncs_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	game_syncs_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	game_syncs_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	game_syncs_scroll.visible = false
 	
 	game_syncs_panel = OpenDouGameSyncsPanelClass.new()
 	game_syncs_panel.custom_minimum_size = Vector2(0, 0)
@@ -343,13 +330,15 @@ func _build_ui() -> void:
 	center_right_hsplit = HSplitContainer.new()
 	center_right_hsplit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center_right_hsplit.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center_right_hsplit.split_offset = 580
+	center_right_hsplit.split_offset = 0
 	main_hsplit.add_child(center_right_hsplit)
 	
-	# Column 2: Center Workspaces Container Stack (Occupies 100% height)
+	# Column 2: Center Workspaces Container Stack (Occupies 100% width and height)
 	center_workspace_box = PanelContainer.new()
 	center_workspace_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center_workspace_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	center_workspace_box.custom_minimum_size = Vector2(0, 0)
+	center_workspace_box.clip_contents = true
 	center_right_hsplit.add_child(center_workspace_box)
 	
 	# 2a. Graph Editor Canvas
@@ -375,11 +364,12 @@ func _build_ui() -> void:
 	dialogue_grid.visible = false
 	center_workspace_box.add_child(dialogue_grid)
 	
-	# Column 3: Right Inspector & Profiler Tabs (Right Collapsible inside ScrollContainer)
+	# Column 3: Right Inspector & Profiler Tabs (Collapsed by default, floating modal available)
 	right_tabs_scroll = ScrollContainer.new()
 	right_tabs_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right_tabs_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right_tabs_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	right_tabs_scroll.visible = false
 	
 	right_tabs = TabContainer.new()
 	right_tabs.custom_minimum_size = Vector2(0, 0)
@@ -568,45 +558,37 @@ func set_workspace_mode(mode: WorkspaceMode) -> void:
 	if btn_mode_music: btn_mode_music.button_pressed = (mode == WorkspaceMode.MODE_MUSIC_DAW)
 	if btn_mode_dialogue: btn_mode_dialogue.button_pressed = (mode == WorkspaceMode.MODE_DIALOGUE_GRID)
 	
+	# Contextual toolbar widgets
+	if locale_selector: locale_selector.visible = (mode == WorkspaceMode.MODE_DIALOGUE_GRID)
+	if snap_selector: snap_selector.visible = (mode == WorkspaceMode.MODE_MUSIC_DAW)
+	
+	# Sidebars stay collapsed so active workspace occupies 100% full screen width
+	if game_syncs_panel: game_syncs_panel.visible = false
+	if game_syncs_scroll: game_syncs_scroll.visible = false
+	if btn_toggle_syncs: btn_toggle_syncs.button_pressed = false
+	if right_tabs: right_tabs.visible = false
+	if right_tabs_scroll: right_tabs_scroll.visible = false
+	if btn_toggle_profiler: btn_toggle_profiler.button_pressed = false
+	
 	# Context-aware bottom transport bar adaptation
 	if transport_bar:
 		transport_bar.set_workspace_context(int(mode))
 	
-	# Update event selector items & auto-collapse sidebars for full-width DAW and Voice views
+	# Update event selector items
 	event_selector.clear()
 	match mode:
 		WorkspaceMode.MODE_GRAPH:
 			for i in range(SFX_EVENTS.size()):
 				event_selector.add_item("🎯 " + str(SFX_EVENTS[i]), i)
-			btn_toggle_syncs.button_pressed = true
-			if game_syncs_panel: game_syncs_panel.visible = true
-			if game_syncs_scroll: game_syncs_scroll.visible = true
-			if right_tabs: right_tabs.visible = true
-			if right_tabs_scroll: right_tabs_scroll.visible = true
-			btn_toggle_profiler.button_pressed = true
 			transport_bar.set_audition_event(SFX_EVENTS[0])
 		WorkspaceMode.MODE_MUSIC_DAW:
 			for i in range(MUSIC_EVENTS.size()):
 				var dirty_marker = " *" if music_timeline and music_timeline.is_dirty else ""
 				event_selector.add_item("🎼 " + str(MUSIC_EVENTS[i]) + dirty_marker, i)
-			# Auto-collapse sidebars to give 100% width to Music Timeline
-			btn_toggle_syncs.button_pressed = false
-			if game_syncs_panel: game_syncs_panel.visible = false
-			if game_syncs_scroll: game_syncs_scroll.visible = false
-			if right_tabs: right_tabs.visible = false
-			if right_tabs_scroll: right_tabs_scroll.visible = false
-			btn_toggle_profiler.button_pressed = false
 			transport_bar.set_audition_event(MUSIC_EVENTS[0])
 		WorkspaceMode.MODE_DIALOGUE_GRID:
 			for i in range(DIALOGUE_EVENTS.size()):
 				event_selector.add_item("🗣️ " + str(DIALOGUE_EVENTS[i]), i)
-			# Auto-collapse sidebars to give 100% width to Localization Table
-			btn_toggle_syncs.button_pressed = false
-			if game_syncs_panel: game_syncs_panel.visible = false
-			if game_syncs_scroll: game_syncs_scroll.visible = false
-			if right_tabs: right_tabs.visible = false
-			if right_tabs_scroll: right_tabs_scroll.visible = false
-			btn_toggle_profiler.button_pressed = false
 			transport_bar.set_audition_event(DIALOGUE_EVENTS[0])
 
 func _on_transport_rtpc_changed(rtpc_name: StringName, value: float) -> void:
@@ -618,8 +600,8 @@ func _on_transport_rtpc_changed(rtpc_name: StringName, value: float) -> void:
 func _on_transport_bpm_changed(bpm: float) -> void:
 	if music_timeline:
 		music_timeline.clock.bpm = bpm
-		if music_timeline.bpm_spin:
-			music_timeline.bpm_spin.value = bpm
+		if music_timeline.bpm_spinbox:
+			music_timeline.bpm_spinbox.value = bpm
 		music_timeline._on_bpm_changed(bpm)
 
 func _on_transport_intensity_changed(val: float) -> void:
@@ -755,6 +737,7 @@ func detach_and_maximize() -> void:
 		if detached_window:
 			detached_window.mode = Window.MODE_MAXIMIZED
 			detached_window.grab_focus()
+			_on_detached_window_resized()
 		return
 		
 	var root = get_editor_root_node()
@@ -769,16 +752,19 @@ func detach_and_maximize() -> void:
 		
 	detached_window = Window.new()
 	detached_window.title = "🎧 OpenDou Audio Studio Suite (Maximized)"
-	detached_window.min_size = Vector2i(1000, 600)
+	detached_window.min_size = Vector2i(800, 480)
 	detached_window.wrap_controls = false
 	detached_window.close_requested.connect(reattach_to_dock)
 	
+	content_container.clip_contents = true
 	content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content_container.custom_minimum_size = Vector2(0, 0)
 	detached_window.add_child(content_container)
-	content_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	content_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 0)
 	root.add_child(detached_window)
+	
+	detached_window.size_changed.connect(_on_detached_window_resized)
 	
 	if root.is_inside_tree():
 		detached_window.popup_centered()
@@ -786,10 +772,17 @@ func detach_and_maximize() -> void:
 		detached_window.grab_focus()
 	else:
 		detached_window.mode = Window.MODE_MAXIMIZED
+		
+	_on_detached_window_resized()
 	
 	if detach_btn:
 		detach_btn.text = "📥 Dock"
 		detach_btn.tooltip_text = "Reattach OpenDou Studio back to Godot bottom dock"
+
+func _on_detached_window_resized() -> void:
+	if detached_window and content_container and content_container.get_parent() == detached_window:
+		content_container.position = Vector2.ZERO
+		content_container.size = Vector2(detached_window.size)
 
 func reattach_to_dock() -> void:
 	if not is_detached:
