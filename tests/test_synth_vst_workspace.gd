@@ -166,4 +166,164 @@ static func run_all() -> Array[String]:
 		if stereo_stream.loop_end != int(0.2 * 44100):
 			failures.append("Test 5 Failed: AudioStreamWAV loop_end mismatch")
 
+	# Test 6: OpenDouKnob interactive control
+	var KnobClass = load("res://addons/opendou/editor/controls/opendou_knob.gd")
+	if KnobClass == null:
+		failures.append("Test 6 Failed: opendou_knob.gd failed to load")
+	else:
+		var knob = KnobClass.new()
+		if knob == null:
+			failures.append("Test 6 Failed: Failed to instantiate OpenDouKnob")
+		else:
+			knob.label = "Cutoff"
+			knob.min_value = 20.0
+			knob.max_value = 20000.0
+			knob.default_value = 1000.0
+			knob.suffix = " Hz"
+			knob.value = 500.0
+
+			if not is_equal_approx(knob.value, 500.0):
+				failures.append("Test 6 Failed: knob value assignment failed (got %f, expected 500.0)" % knob.value)
+
+			# Clamping check
+			knob.value = 25000.0
+			if not is_equal_approx(knob.value, 20000.0):
+				failures.append("Test 6 Failed: knob max clamp failed (got %f, expected 20000.0)" % knob.value)
+
+			knob.value = 5.0
+			if not is_equal_approx(knob.value, 20.0):
+				failures.append("Test 6 Failed: knob min clamp failed (got %f, expected 20.0)" % knob.value)
+
+			# Signal emission
+			var emitted_val = [-1.0]
+			knob.value_changed.connect(func(v: float): emitted_val[0] = v)
+			knob.value = 1234.0
+			if not is_equal_approx(emitted_val[0], 1234.0):
+				failures.append("Test 6 Failed: value_changed signal not emitted correctly (got %f)" % emitted_val[0])
+
+			# Double click reset to default_value
+			var dbl_click_event = InputEventMouseButton.new()
+			dbl_click_event.button_index = MOUSE_BUTTON_LEFT
+			dbl_click_event.pressed = true
+			dbl_click_event.double_click = true
+			knob._gui_input(dbl_click_event)
+			if not is_equal_approx(knob.value, 1000.0):
+				failures.append("Test 6 Failed: double-click reset failed to restore default_value (got %f, expected 1000.0)" % knob.value)
+
+			# Drag interaction
+			var press_event = InputEventMouseButton.new()
+			press_event.button_index = MOUSE_BUTTON_LEFT
+			press_event.pressed = true
+			press_event.position = Vector2(30, 30)
+			knob._gui_input(press_event)
+
+			var motion_event = InputEventMouseMotion.new()
+			motion_event.relative = Vector2(0, -50) # Drag up increases value
+			knob._gui_input(motion_event)
+
+			if knob.value <= 1000.0:
+				failures.append("Test 6 Failed: upward drag did not increase knob value (got %f)" % knob.value)
+
+			var release_event = InputEventMouseButton.new()
+			release_event.button_index = MOUSE_BUTTON_LEFT
+			release_event.pressed = false
+			knob._gui_input(release_event)
+
+			knob.free()
+
+	# Test 7: OpenDouADSREditor interactive control
+	var ADSRClass = load("res://addons/opendou/editor/controls/opendou_adsr_editor.gd")
+	if ADSRClass == null:
+		failures.append("Test 7 Failed: opendou_adsr_editor.gd failed to load")
+	else:
+		var adsr = ADSRClass.new()
+		if adsr == null:
+			failures.append("Test 7 Failed: Failed to instantiate OpenDouADSREditor")
+		else:
+			adsr.attack = 0.05
+			adsr.decay = 0.1
+			adsr.sustain = 0.7
+			adsr.release = 0.25
+			adsr.max_time = 3.0
+
+			if not is_equal_approx(adsr.attack, 0.05) or not is_equal_approx(adsr.sustain, 0.7):
+				failures.append("Test 7 Failed: ADSR properties assignment mismatch")
+
+			# Signal emission
+			var emitted_adsr = [-1.0, -1.0, -1.0, -1.0]
+			adsr.adsr_changed.connect(func(a: float, d: float, s: float, r: float):
+				emitted_adsr[0] = a
+				emitted_adsr[1] = d
+				emitted_adsr[2] = s
+				emitted_adsr[3] = r
+			)
+
+			adsr.set_adsr(0.12, 0.22, 0.55, 0.33)
+			if not is_equal_approx(emitted_adsr[0], 0.12) or not is_equal_approx(emitted_adsr[2], 0.55):
+				failures.append("Test 7 Failed: adsr_changed signal not emitted from set_adsr")
+
+			adsr.free()
+
+	# Test 8: OpenDouWaveformPlayhead control
+	var PlayheadClass = load("res://addons/opendou/editor/controls/opendou_waveform_playhead.gd")
+	if PlayheadClass == null:
+		failures.append("Test 8 Failed: opendou_waveform_playhead.gd failed to load")
+	else:
+		var playhead = PlayheadClass.new()
+		if playhead == null:
+			failures.append("Test 8 Failed: Failed to instantiate OpenDouWaveformPlayhead")
+		else:
+			var test_samples = PackedFloat32Array([0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5])
+			playhead.set_waveform(test_samples)
+			if playhead.waveform_samples.size() != 8:
+				failures.append("Test 8 Failed: waveform samples not stored correctly")
+
+			playhead.set_playhead(0.65)
+			if not is_equal_approx(playhead.playhead_progress, 0.65):
+				failures.append("Test 8 Failed: playhead_progress mismatch (got %f, expected 0.65)" % playhead.playhead_progress)
+
+			playhead.set_playhead(-1.0)
+			if playhead.playhead_progress >= 0.0:
+				failures.append("Test 8 Failed: negative playhead should deactivate playhead indicator")
+
+			playhead.set_adsr_overlay(0.1, 0.2, 0.6, 0.3, 1.0)
+			if not is_equal_approx(playhead.adsr_overlay.attack, 0.1) or not is_equal_approx(playhead.adsr_overlay.sustain, 0.6):
+				failures.append("Test 8 Failed: set_adsr_overlay values mismatch")
+
+			playhead.free()
+
+	# Test 9: OpenDouVUMeter control
+	var VUMeterClass = load("res://addons/opendou/editor/controls/opendou_vu_meter.gd")
+	if VUMeterClass == null:
+		failures.append("Test 9 Failed: opendou_vu_meter.gd failed to load")
+	else:
+		var vu = VUMeterClass.new()
+		if vu == null:
+			failures.append("Test 9 Failed: Failed to instantiate OpenDouVUMeter")
+		else:
+			vu.set_level(-12.0, -18.0)
+			if not is_equal_approx(vu.db_left, -12.0) or not is_equal_approx(vu.db_right, -18.0):
+				failures.append("Test 9 Failed: VU meter levels mismatch (got L:%f, R:%f)" % [vu.db_left, vu.db_right])
+			if vu.clipped_left or vu.clipped_right:
+				failures.append("Test 9 Failed: VU meter false positive clip at -12dB")
+
+			# Trigger clip
+			vu.set_level(0.2, -6.0)
+			if not vu.clipped_left:
+				failures.append("Test 9 Failed: VU meter should detect clip at +0.2dB on left channel")
+			if vu.clipped_right:
+				failures.append("Test 9 Failed: VU meter right channel should not clip at -6dB")
+
+			# Level drops but clip stays latched
+			vu.set_level(-30.0, -30.0)
+			if not vu.clipped_left:
+				failures.append("Test 9 Failed: VU meter clip should remain latched after level drops")
+
+			# Reset clip
+			vu.reset_clip()
+			if vu.clipped_left or vu.clipped_right:
+				failures.append("Test 9 Failed: reset_clip did not clear clip flags")
+
+			vu.free()
+
 	return failures
