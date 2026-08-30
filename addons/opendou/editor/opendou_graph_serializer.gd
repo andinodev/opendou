@@ -175,7 +175,8 @@ static func populate_graph_from_composite(root_node: AudioLogicNode, graph_edit:
 	graph_edit.clear_connections()
 	for child in graph_edit.get_children():
 		if child is OpenDouBaseGraphNodeClass:
-			child.queue_free()
+			graph_edit.remove_child(child)
+			child.free()
 			
 	var output_node = OpenDouOutputGraphNodeClass.new()
 	output_node.name = "OutputNode"
