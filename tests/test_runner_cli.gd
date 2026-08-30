@@ -2,24 +2,13 @@ extends SceneTree
 
 const TestAllClass = preload("res://tests/test_all.gd")
 
-var _has_run: bool = false
-
 func _init() -> void:
-	_run()
-
-func _initialize() -> void:
-	_run()
-
-func _run() -> void:
-	if _has_run:
-		return
-	_has_run = true
 	var res = TestAllClass.run_suite()
 	var total: int = res["total"]
 	var passed: int = res["passed"]
 	var failures: Array = res["failures"]
 	
-	var log_path = ProjectSettings.globalize_path("res://test_results.log")
+	var log_path: String = ProjectSettings.globalize_path("res://test_results.log")
 	var file = FileAccess.open(log_path, FileAccess.WRITE)
 	if file:
 		if failures.is_empty():

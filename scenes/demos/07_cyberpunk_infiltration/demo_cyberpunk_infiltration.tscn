@@ -3,6 +3,12 @@
 [ext_resource type="Script" uid="uid://bdss0jb0xwsej" path="res://scenes/demos/07_cyberpunk_infiltration/demo_cyberpunk_infiltration.gd" id="1_demo_script"]
 [ext_resource type="Script" uid="uid://bw6odb6jfd2eg" path="res://scenes/demos/master_sandbox/player_controller.gd" id="2_nwf45"]
 [ext_resource type="Script" uid="uid://bvsr7unw4scmy" path="res://addons/opendou/editor/opendou_radar_view.gd" id="2_radar_script"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_event_player_3d.gd" id="4_p3d"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_event_player.gd" id="5_pglob"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_room_3d.gd" id="6_room"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_portal_3d.gd" id="7_portal"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_reflector_3d.gd" id="8_refl"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_music_player.gd" id="9_music"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.04, 0.05, 0.12, 1)
@@ -56,6 +62,18 @@ roughness = 0.05
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 height = 1.8
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_rooftop"]
+size = Vector3(30, 10, 30)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_server"]
+size = Vector3(24, 6, 20)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_drainage"]
+size = Vector3(24, 6, 16)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_extraction"]
+size = Vector3(35, 12, 50)
+
 [node name="CyberpunkInfiltrationDemo" type="Node3D" unique_id=1285350492]
 script = ExtResource("1_demo_script")
 
@@ -108,6 +126,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 3, 0)
 use_collision = true
 size = Vector3(1, 6, 20)
 material = SubResource("StandardMaterial3D_concrete")
+script = ExtResource("8_refl")
+reflector_name = &"Rooftop_Wall_Reflector"
+
+[node name="RooftopRoom" type="Area3D" parent="LevelGeometry/Sector1_Rooftop" unique_id=118274910]
+script = ExtResource("6_room")
+room_name = &"Rooftop_Exterior"
+material_preset = "Concrete"
+
+[node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector1_Rooftop/RooftopRoom" unique_id=118274911]
+shape = SubResource("BoxShape3D_rooftop")
 
 [node name="NeonSignCyan" type="CSGBox3D" parent="LevelGeometry/Sector1_Rooftop" unique_id=238960331]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.4, 4, 0)
@@ -124,8 +152,11 @@ omni_range = 14.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 0)
 volume_db = -12.0
 unit_size = 2.5
-max_distance = 15.0
 autoplay = true
+max_distance = 15.0
+script = ExtResource("4_p3d")
+event_name = &"Rain_Ambience"
+bus_category = "Ambience"
 
 [node name="Sector2_ServerRoom" type="Node3D" parent="LevelGeometry" unique_id=2017983675]
 
@@ -162,6 +193,20 @@ use_collision = true
 size = Vector3(0.4, 3.6, 3.6)
 material = SubResource("StandardMaterial3D_warning")
 
+[node name="ServerAirlockPortal" type="Node3D" parent="LevelGeometry/Sector2_ServerRoom" unique_id=1476219714]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 1.8, 0)
+script = ExtResource("7_portal")
+portal_name = &"Server_Airlock"
+open_factor = 1.0
+
+[node name="ServerRoomArea" type="Area3D" parent="LevelGeometry/Sector2_ServerRoom" unique_id=198274910]
+script = ExtResource("6_room")
+room_name = &"Server_Room"
+material_preset = "Wood"
+
+[node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector2_ServerRoom/ServerRoomArea" unique_id=198274911]
+shape = SubResource("BoxShape3D_server")
+
 [node name="ServerRack1" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom" unique_id=1530172722]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 2, -5)
 use_collision = true
@@ -184,8 +229,11 @@ material = SubResource("StandardMaterial3D_metal")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 volume_db = -14.0
 unit_size = 2.5
-max_distance = 15.0
 autoplay = true
+max_distance = 15.0
+script = ExtResource("4_p3d")
+event_name = &"Server_Hum"
+bus_category = "Ambience"
 
 [node name="ServerLight" type="OmniLight3D" parent="LevelGeometry/Sector2_ServerRoom" unique_id=27430178]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
@@ -229,12 +277,25 @@ use_collision = true
 size = Vector3(22, 0.2, 14)
 material = SubResource("StandardMaterial3D_water")
 
+[node name="DrainageRoom" type="Area3D" parent="LevelGeometry/Sector3_FloodedDrainage" unique_id=178274910]
+script = ExtResource("6_room")
+room_name = &"Flooded_Drainage"
+material_preset = "Concrete"
+custom_reverb_time = 3.5
+snapshot_on_enter = &"Underwater_Muffle"
+
+[node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector3_FloodedDrainage/DrainageRoom" unique_id=178274911]
+shape = SubResource("BoxShape3D_drainage")
+
 [node name="WaterEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector3_FloodedDrainage" unique_id=316751653]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 volume_db = -12.0
 unit_size = 2.5
-max_distance = 15.0
 autoplay = true
+max_distance = 15.0
+script = ExtResource("4_p3d")
+event_name = &"Water_Stream"
+bus_category = "Ambience"
 
 [node name="DrainageLight" type="OmniLight3D" parent="LevelGeometry/Sector3_FloodedDrainage" unique_id=1401071397]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
@@ -244,6 +305,14 @@ omni_range = 10.0
 
 [node name="Sector4_ExtractionArena" type="Node3D" parent="LevelGeometry" unique_id=2040097644]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0, 0)
+
+[node name="ExtractionArenaRoom" type="Area3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=158274910]
+script = ExtResource("6_room")
+room_name = &"Extraction_Arena"
+material_preset = "Concrete"
+
+[node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector4_ExtractionArena/ExtractionArenaRoom" unique_id=158274911]
+shape = SubResource("BoxShape3D_extraction")
 
 [node name="HelipadFloor" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=1434076798]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
@@ -309,15 +378,22 @@ material = SubResource("StandardMaterial3D_metal")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 2.5, 0)
 volume_db = -16.0
 unit_size = 2.5
-max_distance = 15.0
 autoplay = true
+max_distance = 15.0
+script = ExtResource("4_p3d")
+event_name = &"Turret_Scan"
+enable_dynamic_occlusion = true
+bus_category = "SFX"
 
 [node name="RadioBeaconEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=2142646796]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
 volume_db = -16.0
 unit_size = 2.5
-max_distance = 15.0
 autoplay = true
+max_distance = 15.0
+script = ExtResource("4_p3d")
+event_name = &"Radio_Beacon"
+bus_category = "SFX"
 
 [node name="ArenaBeaconLight" type="OmniLight3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=961045293]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
@@ -353,12 +429,29 @@ omni_range = 8.0
 target_position = Vector3(0, -1.2, 0)
 
 [node name="FootstepAudio" type="AudioStreamPlayer" parent="Player" unique_id=1566523093]
+script = ExtResource("5_pglob")
+event_name = &"Footstep"
+switch_group = &"Surface"
+bus_category = "SFX"
 
 [node name="WeaponAudio" type="AudioStreamPlayer" parent="Player" unique_id=1771967483]
+script = ExtResource("5_pglob")
+event_name = &"Gunshot_Rifle"
+bus_category = "SFX"
 
 [node name="RadioAudio" type="AudioStreamPlayer" parent="Player" unique_id=1780149803]
+script = ExtResource("5_pglob")
+event_name = &"Radio_Transmission"
+bus_category = "Voice"
 
 [node name="MusicAudio" type="AudioStreamPlayer" parent="Player" unique_id=259454720]
+script = ExtResource("5_pglob")
+bus_category = "Music"
+
+[node name="MusicPlayer" type="Node" parent="Player" unique_id=259454721]
+script = ExtResource("9_music")
+suite_name = &"Exploration_Ambient_Theme.tres"
+auto_play = true
 
 [node name="TacticalHUD" type="CanvasLayer" parent="." unique_id=938583822]
 
@@ -560,8 +653,8 @@ text = "🎼 Suite:"
 
 [node name="OptSuite" type="OptionButton" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=892374182]
 layout_mode = 2
-item_count = 3
 selected = 0
+item_count = 3
 popup/item_0/text = "Exploration_Ambient_Theme.tres"
 popup/item_0/id = 0
 popup/item_1/text = "Dynamic_Combat_Suite.tres"

@@ -30,6 +30,81 @@
 			"max": 100.0,
 			"min": 0.0
 		},
+		"RTPC_13": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_14": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_15": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_16": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_17": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_18": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_19": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_20": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_21": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_22": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_23": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_24": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_25": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_26": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_27": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
 		"RTPC_5": {
 			"default": 50.0,
 			"max": 100.0,

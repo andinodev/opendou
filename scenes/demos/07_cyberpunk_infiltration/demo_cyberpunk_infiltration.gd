@@ -66,6 +66,14 @@ const SECTOR_POSITIONS: Dictionary = {
 @onready var weapon_audio: AudioStreamPlayer = get_node_or_null("Player/WeaponAudio")
 @onready var radio_audio: AudioStreamPlayer = get_node_or_null("Player/RadioAudio")
 @onready var music_audio: AudioStreamPlayer = get_node_or_null("Player/MusicAudio")
+@onready var music_player: Node = get_node_or_null("Player/MusicPlayer")
+
+# Declarative Environment Nodes
+@onready var portal_3d: Node3D = get_node_or_null("LevelGeometry/Sector2_ServerRoom/ServerAirlockPortal")
+@onready var room_rooftop_node: Area3D = get_node_or_null("LevelGeometry/Sector1_Rooftop/RooftopRoom")
+@onready var room_server_node: Area3D = get_node_or_null("LevelGeometry/Sector2_ServerRoom/ServerRoomArea")
+@onready var room_drainage_node: Area3D = get_node_or_null("LevelGeometry/Sector3_FloodedDrainage/DrainageRoom")
+@onready var room_extraction_node: Area3D = get_node_or_null("LevelGeometry/Sector4_ExtractionArena/ExtractionArenaRoom")
 
 # Music Suite & Stems
 var active_music_suite: StringName = &"Exploration_Ambient_Theme.tres"
@@ -581,6 +589,8 @@ func toggle_server_airlock() -> void:
 	is_airlock_open = not is_airlock_open
 	if server_portal:
 		server_portal.open_factor = 1.0 if is_airlock_open else 0.05
+	if portal_3d and "open_factor" in portal_3d:
+		portal_3d.open_factor = 1.0 if is_airlock_open else 0.05
 	if server_airlock_mesh:
 		server_airlock_mesh.scale.y = 0.1 if is_airlock_open else 1.0
 		server_airlock_mesh.position.y = 3.6 if is_airlock_open else 1.8
@@ -598,6 +608,8 @@ func set_combat_intensity(val: float) -> void:
 			music_director.current_index = 2 # Combat_Alert
 		else:
 			music_director.current_index = 3 # Extraction_Outro
+	if music_player and music_player.has_method("set_combat_intensity"):
+		music_player.set_combat_intensity(combat_intensity)
 	_update_stem_levels()
 	_update_hud()
 

@@ -390,4 +390,3 @@ static func create_nature_foley_loop(duration_sec: float = 2.0) -> AudioStreamWA
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_end = num_samples
 	return stream
-
