@@ -6,6 +6,18 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-045` - Integración de Motor de Síntesis Modular Procedimental & Preset Studio en Nodos Declarativos y Showcase AAA**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Integración Dinámica de Presets Sintéticos en Nodos Declarativos (`OpenDouEventPlayer3D`, `OpenDouEventPlayer2D`, `OpenDouEventPlayer`):**
+      * Sustitución de enumeraciones estáticas por exportación dinámica de propiedades mediante `_get_property_list()`, consultando en caliente `SynthPresetRegistry` para poblar el Inspector de Godot con todos los presets nativos y de usuario registrados en `opendou_synth_presets.json`.
+      * Pipeline de síntesis procedural desacoplado: `_apply_synth_preset()` consulta prioritariamente `SynthPresetRegistry.get_singleton().get_preset_stream()` para hornear flujos `AudioStreamWAV` multicapa mediante `ModularSynthEngine`, con fallback elegante a la síntesis algorítmica de `AudioSynthesizer`.
+      * Auto-inferencia reactiva de presets (`_auto_infer_synth_preset`): resolución por coincidencia de subcadena sobre el registro de presets dinámicos.
+    * **Verificación y Sincronización del Showcase AAA Cyberpunk (`demo_cyberpunk_infiltration.tscn`):**
+      * Sincronización de los 9 emisores 7.1 del Sector 5 (Biosfera) con sus presets canónicos en el archivo JSON (`"Wind_Canopy"`, `"Waterfall_Stream"`, `"Bird_Chirp"`, `"Thunder_Rumble"`, `"Cicada_Swarm"`, `"Frog_Croak"`, `"Rain_Atmosphere"`, `"Water_Droplet"`, `"Cyber_Hornet"`).
+      * Comprobación de generación de audio procedural 100% en tiempo real sin requerir archivos de audio WAV/OGG pregrabados en disco.
+    * **Suite de Pruebas Automatizadas:** 215 pruebas unitarias e integración en `test_runner_cli.gd` pasando al 100% (código de salida 0, sin errores ni advertencias).
+
 * **`TASK-044` - Sector 5: Biosfera 7.1 Surround Showcase (Cyberpunk Infiltration Demo)**
   * **Fecha:** 2026-08-30
   * **Resumen:**

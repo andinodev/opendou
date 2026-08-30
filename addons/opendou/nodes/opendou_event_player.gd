@@ -22,9 +22,28 @@ const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthe
 @export var stop_on_tree_exit: bool = true
 
 @export_group("Procedural Synthesis")
-@export_enum("None", "Rain", "Server_Hum", "Water_Stream", "Turret_Scan", "Radio_Beacon", "Footstep", "Gunshot", "Engine", "Tone", "Wind_Canopy", "Bird_Chirp", "Thunder_Rumble", "Cicada_Swarm", "Frog_Croak", "Water_Droplet", "Cyber_Hornet") var synth_preset: String = "None"
+var synth_preset: String = "None"
 @export var synth_duration: float = 2.0
 @export var synth_frequency: float = 440.0
+
+func _get_property_list() -> Array[Dictionary]:
+	var properties: Array[Dictionary] = []
+	var presets: Array[String] = ["None"]
+	var reg = load("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
+	if reg != null:
+		var singleton = reg.get_singleton()
+		if singleton != null:
+			for p_name in singleton.get_preset_names():
+				presets.append(str(p_name))
+	var hint_str = ",".join(presets)
+	properties.append({
+		"name": "synth_preset",
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_ENUM,
+		"hint_string": hint_str,
+		"usage": PROPERTY_USAGE_DEFAULT
+	})
+	return properties
 
 @export_group("Game Syncs")
 @export var rtpc_bindings: Dictionary = {}
@@ -152,6 +171,20 @@ func _get_manager() -> AudioEventManager:
 	return null
 
 func _apply_synth_preset() -> void:
+	if synth_preset == "None" or synth_preset.is_empty():
+		return
+		
+	var reg = load("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
+	if reg != null:
+		var singleton = reg.get_singleton()
+		if singleton != null:
+			var p_dict = singleton.get_preset(StringName(synth_preset))
+			if not p_dict.is_empty():
+				var s = singleton.get_preset_stream(StringName(synth_preset))
+				if s != null:
+					stream = s
+					return
+
 	match synth_preset:
 		"Rain":
 			stream = AudioSynthesizerClass.create_rain_ambient_loop(synth_duration)
@@ -187,6 +220,19 @@ func _apply_synth_preset() -> void:
 			stream = AudioSynthesizerClass.create_cyber_hornet_loop(synth_duration if synth_duration != 2.0 else 1.5)
 
 func _auto_infer_synth_preset() -> void:
+	var reg = load("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
+	if reg != null:
+		var singleton = reg.get_singleton()
+		if singleton != null:
+			var names: Array[StringName] = singleton.get_preset_names()
+			var ev_str: String = str(event_name).to_lower()
+			for p_name in names:
+				var p_str: String = str(p_name).to_lower()
+				if ev_str.contains(p_str) or p_str.contains(ev_str):
+					synth_preset = str(p_name)
+					_apply_synth_preset()
+					return
+
 	var n: String = str(event_name).to_lower()
 	if n.contains("wind") or n.contains("canopy"):
 		synth_preset = "Wind_Canopy"
@@ -218,3 +264,4 @@ func _auto_infer_synth_preset() -> void:
 		synth_preset = "Footstep"
 	if synth_preset != "None":
 		_apply_synth_preset()
+

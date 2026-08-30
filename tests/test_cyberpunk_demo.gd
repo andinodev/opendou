@@ -283,16 +283,31 @@ static func run_all() -> Array[String]:
 		elif bio_room.room_name != &"Biosphere_Sanctuary":
 			failures.append("Test 8c Failed: BiosphereRoom room_name expected Biosphere_Sanctuary, got %s" % str(bio_room.room_name))
 			
-		var required_emitters = [
-			"CanopyWind_FL", "Waterfall_FR", "Bird_C", "Thunder_LFE",
-			"Cicada_SL", "Frog_SR", "Rain_RL", "Droplet_RR", "OrbitingBeeEmitter"
-		]
-		for em_name in required_emitters:
+		var expected_presets = {
+			"CanopyWind_FL": "Wind_Canopy",
+			"Waterfall_FR": "Waterfall_Stream",
+			"Bird_C": "Bird_Chirp",
+			"Thunder_LFE": "Thunder_Rumble",
+			"Cicada_SL": "Cicada_Swarm",
+			"Frog_SR": "Frog_Croak",
+			"Rain_RL": "Rain_Atmosphere",
+			"Droplet_RR": "Water_Droplet",
+			"OrbitingBeeEmitter": "Cyber_Hornet"
+		}
+		for em_name in expected_presets.keys():
 			var em = sec5.get_node_or_null(em_name)
 			if not em:
 				failures.append("Test 8d Failed: Sector5_Biosphere missing 7.1 surround emitter: %s" % em_name)
 			elif not (em is OpenDouEventPlayer3D):
 				failures.append("Test 8e Failed: Emitter %s is not an OpenDouEventPlayer3D" % em_name)
+			else:
+				var expected_p: String = expected_presets[em_name]
+				if em.synth_preset != expected_p:
+					failures.append("Test 8f Failed: Emitter %s expected synth_preset '%s', got '%s'" % [em_name, expected_p, em.synth_preset])
+				em._apply_synth_preset()
+				if em.stream == null or not (em.stream is AudioStreamWAV):
+					failures.append("Test 8g Failed: Emitter %s failed to generate AudioStreamWAV for preset '%s'" % [em_name, expected_p])
+
 
 	# Test 25: Sector 5 Teleportation, Foliage footstep detection, and 360 Orbiting Bee audio
 	var demo_sec5 = script_res.new()

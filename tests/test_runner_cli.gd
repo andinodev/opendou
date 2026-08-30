@@ -8,7 +8,9 @@ func _init() -> void:
 	var passed: int = res["passed"]
 	var failures: Array = res["failures"]
 	
-	var log_path: String = ProjectSettings.globalize_path("res://test_results.log")
+	# var log_path: String = ProjectSettings.globalize_path("res://test_results.log")
+	var log_path: String = "user://test_results.log"
+
 	var file = FileAccess.open(log_path, FileAccess.WRITE)
 	if file:
 		if failures.is_empty():

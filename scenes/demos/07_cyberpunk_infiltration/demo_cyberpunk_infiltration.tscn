@@ -494,8 +494,8 @@ unit_size = 5.0
 autoplay = true
 max_distance = 35.0
 script = ExtResource("4_p3d")
-event_name = &"Water_Stream"
-synth_preset = "Water_Stream"
+event_name = &"Waterfall_Stream"
+synth_preset = "Waterfall_Stream"
 bus_category = "Ambience"
 
 [node name="Bird_C" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100003]
@@ -549,8 +549,8 @@ unit_size = 5.0
 autoplay = true
 max_distance = 35.0
 script = ExtResource("4_p3d")
-event_name = &"Rain_Ambience"
-synth_preset = "Rain"
+event_name = &"Rain_Atmosphere"
+synth_preset = "Rain_Atmosphere"
 bus_category = "Ambience"
 
 [node name="Droplet_RR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100008]

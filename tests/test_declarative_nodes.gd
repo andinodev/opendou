@@ -412,5 +412,108 @@ static func run_all() -> Array[String]:
 			if not plugin_code.contains('remove_custom_type("%s"' % type_name) and not plugin_code.contains("remove_custom_type('%s'" % type_name):
 				failures.append("Test 16 Failed: plugin.gd missing remove_custom_type for %s" % type_name)
 
+	# Test 17: Dynamic property list enum hinting for synth_preset
+	var p3d_dyn = OpenDouEventPlayer3DClass.new()
+	var p2d_dyn = OpenDouEventPlayer2DClass.new()
+	var p_dyn = OpenDouEventPlayerClass.new()
+	
+	for player_node in [p3d_dyn, p2d_dyn, p_dyn]:
+		var plist = player_node._get_property_list()
+		var found_synth_prop: bool = false
+		for prop in plist:
+			if prop.get("name") == "synth_preset":
+				found_synth_prop = true
+				if prop.get("type") != TYPE_STRING:
+					failures.append("Test 17 Failed: synth_preset property type must be TYPE_STRING")
+				if prop.get("hint") != PROPERTY_HINT_ENUM:
+					failures.append("Test 17 Failed: synth_preset hint must be PROPERTY_HINT_ENUM")
+				var hint_str: String = prop.get("hint_string", "")
+				if not hint_str.contains("None") or not hint_str.contains("Bird_Chirp") or not hint_str.contains("Wind_Canopy"):
+					failures.append("Test 17 Failed: synth_preset hint_string missing registry presets: %s" % hint_str)
+		if not found_synth_prop:
+			failures.append("Test 17 Failed: _get_property_list did not expose synth_preset on %s" % player_node.get_class())
+	p3d_dyn.free()
+	p2d_dyn.free()
+	p_dyn.free()
+
+	# Test 18: Dynamic preset stream retrieval from SynthPresetRegistry
+	var p3d_synth = OpenDouEventPlayer3DClass.new()
+	p3d_synth.synth_preset = "Bird_Chirp"
+	p3d_synth._apply_synth_preset()
+	if p3d_synth.stream == null or not (p3d_synth.stream is AudioStreamWAV):
+		failures.append("Test 18 Failed: p3d._apply_synth_preset() failed to create AudioStreamWAV for Bird_Chirp")
+	elif p3d_synth.stream.data.size() == 0:
+		failures.append("Test 18 Failed: p3d._apply_synth_preset() generated empty WAV data for Bird_Chirp")
+	p3d_synth.free()
+
+	var p2d_synth = OpenDouEventPlayer2DClass.new()
+	p2d_synth.synth_preset = "Cicada_Swarm"
+	p2d_synth._apply_synth_preset()
+	if p2d_synth.stream == null or not (p2d_synth.stream is AudioStreamWAV):
+		failures.append("Test 18 Failed: p2d._apply_synth_preset() failed to create AudioStreamWAV for Cicada_Swarm")
+	p2d_synth.free()
+
+	var p_synth = OpenDouEventPlayerClass.new()
+	p_synth.synth_preset = "Rain_Atmosphere"
+	p_synth._apply_synth_preset()
+	if p_synth.stream == null or not (p_synth.stream is AudioStreamWAV):
+		failures.append("Test 18 Failed: p_synth._apply_synth_preset() failed to create AudioStreamWAV for Rain_Atmosphere")
+	p_synth.free()
+
+	# Test 19: Custom user presets registered dynamically in SynthPresetRegistry
+	var reg_script = load("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
+	if reg_script != null:
+		var registry = reg_script.get_singleton()
+		if registry != null:
+			var custom_preset_dict: Dictionary = {
+				"type": "Single_Generator",
+				"generator_type": "Basic_Wave",
+				"wave_type": "Square",
+				"base_freq": 880.0,
+				"duration": 0.25,
+				"gain_db": -6.0,
+				"loop_mode": false
+			}
+			registry.set_preset(&"Custom_Test_Beacon", custom_preset_dict)
+			
+			var p3d_custom = OpenDouEventPlayer3DClass.new()
+			var plist_custom = p3d_custom._get_property_list()
+			var hint_custom: String = ""
+			for prop in plist_custom:
+				if prop.get("name") == "synth_preset":
+					hint_custom = prop.get("hint_string", "")
+			if not hint_custom.contains("Custom_Test_Beacon"):
+				failures.append("Test 19 Failed: _get_property_list hint_string missing dynamically registered Custom_Test_Beacon")
+				
+			p3d_custom.synth_preset = "Custom_Test_Beacon"
+			p3d_custom._apply_synth_preset()
+			if p3d_custom.stream == null or not (p3d_custom.stream is AudioStreamWAV):
+				failures.append("Test 19 Failed: _apply_synth_preset failed to synthesize custom registered preset")
+			p3d_custom.free()
+
+			var p3d_infer = OpenDouEventPlayer3DClass.new()
+			p3d_infer.event_name = &"Play_Custom_Test_Beacon_SFX"
+			p3d_infer._auto_infer_synth_preset()
+			if p3d_infer.synth_preset != "Custom_Test_Beacon":
+				failures.append("Test 19 Failed: _auto_infer_synth_preset failed to infer Custom_Test_Beacon from event name, got %s" % p3d_infer.synth_preset)
+			if p3d_infer.stream == null or not (p3d_infer.stream is AudioStreamWAV):
+				failures.append("Test 19 Failed: _auto_infer_synth_preset did not synthesize stream for inferred custom preset")
+			p3d_infer.free()
+			
+			registry.delete_preset(&"Custom_Test_Beacon")
+		else:
+			failures.append("Test 19 Failed: SynthPresetRegistry singleton is null")
+	else:
+		failures.append("Test 19 Failed: Failed to load synth_preset_registry.gd")
+
+	# Test 20: Fallback to AudioSynthesizerClass for legacy presets
+	var p3d_fallback = OpenDouEventPlayer3DClass.new()
+	p3d_fallback.synth_preset = "Turret_Scan"
+	p3d_fallback._apply_synth_preset()
+	if p3d_fallback.stream == null:
+		failures.append("Test 20 Failed: Fallback to AudioSynthesizerClass for Turret_Scan returned null stream")
+	p3d_fallback.free()
+
 	return failures
+
 
