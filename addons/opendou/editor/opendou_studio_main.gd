@@ -139,6 +139,7 @@ func _build_ui() -> void:
 	content_container.anchors_preset = Control.PRESET_FULL_RECT
 	content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_container.custom_minimum_size = Vector2(0, 0)
 	content_container.add_theme_constant_override("separation", 2)
 	add_child(content_container)
 	
@@ -613,6 +614,7 @@ func toggle_detach_window() -> void:
 func detach_and_maximize() -> void:
 	if is_detached:
 		if detached_window:
+			detached_window.mode = Window.MODE_MAXIMIZED
 			detached_window.grab_focus()
 		return
 		
@@ -627,15 +629,20 @@ func detach_and_maximize() -> void:
 		remove_child(content_container)
 		
 	detached_window = Window.new()
-	detached_window.title = "🎧 OpenDou Audio Studio Suite"
-	detached_window.size = Vector2i(1200, 750)
-	detached_window.min_size = Vector2i(900, 550)
-	detached_window.wrap_controls = true
+	detached_window.title = "🎧 OpenDou Audio Studio Suite (Maximized)"
+	detached_window.min_size = Vector2i(1000, 600)
+	detached_window.wrap_controls = false
 	detached_window.close_requested.connect(reattach_to_dock)
 	
+	content_container.anchors_preset = Control.PRESET_FULL_RECT
+	content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_container.custom_minimum_size = Vector2(0, 0)
 	detached_window.add_child(content_container)
 	root.add_child(detached_window)
+	
 	detached_window.popup_centered()
+	detached_window.mode = Window.MODE_MAXIMIZED
 	detached_window.grab_focus()
 	
 	if detach_btn:

@@ -20,6 +20,10 @@ func _init() -> void:
 		file.close()
 	
 	if failures.is_empty():
+		print("STATUS: PASSED | TOTAL: %d | PASSED: %d | FAILURES: 0" % [total, passed])
 		quit(0)
 	else:
+		print("STATUS: FAILED | TOTAL: %d | PASSED: %d | FAILURES: %d" % [total, passed, failures.size()])
+		for f in failures:
+			print("- " + str(f))
 		quit(1)

@@ -283,10 +283,21 @@ static func run_all() -> Array[String]:
 	if studio.syncs_dialog == null or studio.profiler_dialog == null:
 		failures.append("Test 6p Failed: Dedicated floating modals not initialized")
 
-	# Test Detach Window & Placeholder
+	# Test Detach Window & Placeholder (Auto-maximized & Zero-Waste Root Layout)
 	if studio.dock_placeholder == null:
 		failures.append("Test 6h Failed: Dock placeholder not initialized")
-	studio.toggle_detach_window()
+	studio.detach_and_maximize()
+	if not studio.is_detached:
+		failures.append("Test 6h1 Failed: Studio is_detached flag should be true after detach_and_maximize()")
+	if studio.detached_window == null or studio.detached_window.mode != Window.MODE_MAXIMIZED:
+		failures.append("Test 6h2 Failed: Detached window mode should be Window.MODE_MAXIMIZED")
+	if studio.content_container.anchors_preset != Control.PRESET_FULL_RECT:
+		failures.append("Test 6h3 Failed: content_container anchors_preset should be PRESET_FULL_RECT")
+	if studio.content_container.size_flags_vertical != Control.SIZE_EXPAND_FILL:
+		failures.append("Test 6h4 Failed: content_container size_flags_vertical should be SIZE_EXPAND_FILL")
+	studio.reattach_to_dock()
+	if studio.is_detached:
+		failures.append("Test 6h5 Failed: Studio is_detached flag should be false after reattach_to_dock()")
 	studio.free()
 	
 	return failures

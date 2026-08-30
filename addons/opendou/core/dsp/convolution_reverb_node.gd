@@ -41,8 +41,8 @@ func process_block(input_samples: PackedFloat32Array) -> PackedFloat32Array:
 		# Passthrough if no IR loaded
 		return input_samples.duplicate()
 		
-	var dry_gain = db_to_linear(dry_gain_db)
-	var wet_gain = db_to_linear(wet_gain_db)
+	var dry_gain = 0.0 if dry_gain_db <= -60.0 else db_to_linear(dry_gain_db)
+	var wet_gain = 0.0 if wet_gain_db <= -60.0 else db_to_linear(wet_gain_db)
 	
 	for i in range(in_len):
 		var dry_sample = input_samples[i]
