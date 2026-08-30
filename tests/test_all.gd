@@ -37,6 +37,7 @@ const TestCyberpunkDemoClass = preload("res://tests/test_cyberpunk_demo.gd")
 const TestDeclarativeNodesClass = preload("res://tests/test_declarative_nodes.gd")
 const TestAudibleMonitorClass = preload("res://tests/test_audible_monitor.gd")
 const TestSynthNatureClass = preload("res://tests/test_synth_nature.gd")
+const TestModularSynthEngineClass = preload("res://tests/test_modular_synth_engine.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -185,6 +186,10 @@ static func run_suite() -> Dictionary:
 	var r36 = TestSynthNatureClass.run_all()
 	total_tests += 6
 	all_failures.append_array(r36)
+	
+	var r37 = TestModularSynthEngineClass.run_all()
+	total_tests += 16
+	all_failures.append_array(r37)
 	
 	return {
 		"total": total_tests,
