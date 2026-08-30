@@ -223,11 +223,13 @@ static func run_all() -> Array[String]:
 	if compiled.get("root_node") == null and compiled.get("audio_files").is_empty():
 		failures.append("Test 6f Failed: Graph serializer failed to compile active graph editor")
 		
-	# Test AHDSR and LFO Node creation
+	# Test AHDSR, LFO and Sequence Node creation
 	studio.graph_editor._on_context_menu_id_pressed(9) # AHDSR
 	studio.graph_editor._on_context_menu_id_pressed(10) # LFO
+	studio.graph_editor._on_context_menu_id_pressed(11) # Sequence
 	var found_ahdsr = false
 	var found_lfo = false
+	var found_seq = false
 	for child in studio.graph_editor.get_children():
 		if child is OpenDouAHDSRGraphNode:
 			found_ahdsr = true
@@ -235,10 +237,15 @@ static func run_all() -> Array[String]:
 		elif child is OpenDouLFOGraphNode:
 			found_lfo = true
 			child.freq_spin.value = 5.0
+		elif child is OpenDouSequenceGraphNode:
+			found_seq = true
+			child._on_audition_pressed()
 	if not found_ahdsr:
 		failures.append("Test 6i Failed: AHDSR GraphNode was not spawned via context menu")
 	if not found_lfo:
 		failures.append("Test 6j Failed: LFO GraphNode was not spawned via context menu")
+	if not found_seq:
+		failures.append("Test 6k Failed: Sequence GraphNode was not spawned via context menu")
 
 	# Test Detach Window & Placeholder
 	if studio.dock_placeholder == null:

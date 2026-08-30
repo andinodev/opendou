@@ -15,6 +15,7 @@ const OpenDouGranularGraphNodeClass = preload("res://addons/opendou/editor/nodes
 const OpenDouBinauralGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_binaural_graph_node.gd")
 const OpenDouAHDSRGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_ahdsr_graph_node.gd")
 const OpenDouLFOGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_lfo_graph_node.gd")
+const OpenDouSequenceGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_sequence_graph_node.gd")
 
 var context_menu: PopupMenu
 var click_spawn_position: Vector2 = Vector2(200, 200)
@@ -33,6 +34,7 @@ func _setup_context_menu() -> void:
 	context_menu = PopupMenu.new()
 	context_menu.add_item("🎵 Add WAV (Audio File)", 1)
 	context_menu.add_item("🎲 Add Random / Shuffle Container", 2)
+	context_menu.add_item("⛓️ Add Sequence Container", 11)
 	context_menu.add_item("🔀 Add Switch Container", 3)
 	context_menu.add_item("📈 Add Blend (RTPC) Container", 4)
 	context_menu.add_item("⚡ Add AHDSR Envelope Modulator", 9)
@@ -213,6 +215,7 @@ func _on_context_menu_id_pressed(id: int) -> void:
 		8: new_node = OpenDouBinauralGraphNodeClass.new()
 		9: new_node = OpenDouAHDSRGraphNodeClass.new()
 		10: new_node = OpenDouLFOGraphNodeClass.new()
+		11: new_node = OpenDouSequenceGraphNodeClass.new()
 		
 	if new_node:
 		new_node.position_offset = click_spawn_position
