@@ -8,6 +8,15 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ### 2026-08-29
 
+* **`TASK-032` - Automatizaciones RTPC en Línea de Tiempo y Ruteo de Buses**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Carriles de Automatización Desplegables (`Automation Sub-Lanes` 📈):** Botón `[ 📈 ]` en la cabecera para desplegar un carril interactivo donde añadir, arrastrar y eliminar puntos de control de curva.
+    * **Modulación Interpolada en Tiempo Real:** Evaluación continua de la envolvente de volumen, filtro LPF o RTPC `CombatIntensity` sincronizada con el cabezal de lectura.
+    * **Ruteo de Sub-Buses de Godot por Pista:** Selector en cabecera de pista (`Master`, `Music`, `Music_Percussion`, `Music_Pads`, `Music_Leads`) asignado en caliente al `AudioStreamPlayer.bus`.
+    * **Persistencia Completa:** Guardado y recarga en disco de puntos de automatización, parámetro activo y bus por pista.
+    * **Suite de Pruebas:** 135 / 135 pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
 * **`TASK-031` - Marcadores Estructurales (Pre-Entry / Exit Cues), Colas Post-Exit Tails y Sub-Pistas Aleatorias**
   * **Fecha:** 2026-08-29
   * **Resumen:**

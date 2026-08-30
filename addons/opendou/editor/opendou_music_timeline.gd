@@ -2,7 +2,7 @@
 class_name OpenDouMusicTimeline
 extends PanelContainer
 
-## Professional DAW-style interactive music timeline with Rhythmic BPM Grid Ruler, Multi-Track Headers (Mute, Solo, Volume Fader, Audio File Picker, Delete, Random Sub-Tracks), Structural Cues (Pre-Entry, Exit), Post-Exit Reverb Tails, Clip Trim Handles, Dynamic Track CRUD ([+ Add Track]), Persistent Suite Serialization (JSON / .tres), Metronome, Horizontal Zoom, and Quantized Transition Matrix.
+## Professional DAW-style interactive music timeline with Rhythmic BPM Grid Ruler, Multi-Track Headers (Mute, Solo, Volume Fader, Audio File Picker, Bus Routing, Automation Curves, Delete, Random Sub-Tracks), Structural Cues (Pre-Entry, Exit), Post-Exit Reverb Tails, Clip Trim Handles, Dynamic Track CRUD ([+ Add Track]), Persistent Suite Serialization (JSON / .tres), Metronome, Horizontal Zoom, and Quantized Transition Matrix.
 
 signal bpm_changed(new_bpm: float)
 signal intensity_changed(new_intensity: float)
@@ -35,17 +35,50 @@ class TrackLaneData:
 	var sub_tracks: Array[Dictionary] = [] # [{"name": "Var 1", "audio_path": "...", "weight": 1.0}]
 	var active_sub_index: int = 0
 	var is_random_mode: bool = true
+	
+	# Bus Routing & Automation Curves (TASK-032)
+	var bus_name: StringName = &"Master"
+	var automation_enabled: bool = false
+	var automation_parameter: int = 0 # 0 = Volume, 1 = LPF Cutoff, 2 = RTPC: CombatIntensity
+	var automation_points: Array[Vector2] = [Vector2(0.0, 1.0), Vector2(0.5, 0.6), Vector2(1.0, 1.0)] # x = time ratio (0..1), y = normalized (0..1)
+	var selected_point_index: int = -1
+	
 	var row_container: HBoxContainer
 	var header_panel: PanelContainer
 	var mute_btn: Button
 	var solo_btn: Button
 	var vol_slider: HSlider
+	var auto_btn: Button
+	var bus_opt: OptionButton
 	var file_btn: Button
 	var var_btn: Button
 	var delete_btn: Button
 	var file_label: Label
 	var meter_rect: Control
 	var waveform_canvas: Control
+	
+	# Collapsible Automation Sub-Row
+	var auto_row: HBoxContainer
+	var auto_param_opt: OptionButton
+	var auto_canvas: Control
+	
+	func evaluate_automation_value(ratio: float) -> float:
+		if automation_points.is_empty():
+			return 1.0
+		if ratio <= automation_points[0].x:
+			return automation_points[0].y
+		if ratio >= automation_points[automation_points.size() - 1].x:
+			return automation_points[automation_points.size() - 1].y
+		for i in range(automation_points.size() - 1):
+			var p0 = automation_points[i]
+			var p1 = automation_points[i + 1]
+			if ratio >= p0.x and ratio <= p1.x:
+				var span = p1.x - p0.x
+				if span <= 0.0001:
+					return p0.y
+				var t = (ratio - p0.x) / span
+				return lerpf(p0.y, p1.y, t)
+		return 1.0
 
 var clock: MusicClock
 var transition_matrix: MusicTransitionMatrix
@@ -99,9 +132,9 @@ var active_suite_name: StringName = &"Dynamic_Combat_Suite.tres"
 # File Dialog & Trim Handle Dragging
 var file_dialog: FileDialog
 var pending_file_track_index: int = -1
-var pending_file_is_variation: bool = false
 var dragging_trim_track: TrackLaneData = null
 var dragging_trim_handle: int = 0 # 1 = left, 2 = right
+var dragging_auto_track: TrackLaneData = null
 
 # Audio Players & Tail Decay Buffers
 var metronome_player: AudioStreamPlayer
@@ -241,6 +274,7 @@ func _build_ui() -> void:
 		if ruler_canvas: ruler_canvas.queue_redraw()
 		for t in tracks:
 			if t.waveform_canvas: t.waveform_canvas.queue_redraw()
+			if t.auto_canvas: t.auto_canvas.queue_redraw()
 	)
 	toolbar.add_child(zoom_spinbox)
 	
@@ -297,7 +331,7 @@ func _build_ui() -> void:
 	ruler_row.add_theme_constant_override("separation", 6)
 	
 	var track_header_spacer = PanelContainer.new()
-	track_header_spacer.custom_minimum_size = Vector2(240, 34)
+	track_header_spacer.custom_minimum_size = Vector2(250, 34)
 	
 	var spacer_hbox = HBoxContainer.new()
 	spacer_hbox.add_theme_constant_override("margin_left", 6)
@@ -470,8 +504,8 @@ func mark_dirty(dirty: bool = true) -> void:
 		is_dirty = dirty
 		dirty_changed.emit(is_dirty)
 
-## Adds a new customizable stem track with interactive header, file picker, variation button, delete button, and waveform canvas.
-func _add_track(track_name: String, min_int: float, max_int: float, color: Color, audio_path: String = "", left_t: float = 0.0, right_t: float = 1.0) -> TrackLaneData:
+## Adds a new customizable stem track with interactive header, file picker, variation button, bus routing, automation sub-lane, delete button, and waveform canvas.
+func _add_track(track_name: String, min_int: float, max_int: float, color: Color, audio_path: String = "", left_t: float = 0.0, right_t: float = 1.0, p_bus: StringName = &"Master") -> TrackLaneData:
 	var t = TrackLaneData.new()
 	t.name = track_name
 	t.min_intensity = min_int
@@ -480,17 +514,18 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	t.audio_file_path = audio_path
 	t.left_trim_ratio = left_t
 	t.right_trim_ratio = right_t
+	t.bus_name = p_bus
 	t.sub_tracks = [{"name": "Var 1", "audio_path": audio_path, "weight": 1.0}]
 	
 	var row = HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.custom_minimum_size = Vector2(0, 56)
+	row.custom_minimum_size = Vector2(0, 60)
 	row.add_theme_constant_override("separation", 6)
 	t.row_container = row
 	
-	# 1. Track Header (Left Panel, 240px)
+	# 1. Track Header (Left Panel, 250px)
 	var header = PanelContainer.new()
-	header.custom_minimum_size = Vector2(240, 56)
+	header.custom_minimum_size = Vector2(250, 60)
 	t.header_panel = header
 	
 	var header_hbox = HBoxContainer.new()
@@ -500,7 +535,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	# Color badge
 	var badge = ColorRect.new()
 	badge.color = color
-	badge.custom_minimum_size = Vector2(4, 44)
+	badge.custom_minimum_size = Vector2(4, 48)
 	header_hbox.add_child(badge)
 	
 	var info_vbox = VBoxContainer.new()
@@ -548,7 +583,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	
 	info_vbox.add_child(top_title_box)
 	
-	# Middle line: Controls (Mute, Solo, Vol Slider)
+	# Middle line: Controls (Mute, Solo, Vol Slider, Auto toggle)
 	var controls_hbox = HBoxContainer.new()
 	controls_hbox.add_theme_constant_override("separation", 4)
 	
@@ -557,7 +592,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	m_btn.text = "M"
 	m_btn.tooltip_text = "Mute Track"
 	m_btn.toggle_mode = true
-	m_btn.custom_minimum_size = Vector2(22, 18)
+	m_btn.custom_minimum_size = Vector2(20, 18)
 	m_btn.toggled.connect(func(is_m):
 		t.is_muted = is_m
 		m_btn.modulate = Color(1.0, 0.3, 0.3) if is_m else Color.WHITE
@@ -572,7 +607,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	s_btn.text = "S"
 	s_btn.tooltip_text = "Solo Track"
 	s_btn.toggle_mode = true
-	s_btn.custom_minimum_size = Vector2(22, 18)
+	s_btn.custom_minimum_size = Vector2(20, 18)
 	s_btn.toggled.connect(func(is_s):
 		t.is_solo = is_s
 		s_btn.modulate = Color(1.0, 0.9, 0.2) if is_s else Color.WHITE
@@ -589,7 +624,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	vol_slider.value = t.volume_db
 	vol_slider.step = 0.5
 	vol_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vol_slider.custom_minimum_size = Vector2(50, 0)
+	vol_slider.custom_minimum_size = Vector2(40, 0)
 	vol_slider.value_changed.connect(func(v):
 		t.volume_db = v
 		_update_stem_levels()
@@ -598,22 +633,62 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	t.vol_slider = vol_slider
 	controls_hbox.add_child(vol_slider)
 	
+	# Automation Toggle Button
+	var a_btn = Button.new()
+	a_btn.text = "📈"
+	a_btn.tooltip_text = "Toggle Automation Sub-Lane"
+	a_btn.toggle_mode = true
+	a_btn.custom_minimum_size = Vector2(24, 18)
+	a_btn.toggled.connect(func(is_on):
+		t.automation_enabled = is_on
+		a_btn.modulate = Color(1.0, 0.85, 0.2) if is_on else Color.WHITE
+		if t.auto_row:
+			t.auto_row.visible = is_on
+		_update_stem_levels()
+		mark_dirty(true)
+	)
+	t.auto_btn = a_btn
+	controls_hbox.add_child(a_btn)
+	
 	info_vbox.add_child(controls_hbox)
 	
-	# Bottom line: Audio File Path Preview
+	# Bottom line: Audio Bus Selector & File Path Preview
+	var btm_hbox = HBoxContainer.new()
+	btm_hbox.add_theme_constant_override("separation", 4)
+	
+	var bus_selector = OptionButton.new()
+	bus_selector.add_item("Master", 0)
+	bus_selector.add_item("Music", 1)
+	bus_selector.add_item("Music_Percussion", 2)
+	bus_selector.add_item("Music_Pads", 3)
+	bus_selector.add_item("Music_Leads", 4)
+	bus_selector.custom_minimum_size = Vector2(75, 16)
+	bus_selector.item_selected.connect(func(idx):
+		var b_name = bus_selector.get_item_text(idx)
+		t.bus_name = StringName(b_name)
+		var trk_idx = tracks.find(t)
+		if trk_idx >= 0 and trk_idx < stem_players.size():
+			stem_players[trk_idx].bus = t.bus_name
+		mark_dirty(true)
+	)
+	t.bus_opt = bus_selector
+	btm_hbox.add_child(bus_selector)
+	
 	var path_lbl = Label.new()
-	path_lbl.text = audio_path.get_file() if not audio_path.is_empty() else "Procedural Synth (Var 1)"
+	path_lbl.text = audio_path.get_file() if not audio_path.is_empty() else "Procedural Synth"
 	path_lbl.add_theme_font_size_override("font_size", 8)
 	path_lbl.modulate = Color(0.6, 0.7, 0.8)
+	path_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	path_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	t.file_label = path_lbl
-	info_vbox.add_child(path_lbl)
+	btm_hbox.add_child(path_lbl)
 	
+	info_vbox.add_child(btm_hbox)
 	header_hbox.add_child(info_vbox)
 	
 	# Live LED Meter Bar
 	var meter = Control.new()
-	meter.custom_minimum_size = Vector2(8, 44)
+	meter.custom_minimum_size = Vector2(8, 48)
 	meter.draw.connect(func():
 		var s = meter.size
 		meter.draw_rect(Rect2(Vector2.ZERO, s), Color(0.1, 0.12, 0.15, 1.0))
@@ -631,7 +706,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	# 2. Interactive Waveform Clip Canvas with Trim Handles
 	var wave_canvas = Control.new()
 	wave_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	wave_canvas.custom_minimum_size = Vector2(0, 56)
+	wave_canvas.custom_minimum_size = Vector2(0, 60)
 	wave_canvas.draw.connect(func(): _on_draw_track_waveform(t, wave_canvas))
 	wave_canvas.gui_input.connect(func(ev): _on_waveform_gui_input(t, wave_canvas, ev))
 	t.waveform_canvas = wave_canvas
@@ -640,8 +715,52 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	tracks.append(t)
 	lanes_vbox.add_child(row)
 	
+	# 3. Expandable Automation Sub-Lane (TASK-032)
+	var auto_row = HBoxContainer.new()
+	auto_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	auto_row.custom_minimum_size = Vector2(0, 36)
+	auto_row.add_theme_constant_override("separation", 6)
+	auto_row.visible = false
+	t.auto_row = auto_row
+	
+	var auto_header = PanelContainer.new()
+	auto_header.custom_minimum_size = Vector2(250, 36)
+	var auto_header_box = HBoxContainer.new()
+	auto_header_box.add_theme_constant_override("margin_left", 8)
+	auto_header_box.add_theme_constant_override("separation", 6)
+	auto_header.add_child(auto_header_box)
+	
+	var auto_lbl = Label.new()
+	auto_lbl.text = "📈 Curve:"
+	auto_lbl.add_theme_font_size_override("font_size", 9)
+	auto_header_box.add_child(auto_lbl)
+	
+	var param_opt = OptionButton.new()
+	param_opt.add_item("🔊 Volume", 0)
+	param_opt.add_item("🎛️ LPF Cutoff", 1)
+	param_opt.add_item("⚡ CombatIntensity", 2)
+	param_opt.custom_minimum_size = Vector2(140, 20)
+	param_opt.item_selected.connect(func(idx):
+		t.automation_parameter = idx
+		mark_dirty(true)
+	)
+	t.auto_param_opt = param_opt
+	auto_header_box.add_child(param_opt)
+	auto_row.add_child(auto_header)
+	
+	var auto_canvas = Control.new()
+	auto_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	auto_canvas.custom_minimum_size = Vector2(0, 36)
+	auto_canvas.draw.connect(func(): _on_draw_automation_curve(t, auto_canvas))
+	auto_canvas.gui_input.connect(func(ev): _on_automation_gui_input(t, auto_canvas, ev))
+	t.auto_canvas = auto_canvas
+	auto_row.add_child(auto_canvas)
+	
+	lanes_vbox.add_child(auto_row)
+	
 	# Add matching audio player for this stem
 	var p = AudioStreamPlayer.new()
+	p.bus = p_bus
 	add_child(p)
 	p.volume_db = -80.0
 	_assign_default_or_file_stream(p, tracks.size() - 1, audio_path)
@@ -706,6 +825,8 @@ func delete_track(t: TrackLaneData) -> void:
 		var deleted_name = t.name
 		if t.row_container:
 			t.row_container.queue_free()
+		if t.auto_row:
+			t.auto_row.queue_free()
 		tracks.remove_at(idx)
 		if idx < stem_players.size():
 			var p = stem_players[idx]
@@ -767,6 +888,60 @@ func _on_waveform_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent) -
 			t.right_trim_ratio = maxf(ratio, t.left_trim_ratio + 0.05)
 		canvas.queue_redraw()
 
+## Handles mouse clicking and point dragging on automation curve canvas.
+func _on_automation_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent) -> void:
+	var size = canvas.size
+	var total_w = size.x * zoom_factor
+	if ev is InputEventMouseButton:
+		var mb = ev as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				# Check if clicked near an existing point
+				var clicked_pt = -1
+				for i in range(t.automation_points.size()):
+					var pt = t.automation_points[i]
+					var px = pt.x * total_w
+					var py = (1.0 - pt.y) * size.y
+					if mb.position.distance_to(Vector2(px, py)) <= 10.0:
+						clicked_pt = i
+						break
+				if clicked_pt != -1:
+					t.selected_point_index = clicked_pt
+					dragging_auto_track = t
+				else:
+					# Add new point at mouse position
+					var new_x = clampf(mb.position.x / total_w, 0.0, 1.0)
+					var new_y = clampf(1.0 - (mb.position.y / size.y), 0.0, 1.0)
+					t.automation_points.append(Vector2(new_x, new_y))
+					t.automation_points.sort_custom(func(a, b): return a.x < b.x)
+					t.selected_point_index = t.automation_points.find(Vector2(new_x, new_y))
+					dragging_auto_track = t
+					mark_dirty(true)
+				canvas.queue_redraw()
+			else:
+				if dragging_auto_track == t:
+					dragging_auto_track = null
+					mark_dirty(true)
+		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
+			# Delete point on right click if more than 2 points
+			if t.automation_points.size() > 2:
+				for i in range(t.automation_points.size()):
+					var pt = t.automation_points[i]
+					var px = pt.x * total_w
+					var py = (1.0 - pt.y) * size.y
+					if mb.position.distance_to(Vector2(px, py)) <= 10.0:
+						t.automation_points.remove_at(i)
+						canvas.queue_redraw()
+						mark_dirty(true)
+						break
+	elif ev is InputEventMouseMotion and dragging_auto_track == t and t.selected_point_index >= 0 and t.selected_point_index < t.automation_points.size():
+		var mm = ev as InputEventMouseMotion
+		var new_x = clampf(mm.position.x / total_w, 0.0, 1.0)
+		var new_y = clampf(1.0 - (mm.position.y / size.y), 0.0, 1.0)
+		t.automation_points[t.selected_point_index] = Vector2(new_x, new_y)
+		t.automation_points.sort_custom(func(a, b): return a.x < b.x)
+		canvas.queue_redraw()
+
 ## Handles mouse dragging on timeline ruler for Entry and Exit cues.
 func _on_ruler_gui_input(ev: InputEvent) -> void:
 	if not ruler_canvas:
@@ -791,7 +966,6 @@ func _on_ruler_gui_input(ev: InputEvent) -> void:
 	elif ev is InputEventMouseMotion and dragging_cue_marker != 0:
 		var mm = ev as InputEventMouseMotion
 		var bar_pos = mm.position.x / bar_w
-		# Snap to nearest 0.5 bar or 0.25 bar if snap active
 		bar_pos = snappedf(bar_pos, 0.25)
 		if dragging_cue_marker == 1:
 			entry_cue_bar = clampf(bar_pos, -2.0, exit_cue_bar - 0.5)
@@ -799,7 +973,7 @@ func _on_ruler_gui_input(ev: InputEvent) -> void:
 			exit_cue_bar = clampf(bar_pos, entry_cue_bar + 0.5, 16.0)
 		ruler_canvas.queue_redraw()
 
-## Persists the active music suites, tracks, cues, tails and sub-tracks to disk.
+## Persists the active music suites, tracks, cues, tails, bus routing, and automation curves to disk.
 func save_to_disk() -> void:
 	var root_dict = {}
 	if FileAccess.file_exists(MUSIC_SUITES_SAVE_PATH):
@@ -818,6 +992,9 @@ func save_to_disk() -> void:
 		"tracks": []
 	}
 	for t in tracks:
+		var pts_arr = []
+		for p in t.automation_points:
+			pts_arr.append([p.x, p.y])
 		suite_data["tracks"].append({
 			"name": t.name,
 			"min_intensity": t.min_intensity,
@@ -826,10 +1003,14 @@ func save_to_disk() -> void:
 			"volume_db": t.volume_db,
 			"is_muted": t.is_muted,
 			"is_solo": t.is_solo,
+			"bus_name": str(t.bus_name),
 			"audio_file_path": t.audio_file_path,
 			"left_trim": t.left_trim_ratio,
 			"right_trim": t.right_trim_ratio,
-			"sub_tracks": t.sub_tracks
+			"sub_tracks": t.sub_tracks,
+			"auto_enabled": t.automation_enabled,
+			"auto_param": t.automation_parameter,
+			"auto_points": pts_arr
 		})
 	root_dict[str(active_suite_name)] = suite_data
 	
@@ -842,10 +1023,9 @@ func save_to_disk() -> void:
 ## Loads the active music suite configuration from disk, creating default tracks if not present.
 func load_from_disk(suite_name: StringName) -> void:
 	active_suite_name = suite_name
-	# Clear existing tracks and stem players
 	for t in tracks:
-		if t.row_container:
-			t.row_container.queue_free()
+		if t.row_container: t.row_container.queue_free()
+		if t.auto_row: t.auto_row.queue_free()
 	tracks.clear()
 	for p in stem_players:
 		p.queue_free()
@@ -873,6 +1053,7 @@ func load_from_disk(suite_name: StringName) -> void:
 				var track_list = s_data.get("tracks", [])
 				for td in track_list:
 					var col = Color.from_string(str(td.get("color", "ffffff")), Color.WHITE)
+					var b_name = StringName(str(td.get("bus_name", "Master")))
 					var t = _add_track(
 						str(td.get("name", "Track")),
 						float(td.get("min_intensity", 0.0)),
@@ -880,28 +1061,40 @@ func load_from_disk(suite_name: StringName) -> void:
 						col,
 						str(td.get("audio_file_path", "")),
 						float(td.get("left_trim", 0.0)),
-						float(td.get("right_trim", 1.0))
+						float(td.get("right_trim", 1.0)),
+						b_name
 					)
 					t.volume_db = float(td.get("volume_db", 0.0))
 					t.is_muted = bool(td.get("is_muted", false))
 					t.is_solo = bool(td.get("is_solo", false))
+					t.automation_enabled = bool(td.get("auto_enabled", false))
+					t.automation_parameter = int(td.get("auto_param", 0))
+					if td.has("auto_points"):
+						var pts_raw = td.get("auto_points")
+						if pts_raw is Array:
+							t.automation_points.clear()
+							for pt_pair in pts_raw:
+								if pt_pair is Array and pt_pair.size() >= 2:
+									t.automation_points.append(Vector2(float(pt_pair[0]), float(pt_pair[1])))
 					if td.has("sub_tracks"):
 						var arr = td.get("sub_tracks")
 						if arr is Array:
 							t.sub_tracks = arr
-							if t.var_btn:
-								t.var_btn.text = "🎲 %d" % t.sub_tracks.size()
+							if t.var_btn: t.var_btn.text = "🎲 %d" % t.sub_tracks.size()
 					if t.vol_slider: t.vol_slider.value = t.volume_db
 					if t.mute_btn: t.mute_btn.set_pressed_no_signal(t.is_muted)
 					if t.solo_btn: t.solo_btn.set_pressed_no_signal(t.is_solo)
+					if t.auto_btn: t.auto_btn.set_pressed_no_signal(t.automation_enabled)
+					if t.auto_row: t.auto_row.visible = t.automation_enabled
+					if t.auto_param_opt: t.auto_param_opt.selected = t.automation_parameter
 				loaded = true
 				
 	if not loaded:
 		# Fallback to default 4 interactive stems
-		_add_track("Layer 1: Ambient_Pads", 0.0, 0.5, Color(0.2, 0.75, 0.95))
-		_add_track("Layer 2: Stealth_Bass", 0.2, 0.7, Color(0.3, 0.85, 0.45))
-		_add_track("Layer 3: Combat_Drums", 0.5, 1.0, Color(0.98, 0.65, 0.22))
-		_add_track("Layer 4: Brass_Climax", 0.8, 1.0, Color(0.98, 0.25, 0.35))
+		_add_track("Layer 1: Ambient_Pads", 0.0, 0.5, Color(0.2, 0.75, 0.95), "", 0.0, 1.0, &"Music_Pads")
+		_add_track("Layer 2: Stealth_Bass", 0.2, 0.7, Color(0.3, 0.85, 0.45), "", 0.0, 1.0, &"Music")
+		_add_track("Layer 3: Combat_Drums", 0.5, 1.0, Color(0.98, 0.65, 0.22), "", 0.0, 1.0, &"Music_Percussion")
+		_add_track("Layer 4: Brass_Climax", 0.8, 1.0, Color(0.98, 0.25, 0.35), "", 0.0, 1.0, &"Music_Leads")
 		entry_cue_bar = 0.0
 		exit_cue_bar = 8.0
 		post_exit_tail_sec = 2.0
@@ -988,6 +1181,11 @@ func _update_stem_levels() -> void:
 		var lin_vol = db_to_linear(t.volume_db)
 		target_gain *= lin_vol
 		
+		# Apply Volume Automation Curve if active
+		if t.automation_enabled and t.automation_parameter == 0:
+			var auto_gain = t.evaluate_automation_value(current_playhead_ratio)
+			target_gain *= auto_gain
+		
 		if t.is_muted:
 			target_gain = 0.0
 		elif any_solo and not t.is_solo:
@@ -996,6 +1194,7 @@ func _update_stem_levels() -> void:
 		t.current_gain = target_gain
 		if t.meter_rect: t.meter_rect.queue_redraw()
 		if t.waveform_canvas: t.waveform_canvas.queue_redraw()
+		if t.auto_canvas and t.automation_enabled: t.auto_canvas.queue_redraw()
 		
 		# Drive dedicated stem audio player in real-time
 		if i < stem_players.size() and stem_players[i]:
@@ -1022,6 +1221,7 @@ func _on_trigger_transition_pressed() -> void:
 				var tail_p = AudioStreamPlayer.new()
 				tail_p.stream = p.stream
 				tail_p.volume_db = p.volume_db
+				tail_p.bus = p.bus
 				add_child(tail_p)
 				tail_p.play(p.get_playback_position())
 				tail_decay_players.append(tail_p)
@@ -1117,11 +1317,13 @@ func _on_music_stop_pressed() -> void:
 	for t in tracks:
 		if t.waveform_canvas:
 			t.waveform_canvas.queue_redraw()
+		if t.auto_canvas:
+			t.auto_canvas.queue_redraw()
 
 func _process(delta: float) -> void:
 	if is_playing and not is_paused and clock:
 		clock.update(delta)
-		var loop_length = (exit_cue_bar - entry_cue_bar) * 2.0 # 2.0s per bar at 120bpm
+		var loop_length = (exit_cue_bar - entry_cue_bar) * 2.0
 		if loop_length <= 0.1: loop_length = 16.0
 		
 		current_playhead_ratio = fposmod(clock.current_time_sec / 16.0, 1.0)
@@ -1136,6 +1338,8 @@ func _process(delta: float) -> void:
 				_on_music_stop_pressed()
 				return
 		
+		_update_stem_levels()
+		
 		# Metronome tick
 		if metronome_btn and metronome_btn.button_pressed:
 			var cur_beat = clock.current_beat + clock.current_bar * 4
@@ -1148,6 +1352,8 @@ func _process(delta: float) -> void:
 		for t in tracks:
 			if t.waveform_canvas:
 				t.waveform_canvas.queue_redraw()
+			if t.auto_canvas and t.automation_enabled:
+				t.auto_canvas.queue_redraw()
 
 func _play_metronome_click(is_downbeat: bool) -> void:
 	if metronome_player:
@@ -1186,7 +1392,7 @@ func _on_draw_timeline_ruler() -> void:
 				
 	# Post-Exit Tail Shaded Zone (Purple)
 	var exit_x = exit_cue_bar * bar_width
-	var tail_w = (post_exit_tail_sec / 2.0) * bar_width # bar_width = 2s at 120bpm
+	var tail_w = (post_exit_tail_sec / 2.0) * bar_width
 	if exit_x <= size.x:
 		var tail_rect = Rect2(Vector2(exit_x, 2), Vector2(minf(tail_w, size.x - exit_x), size.y - 4))
 		ruler_canvas.draw_rect(tail_rect, Color(0.65, 0.25, 0.9, 0.22))
@@ -1245,7 +1451,6 @@ func _on_draw_track_waveform(t: TrackLaneData, canvas: Control) -> void:
 		var wave_color = Color(t.color.r, t.color.g, t.color.b, 0.85 * alpha_factor)
 		for i in range(steps):
 			var x = float(i) * 4.0
-			# Only draw inside active trim window with full color
 			var is_inside_trim = (x >= left_trim_x and x <= right_trim_x)
 			var col = wave_color if is_inside_trim else Color(wave_color.r * 0.3, wave_color.g * 0.3, wave_color.b * 0.3, 0.3)
 			var t_norm = (x / size.x) * 8.0
@@ -1254,14 +1459,51 @@ func _on_draw_track_waveform(t: TrackLaneData, canvas: Control) -> void:
 			canvas.draw_line(Vector2(x, mid_y - amp), Vector2(x, mid_y + amp), col, 2.0)
 			
 	# 5. Trim Handles Visuals ([ | and | ])
-	# Left handle
 	canvas.draw_line(Vector2(left_trim_x, 0), Vector2(left_trim_x, size.y), Color(0.3, 0.95, 0.95, 0.9), 2.5)
 	canvas.draw_rect(Rect2(Vector2(left_trim_x, 2), Vector2(6, 12)), Color(0.3, 0.95, 0.95, 1.0))
 	
-	# Right handle
 	canvas.draw_line(Vector2(right_trim_x, 0), Vector2(right_trim_x, size.y), Color(0.95, 0.85, 0.3, 0.9), 2.5)
 	canvas.draw_rect(Rect2(Vector2(right_trim_x - 6, size.y - 14), Vector2(6, 12)), Color(0.95, 0.85, 0.3, 1.0))
 	
 	# 6. Playhead Line
 	var playhead_x = current_playhead_ratio * size.x * zoom_factor
+	canvas.draw_line(Vector2(playhead_x, 0), Vector2(playhead_x, size.y), Color(1.0, 0.35, 0.35, 0.9), 1.5)
+
+## Draws the interactive automation curve with handles and real-time cursor (TASK-032).
+func _on_draw_automation_curve(t: TrackLaneData, canvas: Control) -> void:
+	if not canvas:
+		return
+	var size = canvas.size
+	if size.x <= 10.0 or size.y <= 10.0:
+		return
+		
+	var total_w = size.x * zoom_factor
+	# Dark Background
+	canvas.draw_rect(Rect2(Vector2.ZERO, size), Color(0.06, 0.08, 0.1, 1.0))
+	canvas.draw_rect(Rect2(Vector2.ZERO, size), Color(0.2, 0.25, 0.3, 0.5), false, 1.0)
+	
+	# Reference Grid Lines (0.25, 0.5, 0.75)
+	canvas.draw_line(Vector2(0, size.y * 0.5), Vector2(size.x, size.y * 0.5), Color(0.15, 0.2, 0.25, 0.7), 1.0)
+	
+	# Draw Automation Curve Lines
+	if t.automation_points.size() >= 2:
+		var line_col = Color(1.0, 0.85, 0.2, 0.9)
+		for i in range(t.automation_points.size() - 1):
+			var p0 = t.automation_points[i]
+			var p1 = t.automation_points[i + 1]
+			var p0_v = Vector2(p0.x * total_w, (1.0 - p0.y) * size.y)
+			var p1_v = Vector2(p1.x * total_w, (1.0 - p1.y) * size.y)
+			canvas.draw_line(p0_v, p1_v, line_col, 2.0)
+			
+	# Draw Points / Handles
+	for i in range(t.automation_points.size()):
+		var p = t.automation_points[i]
+		var pv = Vector2(p.x * total_w, (1.0 - p.y) * size.y)
+		var is_sel = (t.selected_point_index == i)
+		var pt_col = Color(1.0, 1.0, 0.4) if is_sel else Color(1.0, 0.85, 0.2)
+		canvas.draw_circle(pv, 4.0 if is_sel else 3.0, pt_col)
+		canvas.draw_circle(pv, 4.0 if is_sel else 3.0, Color.BLACK, false, 1.0)
+		
+	# Playhead cursor
+	var playhead_x = current_playhead_ratio * total_w
 	canvas.draw_line(Vector2(playhead_x, 0), Vector2(playhead_x, size.y), Color(1.0, 0.35, 0.35, 0.9), 1.5)

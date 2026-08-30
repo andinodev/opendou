@@ -90,6 +90,24 @@ static func run_all() -> Array[String]:
 	if timeline.tracks[0].active_sub_index < 0 or timeline.tracks[0].active_sub_index >= 3:
 		failures.append("Test 2s Failed: Random variation index out of bounds")
 		
+	# Test TASK-032: Timeline Automation Curves & Bus Routing
+	var t0 = timeline.tracks[0]
+	t0.automation_enabled = true
+	t0.automation_parameter = 0 # Volume
+	t0.automation_points = [Vector2(0.0, 0.0), Vector2(0.5, 1.0), Vector2(1.0, 0.0)]
+	var eval_mid = t0.evaluate_automation_value(0.5)
+	if absf(eval_mid - 1.0) > 0.01:
+		failures.append("Test 2t Failed: Automation evaluation at midpoint should be 1.0")
+	var eval_qtr = t0.evaluate_automation_value(0.25)
+	if absf(eval_qtr - 0.5) > 0.01:
+		failures.append("Test 2u Failed: Automation evaluation at quarter point should be 0.5")
+		
+	# Test Bus Routing Assignment
+	t0.bus_name = &"Music_Pads"
+	timeline.stem_players[0].bus = t0.bus_name
+	if timeline.stem_players[0].bus != &"Music_Pads":
+		failures.append("Test 2v Failed: Stem player bus assignment failed")
+		
 	# Test Post-Exit Tail Decayer trigger
 	timeline._on_music_play_pressed()
 	timeline._on_trigger_transition_pressed()

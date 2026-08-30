@@ -125,11 +125,11 @@ Este archivo almacena el banco de tareas pendientes y planificadas para **OpenDo
 
 ## 📈 18. Automatizaciones RTPC en Línea de Tiempo y Ruteo de Buses (`TASK-032`)
 
-* [ ] `TASK-032.1`: **Carriles de Automatización Desplegables:**
+* [x] `TASK-032.1`: **Carriles de Automatización Desplegables:**
   * Líneas de curvas de puntos (*Splines / Beziers*) bajo cada pista para automatizar volumen, filtros pasa-bajos (LPF) o envíos auxiliares.
-* [ ] `TASK-032.2`: **Vinculación a Parámetros RTPC:**
+* [x] `TASK-032.2`: **Vinculación a Parámetros RTPC:**
   * Mapeo de curvas a variables del juego (`CombatIntensity`, `Health`, `DangerLevel`).
-* [ ] `TASK-032.3`: **Ruteo de Sub-Buses por Pista:**
+* [x] `TASK-032.3`: **Ruteo de Sub-Buses por Pista:**
   * Selector en cada cabecera de pista para dirigir la salida a sub-buses específicos de Godot (`Music_Pads`, `Music_Percussion`, `Music_Leads`).
 
 ---
