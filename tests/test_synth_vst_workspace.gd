@@ -326,4 +326,71 @@ static func run_all() -> Array[String]:
 
 			vu.free()
 
+	# Test 10: OpenDouSynthRackWorkspace full-screen VST modular rack
+	var WorkspaceClass = load("res://addons/opendou/editor/opendou_synth_rack_workspace.gd")
+	if WorkspaceClass == null:
+		failures.append("Test 10 Failed: opendou_synth_rack_workspace.gd failed to load")
+	else:
+		var ws = WorkspaceClass.new()
+		if ws == null:
+			failures.append("Test 10 Failed: Failed to instantiate OpenDouSynthRackWorkspace")
+		else:
+			# Verify UI controls presence
+			if ws.preset_tree == null or ws.btn_add_preset == null or ws.btn_delete_preset == null:
+				failures.append("Test 10 Failed: Left preset library controls not initialized")
+			if ws.waveform_playhead == null or ws.vu_meter == null:
+				failures.append("Test 10 Failed: Visualizer row controls not initialized")
+			if ws.name_edit == null or ws.type_option == null or ws.knob_duration == null or ws.knob_master_gain == null:
+				failures.append("Test 10 Failed: Top parameter toolbar controls not initialized")
+			if ws.opt_gen_type == null or ws.knob_base_freq == null or ws.knob_freq_var == null:
+				failures.append("Test 10 Failed: Generator card controls not initialized")
+			if ws.adsr_editor == null or ws.knob_attack == null or ws.knob_decay == null or ws.knob_sustain == null or ws.knob_release == null:
+				failures.append("Test 10 Failed: ADSR envelope card controls not initialized")
+			if ws.opt_filter_mode == null or ws.knob_filter_cutoff == null or ws.knob_filter_q == null:
+				failures.append("Test 10 Failed: Filter card controls not initialized")
+			if ws.opt_lfo_wave == null or ws.knob_lfo_rate == null or ws.knob_lfo_depth == null or ws.opt_lfo_target == null:
+				failures.append("Test 10 Failed: LFO card controls not initialized")
+			if ws.opt_drive_type == null or ws.knob_drive_amount == null:
+				failures.append("Test 10 Failed: Drive card controls not initialized")
+			if ws.opt_voice_mode == null or ws.knob_glide_time == null or ws.knob_pan == null:
+				failures.append("Test 10 Failed: Voicing card controls not initialized")
+			if ws.chk_delay_enable == null or ws.knob_delay_time == null or ws.chk_reverb_enable == null or ws.knob_reverb_size == null:
+				failures.append("Test 10 Failed: Master FX card controls not initialized")
+			if ws.btn_audition_play == null or ws.btn_audition_stop == null or ws.btn_save_all == null:
+				failures.append("Test 10 Failed: Audition transport controls not initialized")
+
+			# Verify Preset Selection & Loading
+			ws.select_preset(&"Cyber_Hornet")
+			if ws.get_current_preset_name() != &"Cyber_Hornet":
+				failures.append("Test 10 Failed: select_preset failed to set current preset name (got %s, expected Cyber_Hornet)" % str(ws.get_current_preset_name()))
+			if not is_equal_approx(ws.knob_base_freq.value, 180.0):
+				failures.append("Test 10 Failed: knob_base_freq value mismatch for Cyber_Hornet (got %f, expected 180.0)" % ws.knob_base_freq.value)
+			if not is_equal_approx(ws.adsr_editor.attack, 0.1):
+				failures.append("Test 10 Failed: adsr_editor attack mismatch for Cyber_Hornet (got %f, expected 0.1)" % ws.adsr_editor.attack)
+
+			# Verify Two-Way Knob & ADSR Synchronization
+			ws.knob_base_freq.set_value(320.0)
+			var p_dict = ws.get_current_preset_dict()
+			if not is_equal_approx(float(p_dict.get("base_freq", 0.0)), 320.0):
+				failures.append("Test 10 Failed: knob_base_freq change did not propagate to active preset dict (got %f, expected 320.0)" % float(p_dict.get("base_freq", 0.0)))
+
+			ws.adsr_editor.set_adsr(0.15, 0.25, 0.65, 0.35)
+			if not is_equal_approx(ws.knob_attack.value, 0.15) or not is_equal_approx(ws.knob_decay.value, 0.25) or not is_equal_approx(ws.knob_sustain.value, 0.65) or not is_equal_approx(ws.knob_release.value, 0.35):
+				failures.append("Test 10 Failed: adsr_editor set_adsr did not synchronize ADSR knobs")
+
+			ws.knob_attack.set_value(0.22)
+			if not is_equal_approx(ws.adsr_editor.attack, 0.22):
+				failures.append("Test 10 Failed: knob_attack change did not propagate to adsr_editor")
+
+			# Verify Audition behavior
+			ws._on_audition_play_pressed()
+			if ws.waveform_playhead.waveform_samples.size() == 0:
+				failures.append("Test 10 Failed: Audition play did not generate waveform samples for preview visualizer")
+
+			ws._on_audition_stop_pressed()
+			if ws.waveform_playhead.playhead_progress >= 0.0:
+				failures.append("Test 10 Failed: Audition stop did not reset playhead progress")
+
+			ws.free()
+
 	return failures

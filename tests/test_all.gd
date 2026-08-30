@@ -198,7 +198,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r38)
 	
 	var r39 = TestSynthVstWorkspaceClass.run_all()
-	total_tests += 5
+	total_tests += 10
 	all_failures.append_array(r39)
 	
 	return {
