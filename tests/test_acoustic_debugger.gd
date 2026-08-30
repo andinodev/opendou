@@ -107,5 +107,25 @@ static func run_all() -> Array[String]:
 		if not code.contains("wave_speed") or not code.contains("wave_frequency"):
 			failures.append("Test 6f Failed: Shader missing wave animation uniforms")
 			
+	# Test 7: plugin.gd custom type registration and SVG icon loading
+	var script_path = "res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd"
+	var icon_path = "res://addons/opendou/icons/icon_acoustic_debugger.svg"
+	
+	var scr = ResourceLoader.load(script_path)
+	if scr == null:
+		failures.append("Test 7a Failed: Script resource missing for OpenDouAcousticDebugger3D at %s" % script_path)
+	var icon_res = ResourceLoader.load(icon_path)
+	if icon_res == null:
+		failures.append("Test 7b Failed: Icon resource missing for OpenDouAcousticDebugger3D at %s" % icon_path)
+		
+	var plugin_code = FileAccess.get_file_as_string("res://addons/opendou/plugin.gd")
+	if plugin_code.is_empty():
+		failures.append("Test 7c Failed: Could not read addons/opendou/plugin.gd")
+	else:
+		if not plugin_code.contains('add_custom_type("OpenDouAcousticDebugger3D"') and not plugin_code.contains("add_custom_type('OpenDouAcousticDebugger3D'"):
+			failures.append("Test 7d Failed: plugin.gd missing add_custom_type for OpenDouAcousticDebugger3D")
+		if not plugin_code.contains('remove_custom_type("OpenDouAcousticDebugger3D"') and not plugin_code.contains("remove_custom_type('OpenDouAcousticDebugger3D'"):
+			failures.append("Test 7e Failed: plugin.gd missing remove_custom_type for OpenDouAcousticDebugger3D")
+			
 	debugger.free()
 	return failures
