@@ -15,7 +15,7 @@ var current_gain: float = 0.0
 var audio_file_path: String = ""
 var left_trim_ratio: float = 0.0 # 0.0 to 1.0
 var right_trim_ratio: float = 1.0 # 0.0 to 1.0
-var sub_tracks: Array[Dictionary] = [] # [{"name": "Var 1", "audio_path": "...", "weight": 1.0}]
+var sub_tracks: Array = [] # [{"name": "Var 1", "audio_path": "...", "weight": 1.0}]
 var active_sub_index: int = 0
 var is_random_mode: bool = true
 
@@ -23,7 +23,7 @@ var is_random_mode: bool = true
 var bus_name: StringName = &"Master"
 var automation_enabled: bool = false
 var automation_parameter: int = 0 # 0 = Volume, 1 = LPF Cutoff, 2 = RTPC: CombatIntensity
-var automation_points: Array[Vector2] = [Vector2(0.0, 1.0), Vector2(0.5, 0.6), Vector2(1.0, 1.0)]
+var automation_points: Array = [Vector2(0.0, 1.0), Vector2(0.5, 0.6), Vector2(1.0, 1.0)]
 var selected_point_index: int = -1
 
 var row_container: HBoxContainer
@@ -48,13 +48,15 @@ var auto_canvas: Control
 func evaluate_automation_value(ratio: float) -> float:
 	if automation_points.is_empty():
 		return 1.0
-	if ratio <= automation_points[0].x:
-		return automation_points[0].y
-	if ratio >= automation_points[automation_points.size() - 1].x:
-		return automation_points[automation_points.size() - 1].y
+	var p_first: Vector2 = automation_points[0]
+	if ratio <= p_first.x:
+		return p_first.y
+	var p_last: Vector2 = automation_points[automation_points.size() - 1]
+	if ratio >= p_last.x:
+		return p_last.y
 	for i in range(automation_points.size() - 1):
-		var p0 = automation_points[i]
-		var p1 = automation_points[i + 1]
+		var p0: Vector2 = automation_points[i]
+		var p1: Vector2 = automation_points[i + 1]
 		if ratio >= p0.x and ratio <= p1.x:
 			var span = p1.x - p0.x
 			if span <= 0.0001:
