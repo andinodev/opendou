@@ -6,6 +6,23 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-047` - Motor de Detección Inteligente de Superficies en 3 Niveles & Integración Demo Cyberpunk (Dynamic Surface & Room Acoustic Harmonization)**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **`detect_surface_at()` en `SpatialAcousticsManager` (3-Tier Hierarchy):**
+      * **Prioridad 1 (Physics Raycast):** Lanzamiento de rayo físico hacia abajo desde `pos + (0, 0.5, 0)` hasta `pos + (0, -1.5, 0)` con detección de superficie por metadato `surface_type`, nombre de `physics_material_override` o palabras clave en el nombre del colisionador.
+      * **Prioridad 2 (AudioRoom.floor_surface):** Consulta de la sala acústica que contiene la posición mediante `get_room_at_position()` y retorno de su propiedad `floor_surface`.
+      * **Prioridad 3 (Fallback):** Retorno del valor predeterminado `&"Concrete"` cuando ningún sistema superior resuelve la superficie.
+    * **Salas acústicas en `demo_cyberpunk_infiltration.gd` con `floor_surface` correcto:**
+      * `room_rooftop.floor_surface = &"Metal"`, `room_server.floor_surface = &"Tile"`, `room_drainage.floor_surface = &"Water"`, `room_extraction.floor_surface = &"Concrete"`, `room_biosphere.floor_surface = &"Foliage"`.
+    * **Delegación en `detect_footstep_surface()` del demo:**
+      * Reemplazo de la cadena if/elif posicional por llamada a `spatial_acoustics.detect_surface_at(pos, get_world_3d())`, con la cadena posicional como fallback cuando `spatial_acoustics` es nulo.
+    * **Propiedades `floor_surface` en `demo_cyberpunk_infiltration.tscn`:**
+      * Configuración declarativa de `floor_surface` en los 5 nodos de sala: `RooftopRoom (&"Metal")`, `ServerRoomArea (&"Metal")`, `DrainageRoom (&"Water")`, `ExtractionArenaRoom (&"Tile")`, `BiosphereRoom (&"Foliage")`.
+    * **Suite de Pruebas Automatizadas:**
+      * Tests 4a, 5a, 6a en `test_spatial_acoustics.gd` verificando `detect_surface_at()` con sala registrada, punto exterior (fallback Concrete) y world_3d nulo (fallback Concrete).
+      * 237 pruebas unitarias e integración pasando al 100% (código de salida 0, 0 fallos).
+
 * **`TASK-046` - OpenDou VST Modular Synth Rack Workstation (Mode 3: Synth Studio)**
   * **Fecha:** 2026-08-30
   * **Resumen:**

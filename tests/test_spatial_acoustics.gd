@@ -62,5 +62,29 @@ static func run_all() -> Array[String]:
 		failures.append("Test 3b Failed: Apparent origin should be Portal 2 entering Room C (20,0,0), got %s" % str(path_ac.apparent_origin))
 	if not is_equal_approx(path_ac.accumulated_lpf, 10100.0):
 		failures.append("Test 3c Failed: Accumulated LPF expected 10100Hz, got %f" % path_ac.accumulated_lpf)
-		
+
+	# Test 4: detect_surface_at() - Room with floor_surface = &"Metal"
+	var metal_room = AudioRoomClass.new(&"Metal_Room", 0.5, 0.3)
+	metal_room.floor_surface = &"Metal"
+	metal_room.set_bounds(AABB(Vector3(-5.0, 0.0, -5.0), Vector3(10.0, 5.0, 10.0)))
+	var acoustics2 = SpatialAcousticsManagerClass.new()
+	acoustics2.register_room(metal_room)
+
+	var inside_pos = Vector3(0.0, 1.0, 0.0)
+	var detected = acoustics2.detect_surface_at(inside_pos)
+	if detected != &"Metal":
+		failures.append("Test 4a Failed: detect_surface_at inside Metal_Room expected &\"Metal\", got %s" % str(detected))
+
+	# Test 5: detect_surface_at() - No room contains point -> fallback &"Concrete"
+	var outside_pos = Vector3(100.0, 1.0, 100.0)
+	var fallback = acoustics2.detect_surface_at(outside_pos)
+	if fallback != &"Concrete":
+		failures.append("Test 5a Failed: detect_surface_at outside any room expected &\"Concrete\", got %s" % str(fallback))
+
+	# Test 6: detect_surface_at() - world_3d is null, no room -> fallback &"Concrete"
+	var acoustics3 = SpatialAcousticsManagerClass.new()
+	var null_world_fallback = acoustics3.detect_surface_at(Vector3(999.0, 0.0, 999.0), null)
+	if null_world_fallback != &"Concrete":
+		failures.append("Test 6a Failed: detect_surface_at with null world and no room expected &\"Concrete\", got %s" % str(null_world_fallback))
+
 	return failures

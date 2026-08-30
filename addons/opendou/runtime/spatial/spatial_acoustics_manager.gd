@@ -40,6 +40,45 @@ func get_room_at_position(pos: Vector3) -> AudioRoom:
 			return r
 	return null
 
+## Detects the physical ground surface at a 3D position using a 3-tier hierarchy.
+## Priority 1: Physics raycast downward checking metadata/material.
+## Priority 2: Enclosing AudioRoom.floor_surface.
+## Priority 3: Fallback &"Concrete".
+func detect_surface_at(pos: Vector3, world_3d: World3D = null) -> StringName:
+	# Priority 1: Physics Raycast downward (if world_3d provided)
+	if world_3d != null:
+		var space_state = world_3d.direct_space_state
+		var query = PhysicsRayQueryParameters3D.create(
+			pos + Vector3(0, 0.5, 0),
+			pos + Vector3(0, -1.5, 0)
+		)
+		query.hit_from_inside = false
+		var result = space_state.intersect_ray(query)
+		if not result.is_empty() and result.has("collider"):
+			var col = result["collider"]
+			# Check metadata "surface_type"
+			if col.has_meta("surface_type"):
+				return col.get_meta("surface_type") as StringName
+			# Check physics material resource name
+			if col is StaticBody3D or col is CharacterBody3D or col is RigidBody3D:
+				if col.get("physics_material_override") != null:
+					var mat_name: String = col.physics_material_override.resource_name
+					if not mat_name.is_empty():
+						return StringName(mat_name)
+			# Check collider name keywords
+			var col_name: String = col.name.to_lower()
+			for surf in ["metal", "water", "wood", "glass", "concrete", "tile", "foliage", "stone", "mud", "asphalt", "grass"]:
+				if surf in col_name:
+					return StringName(surf.capitalize())
+
+	# Priority 2: AudioRoom.floor_surface
+	var room: AudioRoom = get_room_at_position(pos)
+	if room != null and not room.floor_surface.is_empty():
+		return room.floor_surface
+
+	# Priority 3: Fallback
+	return &"Concrete"
+
 ## Calculates acoustic sound propagation between emitter and listener across rooms and portals.
 func calculate_acoustic_path(emitter_pos: Vector3, listener_pos: Vector3, emitter_room_name: StringName = &"", listener_room_name: StringName = &"") -> AcousticPath:
 	var e_room = emitter_room_name

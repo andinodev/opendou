@@ -140,18 +140,23 @@ func _setup_runtime_systems() -> void:
 	spatial_acoustics = SpatialAcousticsManagerClass.new()
 	
 	room_rooftop = AudioRoomClass.new(&"Rooftop_Exterior", 0.4, 0.1)
+	room_rooftop.floor_surface = &"Metal"
 	room_rooftop.set_bounds(AABB(Vector3(-38.0, 0.0, -15.0), Vector3(26.0, 10.0, 30.0)))
 	
 	room_server = AudioRoomClass.new(&"Server_Room", 0.2, 0.3)
+	room_server.floor_surface = &"Tile"
 	room_server.set_bounds(AABB(Vector3(-12.0, 0.0, -15.0), Vector3(24.0, 10.0, 30.0)))
 	
 	room_drainage = AudioRoomClass.new(&"Flooded_Drainage", 1.2, 0.05)
+	room_drainage.floor_surface = &"Water"
 	room_drainage.set_bounds(AABB(Vector3(12.0, 0.0, -15.0), Vector3(25.0, 10.0, 30.0)))
 	
 	room_extraction = AudioRoomClass.new(&"Extraction_Arena", 0.8, 0.15)
-	room_extraction.set_bounds(AABB(Vector3(37.0, 0.0, -25.0), Vector3(35.0, 12.0, 50.0)))
+	room_extraction.floor_surface = &"Concrete"
+	room_extraction.set_bounds(AABB(Vector3(37.0, 0.0, -25.0), Vector3(28.0, 12.0, 50.0)))
 	
 	room_biosphere = AudioRoomClass.new(&"Biosphere_Sanctuary", 0.38, 0.60)
+	room_biosphere.floor_surface = &"Foliage"
 	room_biosphere.set_bounds(AABB(Vector3(65.0, 0.0, -25.0), Vector3(35.0, 12.0, 50.0)))
 	
 	spatial_acoustics.register_room(room_rooftop)
@@ -533,7 +538,12 @@ func _update_room_acoustics(pos: Vector3) -> void:
 				active_room_name = &"Extraction_Arena"
 
 ## Detects the physical ground surface material type for dynamic footstep audio synthesis.
+## Delegates to the 3-tier SpatialAcousticsManager hierarchy when available.
 func detect_footstep_surface(pos: Vector3) -> StringName:
+	if spatial_acoustics:
+		var w3d: World3D = get_world_3d() if is_inside_tree() else null
+		return spatial_acoustics.detect_surface_at(pos, w3d)
+	# Fallback: positional if/elif chain (used only when spatial_acoustics is null)
 	if pos.x < -12.0:
 		return &"Metal"
 	elif pos.x < 12.0:

@@ -147,6 +147,7 @@ absorption = 1.0
 [node name="RooftopRoom" type="Area3D" parent="LevelGeometry/Sector1_Rooftop" unique_id=118274910]
 script = ExtResource("6_room")
 room_name = &"Rooftop_Exterior"
+floor_surface = &"Metal"
 calculated_rt60 = 9.793390945995817
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector1_Rooftop/RooftopRoom" unique_id=118274911]
@@ -220,6 +221,7 @@ room_b = NodePath("../../Sector1_Rooftop/RooftopRoom")
 [node name="ServerRoomArea" type="Area3D" parent="LevelGeometry/Sector2_ServerRoom" unique_id=198274910]
 script = ExtResource("6_room")
 room_name = &"Server_Room"
+floor_surface = &"Metal"
 material_preset = "Wood"
 absorption_coefficient = 0.56
 calculated_rt60 = 2.07741935483871
@@ -301,6 +303,7 @@ material = SubResource("StandardMaterial3D_water")
 [node name="DrainageRoom" type="Area3D" parent="LevelGeometry/Sector3_FloodedDrainage" unique_id=178274910]
 script = ExtResource("6_room")
 room_name = &"Flooded_Drainage"
+floor_surface = &"Water"
 material_preset = "Glass"
 custom_reverb_time = 3.5
 calculated_rt60 = 9.907692307692308
@@ -332,6 +335,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0, 0)
 [node name="ExtractionArenaRoom" type="Area3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=158274910]
 script = ExtResource("6_room")
 room_name = &"Extraction_Arena"
+floor_surface = &"Tile"
 material_preset = "Curtains"
 calculated_rt60 = 1.0171480144404332
 
@@ -463,6 +467,7 @@ omni_range = 18.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 0, 0)
 script = ExtResource("6_room")
 room_name = &"Biosphere_Sanctuary"
+floor_surface = &"Foliage"
 material_preset = "Curtains"
 calculated_rt60 = 0.8944444444444444
 
