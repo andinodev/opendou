@@ -42,7 +42,7 @@ albedo_color = Color(0.25, 0.27, 0.3, 1)
 roughness = 0.85
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_rooftop"]
-size = Vector3(30, 10, 30)
+size = Vector3(32.192383, 10, 30)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_neon_cyan"]
 albedo_color = Color(0, 0.85, 1, 1)
@@ -138,6 +138,7 @@ room_name = &"Rooftop_Exterior"
 calculated_rt60 = 9.66
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector1_Rooftop/RooftopRoom" unique_id=118274911]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0961914, 0, 0)
 shape = SubResource("BoxShape3D_rooftop")
 
 [node name="NeonSignCyan" type="CSGBox3D" parent="LevelGeometry/Sector1_Rooftop" unique_id=238960331]
@@ -146,7 +147,7 @@ size = Vector3(0.2, 1.8, 8)
 material = SubResource("StandardMaterial3D_neon_cyan")
 
 [node name="NeonSignLight" type="OmniLight3D" parent="LevelGeometry/Sector1_Rooftop" unique_id=1348369044]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 4, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.731865, 4, 0)
 light_color = Color(0, 0.85, 1, 1)
 light_energy = 2.5
 omni_range = 14.0
@@ -159,6 +160,7 @@ autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Rain_Ambience"
+synth_preset = "Rain"
 bus_category = "Ambience"
 
 [node name="Sector2_ServerRoom" type="Node3D" parent="LevelGeometry" unique_id=2017983675]
@@ -207,7 +209,8 @@ room_b = NodePath("../../Sector1_Rooftop/RooftopRoom")
 script = ExtResource("6_room")
 room_name = &"Server_Room"
 material_preset = "Wood"
-calculated_rt60 = 2.07741935483871
+absorption_coefficient = 0.56
+calculated_rt60 = 0.6
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector2_ServerRoom/ServerRoomArea" unique_id=198274911]
 shape = SubResource("BoxShape3D_server")
@@ -238,6 +241,7 @@ autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Server_Hum"
+synth_preset = "Server_Hum"
 bus_category = "Ambience"
 
 [node name="ServerLight" type="OmniLight3D" parent="LevelGeometry/Sector2_ServerRoom" unique_id=27430178]
@@ -285,6 +289,7 @@ material = SubResource("StandardMaterial3D_water")
 [node name="DrainageRoom" type="Area3D" parent="LevelGeometry/Sector3_FloodedDrainage" unique_id=178274910]
 script = ExtResource("6_room")
 room_name = &"Flooded_Drainage"
+material_preset = "Glass"
 custom_reverb_time = 3.5
 calculated_rt60 = 5.944615384615385
 snapshot_on_enter = &"Underwater_Muffle"
@@ -294,12 +299,13 @@ shape = SubResource("BoxShape3D_drainage")
 
 [node name="WaterEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector3_FloodedDrainage" unique_id=316751653]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
-volume_db = -12.0
+volume_db = -10.0
 unit_size = 2.5
 autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Water_Stream"
+synth_preset = "Water_Stream"
 bus_category = "Ambience"
 
 [node name="DrainageLight" type="OmniLight3D" parent="LevelGeometry/Sector3_FloodedDrainage" unique_id=1401071397]
@@ -315,7 +321,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0, 0)
 script = ExtResource("6_room")
 room_name = &"Extraction_Arena"
 material_preset = "Curtains"
-calculated_rt60 = 12.0
+calculated_rt60 = 1.0171480144404332
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector4_ExtractionArena/ExtractionArenaRoom" unique_id=158274911]
 shape = SubResource("BoxShape3D_extraction")
@@ -388,6 +394,8 @@ autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Turret_Scan"
+synth_preset = "Turret_Scan"
+bus_category = "SFX"
 
 [node name="RadioBeaconEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=2142646796]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
@@ -397,6 +405,8 @@ autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Radio_Beacon"
+synth_preset = "Radio_Beacon"
+bus_category = "SFX"
 
 [node name="ArenaBeaconLight" type="OmniLight3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=961045293]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
@@ -432,6 +442,7 @@ omni_range = 8.0
 target_position = Vector3(0, -1.2, 0)
 
 [node name="FootstepAudio" type="AudioStreamPlayer" parent="Player" unique_id=1566523093]
+volume_db = -36.647
 script = ExtResource("5_pglob")
 event_name = &"Footstep"
 switch_group = &"Surface"
@@ -446,6 +457,7 @@ event_name = &"Radio_Transmission"
 bus_category = "Voice"
 
 [node name="MusicAudio" type="AudioStreamPlayer" parent="Player" unique_id=259454720]
+volume_db = -23.146
 script = ExtResource("5_pglob")
 bus_category = "Music"
 
@@ -697,4 +709,6 @@ layout_mode = 2
 text = "🇨🇳 ZH"
 
 [node name="AudibleMonitor" type="CanvasLayer" parent="." unique_id=987654321]
+layer = 100
 script = ExtResource("10_monitor")
+toggle_key = 4194326

@@ -311,23 +311,27 @@ func _create_voice_row(v_info: RefCounted) -> Control:
 	tags_hbox.add_theme_constant_override("separation", 3)
 	row_hbox.add_child(tags_hbox)
 	
-	if v_info.is_3d and v_info.distance > 0.0:
+	var dist_val: float = float(v_info.get("distance_meters")) if ("distance_meters" in v_info) else float(v_info.get("distance"))
+	var duck_val: float = float(v_info.get("ducking_reduction_db")) if ("ducking_reduction_db" in v_info) else float(v_info.get("ducking_attenuation_db"))
+	var occl_val: float = float(v_info.get("occlusion_factor"))
+	
+	if v_info.is_3d and dist_val > 0.0:
 		var dist_tag = Label.new()
-		dist_tag.text = "[%.1fm]" % v_info.distance
+		dist_tag.text = "[%.1fm]" % dist_val
 		dist_tag.add_theme_color_override("font_color", Color(0.4, 0.8, 0.9, 0.8))
 		dist_tag.add_theme_font_size_override("font_size", 9)
 		tags_hbox.add_child(dist_tag)
 		
-	if v_info.occlusion_factor > 0.05:
+	if occl_val > 0.05:
 		var occ_tag = Label.new()
 		occ_tag.text = "[🛡️ Occl]"
 		occ_tag.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 0.9))
 		occ_tag.add_theme_font_size_override("font_size", 9)
 		tags_hbox.add_child(occ_tag)
 		
-	if v_info.ducking_attenuation_db < -0.5:
+	if duck_val < -0.5:
 		var duck_tag = Label.new()
-		duck_tag.text = "[🦆 %+.0fdB]" % v_info.ducking_attenuation_db
+		duck_tag.text = "[🦆 %+.0fdB]" % duck_val
 		duck_tag.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 0.9))
 		duck_tag.add_theme_font_size_override("font_size", 9)
 		tags_hbox.add_child(duck_tag)

@@ -9,6 +9,7 @@ extends AudioStreamPlayer
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
+const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 # ==============================================================================
 # EXPORT GROUPS
@@ -19,6 +20,11 @@ const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event
 @export var event_def: AudioEventDef = null
 @export var auto_play_event: bool = false
 @export var stop_on_tree_exit: bool = true
+
+@export_group("Procedural Synthesis")
+@export_enum("None", "Rain", "Server_Hum", "Water_Stream", "Turret_Scan", "Radio_Beacon", "Footstep", "Gunshot", "Engine", "Tone") var synth_preset: String = "None"
+@export var synth_duration: float = 2.0
+@export var synth_frequency: float = 440.0
 
 @export_group("Game Syncs")
 @export var rtpc_bindings: Dictionary = {}
@@ -42,8 +48,16 @@ var active_instance: EventInstance = null
 var _event_manager: AudioEventManager = null
 
 func _ready() -> void:
-	if not Engine.is_editor_hint() and auto_play_event:
-		play_event()
+	if not Engine.is_editor_hint():
+		if stream == null and synth_preset != "None":
+			_apply_synth_preset()
+		elif stream == null and not event_name.is_empty():
+			_auto_infer_synth_preset()
+			
+		if auto_play_event:
+			play_event()
+		elif autoplay and stream != null and not playing:
+			play()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_EXIT_TREE:
@@ -136,3 +150,43 @@ func _get_manager() -> AudioEventManager:
 		if s is AudioEventManager:
 			return s
 	return null
+
+func _apply_synth_preset() -> void:
+	match synth_preset:
+		"Rain":
+			stream = AudioSynthesizerClass.create_rain_ambient_loop(synth_duration)
+		"Server_Hum":
+			stream = AudioSynthesizerClass.create_server_ambient_loop(synth_duration)
+		"Water_Stream":
+			stream = AudioSynthesizerClass.create_water_stream_ambient_loop(synth_duration)
+		"Turret_Scan":
+			stream = AudioSynthesizerClass.create_tone(880.0, 0.4, 0.2)
+		"Radio_Beacon":
+			stream = AudioSynthesizerClass.create_tone(1200.0, 0.3, 0.15)
+		"Footstep":
+			stream = AudioSynthesizerClass.create_footstep(active_switch if not active_switch.is_empty() else &"Metal", 1)
+		"Gunshot":
+			stream = AudioSynthesizerClass.create_gunshot(0.3)
+		"Engine":
+			stream = AudioSynthesizerClass.create_engine_loop(120.0, synth_duration)
+		"Tone":
+			stream = AudioSynthesizerClass.create_tone(synth_frequency, synth_duration)
+
+func _auto_infer_synth_preset() -> void:
+	var n: String = str(event_name).to_lower()
+	if n.contains("rain"):
+		synth_preset = "Rain"
+	elif n.contains("server"):
+		synth_preset = "Server_Hum"
+	elif n.contains("water"):
+		synth_preset = "Water_Stream"
+	elif n.contains("turret"):
+		synth_preset = "Turret_Scan"
+	elif n.contains("beacon") or n.contains("radio_beacon"):
+		synth_preset = "Radio_Beacon"
+	elif n.contains("gun") or n.contains("shot") or n.contains("weapon"):
+		synth_preset = "Gunshot"
+	elif n.contains("footstep"):
+		synth_preset = "Footstep"
+	if synth_preset != "None":
+		_apply_synth_preset()

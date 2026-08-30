@@ -24,6 +24,19 @@ class AudibleVoiceInfo:
 	var is_3d: bool = false
 	var priority: float = 50.0
 	
+	# Compatibility aliases
+	var distance: float:
+		get:
+			return distance_meters
+		set(val):
+			distance_meters = val
+			
+	var ducking_attenuation_db: float:
+		get:
+			return ducking_reduction_db
+		set(val):
+			ducking_reduction_db = val
+	
 	func _init(
 		p_emitter_name: StringName = &"",
 		p_event_name: StringName = &"",

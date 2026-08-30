@@ -455,9 +455,9 @@ func update_audible_voices(voices_data: Array) -> void:
 		var item = audible_tree.create_item(root)
 		var event_n = str(v.get("event_name", "Voice_%d" % i))
 		var bus_n = str(v.get("bus_category", "SFX"))
-		var dist = float(v.get("distance", 0.0))
+		var dist = float(v.get("distance_meters")) if ("distance_meters" in v) else float(v.get("distance", 0.0))
 		var occ = float(v.get("occlusion_factor", 0.0))
-		var duck = float(v.get("ducking_attenuation_db", 0.0))
+		var duck = float(v.get("ducking_reduction_db")) if ("ducking_reduction_db" in v) else float(v.get("ducking_attenuation_db", 0.0))
 		
 		var mod_str = ""
 		if occ > 0.05:

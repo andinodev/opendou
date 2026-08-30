@@ -120,9 +120,6 @@ func _init() -> void:
 func _ready() -> void:
 	if not voice_pool:
 		_setup_runtime_systems()
-	_start_ambient_audio()
-	if stem_players.is_empty():
-		_start_music_audio()
 	if audible_monitor and audible_monitor.has_method("set_ducking_matrix"):
 		audible_monitor.set_ducking_matrix(ducking_matrix)
 	_connect_ui()
@@ -186,39 +183,12 @@ func _setup_runtime_systems() -> void:
 	live_update_server.start_server(8999)
 
 func _start_ambient_audio() -> void:
-	if rain_audio:
-		rain_audio.stream = AudioSynthesizerClass.create_rain_ambient_loop(2.0)
-		rain_audio.volume_db = -12.0
-		rain_audio.unit_size = 8
-		rain_audio.max_distance = 15.0
-		rain_audio.play()
-	if server_audio:
-		server_audio.stream = AudioSynthesizerClass.create_server_ambient_loop(2.0)
-		server_audio.volume_db = -14.0
-		server_audio.unit_size = 8
-		server_audio.max_distance = 15.0
-		server_audio.play()
-	if water_audio:
-		water_audio.stream = AudioSynthesizerClass.create_water_stream_ambient_loop(2.0)
-		water_audio.volume_db = -10.0
-		water_audio.unit_size = 15
-		water_audio.max_distance = 25.0
-		water_audio.play()
-	if turret_audio:
-		turret_audio.stream = AudioSynthesizerClass.create_tone(880.0, 0.4, 0.2)
-		turret_audio.volume_db = -16.0
-		turret_audio.unit_size = 2.5
-		turret_audio.max_distance = 15.0
-		turret_audio.play()
-	if radio_beacon_audio:
-		radio_beacon_audio.stream = AudioSynthesizerClass.create_tone(1200.0, 0.3, 0.15)
-		radio_beacon_audio.volume_db = -16.0
-		radio_beacon_audio.unit_size = 2.5
-		radio_beacon_audio.max_distance = 15.0
-		radio_beacon_audio.play()
+	# Ambient audio emitters (OpenDouEventPlayer3D) manage their own streams and playback via synth presets and .tscn parameters
+	pass
 
 func _start_music_audio() -> void:
-	load_music_suite(active_music_suite)
+	# OpenDouMusicPlayer manages multi-stem suite playback declaratively
+	pass
 
 ## Loads and initializes multi-stem music suite from opendou_music_suites.json
 func load_music_suite(suite_name: StringName) -> void:
@@ -246,6 +216,7 @@ func load_music_suite(suite_name: StringName) -> void:
 							tracks_to_create.append(td)
 	
 	if tracks_to_create.is_empty():
+		pass
 		if str(suite_name).contains("Exploration"):
 			tracks_to_create = [
 				{"name": "Layer 1: Ambient_Pads", "min_intensity": 0.0, "max_intensity": 0.7, "bus_name": "Music"},
@@ -356,6 +327,7 @@ func _connect_ui() -> void:
 				&"Boss_Phase_Orchestral.tres"
 			]
 			if idx >= 0 and idx < s_names.size():
+				pass
 				load_music_suite(s_names[idx])
 		)
 		
