@@ -34,6 +34,7 @@ static func create_footstep(surface: StringName, variation: int = 1) -> AudioStr
 	byte_data.resize(num_samples * 2)
 	
 	var var_offset: float = float(variation) * 15.0
+	var lp_state: float = 0.0
 	
 	for i in range(num_samples):
 		var t: float = float(i) / sample_rate
@@ -46,7 +47,7 @@ static func create_footstep(surface: StringName, variation: int = 1) -> AudioStr
 				var f = 140.0 + var_offset
 				sample = (sin(t * f * TAU) * 0.7 + (randf() * 2.0 - 1.0) * 0.2) * env
 			&"Concrete":
-				# Crisp high-impact snap (noise burst + 400Hz body)
+				# Crisp high-impact snap (noise burst + 380Hz body)
 				sample = ((randf() * 2.0 - 1.0) * 0.6 + sin(t * (380.0 + var_offset) * TAU) * 0.4) * env
 			&"Metal":
 				# High-pitched resonant metallic ringing (1400Hz + 2200Hz)
@@ -58,6 +59,38 @@ static func create_footstep(surface: StringName, variation: int = 1) -> AudioStr
 				# Splashy squish noise burst with water transients
 				var splash_env: float = exp(-12.0 * t)
 				sample = ((randf() * 2.0 - 1.0) * 0.7 + sin(t * 800.0 * TAU) * 0.3) * splash_env
+			&"Tile":
+				# Sharp high-frequency ceramic click (2800Hz / 4200Hz clicks + crisp noise)
+				var click_env: float = exp(-28.0 * t)
+				var f1 = 2800.0 + var_offset * 5.0
+				var f2 = 4200.0 + var_offset * 8.0
+				sample = (sin(t * f1 * TAU) * 0.35 + sin(t * f2 * TAU) * 0.35 + (randf() * 2.0 - 1.0) * 0.3) * click_env
+			&"Foliage", &"Grass":
+				# Crunchy organic rustle (filtered pink noise burst + rustle transient)
+				var white = randf() * 2.0 - 1.0
+				lp_state = (lp_state * 0.8) + (white * 0.2)
+				var rustle_env: float = exp(-14.0 * t)
+				var transient = sin(t * (850.0 + var_offset * 4.0) * TAU) * exp(-35.0 * t) * 0.3
+				sample = (lp_state * 0.7 + transient) * rustle_env
+			&"Stone", &"Asphalt":
+				# Low-mid rocky thud (220Hz + crunchy impact)
+				var f = 220.0 + var_offset
+				var crunch = (randf() * 2.0 - 1.0) * exp(-25.0 * t) * 0.4
+				sample = (sin(t * f * TAU) * 0.6 + crunch) * env
+			&"Mud":
+				# Squishy low-pass thud (90Hz resonance + damp envelope)
+				var mud_env: float = exp(-15.0 * t)
+				var white = randf() * 2.0 - 1.0
+				lp_state = (lp_state * 0.92) + (white * 0.08)
+				var f = 90.0 + var_offset * 0.5
+				sample = (sin(t * f * TAU) * 0.75 + lp_state * 0.25) * mud_env
+			&"Glass":
+				# Resonant glass transient (3400Hz ping + noise)
+				var glass_env: float = exp(-11.0 * t)
+				var f = 3400.0 + var_offset * 10.0
+				var ping = sin(t * f * TAU) * 0.65 + sin(t * (f * 1.5) * TAU) * 0.2
+				var click = (randf() * 2.0 - 1.0) * exp(-40.0 * t) * 0.25
+				sample = (ping + click) * glass_env
 			_:
 				sample = (randf() * 2.0 - 1.0) * env
 				

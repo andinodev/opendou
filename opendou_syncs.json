@@ -220,7 +220,107 @@
 			"max": 100.0,
 			"min": 0.0
 		},
+		"RTPC_50": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_51": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_52": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_53": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_54": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_55": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_56": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_57": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_58": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_59": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
 		"RTPC_6": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_60": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_61": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_62": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_63": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_64": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_65": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_66": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_67": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_68": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_69": {
 			"default": 50.0,
 			"max": 100.0,
 			"min": 0.0
@@ -230,12 +330,147 @@
 			"max": 100.0,
 			"min": 0.0
 		},
+		"RTPC_70": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_71": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_72": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_73": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_74": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_75": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_76": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_77": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_78": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_79": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
 		"RTPC_8": {
 			"default": 50.0,
 			"max": 100.0,
 			"min": 0.0
 		},
+		"RTPC_80": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_81": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_82": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_83": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_84": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_85": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_86": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_87": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_88": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_89": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
 		"RTPC_9": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_90": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_91": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_92": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_93": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_94": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_95": {
+			"default": 50.0,
+			"max": 100.0,
+			"min": 0.0
+		},
+		"RTPC_96": {
 			"default": 50.0,
 			"max": 100.0,
 			"min": 0.0
@@ -263,11 +498,15 @@
 	"switches": {
 		"SurfaceType": [
 			"Asphalt",
-			"Mud",
+			"Concrete",
+			"Foliage",
+			"Glass",
 			"Metal",
+			"Mud",
 			"Stone",
-			"Wood",
-			"Water"
+			"Tile",
+			"Water",
+			"Wood"
 		],
 		"SwitchGroup_3": [
 			"Switch_1",

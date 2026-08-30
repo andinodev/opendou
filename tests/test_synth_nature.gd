@@ -106,4 +106,45 @@ static func run_all() -> Array[String]:
 			failures.append("Test 6 Failed: Auto-infer for '%s' did not create stream" % ev_name)
 		p_infer.free()
 
+	# Test 7: Standardized Footstep DSP for all 10 surfaces & SurfaceType sync verification
+	var expected_surfaces = ["Wood", "Concrete", "Metal", "Water", "Tile", "Foliage", "Stone", "Asphalt", "Mud", "Glass"]
+	for surface in expected_surfaces:
+		for v in [1, 2, 3]:
+			var footstep = AudioSynthesizerClass.create_footstep(StringName(surface), v)
+			if footstep == null or not (footstep is AudioStreamWAV):
+				failures.append("Test 7 Failed: create_footstep('%s', %d) must return AudioStreamWAV" % [surface, v])
+			else:
+				var expected_bytes = int(0.22 * 44100) * 2
+				if footstep.data.size() != expected_bytes:
+					failures.append("Test 7 Failed: footstep '%s' var %d size mismatch (got %d, expected %d)" % [surface, v, footstep.data.size(), expected_bytes])
+				if footstep.format != AudioStreamWAV.FORMAT_16_BITS:
+					failures.append("Test 7 Failed: footstep '%s' format must be 16-bit" % surface)
+				if footstep.mix_rate != 44100:
+					failures.append("Test 7 Failed: footstep '%s' mix_rate must be 44100" % surface)
+				var expected_name = "%s_%d.wav" % [surface.to_lower(), v]
+				if footstep.resource_name != expected_name:
+					failures.append("Test 7 Failed: footstep '%s' resource_name mismatch (got '%s', expected '%s')" % [surface, footstep.resource_name, expected_name])
+
+	# Alias check: Grass should also produce valid footstep
+	var grass_step = AudioSynthesizerClass.create_footstep(&"Grass", 1)
+	if grass_step == null or grass_step.data.is_empty() or grass_step.resource_name != "grass_1.wav":
+		failures.append("Test 7 Failed: Grass footstep alias failed")
+
+	# Verify opendou_syncs.json SurfaceType definition
+	var syncs_file = FileAccess.open("res://opendou_syncs.json", FileAccess.READ)
+	if syncs_file == null:
+		failures.append("Test 7 Failed: Cannot open res://opendou_syncs.json")
+	else:
+		var json_str = syncs_file.get_as_text()
+		syncs_file.close()
+		var json_obj = JSON.parse_string(json_str)
+		if json_obj == null or not json_obj.has("switches") or not json_obj["switches"].has("SurfaceType"):
+			failures.append("Test 7 Failed: opendou_syncs.json missing switches.SurfaceType")
+		else:
+			var surface_list: Array = json_obj["switches"]["SurfaceType"]
+			var required_10 = ["Asphalt", "Concrete", "Foliage", "Glass", "Metal", "Mud", "Stone", "Tile", "Water", "Wood"]
+			for req in required_10:
+				if not surface_list.has(req):
+					failures.append("Test 7 Failed: SurfaceType in opendou_syncs.json is missing '%s'" % req)
+
 	return failures
