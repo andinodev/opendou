@@ -205,6 +205,17 @@ static func run_all() -> Array[String]:
 	if not studio.mixer_drawer.visible:
 		failures.append("Test 6e Failed: Mixer drawer toggle failed")
 		
+	# Test Ducking Matrix in Mixer Drawer
+	var mixer = studio.mixer_drawer
+	if not mixer.duck_cell_buttons.has("Voice_Music"):
+		failures.append("Test 6e1 Failed: Ducking cell buttons missing Voice_Music")
+	mixer._open_duck_cell_editor(&"Voice", &"Music")
+	mixer.duck_atten_spinbox.value = -16.0
+	mixer._on_duck_param_changed(-16.0)
+	var r = mixer._find_ducking_rule(&"Voice", &"Music")
+	if not r or r.attenuation_db != -16.0:
+		failures.append("Test 6e2 Failed: Ducking rule parameter update failed")
+		
 	# Test Graph compilation from canvas
 	studio.set_workspace_mode(OpenDouStudioMainClass.WorkspaceMode.MODE_GRAPH)
 	studio.graph_editor.load_event_preset(0)

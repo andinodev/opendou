@@ -1,24 +1,22 @@
-# ⚡ Tareas Activas (Current Tasks)
+# ⚡ Tarea Activa: TASK-034 - Matriz Visual de Audio Ducking en el HDR Mixer Drawer
 
-## 📌 Estado Actual: 🎉 ¡Todas las Fases del Music DAW (TASK-030 a TASK-033) Completadas al 100%!
-
-* **Estado:** ✅ Completado y Verificado
-* **Fecha:** 2026-08-29
-* **Pruebas Automatizadas:** 100% Pasadas con Código de Salida 0 (`godot --headless -s tests/test_runner_cli.gd`).
+* **Estado:** 🚧 En Desarrollo
+* **Fase:** 20 - Matriz de Ducking Dinámico en el Mixer Drawer
+* **Fecha de Inicio:** 2026-08-29
+* **Responsable:** Antigravity / Gemini Agent
 
 ---
 
-### 🏆 Resumen de Capacidades del Music DAW Implementadas y Verificadas:
-1. **`TASK-030` - Persistencia Real, CRUD de Pistas y Ergonomía:**
-   * Indicador de estado modificado (`Dirty State *`), guardado en disco con `Ctrl+S` / `[ 💾 Save ]`, caché visual de pestañas, `[ ➕ Add Track ]`, `[ 🗑️ Delete ]`, selector de archivos de audio (`EditorFileDialog`) y tiradores de recorte de clips (*Trim Handles*).
-2. **`TASK-031` - Marcadores Estructurales y Sub-Pistas Aleatorias:**
-   * Marcadores arrastrables `▼ Entry Cue` (con soporte de anacrusas) y `▼ Exit Cue` en la regla.
-   * Colas de desbordamiento `[ Post-Exit Tail ]` y decaimiento suave en transiciones con `tail_decay_players`.
-   * Sub-pistas aleatorias (`Random Multi-Tracks` 🎲) en cada capa para evitar fatiga auditiva.
-3. **`TASK-032` - Automatizaciones RTPC y Ruteo de Buses:**
-   * Carriles de automatización desplegables con edición interactiva de curvas y puntos.
-   * Modulación continua de envolvente de volumen, filtro LPF o parámetros RTPC.
-   * Selector de ruteo de sub-buses de Godot por pista (`Master`, `Music_Percussion`, `Music_Pads`, etc.).
-4. **`TASK-033` - Gestor de Playlists Musicales y Jerarquía:**
-   * Motor `MusicPlaylistManager` y panel "🎼 Playlist" en el DAW para componer y secuenciar segmentos no lineales (`Intro -> Loop A -> Bridge -> Loop B -> Outro`).
-   * Avance automático de bucle y conmutación de estados en caliente.
+## 🎯 Criterios de Aceptación (Definition of Done)
+
+1. **Pestaña "🦆 Ducking Matrix" en `OpenDouMixerDrawer`:**
+   * Grid interactivo de matriz de buses emisores (Voice, SFX, Music, Ambient) vs buses receptores.
+2. **Editor de Reglas de Ducking por Celda:**
+   * Configuración de atenuación en dB (`-1 dB a -48 dB`), `Attack Time (ms)` y `Release Time (ms)`.
+   * Botón para habilitar/deshabilitar regla entre pares de buses.
+3. **Indicador de Atenuación en Tiempo Real:**
+   * Medidores visuales de reducción de ganancia (GR / Gain Reduction) en vivo.
+4. **Sincronización con `AudioDuckingMatrix`:**
+   * Conexión directa a las reglas y actualización continua en runtime.
+5. **Verificación Automatizada:**
+   * 100% de pruebas pasando en `tests/test_runner_cli.gd` (código de salida 0).

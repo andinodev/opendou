@@ -143,3 +143,68 @@ Este archivo almacena el banco de tareas pendientes y planificadas para **OpenDo
 * [x] `TASK-033.3`: **Integración de Deshacer/Rehacer (`UndoRedo`):**
   * Conexión completa al historial del editor de Godot para todas las acciones del DAW.
 
+---
+
+## 🦆 20. Matriz Visual de Audio Ducking en el HDR Mixer (`TASK-034`)
+
+* [ ] `TASK-034.1`: **Panel / Pestaña "🦆 Ducking Matrix" en el Mixer Drawer:**
+  * Vista matricial (Bus Emisor vs Bus Receptor) para configurar atenuación automática.
+* [ ] `TASK-034.2`: **Configuración de Parámetros de Ducking:**
+  * Atenuación en dB (`-1 dB a -48 dB`), tiempos de ataque y liberación en milisegundos (`Attack / Release ms`), y curva de fade.
+* [ ] `TASK-034.3`: **Indicadores de Atenuación en Tiempo Real y Persistencia:**
+  * Animación visual de medidores cuando un diálogo o explosión atenúa la música o ambiente.
+
+---
+
+## 🎛️ 21. Nodos Visuales de Modulación AHDSR y LFOs en Graph Editor (`TASK-035`)
+
+* [ ] `TASK-035.1`: **Nodo Visual de Envolvente AHDSR (`OpenDouAHDSRGraphNode`):**
+  * Canvas gráfico interactivo con curvas de ataque, hold, decaimiento, sustain y liberación.
+* [ ] `TASK-035.2`: **Nodo Visual de Oscilador LFO (`OpenDouLFOGraphNode`):**
+  * Generador de formas de onda periódicas (`Sine`, `Triangle`, `Square`, `Random S&H`) con selector de frecuencia en Hz y profundidad.
+* [ ] `TASK-035.3`: **Enrutamiento de Modulación a Parámetros DSP:**
+  * Conexión por cables para modular dinámicamente volumen, tono (*pitch*) y frecuencias de corte de filtros.
+
+---
+
+## ⛓️ 22. Nodo Contenedor Secuencial en Graph Editor (`TASK-036`)
+
+* [ ] `TASK-036.1`: **Nodo Visual de Secuencia (`OpenDouSequenceGraphNode`):**
+  * Nodo con tabla/lista ordenada de clips de audio y retardos individuales entre pasos (*step delays*).
+* [ ] `TASK-036.2`: **Modos de Secuenciación Cronológica:**
+  * Soporte de modos `Sequential (One-Shot)`, `Continuous Loop` y `Ping-Pong`.
+* [ ] `TASK-036.3`: **Audición en Vivo y Serialización:**
+  * Reproducción interactiva de la cadena paso a paso y guardado en JSON / `.tres`.
+
+---
+
+## 📊 23. Grabador y Reproductor de Sesiones en el Live Profiler (`TASK-037`)
+
+* [ ] `TASK-037.1`: **Controles de Grabación de Telemetría (`Record / Stop`):**
+  * Botón `[ 🔴 Record Session ]` en el panel del Profiler con temporizador y contador de muestras en vivo.
+* [ ] `TASK-037.2`: **Exportación e Importación de Sesiones JSON:**
+  * Carga de sesiones de juego grabadas para análisis post-mortem de consumo de CPU, voces activas y picos de memoria.
+* [ ] `TASK-037.3`: **Línea de Tiempo de Reproducción / Scrubbing del Perfil:**
+  * Barra de desplazamiento temporal para reproducir la sesión grabada segundo a segundo.
+
+---
+
+## 🏛️ 24. Diseñador Paramétrico de Salas Acústicas en Convolución (`TASK-038`)
+
+* [ ] `TASK-038.1`: **Panel Paramétrico de Salas en `OpenDouConvolutionGraphNode`:**
+  * Controles de dimensiones físicas (Largo, Ancho, Alto en metros).
+* [ ] `TASK-038.2`: **Materiales y Coeficientes de Absorción:**
+  * Selección de materiales acústicos (Madera, Concreto, Vidrio, Metal) y cálculo de tiempo de reverberación `RT60`.
+* [ ] `TASK-038.3`: **Síntesis Procedural Inmediata de IR:**
+  * Generación y preview de forma de onda del impulso acústico generado en tiempo real.
+
+---
+
+## 📡 25. Depurador Visual de Zonas Acústicas, Portales y Oclusión (`TASK-039`)
+
+* [ ] `TASK-039.1`: **Radar / Visor 2D Acústico Integrado en el Dock:**
+  * Renderizado interactivo de salas acústicas (`AudioRoom`), portales (`AudioPortal`) y posición del oyente/emisor.
+* [ ] `TASK-039.2`: **Monitoreo de Oclusión y Difracción en Tiempo Real:**
+  * Visualización de rayos acústicos directos, atenuación de aperturas y cálculo de difracción en esquinas.
+
+
