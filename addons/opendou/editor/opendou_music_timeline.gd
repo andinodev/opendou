@@ -19,68 +19,9 @@ const MusicTransitionMatrixClass = preload("res://addons/opendou/core/music/musi
 const MusicStingerQueueClass = preload("res://addons/opendou/core/music/music_stinger_queue.gd")
 const MusicPlaylistManagerClass = preload("res://addons/opendou/core/music/music_playlist_manager.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
+const OpenDouTrackLaneDataClass = preload("res://addons/opendou/editor/opendou_track_lane_data.gd")
 
 const MUSIC_SUITES_SAVE_PATH = "res://opendou_music_suites.json"
-
-class TrackLaneData:
-	var name: String
-	var min_intensity: float
-	var max_intensity: float
-	var color: Color
-	var is_muted: bool = false
-	var is_solo: bool = false
-	var volume_db: float = 0.0
-	var current_gain: float = 0.0
-	var audio_file_path: String = ""
-	var left_trim_ratio: float = 0.0 # 0.0 to 1.0
-	var right_trim_ratio: float = 1.0 # 0.0 to 1.0
-	var sub_tracks: Array[Dictionary] = [] # [{"name": "Var 1", "audio_path": "...", "weight": 1.0}]
-	var active_sub_index: int = 0
-	var is_random_mode: bool = true
-	
-	# Bus Routing & Automation Curves (TASK-032)
-	var bus_name: StringName = &"Master"
-	var automation_enabled: bool = false
-	var automation_parameter: int = 0 # 0 = Volume, 1 = LPF Cutoff, 2 = RTPC: CombatIntensity
-	var automation_points: Array[Vector2] = [Vector2(0.0, 1.0), Vector2(0.5, 0.6), Vector2(1.0, 1.0)]
-	var selected_point_index: int = -1
-	
-	var row_container: HBoxContainer
-	var header_panel: PanelContainer
-	var mute_btn: Button
-	var solo_btn: Button
-	var vol_slider: HSlider
-	var auto_btn: Button
-	var bus_opt: OptionButton
-	var file_btn: Button
-	var var_btn: Button
-	var delete_btn: Button
-	var file_label: Label
-	var meter_rect: Control
-	var waveform_canvas: Control
-	
-	# Collapsible Automation Sub-Row
-	var auto_row: HBoxContainer
-	var auto_param_opt: OptionButton
-	var auto_canvas: Control
-	
-	func evaluate_automation_value(ratio: float) -> float:
-		if automation_points.is_empty():
-			return 1.0
-		if ratio <= automation_points[0].x:
-			return automation_points[0].y
-		if ratio >= automation_points[automation_points.size() - 1].x:
-			return automation_points[automation_points.size() - 1].y
-		for i in range(automation_points.size() - 1):
-			var p0 = automation_points[i]
-			var p1 = automation_points[i + 1]
-			if ratio >= p0.x and ratio <= p1.x:
-				var span = p1.x - p0.x
-				if span <= 0.0001:
-					return p0.y
-				var t = (ratio - p0.x) / span
-				return lerpf(p0.y, p1.y, t)
-		return 1.0
 
 var clock: MusicClock
 var transition_matrix: MusicTransitionMatrix
@@ -106,7 +47,7 @@ var btn_add_track: Button
 var ruler_canvas: Control
 var scroll_container: ScrollContainer
 var lanes_vbox: VBoxContainer
-var tracks: Array[TrackLaneData] = []
+var tracks: Array[OpenDouTrackLaneData] = []
 
 # Structural Cues & Post-Exit Tails (Wwise / FMOD Standard)
 var entry_cue_bar: float = 0.0 # 0.0 = Bar 1 Beat 1 (can be negative, e.g. -1.0 for pickups/anacrusas)
@@ -146,9 +87,9 @@ var active_suite_name: StringName = &"Dynamic_Combat_Suite.tres"
 # File Dialog & Trim Handle Dragging
 var file_dialog: FileDialog
 var pending_file_track_index: int = -1
-var dragging_trim_track: TrackLaneData = null
+var dragging_trim_track: OpenDouTrackLaneData = null
 var dragging_trim_handle: int = 0 # 1 = left, 2 = right
-var dragging_auto_track: TrackLaneData = null
+var dragging_auto_track: OpenDouTrackLaneData = null
 
 # Audio Players & Tail Decay Buffers
 var metronome_player: AudioStreamPlayer
@@ -645,8 +586,8 @@ func mark_dirty(dirty: bool = true) -> void:
 		dirty_changed.emit(is_dirty)
 
 ## Adds a new customizable stem track with interactive header, file picker, variation button, bus routing, automation sub-lane, delete button, and waveform canvas.
-func _add_track(track_name: String, min_int: float, max_int: float, color: Color, audio_path: String = "", left_t: float = 0.0, right_t: float = 1.0, p_bus: StringName = &"Master") -> TrackLaneData:
-	var t = TrackLaneData.new()
+func _add_track(track_name: String, min_int: float, max_int: float, color: Color, audio_path: String = "", left_t: float = 0.0, right_t: float = 1.0, p_bus: StringName = &"Master") -> OpenDouTrackLaneData:
+	var t = OpenDouTrackLaneDataClass.new()
 	t.name = track_name
 	t.min_intensity = min_int
 	t.max_intensity = max_int
@@ -909,7 +850,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	return t
 
 ## Clicking the variation button adds or cycles random sub-tracks.
-func _on_track_variation_clicked(t: TrackLaneData) -> void:
+func _on_track_variation_clicked(t: OpenDouTrackLaneData) -> void:
 	var next_num = t.sub_tracks.size() + 1
 	var new_var_name = "Var %d" % next_num
 	t.sub_tracks.append({"name": new_var_name, "audio_path": t.audio_file_path, "weight": 1.0})
@@ -959,7 +900,7 @@ func add_new_custom_track(custom_name: String = "") -> void:
 	track_added.emit(t_name)
 
 ## Deletes an existing track dynamically.
-func delete_track(t: TrackLaneData) -> void:
+func delete_track(t: OpenDouTrackLaneData) -> void:
 	var idx = tracks.find(t)
 	if idx >= 0:
 		var deleted_name = t.name
@@ -997,7 +938,7 @@ func _on_audio_file_selected(path: String) -> void:
 		mark_dirty(true)
 
 ## Handles mouse dragging on trim handles.
-func _on_waveform_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent) -> void:
+func _on_waveform_gui_input(t: OpenDouTrackLaneData, canvas: Control, ev: InputEvent) -> void:
 	if ev is InputEventMouseButton:
 		var mb = ev as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
@@ -1029,7 +970,7 @@ func _on_waveform_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent) -
 		canvas.queue_redraw()
 
 ## Handles mouse clicking and point dragging on automation curve canvas.
-func _on_automation_gui_input(t: TrackLaneData, canvas: Control, ev: InputEvent) -> void:
+func _on_automation_gui_input(t: OpenDouTrackLaneData, canvas: Control, ev: InputEvent) -> void:
 	var size = canvas.size
 	var total_w = size.x * zoom_factor
 	if ev is InputEventMouseButton:
@@ -1196,6 +1137,8 @@ func load_from_disk(suite_name: StringName) -> void:
 				
 				var track_list = s_data.get("tracks", [])
 				for td in track_list:
+					if not (td is Dictionary):
+						continue
 					var col = Color.from_string(str(td.get("color", "ffffff")), Color.WHITE)
 					var b_name = StringName(str(td.get("bus_name", "Master")))
 					var t = _add_track(
@@ -1208,6 +1151,8 @@ func load_from_disk(suite_name: StringName) -> void:
 						float(td.get("right_trim", 1.0)),
 						b_name
 					)
+					if not t:
+						continue
 					t.volume_db = float(td.get("volume_db", 0.0))
 					t.is_muted = bool(td.get("is_muted", false))
 					t.is_solo = bool(td.get("is_solo", false))
@@ -1222,8 +1167,11 @@ func load_from_disk(suite_name: StringName) -> void:
 									t.automation_points.append(Vector2(float(pt_pair[0]), float(pt_pair[1])))
 					if td.has("sub_tracks"):
 						var arr = td.get("sub_tracks")
-						if arr is Array:
-							t.sub_tracks = arr
+						if arr is Array and not arr.is_empty():
+							t.sub_tracks.clear()
+							for s_item in arr:
+								if s_item is Dictionary:
+									t.sub_tracks.append(s_item)
 							if t.var_btn: t.var_btn.text = "🎲 %d" % t.sub_tracks.size()
 					if t.vol_slider: t.vol_slider.value = t.volume_db
 					if t.mute_btn: t.mute_btn.set_pressed_no_signal(t.is_muted)
@@ -1570,7 +1518,7 @@ func _on_draw_timeline_ruler() -> void:
 	var playhead_x = current_playhead_ratio * size.x * zoom_factor
 	ruler_canvas.draw_line(Vector2(playhead_x, 0), Vector2(playhead_x, size.y), Color(1.0, 0.35, 0.35, 1.0), 2.0)
 
-func _on_draw_track_waveform(t: TrackLaneData, canvas: Control) -> void:
+func _on_draw_track_waveform(t: OpenDouTrackLaneData, canvas: Control) -> void:
 	if not canvas:
 		return
 	var size = canvas.size
@@ -1624,7 +1572,7 @@ func _on_draw_track_waveform(t: TrackLaneData, canvas: Control) -> void:
 	canvas.draw_line(Vector2(playhead_x, 0), Vector2(playhead_x, size.y), Color(1.0, 0.35, 0.35, 0.9), 1.5)
 
 ## Draws the interactive automation curve with handles and real-time cursor (TASK-032).
-func _on_draw_automation_curve(t: TrackLaneData, canvas: Control) -> void:
+func _on_draw_automation_curve(t: OpenDouTrackLaneData, canvas: Control) -> void:
 	if not canvas:
 		return
 	var size = canvas.size

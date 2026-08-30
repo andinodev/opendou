@@ -1,199 +1,295 @@
 {
-	"Boss_Phase_Orchestral.tres": {
-		"bpm": 120.0,
-		"intensity": 0.66,
-		"tracks": [
-			{
-				"audio_file_path": "",
-				"color": "33bff2",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 0.5,
-				"min_intensity": 0.0,
-				"name": "Layer 1: Ambient_Pads",
-				"right_trim": 1.0,
-				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"color": "4dd973",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 0.7,
-				"min_intensity": 0.2,
-				"name": "Layer 2: Stealth_Bass",
-				"right_trim": 1.0,
-				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"color": "faa638",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.5,
-				"name": "Layer 3: Combat_Drums",
-				"right_trim": 1.0,
-				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"color": "fa4059",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.8,
-				"name": "Layer 4: Brass_Climax",
-				"right_trim": 1.0,
-				"volume_db": -0.5
-			},
-			{
-				"audio_file_path": "",
-				"color": "33bff2",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.0,
-				"name": "Layer 6: Stem_6",
-				"right_trim": 1.0,
-				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"color": "33bff2",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.0,
-				"name": "Layer 6: Stem_6",
-				"right_trim": 1.0,
-				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"color": "4dd973",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.0,
-				"name": "Layer 7: Stem_7",
-				"right_trim": 1.0,
-				"volume_db": 0.0
-			}
-		]
-	},
 	"Dynamic_Combat_Suite.tres": {
 		"bpm": 120.0,
-		"intensity": 0.51,
+		"intensity": 0.0,
+		"entry_cue": 0.0,
+		"exit_cue": 8.0,
+		"tail_sec": 2.0,
+		"playlist": [
+			{
+				"segment_name": "Combat_Intro",
+				"min_loops": 1,
+				"max_loops": 1
+			},
+			{
+				"segment_name": "Combat_Loop",
+				"min_loops": 2,
+				"max_loops": 4
+			},
+			{
+				"segment_name": "Boss_Encounter",
+				"min_loops": 1,
+				"max_loops": 2
+			},
+			{
+				"segment_name": "Victory_Outro",
+				"min_loops": 1,
+				"max_loops": 1
+			}
+		],
 		"tracks": [
 			{
-				"audio_file_path": "",
-				"color": "33bff2",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 0.5,
-				"min_intensity": 0.0,
 				"name": "Layer 1: Ambient_Pads",
-				"right_trim": 1.0,
-				"volume_db": -1.0
-			},
-			{
-				"audio_file_path": "",
-				"color": "4dd973",
+				"min_intensity": 0.0,
+				"max_intensity": 0.5,
+				"color": "33bff2",
+				"volume_db": 0.0,
 				"is_muted": false,
 				"is_solo": false,
+				"bus_name": "Music_Pads",
+				"audio_file_path": "",
 				"left_trim": 0.0,
-				"max_intensity": 0.7,
-				"min_intensity": 0.2,
+				"right_trim": 1.0,
+				"sub_tracks": [
+					{
+						"name": "Var 1",
+						"audio_path": "",
+						"weight": 1.0
+					}
+				],
+				"auto_enabled": false,
+				"auto_param": 0,
+				"auto_points": [
+					[0.0, 1.0],
+					[0.5, 0.6],
+					[1.0, 1.0]
+				]
+			},
+			{
 				"name": "Layer 2: Stealth_Bass",
-				"right_trim": 1.0,
-				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"color": "faa638",
+				"min_intensity": 0.2,
+				"max_intensity": 0.7,
+				"color": "4dd973",
+				"volume_db": 0.0,
 				"is_muted": false,
 				"is_solo": false,
+				"bus_name": "Music",
+				"audio_file_path": "",
 				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.5,
+				"right_trim": 1.0,
+				"sub_tracks": [
+					{
+						"name": "Var 1",
+						"audio_path": "",
+						"weight": 1.0
+					}
+				],
+				"auto_enabled": false,
+				"auto_param": 0,
+				"auto_points": [
+					[0.0, 1.0],
+					[0.5, 0.6],
+					[1.0, 1.0]
+				]
+			},
+			{
 				"name": "Layer 3: Combat_Drums",
-				"right_trim": 1.0,
-				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"color": "fa4059",
+				"min_intensity": 0.5,
+				"max_intensity": 1.0,
+				"color": "faa638",
+				"volume_db": 0.0,
 				"is_muted": false,
 				"is_solo": false,
+				"bus_name": "Music_Percussion",
+				"audio_file_path": "",
 				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.8,
-				"name": "Layer 4: Brass_Climax",
 				"right_trim": 1.0,
-				"volume_db": 0.0
+				"sub_tracks": [
+					{
+						"name": "Var 1",
+						"audio_path": "",
+						"weight": 1.0
+					}
+				],
+				"auto_enabled": false,
+				"auto_param": 0,
+				"auto_points": [
+					[0.0, 1.0],
+					[0.5, 0.6],
+					[1.0, 1.0]
+				]
+			},
+			{
+				"name": "Layer 4: Brass_Climax",
+				"min_intensity": 0.8,
+				"max_intensity": 1.0,
+				"color": "fa4059",
+				"volume_db": 0.0,
+				"is_muted": false,
+				"is_solo": false,
+				"bus_name": "Music_Leads",
+				"audio_file_path": "",
+				"left_trim": 0.0,
+				"right_trim": 1.0,
+				"sub_tracks": [
+					{
+						"name": "Var 1",
+						"audio_path": "",
+						"weight": 1.0
+					}
+				],
+				"auto_enabled": false,
+				"auto_param": 0,
+				"auto_points": [
+					[0.0, 1.0],
+					[0.5, 0.6],
+					[1.0, 1.0]
+				]
 			}
 		]
 	},
 	"Exploration_Ambient_Theme.tres": {
-		"bpm": 120.0,
-		"intensity": 0.42,
+		"bpm": 100.0,
+		"intensity": 0.0,
+		"entry_cue": 0.0,
+		"exit_cue": 8.0,
+		"tail_sec": 2.5,
+		"playlist": [],
 		"tracks": [
 			{
-				"audio_file_path": "",
-				"color": "33bff2",
-				"is_muted": false,
-				"is_solo": false,
-				"left_trim": 0.0,
-				"max_intensity": 0.5,
-				"min_intensity": 0.0,
 				"name": "Layer 1: Ambient_Pads",
-				"right_trim": 1.0,
-				"volume_db": 0.0
-			},
-			{
-				"audio_file_path": "",
-				"color": "4dd973",
+				"min_intensity": 0.0,
+				"max_intensity": 0.6,
+				"color": "33bff2",
+				"volume_db": 0.0,
 				"is_muted": false,
 				"is_solo": false,
+				"bus_name": "Music_Pads",
+				"audio_file_path": "",
 				"left_trim": 0.0,
-				"max_intensity": 0.7,
+				"right_trim": 1.0,
+				"sub_tracks": [
+					{
+						"name": "Var 1",
+						"audio_path": "",
+						"weight": 1.0
+					}
+				],
+				"auto_enabled": false,
+				"auto_param": 0,
+				"auto_points": [
+					[0.0, 1.0],
+					[0.5, 0.6],
+					[1.0, 1.0]
+				]
+			},
+			{
+				"name": "Layer 2: Nature_Foley",
 				"min_intensity": 0.2,
-				"name": "Layer 2: Stealth_Bass",
+				"max_intensity": 0.8,
+				"color": "4dd973",
+				"volume_db": 0.0,
+				"is_muted": false,
+				"is_solo": false,
+				"bus_name": "Music",
+				"audio_file_path": "",
+				"left_trim": 0.0,
 				"right_trim": 1.0,
-				"volume_db": 0.0
+				"sub_tracks": [
+					{
+						"name": "Var 1",
+						"audio_path": "",
+						"weight": 1.0
+					}
+				],
+				"auto_enabled": false,
+				"auto_param": 0,
+				"auto_points": [
+					[0.0, 1.0],
+					[0.5, 0.6],
+					[1.0, 1.0]
+				]
+			}
+		]
+	},
+	"Boss_Phase_Orchestral.tres": {
+		"bpm": 140.0,
+		"intensity": 0.8,
+		"entry_cue": 0.0,
+		"exit_cue": 8.0,
+		"tail_sec": 3.0,
+		"playlist": [],
+		"tracks": [
+			{
+				"name": "Layer 1: Battle_Pads",
+				"min_intensity": 0.0,
+				"max_intensity": 0.5,
+				"color": "33bff2",
+				"volume_db": 0.0,
+				"is_muted": false,
+				"is_solo": false,
+				"bus_name": "Music_Pads",
+				"audio_file_path": "",
+				"left_trim": 0.0,
+				"right_trim": 1.0,
+				"sub_tracks": [
+					{
+						"name": "Var 1",
+						"audio_path": "",
+						"weight": 1.0
+					}
+				],
+				"auto_enabled": false,
+				"auto_param": 0,
+				"auto_points": [
+					[0.0, 1.0],
+					[0.5, 0.6],
+					[1.0, 1.0]
+				]
 			},
 			{
-				"audio_file_path": "",
+				"name": "Layer 2: War_Drums",
+				"min_intensity": 0.4,
+				"max_intensity": 1.0,
 				"color": "faa638",
+				"volume_db": 0.0,
 				"is_muted": false,
 				"is_solo": false,
+				"bus_name": "Music_Percussion",
+				"audio_file_path": "",
 				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.5,
-				"name": "Layer 3: Combat_Drums",
 				"right_trim": 1.0,
-				"volume_db": 0.0
+				"sub_tracks": [
+					{
+						"name": "Var 1",
+						"audio_path": "",
+						"weight": 1.0
+					}
+				],
+				"auto_enabled": false,
+				"auto_param": 0,
+				"auto_points": [
+					[0.0, 1.0],
+					[0.5, 0.6],
+					[1.0, 1.0]
+				]
 			},
 			{
-				"audio_file_path": "",
+				"name": "Layer 3: Choir_Strings",
+				"min_intensity": 0.7,
+				"max_intensity": 1.0,
 				"color": "fa4059",
+				"volume_db": 0.0,
 				"is_muted": false,
 				"is_solo": false,
+				"bus_name": "Music_Leads",
+				"audio_file_path": "",
 				"left_trim": 0.0,
-				"max_intensity": 1.0,
-				"min_intensity": 0.8,
-				"name": "Layer 4: Brass_Climax",
 				"right_trim": 1.0,
-				"volume_db": 0.0
+				"sub_tracks": [
+					{
+						"name": "Var 1",
+						"audio_path": "",
+						"weight": 1.0
+					}
+				],
+				"auto_enabled": false,
+				"auto_param": 0,
+				"auto_points": [
+					[0.0, 1.0],
+					[0.5, 0.6],
+					[1.0, 1.0]
+				]
 			}
 		]
 	}
