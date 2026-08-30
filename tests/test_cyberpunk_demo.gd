@@ -126,21 +126,61 @@ static func run_all() -> Array[String]:
 			
 	# Test 14: Teleportation in scene instance
 	if instance.has_method("teleport_to_sector"):
-		instance.teleport_to_sector(1)
 		var p = instance.get_node_or_null("Player")
-		if not p or absf(p.global_position.x - (-25.0)) > 2.0:
+		instance.teleport_to_sector(1)
+		var p1 = (p.global_position if p.is_inside_tree() else p.position) if p else Vector3.ZERO
+		if not p or absf(p1.x - (-25.0)) > 2.0:
 			failures.append("Test 2u Failed: Teleport to sector 1 failed")
 		instance.teleport_to_sector(2)
-		if not p or absf(p.global_position.x - 0.0) > 2.0:
+		var p2 = (p.global_position if p.is_inside_tree() else p.position) if p else Vector3.ZERO
+		if not p or absf(p2.x - 0.0) > 2.0:
 			failures.append("Test 2v Failed: Teleport to sector 2 failed")
 		instance.teleport_to_sector(3)
-		if not p or absf(p.global_position.x - 25.0) > 2.0:
+		var p3 = (p.global_position if p.is_inside_tree() else p.position) if p else Vector3.ZERO
+		if not p or absf(p3.x - 25.0) > 2.0:
 			failures.append("Test 2w Failed: Teleport to sector 3 failed")
 		instance.teleport_to_sector(4)
-		if not p or absf(p.global_position.x - 50.0) > 2.0:
+		var p4 = (p.global_position if p.is_inside_tree() else p.position) if p else Vector3.ZERO
+		if not p or absf(p4.x - 50.0) > 2.0:
 			failures.append("Test 2x Failed: Teleport to sector 4 failed")
 	else:
 		failures.append("Test 2y Failed: Scene instance root missing teleport_to_sector method")
+		
+	# Test 15: Footstep surface detection across 4 coordinate zones
+	if not demo.has_method("detect_footstep_surface"):
+		failures.append("Test 3a Failed: demo missing detect_footstep_surface method")
+	else:
+		var s1 = demo.detect_footstep_surface(Vector3(-25.0, 1.0, 0.0))
+		var s2 = demo.detect_footstep_surface(Vector3(0.0, 1.0, 0.0))
+		var s3 = demo.detect_footstep_surface(Vector3(25.0, 1.0, 0.0))
+		var s4 = demo.detect_footstep_surface(Vector3(50.0, 1.0, 0.0))
+		if s1 != &"Metal":
+			failures.append("Test 3b Failed: Sector 1 surface expected &\"Metal\", got %s" % str(s1))
+		if s2 != &"Tile":
+			failures.append("Test 3c Failed: Sector 2 surface expected &\"Tile\", got %s" % str(s2))
+		if s3 != &"Water":
+			failures.append("Test 3d Failed: Sector 3 surface expected &\"Water\", got %s" % str(s3))
+		if s4 != &"Concrete":
+			failures.append("Test 3e Failed: Sector 4 surface expected &\"Concrete\", got %s" % str(s4))
+			
+	# Test 16: 250-Voice Siege Bombardment virtualization & voice budget
+	if not demo.has_method("trigger_siege_bombardment"):
+		failures.append("Test 3f Failed: demo missing trigger_siege_bombardment method")
+	else:
+		demo.trigger_siege_bombardment()
+		if demo.bombardment_instances.size() != 250:
+			failures.append("Test 3g Failed: trigger_siege_bombardment spawned %d instances, expected 250" % demo.bombardment_instances.size())
+		else:
+			# Simulate a physics frame to resolve voice pool
+			demo.voice_pool.resolve_voice_stealing(demo.bombardment_instances, Vector3(50.0, 1.0, 0.0), 0.016)
+			var active_phys = demo.voice_pool.get_active_physical_count()
+			var active_virt = demo.voice_pool.get_active_virtual_count(demo.bombardment_instances)
+			if active_phys > 16:
+				failures.append("Test 3h Failed: Voice pool physical voice cap exceeded (%d > 16)" % active_phys)
+			if active_phys == 0:
+				failures.append("Test 3i Failed: Voice pool has 0 active physical voices after bombardment")
+			if (active_phys + active_virt) != 250:
+				failures.append("Test 3j Failed: Total active physical + virtual voices mismatch (%d physical, %d virtual, expected 250)" % [active_phys, active_virt])
 		
 	demo.free()
 	instance.free()
