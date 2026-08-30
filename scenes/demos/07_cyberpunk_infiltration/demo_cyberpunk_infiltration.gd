@@ -107,6 +107,80 @@ func _ready() -> void:
 	_connect_ui()
 	_update_hud()
 
+func _setup_runtime_systems() -> void:
+	# 1. Voice Pool Manager
+	voice_pool = VoicePoolManagerClass.new(16)
+	
+	# 2. Spatial Acoustics Manager with 4 Rooms & Airlock Portal
+	spatial_acoustics = SpatialAcousticsManagerClass.new()
+	
+	room_rooftop = AudioRoomClass.new(&"Rooftop_Exterior", 0.4, 0.1)
+	room_rooftop.set_bounds(AABB(Vector3(-38.0, 0.0, -15.0), Vector3(26.0, 10.0, 30.0)))
+	
+	room_server = AudioRoomClass.new(&"Server_Room", 0.2, 0.3)
+	room_server.set_bounds(AABB(Vector3(-12.0, 0.0, -15.0), Vector3(24.0, 10.0, 30.0)))
+	
+	room_drainage = AudioRoomClass.new(&"Flooded_Drainage", 1.2, 0.05)
+	room_drainage.set_bounds(AABB(Vector3(12.0, 0.0, -15.0), Vector3(25.0, 10.0, 30.0)))
+	
+	room_extraction = AudioRoomClass.new(&"Extraction_Arena", 0.8, 0.15)
+	room_extraction.set_bounds(AABB(Vector3(37.0, 0.0, -25.0), Vector3(35.0, 12.0, 50.0)))
+	
+	spatial_acoustics.register_room(room_rooftop)
+	spatial_acoustics.register_room(room_server)
+	spatial_acoustics.register_room(room_drainage)
+	spatial_acoustics.register_room(room_extraction)
+	
+	server_portal = AudioPortalClass.new(&"Server_Airlock", &"Rooftop_Exterior", &"Server_Room", Vector3(-12.0, 1.5, 0.0), 1.0)
+	spatial_acoustics.register_portal(server_portal)
+	
+	# 3. Multi-Bus Ducking Matrix
+	ducking_matrix = AudioDuckingMatrixClass.new()
+	ducking_matrix.add_ducking_rule(&"Voice", &"Music", -14.0, 0.05, 0.40)
+	ducking_matrix.add_ducking_rule(&"SFX", &"Music", -8.0, 0.02, 0.30)
+	
+	# 4. Localized Dialogue Manager & Table
+	dialogue_table = AudioDialogueTableClass.new()
+	var line_stream = AudioSynthesizerClass.create_tone(440.0, 1.2)
+	dialogue_table.add_entry(&"sec_clear_01", "en", line_stream)
+	dialogue_table.add_entry(&"sec_clear_01", "es", line_stream)
+	dialogue_table.add_entry(&"sec_clear_01", "ja", line_stream)
+	dialogue_table.add_entry(&"sec_clear_01", "zh", line_stream)
+	dialogue_table.add_entry(&"tactical_alert", "en", line_stream)
+	dialogue_table.add_entry(&"tactical_alert", "es", line_stream)
+	dialogue_table.add_entry(&"tactical_alert", "ja", line_stream)
+	dialogue_table.add_entry(&"tactical_alert", "zh", line_stream)
+	dialogue_manager = AudioDialogueManagerClass.new("en", dialogue_table)
+	
+	# 5. Interactive Music Playlist Director
+	music_director = MusicPlaylistManagerClass.new()
+	music_director.add_item(&"Intro_Theme", 1, 1)
+	music_director.add_item(&"Stealth_Loop", 2, 4)
+	music_director.add_item(&"Combat_Alert", 2, 4)
+	music_director.add_item(&"Extraction_Outro", 1, 1)
+	music_director.start_playlist()
+	
+	# 6. Live Update TCP Server
+	live_update_server = LiveUpdateServerClass.new()
+	live_update_server.start_server(8999)
+
+func _start_ambient_audio() -> void:
+	if rain_audio:
+		rain_audio.stream = AudioSynthesizerClass.create_footstep(&"Water", 1)
+		rain_audio.play()
+	if server_audio:
+		server_audio.stream = AudioSynthesizerClass.create_engine_loop(120.0, 1.5)
+		server_audio.play()
+	if water_audio:
+		water_audio.stream = AudioSynthesizerClass.create_footstep(&"Water", 2)
+		water_audio.play()
+	if turret_audio:
+		turret_audio.stream = AudioSynthesizerClass.create_tone(880.0, 0.8)
+		turret_audio.play()
+	if radio_beacon_audio:
+		radio_beacon_audio.stream = AudioSynthesizerClass.create_tone(1200.0, 0.5)
+		radio_beacon_audio.play()
+
 func _start_music_audio() -> void:
 	if not music_audio:
 		music_audio = get_node_or_null("Player/MusicAudio")
@@ -178,7 +252,11 @@ func _physics_process(delta: float) -> void:
 		var duck_gr = ducking_matrix.get_gain_reduction_db(&"Voice", &"Music")
 		music_audio.volume_db = duck_gr
 		
-	var listener_pos = (player.global_position if player.is_inside_tree() else player.position) if player else Vector3.ZERO
+	var listener_pos: Vector3 = Vector3.ZERO
+	if player:
+		listener_pos = player.global_position if player.is_inside_tree() else player.position
+	elif SECTOR_POSITIONS.has(active_sector_idx):
+		listener_pos = SECTOR_POSITIONS[active_sector_idx]
 	
 	# 4. Update Bombardment Event Instances & Voice Pool Stealing Resolution
 	if not bombardment_instances.is_empty():
@@ -243,12 +321,12 @@ func _update_radar_telemetry(listener_pos: Vector3) -> void:
 			"volume_db": radio_beacon_audio.volume_db
 		})
 	for inst in bombardment_instances:
-		if inst and inst.is_playing:
+		if inst and inst.is_playing():
 			emitter_data.append({
 				"event_name": "Siege_Explosion",
-				"world_position": inst.position,
-				"is_virtual": inst.is_virtual,
-				"volume_db": inst.get_parameter(&"volume", 0.0)
+				"world_position": inst.emitter_position,
+				"is_virtual": inst.voice_state == EventInstanceClass.VoiceState.STATE_VIRTUAL,
+				"volume_db": inst.calculated_volume_db
 			})
 			
 	if radar_view.has_method("update_radar_data"):

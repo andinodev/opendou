@@ -6,6 +6,25 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-041` - Demo 07: Cyberpunk Infiltration AAA Showcase Demo**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Entorno 3D Declarativo Multizona (`demo_cyberpunk_infiltration.tscn`):** Vertical slice jugable con 4 sectores arquitectónicos continuos:
+      * **Sector 1 (Azotea Exterior):** Lluvia volumétrica, pasarelas metálicas con síntesis de pisadas en metal y reverberación exterior abierta ($RT_{60} = 0.4\text{s}$).
+      * **Sector 2 (Bóveda de Servidores):** Suelo de baldosas sintéticas, zumbido de racks e interfaz de esclusa de aire con compuerta física y difracción acústica por portal (`Server_Airlock`).
+      * **Sector 3 (Drenaje Inundado):** Conducción subterránea con agua y lodo, síntesis de pisadas acuáticas, acústica de reverberación húmeda ($RT_{60} = 1.2\text{s}$) y snapshot subacuático.
+      * **Sector 4 (Helipuerto / Extraction Arena):** Plataforma de hormigón armado, baliza de radio, torreta perimetral con oclusión geométrica dinámica por pilares y zona de estrés masivo.
+    * **Simulación de Asedio con 250 Voces y Virtualización a Coste Cero:**
+      * Disparo de 250 proyectiles y explosiones continuas gestionadas por el pool de 16 canales físicos (`VoicePoolManager`), con seguimiento virtual continuo y cero clicks de audio.
+    * **Diálogos Tácticos Localizados y Ducking Automático:**
+      * Transmisiones de radio multilingüe (`EN`, `ES`, `JA`, `ZH`) con `AudioDialogueManager` y `AudioDialogueTable`.
+      * Atenuación continua de sidechain por matriz de ducking (`AudioDuckingMatrix`) reduciendo el bus `Music` (-14 dB) en tiempo real al hablar por radio o emitir ráfagas de artillería.
+    * **Música Interactiva Adaptativa y Telemetría en HUD:**
+      * Progresión de intensidad de combate con el secuenciador de playlists `MusicPlaylistManager` (`Intro_Theme` $\to$ `Stealth_Loop` $\to$ `Combat_Alert` $\to$ `Extraction_Outro`).
+      * HUD táctico con radar acústico 2D (`OpenDouRadarView`), monitor de telemetría de voces (físicas vs virtuales), oclusión geométrica, estado de esclusa y subtítulos.
+    * **Integración en DemoHub:** Registro en `DEMO_SCENES[7]` y Hero Showcase Card en el lanzador central interactivo.
+    * **Suite de Pruebas Automatizadas:** 163 pruebas unitarias pasando al 100% (código de salida 0).
+
 * **`TASK-040` - Arquitectura de Ventana Flotante Maximizada, Modales Independientes y Barra de Transporte Contextual**
   * **Fecha:** 2026-08-29
   * **Resumen:**

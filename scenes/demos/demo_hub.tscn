@@ -67,6 +67,39 @@ text = "⭐ Launch Master Vertical Slice"
 layout_mode = 2
 text = "🧪 Run 90 Unit Tests"
 
+[node name="HeroCard" type="PanelContainer" parent="MainContainer" unique_id=987654321]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="MainContainer/HeroCard" unique_id=987654322]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="HBox" type="HBoxContainer" parent="MainContainer/HeroCard/Margin" unique_id=987654323]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="VBox" type="VBoxContainer" parent="MainContainer/HeroCard/Margin/HBox" unique_id=987654324]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="HeroTitle" type="Label" parent="MainContainer/HeroCard/Margin/HBox/VBox" unique_id=987654325]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "🏙️ Demo 07: Cyberpunk Infiltration (AAA Showcase)"
+
+[node name="HeroDesc" type="Label" parent="MainContainer/HeroCard/Margin/HBox/VBox" unique_id=987654326]
+layout_mode = 2
+text = "Fully playable 3D vertical slice featuring 4 acoustic sectors, airlock portal diffraction, 250-voice siege virtualization, localized radio dialogue, and adaptive combat music."
+
+[node name="BtnLaunch7" type="Button" parent="MainContainer/HeroCard/Margin/HBox" unique_id=987654327]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "🎮 Launch Demo 7: Cyberpunk Infiltration (AAA Showcase)"
+
 [node name="GridContainer" type="GridContainer" parent="MainContainer" unique_id=1163110350]
 layout_mode = 2
 size_flags_vertical = 3

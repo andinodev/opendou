@@ -232,6 +232,18 @@ static func run_all() -> Array[String]:
 	if s_water != &"Water":
 		failures.append("Test 4n Failed: Footstep surface in Sector 3 expected Water, got %s" % str(s_water))
 		
+	# Test 21: DemoHub Demo 7 registration in DEMO_SCENES
+	var demo_hub_script = load("res://scenes/demos/demo_hub.gd")
+	if not demo_hub_script:
+		failures.append("Test 5a Failed: scenes/demos/demo_hub.gd failed to load")
+	else:
+		var hub = demo_hub_script.new()
+		if not hub.DEMO_SCENES.has(7):
+			failures.append("Test 5b Failed: DemoHub.DEMO_SCENES missing key 7 for Cyberpunk Infiltration")
+		elif hub.DEMO_SCENES[7] != SCENE_PATH:
+			failures.append("Test 5c Failed: DemoHub.DEMO_SCENES[7] expected %s, got %s" % [SCENE_PATH, str(hub.DEMO_SCENES[7])])
+		hub.free()
+
 	demo.free()
 	instance.free()
 	return failures
