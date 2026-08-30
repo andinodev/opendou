@@ -9,6 +9,7 @@ const AcousticPathClass = preload("res://addons/opendou/runtime/spatial/acoustic
 
 var rooms: Dictionary = {}   # StringName -> AudioRoom
 var portals: Dictionary = {} # StringName -> AudioPortal
+var reflectors: Dictionary = {} # StringName -> RefCounted/Node3D
 
 ## Registers a room in the acoustics manager.
 func register_room(room: AudioRoom) -> void:
@@ -23,6 +24,13 @@ func register_portal(portal: AudioPortal) -> void:
 			rooms[portal.room_a_name].register_portal(portal)
 		if rooms.has(portal.room_b_name):
 			rooms[portal.room_b_name].register_portal(portal)
+
+## Registers an acoustic reflector in the acoustics manager.
+func register_reflector(reflector) -> void:
+	if reflector:
+		var r_name: StringName = reflector.reflector_name if "reflector_name" in reflector else StringName(str(reflector))
+		if not r_name.is_empty():
+			reflectors[r_name] = reflector
 
 ## Finds the room containing a 3D coordinate.
 func get_room_at_position(pos: Vector3) -> AudioRoom:

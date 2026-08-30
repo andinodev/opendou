@@ -4,6 +4,10 @@ extends RefCounted
 const OpenDouEventPlayer3DClass = preload("res://addons/opendou/nodes/opendou_event_player_3d.gd")
 const OpenDouEventPlayer2DClass = preload("res://addons/opendou/nodes/opendou_event_player_2d.gd")
 const OpenDouEventPlayerClass = preload("res://addons/opendou/nodes/opendou_event_player.gd")
+const OpenDouRoom3DClass = preload("res://addons/opendou/nodes/opendou_room_3d.gd")
+const OpenDouPortal3DClass = preload("res://addons/opendou/nodes/opendou_portal_3d.gd")
+const OpenDouReflector3DClass = preload("res://addons/opendou/nodes/opendou_reflector_3d.gd")
+const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
 
@@ -117,5 +121,161 @@ static func run_all() -> Array[String]:
 	if inst != null and inst.is_playing():
 		failures.append("Test 6 Failed: stop_on_tree_exit did not stop instance on exit tree")
 	test_tree_player.free()
+
+	# Test 7: OpenDouRoom3D inheritance, properties & Sabine RT60 formula
+	var room = OpenDouRoom3DClass.new()
+	if not (room is Area3D):
+		failures.append("Test 7 Failed: OpenDouRoom3D must extend Area3D")
+	if room.room_name != &"Room":
+		failures.append("Test 7 Failed: default room_name should be 'Room'")
+	if room.material_preset != "Concrete":
+		failures.append("Test 7 Failed: default material_preset should be 'Concrete'")
+	if not is_equal_approx(room.absorption_coefficient, 0.15):
+		failures.append("Test 7 Failed: default absorption_coefficient should be 0.15")
+	if not is_equal_approx(room.custom_reverb_time, 0.0):
+		failures.append("Test 7 Failed: default custom_reverb_time should be 0.0")
+	if not is_equal_approx(room.calculated_rt60, 0.0):
+		failures.append("Test 7 Failed: default calculated_rt60 should be 0.0")
+	if room.snapshot_on_enter != &"":
+		failures.append("Test 7 Failed: default snapshot_on_enter should be empty StringName")
+
+	var dims = Vector3(10.0, 4.0, 10.0) # V = 400, S = 360
+	# Concrete (alpha = 0.05) -> 0.161 * 400 / (360 * 0.05) = 64.4 / 18.0 = 3.577778
+	var rt60_concrete = room.calculate_sabine_reverb(dims)
+	if not is_equal_approx(rt60_concrete, 3.577778) or not is_equal_approx(room.calculated_rt60, 3.577778):
+		failures.append("Test 7 Failed: Sabine RT60 Concrete preset mismatch, got %f" % rt60_concrete)
+
+	# Wood (alpha = 0.15) -> 64.4 / (360 * 0.15) = 64.4 / 54.0 = 1.192593
+	room.material_preset = "Wood"
+	var rt60_wood = room.calculate_sabine_reverb(dims)
+	if not is_equal_approx(rt60_wood, 1.192593):
+		failures.append("Test 7 Failed: Sabine RT60 Wood preset mismatch, got %f" % rt60_wood)
+
+	# Glass (alpha = 0.03) -> 64.4 / (360 * 0.03) = 64.4 / 10.8 = 5.962963
+	room.material_preset = "Glass"
+	var rt60_glass = room.calculate_sabine_reverb(dims)
+	if not is_equal_approx(rt60_glass, 5.962963):
+		failures.append("Test 7 Failed: Sabine RT60 Glass preset mismatch, got %f" % rt60_glass)
+
+	# Curtains (alpha = 0.60) -> 64.4 / (360 * 0.60) = 64.4 / 216.0 = 0.298148
+	room.material_preset = "Curtains"
+	var rt60_curtains = room.calculate_sabine_reverb(dims)
+	if not is_equal_approx(rt60_curtains, 0.298148):
+		failures.append("Test 7 Failed: Sabine RT60 Curtains preset mismatch, got %f" % rt60_curtains)
+
+	# Custom (alpha = 0.50) -> 64.4 / (360 * 0.50) = 64.4 / 180.0 = 0.357778
+	room.material_preset = "Custom"
+	room.absorption_coefficient = 0.50
+	var rt60_custom = room.calculate_sabine_reverb(dims)
+	if not is_equal_approx(rt60_custom, 0.357778):
+		failures.append("Test 7 Failed: Sabine RT60 Custom preset mismatch, got %f" % rt60_custom)
+
+	# Clamping min (0.05) & max (12.0)
+	var rt60_min = room.calculate_sabine_reverb(Vector3(0.1, 0.1, 0.1))
+	if not is_equal_approx(rt60_min, 0.05):
+		failures.append("Test 7 Failed: Sabine RT60 minimum clamp to 0.05 failed, got %f" % rt60_min)
+	room.material_preset = "Glass"
+	var rt60_max = room.calculate_sabine_reverb(Vector3(200.0, 100.0, 200.0))
+	if not is_equal_approx(rt60_max, 12.0):
+		failures.append("Test 7 Failed: Sabine RT60 maximum clamp to 12.0 failed, got %f" % rt60_max)
+	room.free()
+
+	# Test 8: OpenDouRoom3D child BoxShape3D auto-detection and registration
+	var room_auto = OpenDouRoom3DClass.new()
+	room_auto.room_name = &"AutoRoom"
+	room_auto.material_preset = "Concrete"
+	var col_shape = CollisionShape3D.new()
+	var box_shape = BoxShape3D.new()
+	box_shape.size = Vector3(8.0, 3.0, 6.0) # V = 144, S = 2*(24+48+18) = 180 -> RT60 = 64.4 * (144/400) / 9.0 = 23.184 / 9 = 2.576
+	col_shape.shape = box_shape
+	room_auto.add_child(col_shape)
+	room_auto._ready()
+	if not is_equal_approx(room_auto.calculated_rt60, 2.576):
+		failures.append("Test 8 Failed: Auto-detection of BoxShape3D failed, expected 2.576, got %f" % room_auto.calculated_rt60)
+	if room_auto.runtime_room == null or not room_auto.runtime_room.has_bounds:
+		failures.append("Test 8 Failed: AutoRoom runtime_room bounds not set properly")
+	col_shape.free()
+	room_auto.free()
+
+	# Test 9: OpenDouPortal3D inheritance, properties & diffraction LPF calculation
+	var portal = OpenDouPortal3DClass.new()
+	if not (portal is Node3D):
+		failures.append("Test 9 Failed: OpenDouPortal3D must extend Node3D")
+	if portal.portal_name != &"Portal":
+		failures.append("Test 9 Failed: default portal_name should be 'Portal'")
+	if not is_equal_approx(portal.open_factor, 1.0):
+		failures.append("Test 9 Failed: default open_factor should be 1.0")
+	if portal.portal_size != Vector2(2.0, 3.0):
+		failures.append("Test 9 Failed: default portal_size should be Vector2(2.0, 3.0)")
+	if not is_equal_approx(portal.get_diffraction_lpf(), 20000.0):
+		failures.append("Test 9 Failed: open_factor 1.0 expected 20000.0 Hz, got %f" % portal.get_diffraction_lpf())
+	portal.open_factor = 0.0
+	if not is_equal_approx(portal.get_diffraction_lpf(), 300.0):
+		failures.append("Test 9 Failed: open_factor 0.0 expected 300.0 Hz, got %f" % portal.get_diffraction_lpf())
+	portal.set_open_factor(0.5)
+	if not is_equal_approx(portal.get_diffraction_lpf(), 10150.0):
+		failures.append("Test 9 Failed: open_factor 0.5 expected 10150.0 Hz, got %f" % portal.get_diffraction_lpf())
+	portal.set_open_factor(0.25)
+	if not is_equal_approx(portal.get_diffraction_lpf(), 5225.0):
+		failures.append("Test 9 Failed: open_factor 0.25 expected 5225.0 Hz, got %f" % portal.get_diffraction_lpf())
+	portal.free()
+
+	# Test 10: OpenDouReflector3D inheritance, properties & image source calculation
+	var reflector = OpenDouReflector3DClass.new()
+	if not (reflector is Node3D):
+		failures.append("Test 10 Failed: OpenDouReflector3D must extend Node3D")
+	if reflector.reflector_name != &"Reflector":
+		failures.append("Test 10 Failed: default reflector_name should be 'Reflector'")
+	if reflector.plane_normal != Vector3.FORWARD:
+		failures.append("Test 10 Failed: default plane_normal should be Vector3.FORWARD")
+	if not is_equal_approx(reflector.absorption, 0.1):
+		failures.append("Test 10 Failed: default absorption should be 0.1")
+	reflector.position = Vector3(0.0, 0.0, 10.0)
+	reflector.plane_normal = Vector3(0.0, 0.0, -1.0)
+	var refl_pt = reflector.get_reflected_point(Vector3(0.0, 0.0, 0.0))
+	if not refl_pt.is_equal_approx(Vector3(0.0, 0.0, 20.0)):
+		failures.append("Test 10 Failed: Reflected point expected (0, 0, 20), got %s" % str(refl_pt))
+	var refl_pt2 = reflector.get_reflected_point(Vector3(5.0, 2.0, 8.0))
+	if not refl_pt2.is_equal_approx(Vector3(5.0, 2.0, 12.0)):
+		failures.append("Test 10 Failed: Reflected point 2 expected (5, 2, 12), got %s" % str(refl_pt2))
+	reflector.free()
+
+	# Test 11: End-to-end Declarative Spatial Acoustics Graph Integration
+	var acoustics_mgr = SpatialAcousticsManagerClass.new()
+	var d_room_a = OpenDouRoom3DClass.new()
+	d_room_a.room_name = &"RoomA"
+	d_room_a.position = Vector3(0.0, 0.0, 0.0)
+	d_room_a.calculate_sabine_reverb(Vector3(10.0, 4.0, 10.0))
+	d_room_a.set_acoustics_manager(acoustics_mgr)
+	d_room_a.register_in_manager(acoustics_mgr)
+
+	var d_room_b = OpenDouRoom3DClass.new()
+	d_room_b.room_name = &"RoomB"
+	d_room_b.position = Vector3(20.0, 0.0, 0.0)
+	d_room_b.calculate_sabine_reverb(Vector3(10.0, 4.0, 10.0))
+	d_room_b.set_acoustics_manager(acoustics_mgr)
+	d_room_b.register_in_manager(acoustics_mgr)
+
+	var d_portal = OpenDouPortal3DClass.new()
+	d_portal.portal_name = &"PortalAB"
+	d_portal.room_a_name = &"RoomA"
+	d_portal.room_b_name = &"RoomB"
+	d_portal.position = Vector3(10.0, 0.0, 0.0)
+	d_portal.open_factor = 0.5
+	d_portal.register_in_manager(acoustics_mgr)
+
+	var d_path = acoustics_mgr.calculate_acoustic_path(Vector3(0.0, 0.0, 0.0), Vector3(20.0, 0.0, 0.0), &"RoomA", &"RoomB")
+	if d_path.is_direct_los:
+		failures.append("Test 11 Failed: Declarative path should not be direct line of sight")
+	if not is_equal_approx(d_path.virtual_distance, 20.0):
+		failures.append("Test 11 Failed: Declarative path distance expected 20.0, got %f" % d_path.virtual_distance)
+	if d_path.apparent_origin != Vector3(10.0, 0.0, 0.0):
+		failures.append("Test 11 Failed: Declarative apparent origin expected (10, 0, 0), got %s" % str(d_path.apparent_origin))
+	if not is_equal_approx(d_path.accumulated_lpf, 10150.0):
+		failures.append("Test 11 Failed: Declarative accumulated LPF expected 10150.0, got %f" % d_path.accumulated_lpf)
+
+	d_room_a.free()
+	d_room_b.free()
+	d_portal.free()
 
 	return failures

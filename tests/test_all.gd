@@ -173,7 +173,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r33)
 	
 	var r34 = TestDeclarativeNodesClass.run_all()
-	total_tests += 6
+	total_tests += 11
 	all_failures.append_array(r34)
 	
 	return {
