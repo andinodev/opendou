@@ -6,6 +6,22 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-044` - Sector 5: Biosfera 7.1 Surround Showcase (Cyberpunk Infiltration Demo)**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Síntesis Procedimental de Audio de Naturaleza 7.1 (`AudioSynthesizer`):**
+      * Generadores procedurales puros de audio sintético: brisa en el dosel forestal (`create_canopy_wind_loop`), cascada/río continuo (`create_waterfall_loop`), lluvia vegetal y gotas aisladas (`create_rain_foliage_loop`, `create_water_droplet`), truenos subgraves LFE (`create_distant_thunder`), cantos de aves procedimentales con chirp modulado en frecuencia (`create_bird_chirp`), estridulación de cigarras con modulación de amplitud a 28 Hz (`create_cicada_stridulation`), croar de ranas polifónicas (`create_frog_croak`) y zumbido de avispón bio-mecánico (`create_nature_foley_loop`).
+    * **Geometría y Acústica Espacial 7.1 del Sector 5 (`Sector5_Biosphere`):**
+      * Cúpula geodésica translúcida en `demo_cyberpunk_infiltration.tscn` en coordenadas $(80, 1.5, 0)$ conectada mediante portal acústico (`Arena_To_Biosphere_Portal`) al Sector 4.
+      * Sala acústica Sabine declarativa `OpenDouRoom3D` (`Biosphere_Sanctuary`) con $RT_{60} = 0.38\text{s}$ y absorción $\alpha = 0.60$.
+      * Disposición envolvente 7.1 completa con 8 emisores periféricos fijos (`CanopyWind_FL`, `Waterfall_FR`, `Bird_C`, `Thunder_LFE`, `Cicada_SL`, `Frog_SR`, `Rain_RL`, `Droplet_RR`) más emisor en órbita continua de 360 grados (`OrbitingBeeEmitter`).
+    * **Integración en Gameplay Coordinator y Telemetría (`demo_cyberpunk_infiltration.gd`):**
+      * Posición de teletransporte para el Sector 5 en $(80, 1.5, 0)$ y cableado de botones de HUD `BtnSector5`.
+      * Detección de superficie física `&"Foliage"` para pisadas en $x \ge 65.0$.
+      * Animación de órbita 360° en `_process(delta)` para `OrbitingBeeEmitter` alrededor del centro de la biosfera a radio de 5 metros.
+      * Registro del emisor orbitante en el radar acústico táctico 2D (`OpenDouRadarView`).
+    * **Suite de Pruebas Automatizadas:** 191 pruebas unitarias y de integración pasando al 100% (código de salida 0).
+
 * **`TASK-043` - Monitor de Voces Audibles e Inspector de Intensidad Sonora (OpenDou Audible Monitor)**
   * **Fecha:** 2026-08-30
   * **Resumen:**

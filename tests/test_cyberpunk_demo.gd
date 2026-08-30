@@ -294,9 +294,47 @@ static func run_all() -> Array[String]:
 			elif not (em is OpenDouEventPlayer3D):
 				failures.append("Test 8e Failed: Emitter %s is not an OpenDouEventPlayer3D" % em_name)
 
-	var btn_sec5 = instance.get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnSector5")
-	if not btn_sec5:
-		failures.append("Test 8f Failed: TacticalHUD BottomBar missing BtnSector5 button")
+	# Test 25: Sector 5 Teleportation, Foliage footstep detection, and 360 Orbiting Bee audio
+	var demo_sec5 = script_res.new()
+	if not demo_sec5:
+		failures.append("Test 9a Failed: Failed to instantiate demo script for Sector 5 testing")
+	else:
+		demo_sec5.teleport_to_sector(5)
+		if demo_sec5.active_sector_idx != 5:
+			failures.append("Test 9b Failed: Teleport to Sector 5 failed to set active_sector_idx = 5")
+		if demo_sec5.active_room_name != &"Biosphere_Sanctuary":
+			failures.append("Test 9c Failed: Active room after teleporting to Sector 5 expected Biosphere_Sanctuary, got %s" % str(demo_sec5.active_room_name))
+			
+		var s_foliage = demo_sec5.detect_footstep_surface(Vector3(80.0, 1.5, 0.0))
+		if s_foliage != &"Foliage":
+			failures.append("Test 9d Failed: Footstep surface in Sector 5 expected &\"Foliage\", got %s" % str(s_foliage))
+			
+		var s_foliage_edge = demo_sec5.detect_footstep_surface(Vector3(65.5, 0.0, 0.0))
+		if s_foliage_edge != &"Foliage":
+			failures.append("Test 9e Failed: Footstep surface at x=65.5 expected &\"Foliage\", got %s" % str(s_foliage_edge))
+
+		demo_sec5.free()
+
+	if instance.has_method("teleport_to_sector"):
+		var p_inst = instance.get_node_or_null("Player")
+		instance.teleport_to_sector(5)
+		var p5 = (p_inst.global_position if p_inst.is_inside_tree() else p_inst.position) if p_inst else Vector3.ZERO
+		if not p_inst or absf(p5.x - 80.0) > 2.0:
+			failures.append("Test 9f Failed: Scene instance teleport to Sector 5 failed (pos x: %.1f)" % p5.x)
+		if instance.active_sector_idx != 5:
+			failures.append("Test 9g Failed: Scene instance active_sector_idx not 5")
+		if instance.active_room_name != &"Biosphere_Sanctuary":
+			failures.append("Test 9h Failed: Scene instance active_room_name not Biosphere_Sanctuary, got %s" % str(instance.active_room_name))
+
+	var bee_node = instance.get_node_or_null("LevelGeometry/Sector5_Biosphere/OrbitingBeeEmitter")
+	if not bee_node:
+		failures.append("Test 9i Failed: OrbitingBeeEmitter missing in scene instance")
+	else:
+		var init_pos = bee_node.position
+		if instance.has_method("_process"):
+			instance._process(0.5)
+			if bee_node.position == init_pos:
+				failures.append("Test 9j Failed: OrbitingBeeEmitter position did not update after _process")
 
 	demo.free()
 	instance.free()

@@ -32,7 +32,9 @@ var room_rooftop: AudioRoom
 var room_server: AudioRoom
 var room_drainage: AudioRoom
 var room_extraction: AudioRoom
+var room_biosphere: AudioRoom
 var server_portal: AudioPortal
+var biosphere_portal: AudioPortal
 
 # Runtime State
 var is_airlock_open: bool = true
@@ -41,18 +43,21 @@ var turret_occlusion: float = 0.0
 var active_sector_idx: int = 1
 var active_room_name: StringName = &"Rooftop_Exterior"
 var bombardment_instances: Array[EventInstance] = []
+var orbit_angle: float = 0.0
 
 # Teleportation Sector Positions
 const SECTOR_POSITIONS: Dictionary = {
 	1: Vector3(-25.0, 1.0, 0.0), # Sector 1: Rooftop
 	2: Vector3(0.0, 1.0, 0.0), # Sector 2: Server Room
 	3: Vector3(25.0, 1.0, 0.0), # Sector 3: Flooded Drainage
-	4: Vector3(50.0, 1.0, 0.0) # Sector 4: Extraction Arena
+	4: Vector3(50.0, 1.0, 0.0), # Sector 4: Extraction Arena
+	5: Vector3(80.0, 1.5, 0.0) # Sector 5: Biosphere Sanctuary
 }
 
 # Scene Node References
 @onready var player: Node = get_node_or_null("Player")
 @onready var server_airlock_mesh: CSGBox3D = get_node_or_null("LevelGeometry/Sector2_ServerRoom/ServerAirlockGate")
+@onready var orbiting_bee_emitter: Node3D = get_node_or_null("LevelGeometry/Sector5_Biosphere/OrbitingBeeEmitter")
 
 # Emitter Players
 @onready var rain_audio: AudioStreamPlayer3D = get_node_or_null("LevelGeometry/Sector1_Rooftop/RainEmitter")
@@ -85,6 +90,8 @@ var stem_track_data: Array[Dictionary] = []
 @onready var btn_sector2: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector2")
 @onready var btn_sector3: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector3")
 @onready var btn_sector4: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector4")
+@onready var btn_sector_5: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnSector5") if get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnSector5") else get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector5")
+@onready var btn_sector5: Button = btn_sector_5
 @onready var btn_back: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnBack")
 @onready var opt_suite: OptionButton = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/OptSuite")
 
@@ -144,13 +151,20 @@ func _setup_runtime_systems() -> void:
 	room_extraction = AudioRoomClass.new(&"Extraction_Arena", 0.8, 0.15)
 	room_extraction.set_bounds(AABB(Vector3(37.0, 0.0, -25.0), Vector3(35.0, 12.0, 50.0)))
 	
+	room_biosphere = AudioRoomClass.new(&"Biosphere_Sanctuary", 0.38, 0.60)
+	room_biosphere.set_bounds(AABB(Vector3(65.0, 0.0, -25.0), Vector3(35.0, 12.0, 50.0)))
+	
 	spatial_acoustics.register_room(room_rooftop)
 	spatial_acoustics.register_room(room_server)
 	spatial_acoustics.register_room(room_drainage)
 	spatial_acoustics.register_room(room_extraction)
+	spatial_acoustics.register_room(room_biosphere)
 	
 	server_portal = AudioPortalClass.new(&"Server_Airlock", &"Rooftop_Exterior", &"Server_Room", Vector3(-12.0, 1.5, 0.0), 1.0)
 	spatial_acoustics.register_portal(server_portal)
+	
+	biosphere_portal = AudioPortalClass.new(&"Arena_To_Biosphere_Portal", &"Extraction_Arena", &"Biosphere_Sanctuary", Vector3(65.0, 1.5, 0.0), 1.0)
+	spatial_acoustics.register_portal(biosphere_portal)
 	
 	# 3. Multi-Bus Ducking Matrix
 	ducking_matrix = AudioDuckingMatrixClass.new()
@@ -296,6 +310,11 @@ func _connect_ui() -> void:
 		btn_sector3.pressed.connect(func(): teleport_to_sector(3))
 	if btn_sector4:
 		btn_sector4.pressed.connect(func(): teleport_to_sector(4))
+	if btn_sector_5:
+		btn_sector_5.pressed.connect(func(): teleport_to_sector(5))
+	var top_btn_sec5 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector5")
+	if top_btn_sec5 and top_btn_sec5 != btn_sector_5:
+		top_btn_sec5.pressed.connect(func(): teleport_to_sector(5))
 	if btn_toggle_airlock:
 		btn_toggle_airlock.pressed.connect(toggle_server_airlock)
 	if btn_bombardment:
@@ -353,6 +372,17 @@ func _on_back_pressed() -> void:
 	if live_update_server:
 		live_update_server.stop_server()
 	get_tree().change_scene_to_file("res://scenes/demos/demo_hub.tscn")
+
+func _process(delta: float) -> void:
+	if not orbiting_bee_emitter:
+		orbiting_bee_emitter = get_node_or_null("LevelGeometry/Sector5_Biosphere/OrbitingBeeEmitter")
+	if orbiting_bee_emitter:
+		orbit_angle += delta * 1.2
+		orbiting_bee_emitter.position = Vector3(
+			80.0 + cos(orbit_angle) * 5.0,
+			1.8 + sin(orbit_angle * 2.0) * 0.4,
+			sin(orbit_angle) * 5.0
+		)
 
 func _physics_process(delta: float) -> void:
 	# 1. Update Live Update TCP Server
@@ -436,6 +466,13 @@ func _update_radar_telemetry(listener_pos: Vector3) -> void:
 			"is_virtual": false,
 			"volume_db": radio_beacon_audio.volume_db
 		})
+	if orbiting_bee_emitter and orbiting_bee_emitter is AudioStreamPlayer3D and orbiting_bee_emitter.playing:
+		emitter_data.append({
+			"event_name": "Cyber_Hornet",
+			"world_position": orbiting_bee_emitter.global_position if orbiting_bee_emitter.is_inside_tree() else orbiting_bee_emitter.position,
+			"is_virtual": false,
+			"volume_db": orbiting_bee_emitter.volume_db
+		})
 	for inst in bombardment_instances:
 		if inst and inst.is_playing():
 			emitter_data.append({
@@ -490,6 +527,8 @@ func _update_room_acoustics(pos: Vector3) -> void:
 				active_room_name = &"Server_Room"
 			elif pos.x < 37.0:
 				active_room_name = &"Flooded_Drainage"
+			elif pos.x >= 65.0:
+				active_room_name = &"Biosphere_Sanctuary"
 			else:
 				active_room_name = &"Extraction_Arena"
 
@@ -501,6 +540,8 @@ func detect_footstep_surface(pos: Vector3) -> StringName:
 		return &"Tile"
 	elif pos.x < 37.0:
 		return &"Water"
+	elif pos.x >= 65.0:
+		return &"Foliage"
 	else:
 		return &"Concrete"
 
@@ -554,7 +595,7 @@ func trigger_siege_bombardment() -> void:
 			marker.material_override = mat
 			chaos_parent.add_child(marker)
 
-## Teleports player to the specified sector index (1 to 4).
+## Teleports player to the specified sector index (1 to 5).
 func teleport_to_sector(idx: int) -> void:
 	if not SECTOR_POSITIONS.has(idx):
 		return
@@ -655,7 +696,8 @@ func _update_hud() -> void:
 			1: "Sector 1 (Rooftop)",
 			2: "Sector 2 (Server Room)",
 			3: "Sector 3 (Flooded Drainage)",
-			4: "Sector 4 (Extraction Arena)"
+			4: "Sector 4 (Extraction Arena)",
+			5: "Sector 5 (Biosphere Sanctuary)"
 		}
 		lbl_sector.text = "Active Sector: %s" % sector_names.get(active_sector_idx, "Sector 1")
 		
