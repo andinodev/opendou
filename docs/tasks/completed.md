@@ -8,6 +8,53 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ### 2026-08-29
 
+* **`TASK-039` - Depurador Visual de Zonas Acústicas, Portales y Oclusión (Spatial Radar & Portals Viewer)**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Pestaña "📡 Spatial Radar" en el Live Profiler:** Visualizador 2D interactivo con coordenadas relativas al oyente y escala de rango ajustable (`10m a 100m`).
+    * **Salas Acústicas (`AudioRoom`) y Portales (`AudioPortal`):** Renderizado de recintos cerrados y aperturas de puertas/ventanas con estado abierto/cerrado y atenuación de oclusión.
+    * **Rayos de Difracción y Reflexión Acústica:** Trazado de rayos de difracción en esquinas/portales y reflexiones de primer orden en paredes (`AcousticReflector`).
+    * **Suite de Pruebas:** 135+ pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
+* **`TASK-038` - Diseñador Paramétrico de Salas Acústicas en Convolución (Sabine Room Acoustics Designer)**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Diseño Paramétrico en `OpenDouConvolutionGraphNode`:** Modo interactivo para definir largo, ancho y alto de la sala en metros.
+    * **Materiales y Coeficientes de Absorción ($\alpha$):** Selección de materiales acústicos (Concreto, Madera, Yeso, Cortinas) con cálculo automático de volumen ($V$), área superficial ($S$) y tiempo de reverberación de Sabine ($RT_{60}$).
+    * **Forma de Onda de IR Sintética:** Visualización en tiempo real de la respuesta al impulso calculada con reflexiones tempranas y cola exponencial.
+    * **Suite de Pruebas:** 135+ pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
+* **`TASK-037` - Grabador y Reproductor de Sesiones en el Live Profiler (Session Recorder & Time-Travel)**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Grabación de Telemetría (`🔴 Record` / `⏹ Stop`):** Captura continua de cuadros de rendimiento en un búfer circular con contador de tiempo y fotogramas en vivo.
+    * **Exportación e Importación de Sesiones JSON:** Guardado y carga de sesiones completas de perfiles de juego (`.json`) para análisis offline.
+    * **Barra de Rebobinado Temporal (*Time-Travel Scrubbing*):** Inspección segundo a segundo del estado del ledger de voces, picos de CPU y memoria histórica.
+    * **Suite de Pruebas:** 135+ pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
+* **`TASK-036` - Nodo Visual de Secuencia Cronológica (Sequence Container Graph Node)**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Nodo `OpenDouSequenceGraphNode` en Graph Editor:** Integración visual con `AudioSequenceContainer`.
+    * **Modos de Secuenciación:** Soporte para `Sequential (1→2→3)` y `Ping-Pong (1→2→3→2→1)` con opción de repetición en bucle (`Loop`).
+    * **Control de Retardo por Paso (*Step Delay*):** Ajuste de intervalos de espera entre eventos y botón de audición con resaltado de paso activo.
+    * **Suite de Pruebas:** 135+ pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
+* **`TASK-035` - Nodos Visuales de Modulación AHDSR y LFOs en Graph Editor**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Nodo de Envolvente AHDSR (`OpenDouAHDSRGraphNode`):** Visualizador de curva con ajuste de tiempos de ataque, hold, caída, sustain y liberación, mapeado a volumen, tono o frecuencia de corte de filtros con botón de disparo de prueba.
+    * **Nodo de Oscilador LFO (`OpenDouLFOGraphNode`):** Generador de formas de onda periódicas (`Sine`, `Triangle`, `Square`, `Sawtooth`) con visualizador animado, control de frecuencia en Hz y profundidad de modulación.
+    * **Suite de Pruebas:** 135+ pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
+* **`TASK-034` - Matriz Visual de Audio Ducking en el HDR Mixer Drawer**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Pestaña "🦆 Ducking Matrix" en `OpenDouMixerDrawer`:** Matriz de cuadrícula interactiva de buses emisores vs buses receptores (`Voice`, `SFX`, `Music`, `Ambient`).
+    * **Editor de Reglas de Ducking:** Parámetros de atenuación en dB (`-1 dB a -48 dB`), tiempos de ataque y liberación en segundos, sincronizados en caliente con `AudioDuckingMatrix`.
+    * **Medidores de Reducción de Ganancia en Vivo (*GR Meters*):** Indicadores visuales en los faders de canal para monitorear en tiempo real la atenuación aplicada por sidechain.
+    * **Suite de Pruebas:** 135+ pruebas unitarias pasando al 100% en `test_runner_cli.gd`.
+
 * **`TASK-033` - Gestor de Playlists Musicales y Jerarquía de Estados (Music Playlist Manager)**
   * **Fecha:** 2026-08-29
   * **Resumen:**
