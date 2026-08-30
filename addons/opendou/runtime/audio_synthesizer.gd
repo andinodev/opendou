@@ -295,3 +295,99 @@ static func create_stinger_impact(duration_sec: float = 1.2) -> AudioStreamWAV:
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
 	return stream
+
+## Creates a soothing continuous rain atmospheric loop with gentle droplet transients.
+static func create_rain_ambient_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	var last_noise: float = 0.0
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		# Pink noise filter (low-pass smooth noise)
+		var white = (randf() * 2.0 - 1.0)
+		last_noise = (last_noise * 0.92) + (white * 0.08)
+		# Periodic gentle droplet pings
+		var drop_pulse = sin(t * 12.0 * TAU)
+		var drop = (sin(t * 1800.0 * TAU) * 0.15) if drop_pulse > 0.96 else 0.0
+		var sample = last_noise * 0.45 + drop
+		var s16: int = clampi(int(sample * 24000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	return stream
+
+## Creates a soft 50Hz/100Hz transformer electrical hum for server rooms.
+static func create_server_ambient_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var h1 = sin(t * 50.0 * TAU) * 0.4
+		var h2 = sin(t * 100.0 * TAU) * 0.25
+		var h3 = sin(t * 150.0 * TAU) * 0.1
+		var fan_noise = ((randf() * 2.0 - 1.0) * 0.08)
+		var sample = (h1 + h2 + h3 + fan_noise) * 0.4
+		var s16: int = clampi(int(sample * 22000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	return stream
+
+## Creates a subtle underground water stream / trickling loop.
+static func create_water_stream_ambient_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	var stream_filter: float = 0.0
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var white = (randf() * 2.0 - 1.0)
+		stream_filter = (stream_filter * 0.85) + (white * 0.15)
+		var bubble = sin(t * 440.0 * (1.0 + sin(t * 8.0 * TAU) * 0.3) * TAU) * 0.12
+		var sample = (stream_filter * 0.5 + bubble) * 0.4
+		var s16: int = clampi(int(sample * 24000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	return stream
+
+## Creates a gentle nature / atmospheric foley loop (sparkles and soft pads).
+static func create_nature_foley_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
+	var sample_rate: int = 44100
+	var num_samples: int = int(duration_sec * sample_rate)
+	var byte_data = PackedByteArray()
+	byte_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var s1 = sin(t * 261.63 * TAU) * 0.25 # C4
+		var s2 = sin(t * 329.63 * TAU) * 0.25 # E4
+		var s3 = sin(t * 392.00 * TAU) * 0.20 # G4
+		var s4 = sin(t * 523.25 * TAU) * 0.15 # C5
+		var chime = (s1 + s2 + s3 + s4) * (0.6 + sin(t * TAU * 1.0) * 0.4)
+		var s16: int = clampi(int(chime * 20000.0), -32768, 32767)
+		byte_data.encode_s16(i * 2, s16)
+	var stream = AudioStreamWAV.new()
+	stream.data = byte_data
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = num_samples
+	return stream
+

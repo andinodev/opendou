@@ -244,6 +244,23 @@ static func run_all() -> Array[String]:
 			failures.append("Test 5c Failed: DemoHub.DEMO_SCENES[7] expected %s, got %s" % [SCENE_PATH, str(hub.DEMO_SCENES[7])])
 		hub.free()
 
+	# Test 22: Music Suite multi-stem integration & 3D Emitter Distance Culling
+	if demo.active_music_suite != &"Exploration_Ambient_Theme.tres":
+		failures.append("Test 6a Failed: Default active music suite expected Exploration_Ambient_Theme.tres, got %s" % str(demo.active_music_suite))
+	if demo.stem_players.size() < 2:
+		failures.append("Test 6b Failed: Exploration_Ambient_Theme expected at least 2 stem players, got %d" % demo.stem_players.size())
+		
+	# Test 3D emitter attenuation parameters (max_distance = 15m to prevent bleed between 25m sectors)
+	if demo.rain_audio and (demo.rain_audio.max_distance > 16.0 or demo.rain_audio.max_distance < 10.0):
+		failures.append("Test 6c Failed: rain_audio max_distance mismatch (expected ~15.0m, got %.1fm)" % demo.rain_audio.max_distance)
+	if demo.server_audio and (demo.server_audio.max_distance > 16.0 or demo.server_audio.max_distance < 10.0):
+		failures.append("Test 6d Failed: server_audio max_distance mismatch (expected ~15.0m, got %.1fm)" % demo.server_audio.max_distance)
+		
+	# Test switching to Dynamic_Combat_Suite.tres
+	demo.load_music_suite(&"Dynamic_Combat_Suite.tres")
+	if demo.active_music_suite != &"Dynamic_Combat_Suite.tres" or demo.stem_players.size() < 3:
+		failures.append("Test 6e Failed: Failed to switch to Dynamic_Combat_Suite.tres multi-stem configuration")
+
 	demo.free()
 	instance.free()
 	return failures

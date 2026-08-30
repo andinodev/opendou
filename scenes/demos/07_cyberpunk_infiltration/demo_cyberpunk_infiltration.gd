@@ -67,12 +67,18 @@ const SECTOR_POSITIONS: Dictionary = {
 @onready var radio_audio: AudioStreamPlayer = get_node_or_null("Player/RadioAudio")
 @onready var music_audio: AudioStreamPlayer = get_node_or_null("Player/MusicAudio")
 
+# Music Suite & Stems
+var active_music_suite: StringName = &"Exploration_Ambient_Theme.tres"
+var stem_players: Array[AudioStreamPlayer] = []
+var stem_track_data: Array[Dictionary] = []
+
 # UI References
 @onready var btn_sector1: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector1")
 @onready var btn_sector2: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector2")
 @onready var btn_sector3: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector3")
 @onready var btn_sector4: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector4")
 @onready var btn_back: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnBack")
+@onready var opt_suite: OptionButton = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/OptSuite")
 
 @onready var btn_toggle_airlock: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAirlock")
 @onready var btn_bombardment: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnBombardment")
@@ -166,28 +172,132 @@ func _setup_runtime_systems() -> void:
 
 func _start_ambient_audio() -> void:
 	if rain_audio:
-		rain_audio.stream = AudioSynthesizerClass.create_footstep(&"Water", 1)
+		rain_audio.stream = AudioSynthesizerClass.create_rain_ambient_loop(2.0)
+		rain_audio.volume_db = -12.0
+		rain_audio.unit_size = 2.5
+		rain_audio.max_distance = 15.0
 		rain_audio.play()
 	if server_audio:
-		server_audio.stream = AudioSynthesizerClass.create_engine_loop(120.0, 1.5)
+		server_audio.stream = AudioSynthesizerClass.create_server_ambient_loop(2.0)
+		server_audio.volume_db = -14.0
+		server_audio.unit_size = 2.5
+		server_audio.max_distance = 15.0
 		server_audio.play()
 	if water_audio:
-		water_audio.stream = AudioSynthesizerClass.create_footstep(&"Water", 2)
+		water_audio.stream = AudioSynthesizerClass.create_water_stream_ambient_loop(2.0)
+		water_audio.volume_db = -12.0
+		water_audio.unit_size = 2.5
+		water_audio.max_distance = 15.0
 		water_audio.play()
 	if turret_audio:
-		turret_audio.stream = AudioSynthesizerClass.create_tone(880.0, 0.8)
+		turret_audio.stream = AudioSynthesizerClass.create_tone(880.0, 0.4, 0.2)
+		turret_audio.volume_db = -16.0
+		turret_audio.unit_size = 2.5
+		turret_audio.max_distance = 15.0
 		turret_audio.play()
 	if radio_beacon_audio:
-		radio_beacon_audio.stream = AudioSynthesizerClass.create_tone(1200.0, 0.5)
+		radio_beacon_audio.stream = AudioSynthesizerClass.create_tone(1200.0, 0.3, 0.15)
+		radio_beacon_audio.volume_db = -16.0
+		radio_beacon_audio.unit_size = 2.5
+		radio_beacon_audio.max_distance = 15.0
 		radio_beacon_audio.play()
 
 func _start_music_audio() -> void:
-	if not music_audio:
-		music_audio = get_node_or_null("Player/MusicAudio")
-	if music_audio:
-		music_audio.stream = AudioSynthesizerClass.create_chord_loop(2.4)
-		music_audio.volume_db = 0.0
-		music_audio.play()
+	load_music_suite(active_music_suite)
+
+## Loads and initializes multi-stem music suite from opendou_music_suites.json
+func load_music_suite(suite_name: StringName) -> void:
+	active_music_suite = suite_name
+	
+	# Clean up previous stem players
+	for p in stem_players:
+		if is_instance_valid(p):
+			p.stop()
+			p.queue_free()
+	stem_players.clear()
+	stem_track_data.clear()
+	
+	var tracks_to_create: Array[Dictionary] = []
+	const SUITES_PATH = "res://opendou_music_suites.json"
+	if FileAccess.file_exists(SUITES_PATH):
+		var file = FileAccess.open(SUITES_PATH, FileAccess.READ)
+		if file:
+			var parsed = JSON.parse_string(file.get_as_text())
+			if parsed is Dictionary and parsed.has(str(suite_name)):
+				var s_data = parsed[str(suite_name)]
+				if s_data.has("tracks") and s_data["tracks"] is Array:
+					for td in s_data["tracks"]:
+						if td is Dictionary:
+							tracks_to_create.append(td)
+	
+	if tracks_to_create.is_empty():
+		if str(suite_name).contains("Exploration"):
+			tracks_to_create = [
+				{ "name": "Layer 1: Ambient_Pads", "min_intensity": 0.0, "max_intensity": 0.7, "bus_name": "Music" },
+				{ "name": "Layer 2: Nature_Foley", "min_intensity": 0.2, "max_intensity": 1.0, "bus_name": "Music" }
+			]
+		else:
+			tracks_to_create = [
+				{ "name": "Layer 1: Ambient_Pads", "min_intensity": 0.0, "max_intensity": 0.5, "bus_name": "Music" },
+				{ "name": "Layer 2: Stealth_Bass", "min_intensity": 0.2, "max_intensity": 0.7, "bus_name": "Music" },
+				{ "name": "Layer 3: Combat_Drums", "min_intensity": 0.5, "max_intensity": 1.0, "bus_name": "Music" }
+			]
+			
+	var music_parent = player if (player and player.is_inside_tree()) else self
+	
+	for idx in range(tracks_to_create.size()):
+		var t_info = tracks_to_create[idx]
+		var t_name = str(t_info.get("name", "Stem_%d" % idx))
+		var min_i = float(t_info.get("min_intensity", 0.0))
+		var max_i = float(t_info.get("max_intensity", 1.0))
+		var vol = float(t_info.get("volume_db", 0.0))
+		
+		var p = AudioStreamPlayer.new()
+		p.name = "StemPlayer_%d" % idx
+		p.bus = StringName(str(t_info.get("bus_name", "Music")))
+		
+		if t_name.contains("Pad") or t_name.contains("Ambient"):
+			p.stream = AudioSynthesizerClass.create_music_pad_loop(2.0)
+		elif t_name.contains("Foley") or t_name.contains("Nature"):
+			p.stream = AudioSynthesizerClass.create_nature_foley_loop(2.0)
+		elif t_name.contains("Bass") or t_name.contains("Stealth"):
+			p.stream = AudioSynthesizerClass.create_music_bass_loop(2.0)
+		elif t_name.contains("Drum") or t_name.contains("War"):
+			p.stream = AudioSynthesizerClass.create_music_drums_loop(2.0)
+		elif t_name.contains("Brass") or t_name.contains("Lead") or t_name.contains("Choir"):
+			p.stream = AudioSynthesizerClass.create_music_brass_loop(2.0)
+		else:
+			p.stream = AudioSynthesizerClass.create_chord_loop(2.0)
+			
+		music_parent.add_child(p)
+		p.play()
+		stem_players.append(p)
+		stem_track_data.append({
+			"name": t_name,
+			"min_intensity": min_i,
+			"max_intensity": max_i,
+			"volume_db": vol
+		})
+		
+	_update_stem_levels()
+	_update_hud()
+
+func _update_stem_levels() -> void:
+	var duck_gr = ducking_matrix.get_gain_reduction_db(&"Voice", &"Music") if ducking_matrix else 0.0
+	for i in range(stem_players.size()):
+		var p = stem_players[i]
+		if not is_instance_valid(p):
+			continue
+		var data = stem_track_data[i]
+		var min_i: float = data.get("min_intensity", 0.0)
+		var max_i: float = data.get("max_intensity", 1.0)
+		var base_vol: float = data.get("volume_db", 0.0)
+		
+		var is_active = combat_intensity >= (min_i - 0.05) and combat_intensity <= (max_i + 0.05)
+		if is_active:
+			p.volume_db = base_vol + duck_gr
+		else:
+			p.volume_db = -60.0
 
 func _connect_ui() -> void:
 	if btn_back:
@@ -211,6 +321,17 @@ func _connect_ui() -> void:
 		)
 	if slider_intensity:
 		slider_intensity.value_changed.connect(func(v: float): set_combat_intensity(v))
+		
+	if opt_suite:
+		opt_suite.item_selected.connect(func(idx: int):
+			var s_names = [
+				&"Exploration_Ambient_Theme.tres",
+				&"Dynamic_Combat_Suite.tres",
+				&"Boss_Phase_Orchestral.tres"
+			]
+			if idx >= 0 and idx < s_names.size():
+				load_music_suite(s_names[idx])
+		)
 		
 	if btn_lang_en:
 		btn_lang_en.pressed.connect(func(): play_tactical_radio_line(&"sec_clear_01", "en"))
@@ -247,10 +368,8 @@ func _physics_process(delta: float) -> void:
 	if dialogue_manager:
 		dialogue_manager.update(delta, ducking_matrix)
 		
-	# 3. Apply ducking to music audio
-	if music_audio and ducking_matrix:
-		var duck_gr = ducking_matrix.get_gain_reduction_db(&"Voice", &"Music")
-		music_audio.volume_db = duck_gr
+	# 3. Apply ducking & intensity to music stems
+	_update_stem_levels()
 		
 	var listener_pos: Vector3 = Vector3.ZERO
 	if player:
@@ -476,6 +595,7 @@ func set_combat_intensity(val: float) -> void:
 			music_director.current_index = 2 # Combat_Alert
 		else:
 			music_director.current_index = 3 # Extraction_Outro
+	_update_stem_levels()
 	_update_hud()
 
 ## Changes active voice localization locale.
