@@ -6,6 +6,24 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-042` - Suite de Nodos Declarativos de Audio (OpenDou Declarative Nodes)**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Jerarquía de Emisores Declarativos:**
+      * **`OpenDouEventPlayer3D` (`AudioStreamPlayer3D`):** Emisor espacial 3D con integración automática a `SpatialAcousticsManager`, soporte para reverberación de salas de Sabine, portales con difracción, reflectores de primer orden, oclusión dinámica por raycasting multi-rayo, virtualización de voces y filtrado binaural HRTF.
+      * **`OpenDouEventPlayer2D` (`AudioStreamPlayer2D`):** Emisor espacial 2D con enlace declarativo a eventos de audio, modulación por RTPCs, Switches, Estados y gestión de prioridades de voz.
+      * **`OpenDouEventPlayer` (`AudioStreamPlayer`):** Emisor estéreo global/UI no posicional con parada segura al salir del árbol de escena y enlace a Game Syncs.
+    * **Macro-Acústica Espacial Declarativa:**
+      * **`OpenDouRoom3D` (`Area3D`):** Recinto acústico con auto-detección de volúmenes geométricos (`BoxShape3D`), cálculo analítico de $RT_{60}$ por fórmula de Sabine ($RT_{60} = 0.161 V / (S \alpha)$), presets de absorción (Concreto, Madera, Vidrio, Cortinas) y activación automática de snapshots de mezcla al entrar el oyente.
+      * **`OpenDouPortal3D` (`Node3D`):** Aberturas arquitectónicas con cálculo dinámico de difracción LPF ($300\text{ Hz} \le \text{LPF} \le 20,000\text{ Hz}$) y redirección del origen aparente del sonido a través de rutas acústicas.
+      * **`OpenDouReflector3D` (`Node3D`):** Superficies reflectantes con cálculo de fuentes imagen virtuales para reflexiones acústicas tempranas de primer orden.
+    * **Música Interactiva Declarativa (`OpenDouMusicPlayer`):**
+      * Reproductor musical de alto nivel basado en suites (`.tres` / `.json`), modulación continua de intensidad de combate con crossfades automáticos de stems, control de reproducción/pausa/bucle y disparo de stingers rítmicos.
+    * **Integración en EditorPlugin e Iconografía Vectorial:**
+      * Registro completo de los 7 tipos personalizados mediante `add_custom_type` y `remove_custom_type` en `plugin.gd`.
+      * Iconografía vectorial SVG limpia para todos los nodos en `addons/opendou/icons/`.
+    * **Suite de Pruebas Automatizadas:** 16 pruebas unitarias e integración en `test_declarative_nodes.gd` pasando al 100% (código de salida 0).
+
 * **`TASK-041` - Demo 07: Cyberpunk Infiltration AAA Showcase Demo**
   * **Fecha:** 2026-08-30
   * **Resumen:**

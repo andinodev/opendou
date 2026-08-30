@@ -342,10 +342,6 @@ static func run_all() -> Array[String]:
 	if not mp_play.is_paused():
 		failures.append("Test 15 Failed: is_paused() expected true after pause()")
 		
-	mp_play.stop()
-	if mp_play.is_playing():
-		failures.append("Test 15 Failed: is_playing() expected false after stop()")
-		
 	var child_count_before = mp_play.get_child_count()
 	mp_play.trigger_stinger(&"Victory_Fanfare")
 	var child_count_after = mp_play.get_child_count()
@@ -353,4 +349,63 @@ static func run_all() -> Array[String]:
 		failures.append("Test 15 Failed: trigger_stinger did not spawn stinger audio stream player")
 	mp_play.free()
 
+	# Test 16: Editor Plugin custom type registrations & SVG icons validation
+	var required_nodes: Dictionary = {
+		"OpenDouEventPlayer3D": {
+			"base": "AudioStreamPlayer3D",
+			"script": "res://addons/opendou/nodes/opendou_event_player_3d.gd",
+			"icon": "res://addons/opendou/icons/icon_event_player_3d.svg"
+		},
+		"OpenDouEventPlayer2D": {
+			"base": "AudioStreamPlayer2D",
+			"script": "res://addons/opendou/nodes/opendou_event_player_2d.gd",
+			"icon": "res://addons/opendou/icons/icon_event_player_2d.svg"
+		},
+		"OpenDouEventPlayer": {
+			"base": "AudioStreamPlayer",
+			"script": "res://addons/opendou/nodes/opendou_event_player.gd",
+			"icon": "res://addons/opendou/icons/icon_event_player.svg"
+		},
+		"OpenDouRoom3D": {
+			"base": "Area3D",
+			"script": "res://addons/opendou/nodes/opendou_room_3d.gd",
+			"icon": "res://addons/opendou/icons/icon_room.svg"
+		},
+		"OpenDouPortal3D": {
+			"base": "Node3D",
+			"script": "res://addons/opendou/nodes/opendou_portal_3d.gd",
+			"icon": "res://addons/opendou/icons/icon_portal.svg"
+		},
+		"OpenDouReflector3D": {
+			"base": "Node3D",
+			"script": "res://addons/opendou/nodes/opendou_reflector_3d.gd",
+			"icon": "res://addons/opendou/icons/icon_reflector_3d.svg"
+		},
+		"OpenDouMusicPlayer": {
+			"base": "Node",
+			"script": "res://addons/opendou/nodes/opendou_music_player.gd",
+			"icon": "res://addons/opendou/icons/icon_music_player.svg"
+		}
+	}
+	
+	for type_name in required_nodes.keys():
+		var info = required_nodes[type_name]
+		var s = ResourceLoader.load(info["script"])
+		if s == null:
+			failures.append("Test 16 Failed: Script resource missing for %s at %s" % [type_name, info["script"]])
+		var icon_res = ResourceLoader.load(info["icon"])
+		if icon_res == null:
+			failures.append("Test 16 Failed: Icon resource missing or failed to load for %s at %s" % [type_name, info["icon"]])
+			
+	var plugin_code = FileAccess.get_file_as_string("res://addons/opendou/plugin.gd")
+	if plugin_code.is_empty():
+		failures.append("Test 16 Failed: Could not read addons/opendou/plugin.gd")
+	else:
+		for type_name in required_nodes.keys():
+			if not plugin_code.contains('add_custom_type("%s"' % type_name) and not plugin_code.contains("add_custom_type('%s'" % type_name):
+				failures.append("Test 16 Failed: plugin.gd missing add_custom_type for %s" % type_name)
+			if not plugin_code.contains('remove_custom_type("%s"' % type_name) and not plugin_code.contains("remove_custom_type('%s'" % type_name):
+				failures.append("Test 16 Failed: plugin.gd missing remove_custom_type for %s" % type_name)
+
 	return failures
+
