@@ -471,5 +471,79 @@ static func run_all() -> Array[String]:
 		failures.append("Test 8i Failed: Graph editor must have clip_contents enabled")
 	ge_test.free()
 	
+	# Test 9: Synth Presets Builder Rack in Game Syncs Panel (Task 3)
+	var syncs_p = OpenDouGameSyncsPanelClass.new()
+	if syncs_p.tab_container == null or syncs_p.tab_container.get_tab_count() < 4:
+		failures.append("Test 9a Failed: OpenDouGameSyncsPanel missing Tab 4 for Synth Presets")
+	else:
+		var tab4_name = syncs_p.tab_container.get_tab_title(3)
+		if not tab4_name.contains("Presets"):
+			failures.append("Test 9b Failed: Tab 4 title should contain 'Presets', got: %s" % tab4_name)
+			
+	if syncs_p.preset_tree == null:
+		failures.append("Test 9c Failed: preset_tree not initialized on OpenDouGameSyncsPanel")
+	else:
+		var root = syncs_p.preset_tree.get_root()
+		if root == null or root.get_child_count() == 0:
+			failures.append("Test 9d Failed: preset_tree is empty; should populate from SynthPresetRegistry")
+		else:
+			# Verify selecting an item populates rack fields
+			var first_item = root.get_first_child()
+			syncs_p.preset_tree.set_selected(first_item, 0)
+			syncs_p._on_preset_selected()
+			if syncs_p.active_preset_name.is_empty():
+				failures.append("Test 9e Failed: active_preset_name not set on preset selection")
+			if syncs_p.preset_name_edit == null or syncs_p.preset_name_edit.text != str(syncs_p.active_preset_name):
+				failures.append("Test 9f Failed: preset_name_edit text does not match active_preset_name")
+				
+	# Verify rack components exist
+	if syncs_p.gen_type_opt == null or syncs_p.gen_type_opt.get_item_count() < 9:
+		failures.append("Test 9g Failed: gen_type_opt missing or does not contain all 9 generator types")
+	if syncs_p.base_freq_spin == null or syncs_p.base_freq_var_spin == null:
+		failures.append("Test 9h Failed: Frequency spinboxes not initialized")
+	if syncs_p.env_attack_spin == null or syncs_p.env_decay_spin == null or syncs_p.env_sustain_spin == null or syncs_p.env_release_spin == null:
+		failures.append("Test 9i Failed: ADSR Envelope spinboxes not initialized")
+	if syncs_p.pitch_decay_spin == null or syncs_p.pitch_amount_spin == null:
+		failures.append("Test 9j Failed: Pitch envelope spinboxes not initialized")
+	if syncs_p.lfo_wave_opt == null or syncs_p.lfo_rate_spin == null or syncs_p.lfo_depth_spin == null or syncs_p.lfo_target_opt == null:
+		failures.append("Test 9k Failed: LFO controls not initialized")
+	if syncs_p.filter_type_opt == null or syncs_p.filter_cutoff_spin == null or syncs_p.filter_q_spin == null:
+		failures.append("Test 9l Failed: Filter controls not initialized")
+	if syncs_p.drive_type_opt == null or syncs_p.drive_amount_spin == null:
+		failures.append("Test 9m Failed: Drive controls not initialized")
+	if syncs_p.waveform_visualizer == null:
+		failures.append("Test 9n Failed: waveform_visualizer not initialized")
+	if syncs_p.audition_player == null:
+		failures.append("Test 9o Failed: audition_player not initialized")
+		
+	# Test audition play and stop
+	syncs_p._on_audition_play_pressed()
+	if syncs_p.audition_player.stream == null:
+		failures.append("Test 9p Failed: Audition play did not generate audio stream")
+	syncs_p._on_audition_stop_pressed()
+	if syncs_p.audition_player.playing:
+		failures.append("Test 9q Failed: Audition stop failed to stop player")
+		
+	# Test Add, Edit, Save, Delete preset workflow
+	var initial_count = syncs_p.preset_tree.get_root().get_child_count() if syncs_p.preset_tree and syncs_p.preset_tree.get_root() else 0
+	syncs_p._on_add_preset_pressed()
+	var new_count = syncs_p.preset_tree.get_root().get_child_count() if syncs_p.preset_tree and syncs_p.preset_tree.get_root() else 0
+	if new_count != initial_count + 1:
+		failures.append("Test 9r Failed: Add preset did not increment preset count")
+	var added_name = syncs_p.active_preset_name
+	syncs_p.base_freq_spin.value = 550.0
+	syncs_p._on_rack_control_changed()
+	var updated_dict = SynthPresetRegistry.get_singleton().get_preset(added_name)
+	if is_zero_approx(updated_dict.get("base_freq", 0.0) - 550.0) == false:
+		failures.append("Test 9s Failed: Changing rack control did not update SynthPresetRegistry")
+	
+	syncs_p._on_save_presets_pressed()
+	syncs_p._on_delete_preset_pressed()
+	var after_delete_count = syncs_p.preset_tree.get_root().get_child_count() if syncs_p.preset_tree and syncs_p.preset_tree.get_root() else 0
+	if after_delete_count != initial_count:
+		failures.append("Test 9t Failed: Delete preset did not restore preset count")
+		
+	syncs_p.free()
+	
 	return failures
 
