@@ -182,6 +182,57 @@ static func run_all() -> Array[String]:
 			if (active_phys + active_virt) != 250:
 				failures.append("Test 3j Failed: Total active physical + virtual voices mismatch (%d physical, %d virtual, expected 250)" % [active_phys, active_virt])
 		
+	# Test 17: TacticalHUD node hierarchy & OpenDouRadarView integration
+	var radar_node = instance.get_node_or_null("TacticalHUD/RadarContainer/Margin/RadarVBox/RadarView")
+	if not radar_node:
+		failures.append("Test 4a Failed: TacticalHUD missing RadarView node")
+	elif not radar_node.has_method("update_radar_data"):
+		failures.append("Test 4b Failed: RadarView node is not an OpenDouRadarView (missing update_radar_data)")
+		
+	var lbl_occl = instance.get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblOcclusion")
+	var lbl_snap = instance.get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSnapshot")
+	var lbl_subs = instance.get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSubtitles")
+	var slider_int = instance.get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/SliderIntensity")
+	if not lbl_occl:
+		failures.append("Test 4c Failed: TacticalHUD missing LblOcclusion label")
+	if not lbl_snap:
+		failures.append("Test 4d Failed: TacticalHUD missing LblSnapshot label")
+	if not lbl_subs:
+		failures.append("Test 4e Failed: TacticalHUD missing LblSubtitles label")
+	if not slider_int:
+		failures.append("Test 4f Failed: TacticalHUD missing SliderIntensity HSlider")
+
+	# Test 18: Localized radio dialogue and priority ducking reduction
+	if not demo.has_method("play_tactical_radio_line"):
+		failures.append("Test 4g Failed: demo missing play_tactical_radio_line method")
+	else:
+		demo.play_tactical_radio_line(&"sec_clear_01", "es")
+		if demo.dialogue_manager.current_language != "es":
+			failures.append("Test 4h Failed: play_tactical_radio_line failed to switch language to 'es'")
+		if not demo.dialogue_manager.is_speaking:
+			failures.append("Test 4i Failed: dialogue_manager not marked is_speaking after play_tactical_radio_line")
+		if not demo.ducking_matrix.active_source_buses.get(&"Voice", false):
+			failures.append("Test 4j Failed: Voice bus not set to active in ducking matrix")
+		demo.ducking_matrix.update(0.1)
+		var gr_db = demo.ducking_matrix.get_gain_reduction_db(&"Voice", &"Music")
+		if gr_db >= -0.5:
+			failures.append("Test 4k Failed: Voice -> Music ducking gain reduction not applied (expected < -0.5 dB, got %.2f dB)" % gr_db)
+
+	# Test 19: Combat intensity RTPC slider and music director updates
+	demo.set_combat_intensity(0.85)
+	if not is_equal_approx(demo.combat_intensity, 0.85):
+		failures.append("Test 4l Failed: set_combat_intensity failed to set 0.85")
+
+	# Test 20: Sector teleportation, acoustic room update, and radar telemetry physics frame
+	demo.teleport_to_sector(3)
+	demo._physics_process(0.016)
+	if demo.active_room_name != &"Flooded_Drainage":
+		failures.append("Test 4m Failed: Active room after teleporting to Sector 3 expected Flooded_Drainage, got %s" % str(demo.active_room_name))
+	var s_water = demo.detect_footstep_surface(Vector3(25.0, 1.0, 0.0))
+	if s_water != &"Water":
+		failures.append("Test 4n Failed: Footstep surface in Sector 3 expected Water, got %s" % str(s_water))
+		
 	demo.free()
 	instance.free()
 	return failures
+

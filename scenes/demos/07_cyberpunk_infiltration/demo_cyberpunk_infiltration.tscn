@@ -1,6 +1,7 @@
-[gd_scene load_steps=15 format=3 uid="uid://b7cx84j1m89pq"]
+[gd_scene load_steps=16 format=3 uid="uid://b7cx84j1m89pq"]
 
 [ext_resource type="Script" path="res://scenes/demos/07_cyberpunk_infiltration/demo_cyberpunk_infiltration.gd" id="1_demo_script"]
+[ext_resource type="Script" path="res://addons/opendou/editor/opendou_radar_view.gd" id="2_radar_script"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.04, 0.05, 0.12, 1)
@@ -354,6 +355,9 @@ target_position = Vector3(0, -1.2, 0)
 
 [node name="RadioAudio" type="AudioStreamPlayer" parent="Player"]
 
+[node name="MusicAudio" type="AudioStreamPlayer" parent="Player"]
+bus = &"Music"
+
 [node name="TacticalHUD" type="CanvasLayer" parent="."]
 
 [node name="TopBar" type="PanelContainer" parent="TacticalHUD"]
@@ -406,10 +410,10 @@ text = "◀ Back to Hub"
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -370.0
+offset_left = -390.0
 offset_top = 68.0
 offset_right = -16.0
-offset_bottom = 360.0
+offset_bottom = 440.0
 grow_horizontal = 0
 
 [node name="Margin" type="MarginContainer" parent="TacticalHUD/HUDPanel"]
@@ -421,7 +425,7 @@ theme_override_constants/margin_bottom = 14
 
 [node name="VBox" type="VBoxContainer" parent="TacticalHUD/HUDPanel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 7
+theme_override_constants/separation = 6
 
 [node name="HUDTitle" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
 layout_mode = 2
@@ -437,31 +441,45 @@ text = "Active Sector: Sector 1 (Rooftop)"
 
 [node name="LblSurface" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
 layout_mode = 2
-text = "Ground Surface: Metal"
+text = "Surface: Metal"
 
 [node name="LblAcoustics" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
 layout_mode = 2
-text = "Acoustics: Rooftop Outdoor (RT60: 0.2s, LPF: 20000Hz)"
+text = "Room: Rooftop_Exterior (RT60: 0.2s)"
 
 [node name="LblAirlock" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
 layout_mode = 2
 text = "Server Airlock: Closed (Diffraction: 450Hz)"
 
+[node name="LblOcclusion" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Portal / Turret Occlusion: 0%"
+
+[node name="LblSnapshot" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Snapshot: Default_Environment"
+
 [node name="LblVoices" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
 layout_mode = 2
-text = "Voice Pool: 16 Physical / 0 Virtual (Cap: 16)"
+text = "Voices: 16 Phys / 0 Virt"
 
 [node name="LblDucking" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
 layout_mode = 2
-text = "Sidechain Ducking: -0.0 dB (Music -> Voice)"
+text = "Ducking GR: 0.0 dB"
 
 [node name="LblMusic" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
 layout_mode = 2
-text = "Music Stem: Stealth (Intensity: 0.0)"
+text = "Music Stem: Stealth (Intensity: 0.00)"
 
 [node name="LblDSP" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
 layout_mode = 2
 text = "DSP Frame Time: 0.12 ms"
+
+[node name="LblSubtitles" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
+text = "[HQ Radio]: Radio online. Standing by."
+autowrap_mode = 2
 
 [node name="RadarContainer" type="PanelContainer" parent="TacticalHUD"]
 anchors_preset = 3
@@ -495,6 +513,7 @@ text = "📡 Spatial Acoustic Radar"
 custom_minimum_size = Vector2(230, 140)
 layout_mode = 2
 size_flags_vertical = 3
+script = ExtResource("2_radar_script")
 
 [node name="BottomBar" type="PanelContainer" parent="TacticalHUD"]
 anchors_preset = 12
@@ -518,7 +537,7 @@ theme_override_constants/separation = 10
 
 [node name="LblControls" type="Label" parent="TacticalHUD/BottomBar/Margin/HBox"]
 layout_mode = 2
-text = "Controls: [WASD] Move • [Click] Shoot • [Tab] Toggle Airlock • [B] 250-Voice Siege"
+text = "Controls: [WASD] Move • [Click] Shoot • [Tab] Airlock • [B] 250 Siege"
 
 [node name="Spacer" type="Control" parent="TacticalHUD/BottomBar/Margin/HBox"]
 layout_mode = 2
@@ -526,11 +545,26 @@ size_flags_horizontal = 3
 
 [node name="BtnToggleAirlock" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
 layout_mode = 2
-text = "🚪 Toggle Airlock"
+text = "🚪 Airlock"
 
 [node name="BtnBombardment" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
 layout_mode = 2
-text = "💥 250-Voice Siege"
+text = "💥 250 Siege"
+
+[node name="LblIntensity" type="Label" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "⚔️ Intensity:"
+
+[node name="SliderIntensity" type="HSlider" parent="TacticalHUD/BottomBar/Margin/HBox"]
+custom_minimum_size = Vector2(100, 20)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="BtnRadio" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "📻 Radio"
 
 [node name="BtnLangEN" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
 layout_mode = 2

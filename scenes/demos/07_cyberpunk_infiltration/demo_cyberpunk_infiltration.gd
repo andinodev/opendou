@@ -16,6 +16,8 @@ const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthe
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 
+const OpenDouRadarViewClass = preload("res://addons/opendou/editor/opendou_radar_view.gd")
+
 # Core Audio Managers
 var voice_pool: VoicePoolManager
 var spatial_acoustics: SpatialAcousticsManager
@@ -63,6 +65,7 @@ const SECTOR_POSITIONS: Dictionary = {
 @onready var footstep_audio: AudioStreamPlayer = get_node_or_null("Player/FootstepAudio")
 @onready var weapon_audio: AudioStreamPlayer = get_node_or_null("Player/WeaponAudio")
 @onready var radio_audio: AudioStreamPlayer = get_node_or_null("Player/RadioAudio")
+@onready var music_audio: AudioStreamPlayer = get_node_or_null("Player/MusicAudio")
 
 # UI References
 @onready var btn_sector1: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector1")
@@ -73,6 +76,8 @@ const SECTOR_POSITIONS: Dictionary = {
 
 @onready var btn_toggle_airlock: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAirlock")
 @onready var btn_bombardment: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnBombardment")
+@onready var btn_radio: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnRadio")
+@onready var slider_intensity: HSlider = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/SliderIntensity")
 @onready var btn_lang_en: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangEN")
 @onready var btn_lang_es: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangES")
 @onready var btn_lang_ja: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnLangJA")
@@ -82,10 +87,14 @@ const SECTOR_POSITIONS: Dictionary = {
 @onready var lbl_surface: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSurface")
 @onready var lbl_acoustics: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblAcoustics")
 @onready var lbl_airlock: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblAirlock")
+@onready var lbl_occlusion: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblOcclusion")
+@onready var lbl_snapshot: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSnapshot")
 @onready var lbl_voices: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblVoices")
 @onready var lbl_ducking: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblDucking")
 @onready var lbl_music: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblMusic")
 @onready var lbl_dsp: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblDSP")
+@onready var lbl_subtitles: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSubtitles")
+@onready var radar_view: Control = get_node_or_null("TacticalHUD/RadarContainer/Margin/RadarVBox/RadarView")
 
 func _init() -> void:
 	_setup_runtime_systems()
@@ -94,122 +103,17 @@ func _ready() -> void:
 	if not voice_pool:
 		_setup_runtime_systems()
 	_start_ambient_audio()
+	_start_music_audio()
 	_connect_ui()
 	_update_hud()
 
-func _setup_runtime_systems() -> void:
-	# 1. Voice Pool Manager (16 physical voice cap)
-	voice_pool = VoicePoolManagerClass.new(16)
-	
-	# 2. Spatial Acoustics Manager & Enclosures
-	spatial_acoustics = SpatialAcousticsManagerClass.new()
-	
-	room_rooftop = AudioRoomClass.new(&"Rooftop_Exterior", 0.2, 0.1)
-	room_rooftop.set_bounds(AABB(Vector3(-40.0, -2.0, -16.0), Vector3(30.0, 12.0, 32.0)))
-	
-	room_server = AudioRoomClass.new(&"Server_Room", 0.7, 0.3)
-	room_server.set_bounds(AABB(Vector3(-12.0, -2.0, -10.0), Vector3(24.0, 10.0, 20.0)))
-	
-	room_drainage = AudioRoomClass.new(&"Flooded_Drainage", 3.5, 0.05)
-	room_drainage.set_bounds(AABB(Vector3(13.0, -2.0, -8.0), Vector3(24.0, 10.0, 16.0)))
-	
-	room_extraction = AudioRoomClass.new(&"Extraction_Arena", 0.4, 0.2)
-	room_extraction.set_bounds(AABB(Vector3(35.0, -2.0, -16.0), Vector3(30.0, 12.0, 32.0)))
-	
-	spatial_acoustics.register_room(room_rooftop)
-	spatial_acoustics.register_room(room_server)
-	spatial_acoustics.register_room(room_drainage)
-	spatial_acoustics.register_room(room_extraction)
-	
-	# 3. Spatial Acoustic Portals
-	server_portal = AudioPortalClass.new(&"Server_Airlock", &"Rooftop_Exterior", &"Server_Room", Vector3(-10.0, 2.0, 0.0), 1.0)
-	spatial_acoustics.register_portal(server_portal)
-	
-	# 4. Sidechain Priority Ducking Matrix
-	ducking_matrix = AudioDuckingMatrixClass.new()
-	ducking_matrix.add_ducking_rule(&"Voice", &"Music", -16.0, 0.1, 0.4)
-	ducking_matrix.add_ducking_rule(&"SFX", &"Music", -6.0, 0.05, 0.2)
-	
-	# 5. Localized Dialogue Manager & Table
-	dialogue_table = AudioDialogueTableClass.new()
-	_populate_dialogue_table()
-	dialogue_manager = AudioDialogueManagerClass.new("en", dialogue_table)
-	
-	# 6. Interactive Music Playlist Manager
-	music_director = MusicPlaylistManagerClass.new()
-	music_director.add_item(&"Infiltration_Intro", 1, 1)
-	music_director.add_item(&"Stealth_Loop", 2, 4)
-	music_director.add_item(&"Combat_Alert", 2, 4)
-	music_director.add_item(&"Extraction_Outro", 1, 1)
-	music_director.start_playlist()
-	
-	# 7. Live Update TCP Server
-	live_update_server = LiveUpdateServerClass.new()
-	var ok = live_update_server.start_server(3019)
-	if not ok:
-		live_update_server.start_server(3020)
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
-		if live_update_server:
-			live_update_server.stop_server()
-		for inst in bombardment_instances:
-			if inst:
-				inst.stop()
-		bombardment_instances.clear()
-
-func _populate_dialogue_table() -> void:
-	# Tactical radio sample voice lines across 4 languages
-	var stream_clear_en = AudioSynthesizerClass.create_tone(440.0, 1.2, 0.4, false)
-	var stream_clear_es = AudioSynthesizerClass.create_tone(480.0, 1.2, 0.4, false)
-	var stream_clear_ja = AudioSynthesizerClass.create_tone(520.0, 1.2, 0.4, false)
-	var stream_clear_zh = AudioSynthesizerClass.create_tone(560.0, 1.2, 0.4, false)
-	
-	dialogue_table.add_entry(&"sec_clear_01", "en", stream_clear_en)
-	dialogue_table.add_entry(&"sec_clear_01", "es", stream_clear_es)
-	dialogue_table.add_entry(&"sec_clear_01", "ja", stream_clear_ja)
-	dialogue_table.add_entry(&"sec_clear_01", "zh", stream_clear_zh)
-	
-	var stream_alert_en = AudioSynthesizerClass.create_tone(880.0, 1.5, 0.5, false)
-	var stream_alert_es = AudioSynthesizerClass.create_tone(920.0, 1.5, 0.5, false)
-	var stream_alert_ja = AudioSynthesizerClass.create_tone(960.0, 1.5, 0.5, false)
-	var stream_alert_zh = AudioSynthesizerClass.create_tone(1000.0, 1.5, 0.5, false)
-	
-	dialogue_table.add_entry(&"tactical_alert", "en", stream_alert_en)
-	dialogue_table.add_entry(&"tactical_alert", "es", stream_alert_es)
-	dialogue_table.add_entry(&"tactical_alert", "ja", stream_alert_ja)
-	dialogue_table.add_entry(&"tactical_alert", "zh", stream_alert_zh)
-
-func _start_ambient_audio() -> void:
-	if rain_audio:
-		rain_audio.stream = AudioSynthesizerClass.create_tone(220.0, 3.0, 0.25, true)
-		rain_audio.unit_size = 30.0
-		rain_audio.max_distance = 60.0
-		rain_audio.play()
-		
-	if server_audio:
-		server_audio.stream = AudioSynthesizerClass.create_engine_loop(120.0)
-		server_audio.unit_size = 18.0
-		server_audio.max_distance = 45.0
-		server_audio.play()
-		
-	if water_audio:
-		water_audio.stream = AudioSynthesizerClass.create_tone(330.0, 2.5, 0.3, true)
-		water_audio.unit_size = 20.0
-		water_audio.max_distance = 50.0
-		water_audio.play()
-		
-	if turret_audio:
-		turret_audio.stream = AudioSynthesizerClass.create_tone(660.0, 1.0, 0.35, false)
-		turret_audio.unit_size = 25.0
-		turret_audio.max_distance = 60.0
-		turret_audio.play()
-		
-	if radio_beacon_audio:
-		radio_beacon_audio.stream = AudioSynthesizerClass.create_chord_loop(1.8)
-		radio_beacon_audio.unit_size = 15.0
-		radio_beacon_audio.max_distance = 50.0
-		radio_beacon_audio.play()
+func _start_music_audio() -> void:
+	if not music_audio:
+		music_audio = get_node_or_null("Player/MusicAudio")
+	if music_audio:
+		music_audio.stream = AudioSynthesizerClass.create_chord_loop(2.4)
+		music_audio.volume_db = 0.0
+		music_audio.play()
 
 func _connect_ui() -> void:
 	if btn_back:
@@ -226,15 +130,22 @@ func _connect_ui() -> void:
 		btn_toggle_airlock.pressed.connect(toggle_server_airlock)
 	if btn_bombardment:
 		btn_bombardment.pressed.connect(trigger_siege_bombardment)
+	if btn_radio:
+		btn_radio.pressed.connect(func():
+			var cur_lang = dialogue_manager.current_language if dialogue_manager else "en"
+			play_tactical_radio_line(&"sec_clear_01", cur_lang)
+		)
+	if slider_intensity:
+		slider_intensity.value_changed.connect(func(v: float): set_combat_intensity(v))
 		
 	if btn_lang_en:
-		btn_lang_en.pressed.connect(func(): set_voice_locale("en"))
+		btn_lang_en.pressed.connect(func(): play_tactical_radio_line(&"sec_clear_01", "en"))
 	if btn_lang_es:
-		btn_lang_es.pressed.connect(func(): set_voice_locale("es"))
+		btn_lang_es.pressed.connect(func(): play_tactical_radio_line(&"sec_clear_01", "es"))
 	if btn_lang_ja:
-		btn_lang_ja.pressed.connect(func(): set_voice_locale("ja"))
+		btn_lang_ja.pressed.connect(func(): play_tactical_radio_line(&"sec_clear_01", "ja"))
 	if btn_lang_zh:
-		btn_lang_zh.pressed.connect(func(): set_voice_locale("zh"))
+		btn_lang_zh.pressed.connect(func(): play_tactical_radio_line(&"sec_clear_01", "zh"))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
@@ -262,9 +173,14 @@ func _physics_process(delta: float) -> void:
 	if dialogue_manager:
 		dialogue_manager.update(delta, ducking_matrix)
 		
+	# 3. Apply ducking to music audio
+	if music_audio and ducking_matrix:
+		var duck_gr = ducking_matrix.get_gain_reduction_db(&"Voice", &"Music")
+		music_audio.volume_db = duck_gr
+		
 	var listener_pos = (player.global_position if player.is_inside_tree() else player.position) if player else Vector3.ZERO
 	
-	# 3. Update Bombardment Event Instances & Voice Pool Stealing Resolution
+	# 4. Update Bombardment Event Instances & Voice Pool Stealing Resolution
 	if not bombardment_instances.is_empty():
 		for inst in bombardment_instances:
 			if inst:
@@ -272,14 +188,76 @@ func _physics_process(delta: float) -> void:
 		if voice_pool:
 			voice_pool.resolve_voice_stealing(bombardment_instances, listener_pos, delta)
 		
-	# 4. Dynamic Pillar Raycast Occlusion in Sector 4
+	# 5. Dynamic Pillar Raycast Occlusion in Sector 4
 	_update_pillar_occlusion(listener_pos)
 	
-	# 5. Update room acoustics based on player position
+	# 6. Update room acoustics based on player position
 	_update_room_acoustics(listener_pos)
 	
-	# 6. Refresh HUD telemetry
+	# 7. Update 2D Spatial Acoustic Radar Telemetry
+	_update_radar_telemetry(listener_pos)
+	
+	# 8. Refresh HUD telemetry labels
 	_update_hud()
+
+func _update_radar_telemetry(listener_pos: Vector3) -> void:
+	if not radar_view:
+		radar_view = get_node_or_null("TacticalHUD/RadarContainer/Margin/RadarVBox/RadarView")
+	if not radar_view:
+		return
+		
+	var emitter_data: Array = []
+	if rain_audio and rain_audio.playing:
+		emitter_data.append({
+			"event_name": "Rain_Ambience",
+			"world_position": rain_audio.global_position if rain_audio.is_inside_tree() else rain_audio.position,
+			"is_virtual": false,
+			"volume_db": rain_audio.volume_db
+		})
+	if server_audio and server_audio.playing:
+		emitter_data.append({
+			"event_name": "Server_Racks",
+			"world_position": server_audio.global_position if server_audio.is_inside_tree() else server_audio.position,
+			"is_virtual": false,
+			"volume_db": server_audio.volume_db
+		})
+	if water_audio and water_audio.playing:
+		emitter_data.append({
+			"event_name": "Flooded_Water",
+			"world_position": water_audio.global_position if water_audio.is_inside_tree() else water_audio.position,
+			"is_virtual": false,
+			"volume_db": water_audio.volume_db
+		})
+	if turret_audio and turret_audio.playing:
+		emitter_data.append({
+			"event_name": "Turret_Scan",
+			"world_position": turret_audio.global_position if turret_audio.is_inside_tree() else turret_audio.position,
+			"is_virtual": false,
+			"volume_db": turret_audio.volume_db
+		})
+	if radio_beacon_audio and radio_beacon_audio.playing:
+		emitter_data.append({
+			"event_name": "Radio_Beacon",
+			"world_position": radio_beacon_audio.global_position if radio_beacon_audio.is_inside_tree() else radio_beacon_audio.position,
+			"is_virtual": false,
+			"volume_db": radio_beacon_audio.volume_db
+		})
+	for inst in bombardment_instances:
+		if inst and inst.is_playing:
+			emitter_data.append({
+				"event_name": "Siege_Explosion",
+				"world_position": inst.position,
+				"is_virtual": inst.is_virtual,
+				"volume_db": inst.get_parameter(&"volume", 0.0)
+			})
+			
+	if radar_view.has_method("update_radar_data"):
+		radar_view.update_radar_data(emitter_data, listener_pos)
+		
+	if radar_view.has_method("update_telemetry_metrics") and voice_pool:
+		var phys = voice_pool.get_active_physical_count()
+		var virt = voice_pool.get_active_virtual_count(bombardment_instances)
+		radar_view.update_telemetry_metrics(phys, virt, 0.12, 1420)
 
 func _update_pillar_occlusion(listener_pos: Vector3) -> void:
 	if not player or listener_pos.x < 35.0:
@@ -395,6 +373,7 @@ func teleport_to_sector(idx: int) -> void:
 			player.global_position = target_pos
 		else:
 			player.position = target_pos
+	_update_room_acoustics(target_pos)
 	_update_hud()
 
 ## Toggles the server airlock door open / closed with acoustic portal diffraction.
@@ -410,6 +389,15 @@ func toggle_server_airlock() -> void:
 ## Modifies combat intensity RTPC for dynamic music layering.
 func set_combat_intensity(val: float) -> void:
 	combat_intensity = clampf(val, 0.0, 1.0)
+	if slider_intensity and not is_equal_approx(slider_intensity.value, combat_intensity):
+		slider_intensity.value = combat_intensity
+	if music_director:
+		if combat_intensity < 0.35:
+			music_director.current_index = 1 # Stealth_Loop
+		elif combat_intensity < 0.70:
+			music_director.current_index = 2 # Combat_Alert
+		else:
+			music_director.current_index = 3 # Extraction_Outro
 	_update_hud()
 
 ## Changes active voice localization locale.
@@ -418,16 +406,50 @@ func set_voice_locale(loc: String) -> void:
 		dialogue_manager.set_language(loc)
 	_update_hud()
 
-## Plays a localized radio dialogue line and triggers sidechain priority ducking.
-func play_tactical_radio_line(dialogue_key: StringName, lang_override: String = "") -> void:
-	if not lang_override.is_empty():
-		set_voice_locale(lang_override)
-	if radio_audio and dialogue_manager:
+## Plays a localized radio dialogue line, triggers priority ducking, and displays HUD subtitles.
+func play_tactical_radio_line(dialogue_key: StringName, loc: String = "en") -> void:
+	set_voice_locale(loc)
+	
+	if not radio_audio:
+		radio_audio = get_node_or_null("Player/RadioAudio")
+	if not radio_audio:
+		radio_audio = AudioStreamPlayer.new()
+		radio_audio.name = "RadioAudio"
+		add_child(radio_audio)
+		
+	if dialogue_manager:
 		dialogue_manager.play_dialogue(dialogue_key, radio_audio, ducking_matrix)
+		
+	if music_audio and ducking_matrix:
+		var gr_db = ducking_matrix.get_gain_reduction_db(&"Voice", &"Music")
+		music_audio.volume_db = gr_db
+		
+	var subtitles: Dictionary = {
+		&"sec_clear_01": {
+			"en": "[HQ Radio]: Sector 1 rooftop perimeter is secure. Proceed to server vault.",
+			"es": "[Radio HQ]: Perímetro del tejado en Sector 1 despejado. Proceda a la bóveda de servidores.",
+			"ja": "[HQ無線]: セクター1屋上の安全を確認。サーバー保管室へ侵入せよ。",
+			"zh": "[总部电台]: 1区屋顶周围已清除威胁。请前往服务器机房。"
+		},
+		&"tactical_alert": {
+			"en": "[HQ Radio]: Warning! Extraction arena perimeter breached! Heavy siege underway.",
+			"es": "[Radio HQ]: ¡Alerta! ¡Perímetro del helipuerto violado! Bombardeo pesado en curso.",
+			"ja": "[HQ無線]: 警告！脱出エリア境界が突破された！重爆撃開始。",
+			"zh": "[总部电台]: 警告！撤离点防线已被突破！重炮轰炸中。"
+		}
+	}
+	var sub_text = subtitles.get(dialogue_key, {}).get(loc, "[HQ Radio]: Tactical communication transmission.")
+	if lbl_subtitles:
+		lbl_subtitles.text = sub_text
+		
+	_update_hud()
 
 func _update_hud() -> void:
 	if not player:
 		player = get_node_or_null("Player")
+		
+	var l_pos = (player.global_position if player.is_inside_tree() else player.position) if player else Vector3.ZERO
+	var surf = detect_footstep_surface(l_pos)
 		
 	if lbl_sector:
 		var sector_names = {
@@ -439,9 +461,7 @@ func _update_hud() -> void:
 		lbl_sector.text = "Active Sector: %s" % sector_names.get(active_sector_idx, "Sector 1")
 		
 	if lbl_surface:
-		var l_pos = (player.global_position if player.is_inside_tree() else player.position) if player else Vector3.ZERO
-		var surf = detect_footstep_surface(l_pos)
-		lbl_surface.text = "Footstep Surface: %s" % str(surf)
+		lbl_surface.text = "Surface: %s" % str(surf)
 		
 	if lbl_airlock:
 		var lpf_val = int(server_portal.get_current_lpf()) if server_portal else 20000
@@ -452,17 +472,25 @@ func _update_hud() -> void:
 		var room = spatial_acoustics.rooms.get(active_room_name) if spatial_acoustics else null
 		if room:
 			rt60 = room.reverb_decay_time
-		lbl_acoustics.text = "Acoustics: %s (RT60: %.1fs)" % [str(active_room_name), rt60]
+		lbl_acoustics.text = "Room: %s (RT60: %.1fs)" % [str(active_room_name), rt60]
+		
+	if lbl_occlusion:
+		var occl_pct = int(turret_occlusion * 100.0)
+		lbl_occlusion.text = "Portal / Turret Occlusion: %d%%" % occl_pct
+		
+	if lbl_snapshot:
+		var snap_name = "Underwater_Muffle" if active_room_name == &"Flooded_Drainage" else "Default_Environment"
+		lbl_snapshot.text = "Snapshot: %s" % snap_name
 		
 	if lbl_ducking and ducking_matrix:
 		var duck_db = ducking_matrix.get_gain_reduction_db(&"Voice", &"Music")
-		lbl_ducking.text = "Sidechain Ducking: %.1f dB (Music -> Voice)" % duck_db
+		lbl_ducking.text = "Ducking GR: %.1f dB" % duck_db
 		
 	if lbl_music:
 		var seg = music_director.get_current_segment_name() if music_director else &"Stealth"
-		lbl_music.text = "Music Stem: %s (Intensity: %.1f)" % [str(seg), combat_intensity]
+		lbl_music.text = "Music Stem: %s (Intensity: %.2f)" % [str(seg), combat_intensity]
 		
 	if lbl_voices and voice_pool:
 		var phys = voice_pool.get_active_physical_count()
 		var virt = voice_pool.get_active_virtual_count(bombardment_instances)
-		lbl_voices.text = "Voice Pool: %d Physical / %d Virtual (Cap: 16)" % [phys, virt]
+		lbl_voices.text = "Voices: %d Phys / %d Virt" % [phys, virt]
