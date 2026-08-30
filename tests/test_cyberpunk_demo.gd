@@ -272,6 +272,32 @@ static func run_all() -> Array[String]:
 	if not btn_monitor:
 		failures.append("Test 7c Failed: TacticalHUD BottomBar missing BtnToggleMonitor button")
 
+	# Test 24: Sector 5 Biosphere 7.1 surround emitters and HUD button
+	var sec5 = instance.get_node_or_null("LevelGeometry/Sector5_Biosphere")
+	if not sec5:
+		failures.append("Test 8a Failed: LevelGeometry missing Sector5_Biosphere node")
+	else:
+		var bio_room = sec5.get_node_or_null("BiosphereRoom")
+		if not bio_room or not (bio_room is OpenDouRoom3D):
+			failures.append("Test 8b Failed: Sector5_Biosphere missing OpenDouRoom3D child BiosphereRoom")
+		elif bio_room.room_name != &"Biosphere_Sanctuary":
+			failures.append("Test 8c Failed: BiosphereRoom room_name expected Biosphere_Sanctuary, got %s" % str(bio_room.room_name))
+			
+		var required_emitters = [
+			"CanopyWind_FL", "Waterfall_FR", "Bird_C", "Thunder_LFE",
+			"Cicada_SL", "Frog_SR", "Rain_RL", "Droplet_RR", "OrbitingBeeEmitter"
+		]
+		for em_name in required_emitters:
+			var em = sec5.get_node_or_null(em_name)
+			if not em:
+				failures.append("Test 8d Failed: Sector5_Biosphere missing 7.1 surround emitter: %s" % em_name)
+			elif not (em is OpenDouEventPlayer3D):
+				failures.append("Test 8e Failed: Emitter %s is not an OpenDouEventPlayer3D" % em_name)
+
+	var btn_sec5 = instance.get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnSector5")
+	if not btn_sec5:
+		failures.append("Test 8f Failed: TacticalHUD BottomBar missing BtnSector5 button")
+
 	demo.free()
 	instance.free()
 	return failures

@@ -72,6 +72,18 @@ size = Vector3(24, 6, 16)
 [sub_resource type="BoxShape3D" id="BoxShape3D_extraction"]
 size = Vector3(35, 12, 50)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_biosphere_moss"]
+albedo_color = Color(0.12, 0.35, 0.18, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_biosphere_glass"]
+transparency = 1
+albedo_color = Color(0.1, 0.85, 0.45, 0.35)
+roughness = 0.1
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_biosphere"]
+size = Vector3(30, 12, 30)
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 height = 1.8
 
@@ -135,7 +147,7 @@ absorption = 1.0
 [node name="RooftopRoom" type="Area3D" parent="LevelGeometry/Sector1_Rooftop" unique_id=118274910]
 script = ExtResource("6_room")
 room_name = &"Rooftop_Exterior"
-calculated_rt60 = 9.66
+calculated_rt60 = 9.793390945995817
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector1_Rooftop/RooftopRoom" unique_id=118274911]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0961914, 0, 0)
@@ -210,7 +222,7 @@ script = ExtResource("6_room")
 room_name = &"Server_Room"
 material_preset = "Wood"
 absorption_coefficient = 0.56
-calculated_rt60 = 0.6
+calculated_rt60 = 2.07741935483871
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector2_ServerRoom/ServerRoomArea" unique_id=198274911]
 shape = SubResource("BoxShape3D_server")
@@ -291,7 +303,7 @@ script = ExtResource("6_room")
 room_name = &"Flooded_Drainage"
 material_preset = "Glass"
 custom_reverb_time = 3.5
-calculated_rt60 = 5.944615384615385
+calculated_rt60 = 9.907692307692308
 snapshot_on_enter = &"Underwater_Muffle"
 
 [node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector3_FloodedDrainage/DrainageRoom" unique_id=178274911]
@@ -395,7 +407,6 @@ max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Turret_Scan"
 synth_preset = "Turret_Scan"
-bus_category = "SFX"
 
 [node name="RadioBeaconEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=2142646796]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
@@ -406,13 +417,158 @@ max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Radio_Beacon"
 synth_preset = "Radio_Beacon"
-bus_category = "SFX"
 
 [node name="ArenaBeaconLight" type="OmniLight3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=961045293]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
 light_color = Color(1, 0.1, 0.65, 1)
 light_energy = 3.5
 omni_range = 16.0
+
+[node name="Sector5_Biosphere" type="Node3D" parent="LevelGeometry" unique_id=310100000]
+
+[node name="BiosphereFloor" type="CSGBox3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100011]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, -0.1, 0)
+use_collision = true
+size = Vector3(30, 0.2, 30)
+material = SubResource("StandardMaterial3D_biosphere_moss")
+
+[node name="BiosphereDomeWalls" type="CSGBox3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100012]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 5, 0)
+use_collision = true
+size = Vector3(30, 10, 30)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="BiosphereDomeInterior" type="CSGBox3D" parent="LevelGeometry/Sector5_Biosphere/BiosphereDomeWalls" unique_id=310100013]
+operation = 2
+size = Vector3(29.2, 9.8, 29.2)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="BiosphereEntranceCut" type="CSGBox3D" parent="LevelGeometry/Sector5_Biosphere/BiosphereDomeWalls" unique_id=310100014]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -2.5, 0)
+operation = 2
+size = Vector3(4, 5, 6)
+
+[node name="BiosphereGlassCeiling" type="CSGBox3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100015]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 9.9, 0)
+size = Vector3(28, 0.2, 28)
+material = SubResource("StandardMaterial3D_biosphere_glass")
+
+[node name="BiosphereLight" type="OmniLight3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100016]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 6, 0)
+light_color = Color(0.1, 1, 0.55, 1)
+light_energy = 3.0
+omni_range = 18.0
+
+[node name="BiosphereRoom" type="Area3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100017]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 0, 0)
+script = ExtResource("6_room")
+room_name = &"Biosphere_Sanctuary"
+material_preset = "Curtains"
+calculated_rt60 = 0.85
+
+[node name="RoomShape" type="CollisionShape3D" parent="LevelGeometry/Sector5_Biosphere/BiosphereRoom" unique_id=310100018]
+shape = SubResource("BoxShape3D_biosphere")
+
+[node name="ArenaToBiospherePortal" type="Node3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100010]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 1.5, 0)
+script = ExtResource("7_portal")
+portal_name = &"Arena_To_Biosphere"
+room_a = NodePath("../BiosphereRoom")
+room_b = NodePath("../../Sector4_ExtractionArena/ExtractionArenaRoom")
+
+[node name="CanopyWind_FL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 3.5, -6)
+volume_db = -10.0
+unit_size = 2.5
+autoplay = true
+max_distance = 25.0
+script = ExtResource("4_p3d")
+event_name = &"Wind_Canopy"
+synth_preset = "Wind_Canopy"
+bus_category = "Ambience"
+
+[node name="Waterfall_FR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100002]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 3.5, -6)
+volume_db = -10.0
+unit_size = 2.5
+autoplay = true
+max_distance = 25.0
+script = ExtResource("4_p3d")
+event_name = &"Water_Stream"
+synth_preset = "Water_Stream"
+bus_category = "Ambience"
+
+[node name="Bird_C" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100003]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 2, -8)
+volume_db = -8.0
+unit_size = 2.5
+autoplay = true
+max_distance = 25.0
+script = ExtResource("4_p3d")
+event_name = &"Bird_Chirp"
+synth_preset = "Bird_Chirp"
+
+[node name="Thunder_LFE" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100004]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, -0.5, 0)
+volume_db = -6.0
+unit_size = 2.5
+autoplay = true
+max_distance = 25.0
+script = ExtResource("4_p3d")
+event_name = &"Thunder_Rumble"
+synth_preset = "Thunder_Rumble"
+
+[node name="Cicada_SL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100005]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71, 1.5, 0)
+volume_db = -12.0
+unit_size = 2.5
+autoplay = true
+max_distance = 25.0
+script = ExtResource("4_p3d")
+event_name = &"Cicada_Swarm"
+synth_preset = "Cicada_Swarm"
+
+[node name="Frog_SR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100006]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89, 1.5, 0)
+volume_db = -10.0
+unit_size = 2.5
+autoplay = true
+max_distance = 25.0
+script = ExtResource("4_p3d")
+event_name = &"Frog_Croak"
+synth_preset = "Frog_Croak"
+
+[node name="Rain_RL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100007]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 2.5, 6)
+volume_db = -12.0
+unit_size = 2.5
+autoplay = true
+max_distance = 25.0
+script = ExtResource("4_p3d")
+event_name = &"Rain_Ambience"
+synth_preset = "Rain"
+bus_category = "Ambience"
+
+[node name="Droplet_RR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100008]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 2.5, 6)
+volume_db = -10.0
+unit_size = 2.5
+autoplay = true
+max_distance = 25.0
+script = ExtResource("4_p3d")
+event_name = &"Water_Droplet"
+synth_preset = "Water_Droplet"
+
+[node name="OrbitingBeeEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100009]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 85, 1.5, 0)
+volume_db = -14.0
+unit_size = 2.5
+autoplay = true
+max_distance = 25.0
+script = ExtResource("4_p3d")
+event_name = &"Cyber_Hornet"
+synth_preset = "Tone"
+synth_frequency = 280.0
 
 [node name="ChaosEmittersParent" type="Node3D" parent="LevelGeometry" unique_id=943152636]
 visible = false
@@ -463,6 +619,7 @@ bus_category = "Music"
 
 [node name="MusicPlayer" type="Node" parent="Player" unique_id=259454721]
 script = ExtResource("9_music")
+combat_intensity = 0.53
 
 [node name="TacticalHUD" type="CanvasLayer" parent="." unique_id=938583822]
 
@@ -507,6 +664,10 @@ text = "📍 3. Drainage"
 [node name="BtnSector4" type="Button" parent="TacticalHUD/TopBar/Margin/HBox" unique_id=284348750]
 layout_mode = 2
 text = "📍 4. Extraction"
+
+[node name="BtnSector5" type="Button" parent="TacticalHUD/TopBar/Margin/HBox" unique_id=284348751]
+layout_mode = 2
+text = "📍 5. Biosphere"
 
 [node name="BtnBack" type="Button" parent="TacticalHUD/TopBar/Margin/HBox" unique_id=928536783]
 layout_mode = 2
@@ -707,6 +868,10 @@ text = "🇯🇵 JA"
 [node name="BtnLangZH" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=1096097726]
 layout_mode = 2
 text = "🇨🇳 ZH"
+
+[node name="BtnSector5" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=1096097727]
+layout_mode = 2
+text = "🌿 Biosfera (7.1)"
 
 [node name="AudibleMonitor" type="CanvasLayer" parent="." unique_id=987654321]
 layer = 100

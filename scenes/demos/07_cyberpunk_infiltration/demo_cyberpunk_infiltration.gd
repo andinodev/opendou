@@ -187,8 +187,7 @@ func _start_ambient_audio() -> void:
 	pass
 
 func _start_music_audio() -> void:
-	# OpenDouMusicPlayer manages multi-stem suite playback declaratively
-	pass
+	load_music_suite(&"Exploration_Ambient_Theme.tres")
 
 ## Loads and initializes multi-stem music suite from opendou_music_suites.json
 func load_music_suite(suite_name: StringName) -> void:
