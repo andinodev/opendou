@@ -591,5 +591,108 @@ static func run_all() -> Array[String]:
 	tb_synth.free()
 	studio_synth.free()
 	
+	# Test 12: Pro DAW Add Track Modal with Live Synth Browser, Audition & Debouncing (TASK-050)
+	var tl_add = OpenDouMusicTimelineClass.new()
+	tl_add.open_add_track_dialog()
+	
+	# 12a: Modal Dialog size >= 800x550px
+	if tl_add.add_track_dialog == null:
+		failures.append("Test 12a1 Failed: add_track_dialog not initialized on music timeline")
+	elif tl_add.add_track_dialog.size.x < 800 or tl_add.add_track_dialog.size.y < 550:
+		failures.append("Test 12a2 Failed: add_track_dialog min size must be >= 800x550px, got: %s" % str(tl_add.add_track_dialog.size))
+		
+	# 12b: Source toggling between Synth Preset and File
+	if tl_add.btn_toggle_source_synth == null or tl_add.btn_toggle_source_file == null:
+		failures.append("Test 12b1 Failed: Source toggle buttons not initialized")
+	elif not tl_add.btn_toggle_source_synth.button_pressed or not tl_add.add_track_synth_box.visible or tl_add.add_track_file_box.visible:
+		failures.append("Test 12b2 Failed: Default source mode should be Synth Preset (synth box visible, file box hidden)")
+		
+	tl_add._set_source_mode(1) # Switch to File mode
+	if tl_add.btn_toggle_source_synth.button_pressed or not tl_add.btn_toggle_source_file.button_pressed or tl_add.add_track_synth_box.visible or not tl_add.add_track_file_box.visible:
+		failures.append("Test 12b3 Failed: Switching to File source mode failed")
+		
+	tl_add._set_source_mode(0) # Switch back to Synth mode
+	if not tl_add.btn_toggle_source_synth.button_pressed or not tl_add.add_track_synth_box.visible or tl_add.add_track_file_box.visible:
+		failures.append("Test 12b4 Failed: Switching back to Synth source mode failed")
+		
+	# 12c: Category filtering and live search matching
+	if tl_add.add_track_synth_item_list == null or tl_add.add_track_synth_search_edit == null:
+		failures.append("Test 12c1 Failed: Synth item list or search LineEdit not initialized")
+	else:
+		tl_add._filter_synth_presets("Leads", "")
+		var leads_count = tl_add.add_track_synth_item_list.get_item_count()
+		if leads_count == 0:
+			failures.append("Test 12c2 Failed: Category filtering for 'Leads' returned 0 items")
+		for i in range(leads_count):
+			var p_name = StringName(tl_add.add_track_synth_item_list.get_item_text(i))
+			var cat = SynthPresetRegistry.get_singleton().get_preset_category(p_name)
+			if cat != "Leads":
+				failures.append("Test 12c3 Failed: Category filter 'Leads' returned non-lead preset: %s (%s)" % [p_name, cat])
+				break
+				
+		# Search filter matching
+		tl_add._filter_synth_presets("All", "Hornet")
+		if tl_add.add_track_synth_item_list.get_item_count() != 1 or tl_add.add_track_synth_item_list.get_item_text(0) != "Cyber_Hornet":
+			failures.append("Test 12c4 Failed: Search query 'Hornet' did not match only Cyber_Hornet")
+			
+	# 12d: Predictive Auto-Fill for Leads (Cyber_Hornet)
+	tl_add._select_synth_preset(&"Cyber_Hornet")
+	var next_idx = tl_add.tracks.size() + 1
+	if not tl_add.add_track_name_edit.text.contains("Cyber_Hornet") or not tl_add.add_track_name_edit.text.contains(str(next_idx)):
+		failures.append("Test 12d1 Failed: Predictive name auto-fill for Cyber_Hornet failed, got: %s" % tl_add.add_track_name_edit.text)
+	if tl_add.add_track_color_picker.color != Color("fa3860"):
+		failures.append("Test 12d2 Failed: Predictive color for Cyber_Hornet should be #fa3860, got: %s" % tl_add.add_track_color_picker.color.to_html())
+	if tl_add.add_track_bus_opt.get_item_text(tl_add.add_track_bus_opt.selected) != "Music_Leads":
+		failures.append("Test 12d3 Failed: Predictive audio bus for Cyber_Hornet should be Music_Leads, got: %s" % tl_add.add_track_bus_opt.get_item_text(tl_add.add_track_bus_opt.selected))
+	if not is_equal_approx(tl_add.add_track_min_spin.value, 0.6) or not is_equal_approx(tl_add.add_track_max_spin.value, 1.0):
+		failures.append("Test 12d4 Failed: Predictive intensity range for Leads should be [0.6, 1.0]")
+		
+	# Predictive Auto-Fill for Nature/Ambience (Wind_Canopy)
+	tl_add._select_synth_preset(&"Wind_Canopy")
+	if not tl_add.add_track_name_edit.text.contains("Wind_Canopy"):
+		failures.append("Test 12d5 Failed: Predictive name auto-fill for Wind_Canopy failed")
+	if tl_add.add_track_color_picker.color != Color("2ce8b8"):
+		failures.append("Test 12d6 Failed: Predictive color for Wind_Canopy should be #2ce8b8, got: %s" % tl_add.add_track_color_picker.color.to_html())
+	if tl_add.add_track_bus_opt.get_item_text(tl_add.add_track_bus_opt.selected) != "Music_Pads":
+		failures.append("Test 12d7 Failed: Predictive audio bus for Wind_Canopy should be Music_Pads, got: %s" % tl_add.add_track_bus_opt.get_item_text(tl_add.add_track_bus_opt.selected))
+	if not is_equal_approx(tl_add.add_track_min_spin.value, 0.0) or not is_equal_approx(tl_add.add_track_max_spin.value, 0.5):
+		failures.append("Test 12d8 Failed: Predictive intensity range for Ambience should be [0.0, 0.5]")
+		
+	# 12e: Audition & Debounce Timer
+	if tl_add.audition_player == null or tl_add.btn_audition_play == null or tl_add.btn_audition_stop == null:
+		failures.append("Test 12e1 Failed: Audition player or buttons not initialized")
+	else:
+		tl_add._on_add_track_audition_play_pressed()
+		if tl_add.audition_player.stream == null:
+			failures.append("Test 12e2 Failed: Audition play did not generate stream for active synth preset")
+		tl_add._on_add_track_audition_stop_pressed()
+		
+	# Debounce timer test
+	if tl_add.add_track_debounce_timer == null or not is_equal_approx(tl_add.add_track_debounce_timer.wait_time, 0.15):
+		failures.append("Test 12e3 Failed: add_track_debounce_timer should have 150ms wait_time")
+	tl_add._on_add_track_debounce_timeout()
+	
+	# 12f: Instant creation on item activation / double click
+	var prev_tracks = tl_add.tracks.size()
+	tl_add._select_synth_preset(&"Cyber_Hornet")
+	tl_add._on_synth_preset_item_activated(0)
+	if tl_add.tracks.size() != prev_tracks + 1:
+		failures.append("Test 12f1 Failed: Double-click item activation did not instantiate new track")
+	else:
+		var new_track = tl_add.tracks[tl_add.tracks.size() - 1]
+		if new_track.synth_preset != &"Cyber_Hornet":
+			failures.append("Test 12f2 Failed: Created track synth_preset mismatch, expected Cyber_Hornet, got: %s" % new_track.synth_preset)
+		if new_track.bus_name != &"Music_Leads":
+			failures.append("Test 12f3 Failed: Created track bus_name mismatch, expected Music_Leads, got: %s" % new_track.bus_name)
+		if not new_track.audio_file_path.is_empty():
+			failures.append("Test 12f4 Failed: Synth preset track should have empty audio_file_path")
+			
+	# 12g: Resource lifecycle & Memory teardown
+	tl_add._on_add_track_dialog_closed()
+	if tl_add.audition_player.stream != null:
+		failures.append("Test 12g1 Failed: Closing dialog should clear audition_player stream")
+		
+	tl_add.free()
+	
 	return failures
 

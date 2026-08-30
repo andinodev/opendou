@@ -244,62 +244,16 @@ Set-Content -Path $fullLogPath -Value $logHeader -Encoding UTF8
 # ---------------------------------------------------------
 $logLines = New-Object System.Collections.Generic.List[string]
 
-$pinfo = New-Object System.Diagnostics.ProcessStartInfo
-$pinfo.FileName = $godotExe
-$pinfo.Arguments = $argString
-$pinfo.WorkingDirectory = $workspaceRoot
-$pinfo.RedirectStandardOutput = $true
-$pinfo.RedirectStandardError = $true
-$pinfo.UseShellExecute = $false
-$pinfo.CreateNoWindow = $true
+& $godotExe $argList 2>&1 | ForEach-Object {
+    $line = $_.ToString()
+    Write-Host $line
+    $logLines.Add($line)
+    Add-Content -Path $fullLogPath -Value $line -Encoding UTF8
+}
 
-$process = New-Object System.Diagnostics.Process
-$process.StartInfo = $pinfo
-
-$stdOutBuilder = New-Object System.Text.StringBuilder
-$stdErrBuilder = New-Object System.Text.StringBuilder
-
-$process.Start() | Out-Null
-
-$stdOutTask = [System.Threading.Tasks.Task]::Run([System.Action]{
-    while (-not $process.StandardOutput.EndOfStream) {
-        $line = $process.StandardOutput.ReadLine()
-        if ($null -ne $line) {
-            Write-Host $line
-            $logLines.Add($line)
-            Add-Content -Path $fullLogPath -Value $line -Encoding UTF8
-        }
-    }
-})
-
-$stdErrTask = [System.Threading.Tasks.Task]::Run([System.Action]{
-    while (-not $process.StandardError.EndOfStream) {
-        $line = $process.StandardError.ReadLine()
-        if ($null -ne $line) {
-            Write-Host $line
-            $logLines.Add($line)
-            Add-Content -Path $fullLogPath -Value $line -Encoding UTF8
-        }
-    }
-})
-
-$timeoutMs = $TimeoutSeconds * 1000
-$completedInTime = $process.WaitForExit($timeoutMs)
-
-if (-not $completedInTime) {
-    Write-Host "`n[ERROR] Godot test execution timed out after $TimeoutSeconds seconds! Terminating process..." -ForegroundColor Red
-    try {
-        $process.Kill($true)
-    } catch {
-        try { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue } catch {}
-    }
-    $godotExitCode = 124
-    $timeoutMsg = "[ERROR] Test execution timed out after $TimeoutSeconds seconds."
-    $logLines.Add($timeoutMsg)
-    Add-Content -Path $fullLogPath -Value $timeoutMsg -Encoding UTF8
-} else {
-    [System.Threading.Tasks.Task]::WaitAll(@($stdOutTask, $stdErrTask), 2000) | Out-Null
-    $godotExitCode = $process.ExitCode
+$godotExitCode = $LASTEXITCODE
+if ($null -eq $godotExitCode) {
+    $godotExitCode = 0
 }
 
 $endTime = Get-Date

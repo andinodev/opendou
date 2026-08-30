@@ -6,6 +6,22 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-050 (Task 2)` - Rediseño del Diálogo Add Track en Music DAW Timeline con Navegador de Sintetizadores, Audición y Auto-relleno Predictivo**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Diseño del Modal Add Track en 3 Tarjetas (`opendou_music_timeline.gd`):**
+      * Tamaño base expandido a 800x550px con arquitectura visual de 3 tarjetas (*Track Identity*, *Audio Source Engine*, *Dynamic Automation & Routing*).
+      * Selector segmentado de fuente de audio entre Sintetizador Procedural (`btn_toggle_source_synth`) y Archivo de Audio (`btn_toggle_source_file`).
+      * Navegador de sintes con filtrado dinámico por categoría (`All`, `Pads`, `Leads`, `Bass`, `Percussion`, `Nature/Ambience`, `SFX`) y búsqueda reactiva en tiempo real.
+      * Tarjeta de previsualización con etiquetas de metadatos, controles de audición (`Play`/`Stop`), visor de forma de onda proxy debounced a 150ms y auto-relleno predictivo de color, bus y rango de intensidad.
+      * Activación por doble click o [Enter] para creación instantánea y asignación del `synth_preset` en `OpenDouTrackLaneData`.
+    * **Persistencia y Reproducción:**
+      * Serialización y deserialización completa de `synth_preset` en formato JSON (`save_to_disk` y `load_from_disk`).
+      * Integración de `SynthPresetRegistry` en `_assign_default_or_file_stream` y en variaciones aleatorias (`_pick_random_variations_on_loop`).
+    * **Suite de Pruebas Automatizadas:**
+      * Test 12 en `tests/test_studio_advanced_ui.gd` cubriendo dimensionamiento, conmutación de fuentes, filtrado, auto-relleno predictivo, audición, debouncing y creación por doble click.
+      * 244 pruebas unitarias y de integración pasando al 100% (código de salida 0, 0 fallos).
+
 * **`TASK-049` - 3D Volumetric Acoustic Iso-Bubble & Multi-Selection Debugger (Depurador Volumétrico 3D de Burbujas Acústicas Iso-Superficie y Selección Múltiple)**
   * **Fecha:** 2026-08-30
   * **Resumen:**

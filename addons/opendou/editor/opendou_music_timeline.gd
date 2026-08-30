@@ -20,6 +20,8 @@ const MusicStingerQueueClass = preload("res://addons/opendou/core/music/music_st
 const MusicPlaylistManagerClass = preload("res://addons/opendou/core/music/music_playlist_manager.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 const OpenDouTrackLaneDataClass = preload("res://addons/opendou/editor/opendou_track_lane_data.gd")
+const SynthPresetRegistryClass = preload("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
+const ModularSynthEngineClass = preload("res://addons/opendou/runtime/synth/modular_synth_engine.gd")
 
 const MUSIC_SUITES_SAVE_PATH = "res://opendou_music_suites.json"
 
@@ -43,16 +45,35 @@ var intensity_lbl: Label
 var beat_counter_lbl: Label
 var btn_add_track: Button
 
-# Add Track Modal Dialog Controls
+# Add Track Modal Dialog Controls (TASK-050)
 var add_track_dialog: ConfirmationDialog
 var add_track_name_edit: LineEdit
+var add_track_color_picker: ColorPickerButton
 var add_track_type_opt: OptionButton
-var add_track_file_box: HBoxContainer
-var add_track_file_path_edit: LineEdit
-var add_track_bus_opt: OptionButton
 var add_track_min_spin: SpinBox
 var add_track_max_spin: SpinBox
-var add_track_color_picker: ColorPickerButton
+var add_track_bus_opt: OptionButton
+var btn_toggle_source_synth: Button
+var btn_toggle_source_file: Button
+var add_track_file_box: HBoxContainer
+var add_track_file_path_edit: LineEdit
+var add_track_synth_box: HSplitContainer
+var add_track_synth_search_edit: LineEdit
+var add_track_synth_item_list: ItemList
+var add_track_category_container: HBoxContainer
+var add_track_category_buttons: Dictionary = {}
+var add_track_preset_name_lbl: Label
+var add_track_preset_category_lbl: Label
+var add_track_preset_bpm_lbl: Label
+var btn_audition_play: Button
+var btn_audition_stop: Button
+var audition_player: AudioStreamPlayer
+var add_track_waveform_canvas: Control
+var add_track_debounce_timer: Timer
+var add_track_waveform_samples: PackedFloat32Array = PackedFloat32Array()
+var active_synth_preset_name: StringName = &""
+var active_synth_category_filter: String = "All"
+var add_track_source_mode: int = 0 # 0 = Synth Preset, 1 = Audio File
 var is_picking_file_for_new_track: bool = false
 
 # Center Sequencer
@@ -146,63 +167,126 @@ func _build_ui() -> void:
 	file_dialog.file_selected.connect(_on_audio_file_selected)
 	add_child(file_dialog)
 	
-	# Add Track Modal Dialog
+	# Audition player and debounce timer for Add Track modal
+	audition_player = AudioStreamPlayer.new()
+	add_child(audition_player)
+	
+	add_track_debounce_timer = Timer.new()
+	add_track_debounce_timer.wait_time = 0.15
+	add_track_debounce_timer.one_shot = true
+	add_track_debounce_timer.timeout.connect(_on_add_track_debounce_timeout)
+	add_child(add_track_debounce_timer)
+	
+	# Add Track Modal Dialog (800x550 minimum size)
 	add_track_dialog = ConfirmationDialog.new()
 	add_track_dialog.title = "➕ Add New Music Track / Stem Layer"
 	add_track_dialog.ok_button_text = "Create Track"
+	add_track_dialog.min_size = Vector2i(800, 550)
+	add_track_dialog.size = Vector2i(800, 550)
 	add_track_dialog.confirmed.connect(_on_add_track_dialog_confirmed)
+	add_track_dialog.canceled.connect(_on_add_track_dialog_closed)
+	add_track_dialog.close_requested.connect(_on_add_track_dialog_closed)
 	
 	var dlg_margin = MarginContainer.new()
-	dlg_margin.add_theme_constant_override("margin_left", 12)
-	dlg_margin.add_theme_constant_override("margin_top", 12)
-	dlg_margin.add_theme_constant_override("margin_right", 12)
-	dlg_margin.add_theme_constant_override("margin_bottom", 12)
+	dlg_margin.anchors_preset = Control.PRESET_FULL_RECT
+	dlg_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dlg_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dlg_margin.add_theme_constant_override("margin_left", 10)
+	dlg_margin.add_theme_constant_override("margin_top", 10)
+	dlg_margin.add_theme_constant_override("margin_right", 10)
+	dlg_margin.add_theme_constant_override("margin_bottom", 10)
 	add_track_dialog.add_child(dlg_margin)
 	
 	var dlg_vbox = VBoxContainer.new()
-	dlg_vbox.custom_minimum_size = Vector2(460, 220)
-	dlg_vbox.add_theme_constant_override("separation", 10)
+	dlg_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dlg_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dlg_vbox.add_theme_constant_override("separation", 8)
 	dlg_margin.add_child(dlg_vbox)
 	
-	# Row 1: Track Type / Role Preset
-	var type_hbox = HBoxContainer.new()
-	type_hbox.add_theme_constant_override("separation", 8)
-	var type_lbl = Label.new()
-	type_lbl.text = "Track Type / Preset:"
-	type_lbl.custom_minimum_size = Vector2(140, 0)
-	type_hbox.add_child(type_lbl)
+	# -------------------------------------------------------------
+	# Card 1: Track Identity (PanelContainer)
+	# -------------------------------------------------------------
+	var card1 = PanelContainer.new()
+	card1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var card1_margin = MarginContainer.new()
+	card1_margin.add_theme_constant_override("margin_left", 8)
+	card1_margin.add_theme_constant_override("margin_top", 6)
+	card1_margin.add_theme_constant_override("margin_right", 8)
+	card1_margin.add_theme_constant_override("margin_bottom", 6)
+	card1.add_child(card1_margin)
 	
-	add_track_type_opt = OptionButton.new()
-	add_track_type_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_track_type_opt.add_item("🎹 Ambient Pads / Atmospheres (Synth)", 0)
-	add_track_type_opt.add_item("🎸 Bass & Sub Layer (Synth)", 1)
-	add_track_type_opt.add_item("🥁 Percussion & Drums (Synth Loop)", 2)
-	add_track_type_opt.add_item("🎺 Brass & Lead Climax (Synth)", 3)
-	add_track_type_opt.add_item("📁 Custom Audio File (.wav / .ogg)", 4)
-	add_track_type_opt.item_selected.connect(_on_add_track_type_selected)
-	type_hbox.add_child(add_track_type_opt)
-	dlg_vbox.add_child(type_hbox)
+	var c1_hbox = HBoxContainer.new()
+	c1_hbox.add_theme_constant_override("separation", 8)
+	card1_margin.add_child(c1_hbox)
 	
-	# Row 2: Track Name
-	var name_hbox = HBoxContainer.new()
-	name_hbox.add_theme_constant_override("separation", 8)
-	var name_lbl = Label.new()
-	name_lbl.text = "Track Name:"
-	name_lbl.custom_minimum_size = Vector2(140, 0)
-	name_hbox.add_child(name_lbl)
+	var c1_lbl = Label.new()
+	c1_lbl.text = "Track Name:"
+	c1_lbl.custom_minimum_size = Vector2(90, 0)
+	c1_hbox.add_child(c1_lbl)
 	
 	add_track_name_edit = LineEdit.new()
 	add_track_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_track_name_edit.placeholder_text = "e.g. Layer 5: Melodic_Synth"
-	name_hbox.add_child(add_track_name_edit)
-	dlg_vbox.add_child(name_hbox)
+	c1_hbox.add_child(add_track_name_edit)
 	
-	# Row 3: Audio File Browser
+	var col_lbl = Label.new()
+	col_lbl.text = "Color:"
+	c1_hbox.add_child(col_lbl)
+	
+	add_track_color_picker = ColorPickerButton.new()
+	add_track_color_picker.color = Color(0.2, 0.75, 0.95)
+	add_track_color_picker.custom_minimum_size = Vector2(48, 26)
+	c1_hbox.add_child(add_track_color_picker)
+	
+	dlg_vbox.add_child(card1)
+	
+	# -------------------------------------------------------------
+	# Card 2: Audio Source Engine (PanelContainer)
+	# -------------------------------------------------------------
+	var card2 = PanelContainer.new()
+	card2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card2.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var card2_margin = MarginContainer.new()
+	card2_margin.add_theme_constant_override("margin_left", 8)
+	card2_margin.add_theme_constant_override("margin_top", 6)
+	card2_margin.add_theme_constant_override("margin_right", 8)
+	card2_margin.add_theme_constant_override("margin_bottom", 6)
+	card2.add_child(card2_margin)
+	
+	var c2_vbox = VBoxContainer.new()
+	c2_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	c2_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	c2_vbox.add_theme_constant_override("separation", 6)
+	card2_margin.add_child(c2_vbox)
+	
+	# Source Mode Toggle Bar
+	var toggle_bar = HBoxContainer.new()
+	toggle_bar.add_theme_constant_override("separation", 6)
+	c2_vbox.add_child(toggle_bar)
+	
+	btn_toggle_source_synth = Button.new()
+	btn_toggle_source_synth.text = "⚡ Procedural Synth Preset"
+	btn_toggle_source_synth.toggle_mode = true
+	btn_toggle_source_synth.button_pressed = true
+	btn_toggle_source_synth.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_toggle_source_synth.pressed.connect(func(): _set_source_mode(0))
+	toggle_bar.add_child(btn_toggle_source_synth)
+	
+	btn_toggle_source_file = Button.new()
+	btn_toggle_source_file.text = "📁 Audio File Source"
+	btn_toggle_source_file.toggle_mode = true
+	btn_toggle_source_file.button_pressed = false
+	btn_toggle_source_file.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_toggle_source_file.pressed.connect(func(): _set_source_mode(1))
+	toggle_bar.add_child(btn_toggle_source_file)
+	
+	# File Source Box
 	add_track_file_box = HBoxContainer.new()
 	add_track_file_box.add_theme_constant_override("separation", 8)
+	add_track_file_box.visible = false
 	var file_lbl = Label.new()
 	file_lbl.text = "Audio File Source:"
-	file_lbl.custom_minimum_size = Vector2(140, 0)
+	file_lbl.custom_minimum_size = Vector2(130, 0)
 	add_track_file_box.add_child(file_lbl)
 	
 	add_track_file_path_edit = LineEdit.new()
@@ -217,44 +301,162 @@ func _build_ui() -> void:
 		if file_dialog: file_dialog.popup_centered(Vector2i(700, 450))
 	)
 	add_track_file_box.add_child(btn_browse)
-	dlg_vbox.add_child(add_track_file_box)
+	c2_vbox.add_child(add_track_file_box)
 	
-	# Row 4: Intensity Range (Min - Max)
-	var int_hbox = HBoxContainer.new()
-	int_hbox.add_theme_constant_override("separation", 8)
+	# Synth Source Box (Split View)
+	add_track_synth_box = HSplitContainer.new()
+	add_track_synth_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_track_synth_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	c2_vbox.add_child(add_track_synth_box)
+	
+	# Left Column: Search & Preset list
+	var synth_left_vbox = VBoxContainer.new()
+	synth_left_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	synth_left_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	synth_left_vbox.size_flags_stretch_ratio = 1.3
+	synth_left_vbox.add_theme_constant_override("separation", 4)
+	add_track_synth_box.add_child(synth_left_vbox)
+	
+	add_track_synth_search_edit = LineEdit.new()
+	add_track_synth_search_edit.placeholder_text = "🔍 Search presets..."
+	add_track_synth_search_edit.text_changed.connect(func(q: String): _filter_synth_presets(active_synth_category_filter, q))
+	synth_left_vbox.add_child(add_track_synth_search_edit)
+	
+	# Category filter buttons
+	add_track_category_container = HBoxContainer.new()
+	add_track_category_container.add_theme_constant_override("separation", 4)
+	synth_left_vbox.add_child(add_track_category_container)
+	
+	var categories = ["All", "Pads", "Leads", "Bass", "Percussion", "Nature/Ambience", "SFX"]
+	add_track_category_buttons.clear()
+	for cat in categories:
+		var btn = Button.new()
+		btn.text = cat
+		btn.toggle_mode = true
+		btn.button_pressed = (cat == "All")
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.pressed.connect(func(): _on_category_button_pressed(cat))
+		add_track_category_container.add_child(btn)
+		add_track_category_buttons[cat] = btn
+		
+	add_track_synth_item_list = ItemList.new()
+	add_track_synth_item_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_track_synth_item_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_track_synth_item_list.custom_minimum_size = Vector2(0, 180)
+	add_track_synth_item_list.item_selected.connect(_on_synth_preset_item_selected)
+	add_track_synth_item_list.item_activated.connect(_on_synth_preset_item_activated)
+	synth_left_vbox.add_child(add_track_synth_item_list)
+	
+	# Right Column: Metadata card, Audition, Waveform preview
+	var synth_right_vbox = VBoxContainer.new()
+	synth_right_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	synth_right_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	synth_right_vbox.size_flags_stretch_ratio = 1.0
+	synth_right_vbox.add_theme_constant_override("separation", 6)
+	add_track_synth_box.add_child(synth_right_vbox)
+	
+	var meta_panel = PanelContainer.new()
+	meta_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var meta_margin = MarginContainer.new()
+	meta_margin.add_theme_constant_override("margin_left", 8)
+	meta_margin.add_theme_constant_override("margin_top", 6)
+	meta_margin.add_theme_constant_override("margin_right", 8)
+	meta_margin.add_theme_constant_override("margin_bottom", 6)
+	meta_panel.add_child(meta_margin)
+	
+	var meta_vbox = VBoxContainer.new()
+	meta_vbox.add_theme_constant_override("separation", 3)
+	meta_margin.add_child(meta_vbox)
+	
+	add_track_preset_name_lbl = Label.new()
+	add_track_preset_name_lbl.text = "Preset: None"
+	meta_vbox.add_child(add_track_preset_name_lbl)
+	
+	add_track_preset_category_lbl = Label.new()
+	add_track_preset_category_lbl.text = "Category: General"
+	meta_vbox.add_child(add_track_preset_category_lbl)
+	
+	add_track_preset_bpm_lbl = Label.new()
+	add_track_preset_bpm_lbl.text = "Timeline Sync: 120 BPM"
+	meta_vbox.add_child(add_track_preset_bpm_lbl)
+	synth_right_vbox.add_child(meta_panel)
+	
+	# Audition Bar
+	var audition_hbox = HBoxContainer.new()
+	audition_hbox.add_theme_constant_override("separation", 6)
+	synth_right_vbox.add_child(audition_hbox)
+	
+	btn_audition_play = Button.new()
+	btn_audition_play.text = "▶ Audition"
+	btn_audition_play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_audition_play.pressed.connect(_on_add_track_audition_play_pressed)
+	audition_hbox.add_child(btn_audition_play)
+	
+	btn_audition_stop = Button.new()
+	btn_audition_stop.text = "⏹ Stop"
+	btn_audition_stop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_audition_stop.pressed.connect(_on_add_track_audition_stop_pressed)
+	audition_hbox.add_child(btn_audition_stop)
+	
+	# Waveform Canvas
+	var wave_panel = PanelContainer.new()
+	wave_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wave_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	wave_panel.custom_minimum_size = Vector2(0, 70)
+	
+	add_track_waveform_canvas = Control.new()
+	add_track_waveform_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_track_waveform_canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_track_waveform_canvas.custom_minimum_size = Vector2(0, 60)
+	add_track_waveform_canvas.draw.connect(_on_draw_add_track_waveform)
+	wave_panel.add_child(add_track_waveform_canvas)
+	synth_right_vbox.add_child(wave_panel)
+	
+	dlg_vbox.add_child(card2)
+	
+	# -------------------------------------------------------------
+	# Card 3: Dynamic Automation & Routing (PanelContainer)
+	# -------------------------------------------------------------
+	var card3 = PanelContainer.new()
+	card3.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var card3_margin = MarginContainer.new()
+	card3_margin.add_theme_constant_override("margin_left", 8)
+	card3_margin.add_theme_constant_override("margin_top", 6)
+	card3_margin.add_theme_constant_override("margin_right", 8)
+	card3_margin.add_theme_constant_override("margin_bottom", 6)
+	card3.add_child(card3_margin)
+	
+	var c3_hbox = HBoxContainer.new()
+	c3_hbox.add_theme_constant_override("separation", 8)
+	card3_margin.add_child(c3_hbox)
+	
 	var int_range_lbl = Label.new()
 	int_range_lbl.text = "Intensity Range:"
-	int_range_lbl.custom_minimum_size = Vector2(140, 0)
-	int_hbox.add_child(int_range_lbl)
+	c3_hbox.add_child(int_range_lbl)
 	
 	var min_lbl = Label.new()
 	min_lbl.text = "Min:"
-	int_hbox.add_child(min_lbl)
+	c3_hbox.add_child(min_lbl)
 	add_track_min_spin = SpinBox.new()
 	add_track_min_spin.min_value = 0.0
 	add_track_min_spin.max_value = 1.0
 	add_track_min_spin.step = 0.05
 	add_track_min_spin.value = 0.0
-	int_hbox.add_child(add_track_min_spin)
+	c3_hbox.add_child(add_track_min_spin)
 	
 	var max_lbl = Label.new()
 	max_lbl.text = "Max:"
-	int_hbox.add_child(max_lbl)
+	c3_hbox.add_child(max_lbl)
 	add_track_max_spin = SpinBox.new()
 	add_track_max_spin.min_value = 0.0
 	add_track_max_spin.max_value = 1.0
 	add_track_max_spin.step = 0.05
 	add_track_max_spin.value = 1.0
-	int_hbox.add_child(add_track_max_spin)
-	dlg_vbox.add_child(int_hbox)
+	c3_hbox.add_child(add_track_max_spin)
 	
-	# Row 5: Bus Routing & Color
-	var bus_col_hbox = HBoxContainer.new()
-	bus_col_hbox.add_theme_constant_override("separation", 8)
 	var bus_lbl = Label.new()
-	bus_lbl.text = "Output Audio Bus:"
-	bus_lbl.custom_minimum_size = Vector2(140, 0)
-	bus_col_hbox.add_child(bus_lbl)
+	bus_lbl.text = "Output Bus:"
+	c3_hbox.add_child(bus_lbl)
 	
 	add_track_bus_opt = OptionButton.new()
 	add_track_bus_opt.add_item("Master", 0)
@@ -263,17 +465,20 @@ func _build_ui() -> void:
 	add_track_bus_opt.add_item("Music_Pads", 3)
 	add_track_bus_opt.add_item("Music_Leads", 4)
 	add_track_bus_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bus_col_hbox.add_child(add_track_bus_opt)
+	c3_hbox.add_child(add_track_bus_opt)
 	
-	var col_lbl = Label.new()
-	col_lbl.text = "Color:"
-	bus_col_hbox.add_child(col_lbl)
+	# Compatibility OptionButton
+	add_track_type_opt = OptionButton.new()
+	add_track_type_opt.visible = false
+	add_track_type_opt.add_item("Ambient Pads", 0)
+	add_track_type_opt.add_item("Bass & Sub", 1)
+	add_track_type_opt.add_item("Percussion & Drums", 2)
+	add_track_type_opt.add_item("Brass & Lead", 3)
+	add_track_type_opt.add_item("Custom Audio File", 4)
+	add_track_type_opt.item_selected.connect(_on_add_track_type_selected)
+	c3_hbox.add_child(add_track_type_opt)
 	
-	add_track_color_picker = ColorPickerButton.new()
-	add_track_color_picker.color = Color(0.2, 0.75, 0.95)
-	add_track_color_picker.custom_minimum_size = Vector2(40, 24)
-	bus_col_hbox.add_child(add_track_color_picker)
-	dlg_vbox.add_child(bus_col_hbox)
+	dlg_vbox.add_child(card3)
 	
 	add_child(add_track_dialog)
 	
@@ -746,17 +951,18 @@ func mark_dirty(dirty: bool = true) -> void:
 		dirty_changed.emit(is_dirty)
 
 ## Adds a new customizable stem track with interactive header, file picker, variation button, bus routing, automation sub-lane, delete button, and waveform canvas.
-func _add_track(track_name: String, min_int: float, max_int: float, color: Color, audio_path: String = "", left_t: float = 0.0, right_t: float = 1.0, p_bus: StringName = &"Master") -> OpenDouTrackLaneData:
+func _add_track(track_name: String, min_int: float, max_int: float, color: Color, audio_path: String = "", left_t: float = 0.0, right_t: float = 1.0, p_bus: StringName = &"Master", p_synth_preset: StringName = &"") -> OpenDouTrackLaneData:
 	var t = OpenDouTrackLaneDataClass.new()
 	t.name = track_name
 	t.min_intensity = min_int
 	t.max_intensity = max_int
 	t.color = color
 	t.audio_file_path = audio_path
+	t.synth_preset = p_synth_preset
 	t.left_trim_ratio = left_t
 	t.right_trim_ratio = right_t
 	t.bus_name = p_bus
-	t.sub_tracks = [{"name": "Var 1", "audio_path": audio_path, "weight": 1.0}]
+	t.sub_tracks = [{"name": "Var 1", "audio_path": audio_path, "synth_preset": str(p_synth_preset), "weight": 1.0}]
 	
 	var row = HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -916,7 +1122,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	btm_hbox.add_child(bus_selector)
 	
 	var path_lbl = Label.new()
-	path_lbl.text = audio_path.get_file() if not audio_path.is_empty() else "Procedural Synth"
+	path_lbl.text = audio_path.get_file() if not audio_path.is_empty() else (str(p_synth_preset) if not p_synth_preset.is_empty() else "Procedural Synth")
 	path_lbl.add_theme_font_size_override("font_size", 8)
 	path_lbl.modulate = Color(0.6, 0.7, 0.8)
 	path_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1004,7 +1210,7 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	p.bus = p_bus
 	add_child(p)
 	p.volume_db = -80.0
-	_assign_default_or_file_stream(p, tracks.size() - 1, audio_path)
+	_assign_default_or_file_stream(p, tracks.size() - 1, audio_path, p_synth_preset)
 	stem_players.append(p)
 	
 	return t
@@ -1015,44 +1221,273 @@ func open_add_track_dialog() -> void:
 		add_new_custom_track()
 		return
 	is_picking_file_for_new_track = false
-	if add_track_type_opt:
-		add_track_type_opt.selected = 0
-		_on_add_track_type_selected(0)
-	add_track_dialog.popup_centered(Vector2i(520, 240))
+	_set_source_mode(0)
+	_on_category_button_pressed("All")
+	if add_track_synth_item_list and add_track_synth_item_list.get_item_count() > 0:
+		add_track_synth_item_list.select(0)
+		_on_synth_preset_item_selected(0)
+	if is_inside_tree():
+		add_track_dialog.popup_centered(Vector2i(800, 550))
+	else:
+		add_track_dialog.size = Vector2i(800, 550)
 
-## Updates the Add Track dialog fields when changing the preset type.
+## Switches source mode between Procedural Synth (0) and Audio File (1).
+func _set_source_mode(mode: int) -> void:
+	add_track_source_mode = mode
+	if mode == 0: # Synth Preset
+		if btn_toggle_source_synth: btn_toggle_source_synth.set_pressed_no_signal(true)
+		if btn_toggle_source_file: btn_toggle_source_file.set_pressed_no_signal(false)
+		if add_track_synth_box: add_track_synth_box.visible = true
+		if add_track_file_box: add_track_file_box.visible = false
+	else: # File
+		if btn_toggle_source_synth: btn_toggle_source_synth.set_pressed_no_signal(false)
+		if btn_toggle_source_file: btn_toggle_source_file.set_pressed_no_signal(true)
+		if add_track_synth_box: add_track_synth_box.visible = false
+		if add_track_file_box: add_track_file_box.visible = true
+		if audition_player:
+			audition_player.stop()
+
+## Handles clicking a category filter button (e.g. All, Pads, Leads, Bass, etc.).
+func _on_category_button_pressed(category: String) -> void:
+	active_synth_category_filter = category
+	for c_name in add_track_category_buttons.keys():
+		var b: Button = add_track_category_buttons[c_name]
+		if b:
+			b.set_pressed_no_signal(c_name == category)
+	var q = add_track_synth_search_edit.text if add_track_synth_search_edit else ""
+	_filter_synth_presets(category, q)
+	if add_track_synth_item_list and add_track_synth_item_list.get_item_count() > 0:
+		add_track_synth_item_list.select(0)
+		_on_synth_preset_item_selected(0)
+
+## Filters the ItemList of presets based on category and search text.
+func _filter_synth_presets(category: String, search_text: String) -> void:
+	active_synth_category_filter = category
+	var presets_matching = SynthPresetRegistry.get_singleton().get_presets_by_category(category)
+	if add_track_synth_item_list:
+		add_track_synth_item_list.clear()
+		var q = search_text.strip_edges().to_lower()
+		for p_name in presets_matching:
+			var s_name = str(p_name)
+			if q.is_empty() or s_name.to_lower().contains(q):
+				var idx = add_track_synth_item_list.add_item(s_name)
+				add_track_synth_item_list.set_item_metadata(idx, p_name)
+
+## Programmatically selects a synth preset by name.
+func _select_synth_preset(preset_name: StringName) -> void:
+	active_synth_preset_name = preset_name
+	if add_track_synth_item_list:
+		for i in range(add_track_synth_item_list.get_item_count()):
+			if add_track_synth_item_list.get_item_metadata(i) == preset_name or add_track_synth_item_list.get_item_text(i) == str(preset_name):
+				add_track_synth_item_list.select(i)
+				break
+	_apply_preset_metadata_and_autofill(preset_name)
+
+## Triggered when an item in the synth preset ItemList is selected.
+func _on_synth_preset_item_selected(idx: int) -> void:
+	if not add_track_synth_item_list or idx < 0 or idx >= add_track_synth_item_list.get_item_count():
+		return
+	var p_meta = add_track_synth_item_list.get_item_metadata(idx)
+	var p_name = StringName(str(p_meta)) if p_meta != null else StringName(add_track_synth_item_list.get_item_text(idx))
+	active_synth_preset_name = p_name
+	_apply_preset_metadata_and_autofill(p_name)
+
+## Applies predictive auto-fill settings (Name, Color, Bus, Min/Max intensity) for a selected preset.
+func _apply_preset_metadata_and_autofill(preset_name: StringName) -> void:
+	var cat = SynthPresetRegistry.get_singleton().get_preset_category(preset_name)
+	var next_idx = tracks.size() + 1
+	
+	if add_track_name_edit:
+		add_track_name_edit.text = "Layer %d: %s" % [next_idx, str(preset_name)]
+	if add_track_preset_name_lbl:
+		add_track_preset_name_lbl.text = "Preset: %s" % str(preset_name)
+	if add_track_preset_category_lbl:
+		add_track_preset_category_lbl.text = "Category: %s" % cat
+	if add_track_preset_bpm_lbl:
+		var bpm_val = clock.bpm if clock else 120.0
+		add_track_preset_bpm_lbl.text = "Timeline Sync: %.0f BPM" % bpm_val
+		
+	match cat:
+		"Pads":
+			if add_track_color_picker: add_track_color_picker.color = Color("33bff2")
+			if add_track_bus_opt: add_track_bus_opt.selected = 3 # Music_Pads
+			if add_track_min_spin: add_track_min_spin.value = 0.0
+			if add_track_max_spin: add_track_max_spin.value = 0.6
+		"Leads":
+			if add_track_color_picker: add_track_color_picker.color = Color("fa3860")
+			if add_track_bus_opt: add_track_bus_opt.selected = 4 # Music_Leads
+			if add_track_min_spin: add_track_min_spin.value = 0.6
+			if add_track_max_spin: add_track_max_spin.value = 1.0
+		"Bass":
+			if add_track_color_picker: add_track_color_picker.color = Color("4dd973")
+			if add_track_bus_opt: add_track_bus_opt.selected = 1 # Music
+			if add_track_min_spin: add_track_min_spin.value = 0.2
+			if add_track_max_spin: add_track_max_spin.value = 0.8
+		"Percussion":
+			if add_track_color_picker: add_track_color_picker.color = Color("faa638")
+			if add_track_bus_opt: add_track_bus_opt.selected = 2 # Music_Percussion
+			if add_track_min_spin: add_track_min_spin.value = 0.4
+			if add_track_max_spin: add_track_max_spin.value = 1.0
+		"Nature/Ambience":
+			if add_track_color_picker: add_track_color_picker.color = Color("2ce8b8")
+			if add_track_bus_opt: add_track_bus_opt.selected = 3 # Music_Pads
+			if add_track_min_spin: add_track_min_spin.value = 0.0
+			if add_track_max_spin: add_track_max_spin.value = 0.5
+		"SFX":
+			if add_track_color_picker: add_track_color_picker.color = Color("bd42fa")
+			if add_track_bus_opt: add_track_bus_opt.selected = 1 # Music
+			if add_track_min_spin: add_track_min_spin.value = 0.0
+			if add_track_max_spin: add_track_max_spin.value = 1.0
+		_:
+			if add_track_color_picker: add_track_color_picker.color = Color("33bff2")
+			if add_track_bus_opt: add_track_bus_opt.selected = 1 # Music
+			if add_track_min_spin: add_track_min_spin.value = 0.0
+			if add_track_max_spin: add_track_max_spin.value = 1.0
+			
+	if audition_player:
+		audition_player.stop()
+		audition_player.stream = null
+		
+	if add_track_debounce_timer and is_inside_tree():
+		add_track_debounce_timer.start(0.15)
+
+## Double click / Enter on preset item immediately creates track and closes modal.
+func _on_synth_preset_item_activated(_idx: int) -> void:
+	_on_add_track_dialog_confirmed()
+	if add_track_dialog:
+		add_track_dialog.hide()
+
+## Starts audition playback for active preset.
+func _on_add_track_audition_play_pressed() -> void:
+	if not audition_player:
+		return
+	if active_synth_preset_name.is_empty():
+		return
+	var stream = SynthPresetRegistry.get_singleton().get_preset_stream(active_synth_preset_name, 0)
+	audition_player.stream = stream
+	if is_inside_tree():
+		audition_player.play()
+
+## Stops audition playback.
+func _on_add_track_audition_stop_pressed() -> void:
+	if audition_player:
+		audition_player.stop()
+
+## Handles modal dialog cancel/close cleanup.
+func _on_add_track_dialog_closed() -> void:
+	if audition_player:
+		audition_player.stop()
+		audition_player.stream = null
+
+## Generates waveform samples on debounce timeout and requests canvas redraw.
+func _on_add_track_debounce_timeout() -> void:
+	_generate_add_track_waveform_proxy(active_synth_preset_name)
+	if add_track_waveform_canvas:
+		add_track_waveform_canvas.queue_redraw()
+
+func _generate_add_track_waveform_proxy(preset_name: StringName) -> void:
+	add_track_waveform_samples.clear()
+	if preset_name.is_empty():
+		return
+	var stream: AudioStreamWAV = SynthPresetRegistry.get_singleton().get_preset_stream(preset_name, 1)
+	if stream and stream.data.size() > 0:
+		var data = stream.data
+		var num_samples = data.size() / 2
+		var target_points = 64
+		var step = maxi(1, num_samples / target_points)
+		for i in range(0, target_points):
+			var sample_idx = i * step
+			var byte_idx = sample_idx * 2
+			if byte_idx + 1 < data.size():
+				var val_i16 = data.decode_s16(byte_idx)
+				var val_f = float(val_i16) / 32768.0
+				add_track_waveform_samples.append(val_f)
+			else:
+				add_track_waveform_samples.append(0.0)
+	else:
+		for i in range(64):
+			var v = sin(float(i) * 0.25) * 0.7
+			add_track_waveform_samples.append(v)
+
+func _on_draw_add_track_waveform() -> void:
+	if not add_track_waveform_canvas:
+		return
+	var w = add_track_waveform_canvas.size.x
+	var h = add_track_waveform_canvas.size.y
+	if w <= 1.0 or h <= 1.0:
+		return
+		
+	add_track_waveform_canvas.draw_rect(Rect2(Vector2.ZERO, Vector2(w, h)), Color(0.1, 0.12, 0.16, 0.9), true)
+	add_track_waveform_canvas.draw_rect(Rect2(Vector2.ZERO, Vector2(w, h)), Color(0.25, 0.3, 0.4, 0.5), false, 1.0)
+	
+	var mid_y = h * 0.5
+	add_track_waveform_canvas.draw_line(Vector2(0, mid_y), Vector2(w, mid_y), Color(0.3, 0.4, 0.5, 0.5), 1.0)
+	
+	if add_track_waveform_samples.is_empty():
+		return
+		
+	var col = add_track_color_picker.color if add_track_color_picker else Color(0.2, 0.75, 0.95)
+	var pts_count = add_track_waveform_samples.size()
+	var dx = w / float(maxi(1, pts_count - 1))
+	for i in range(pts_count - 1):
+		var y1 = mid_y - (add_track_waveform_samples[i] * mid_y * 0.85)
+		var y2 = mid_y - (add_track_waveform_samples[i + 1] * mid_y * 0.85)
+		add_track_waveform_canvas.draw_line(Vector2(i * dx, y1), Vector2((i + 1) * dx, y2), col, 1.5)
+
+## Updates the Add Track dialog fields when changing the preset type (backwards compatibility).
 func _on_add_track_type_selected(idx: int) -> void:
 	var next_idx = tracks.size() + 1
 	match idx:
 		0: # Ambient Pads
-			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Ambient_Pads" % next_idx
-			if add_track_min_spin: add_track_min_spin.value = 0.0
-			if add_track_max_spin: add_track_max_spin.value = 0.5
-			if add_track_bus_opt: add_track_bus_opt.selected = 3 # Music_Pads
-			if add_track_color_picker: add_track_color_picker.color = Color(0.2, 0.75, 0.95)
-			if add_track_file_path_edit: add_track_file_path_edit.text = ""
+			_set_source_mode(0)
+			_filter_synth_presets("Pads", "")
+			if add_track_synth_item_list and add_track_synth_item_list.get_item_count() > 0:
+				add_track_synth_item_list.select(0)
+				_on_synth_preset_item_selected(0)
+			else:
+				if add_track_name_edit: add_track_name_edit.text = "Layer %d: Ambient_Pads" % next_idx
+				if add_track_min_spin: add_track_min_spin.value = 0.0
+				if add_track_max_spin: add_track_max_spin.value = 0.6
+				if add_track_bus_opt: add_track_bus_opt.selected = 3 # Music_Pads
+				if add_track_color_picker: add_track_color_picker.color = Color("33bff2")
 		1: # Bass & Sub
-			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Stealth_Bass" % next_idx
-			if add_track_min_spin: add_track_min_spin.value = 0.2
-			if add_track_max_spin: add_track_max_spin.value = 0.7
-			if add_track_bus_opt: add_track_bus_opt.selected = 1 # Music
-			if add_track_color_picker: add_track_color_picker.color = Color(0.3, 0.85, 0.45)
-			if add_track_file_path_edit: add_track_file_path_edit.text = ""
+			_set_source_mode(0)
+			_filter_synth_presets("Bass", "")
+			if add_track_synth_item_list and add_track_synth_item_list.get_item_count() > 0:
+				add_track_synth_item_list.select(0)
+				_on_synth_preset_item_selected(0)
+			else:
+				if add_track_name_edit: add_track_name_edit.text = "Layer %d: Stealth_Bass" % next_idx
+				if add_track_min_spin: add_track_min_spin.value = 0.2
+				if add_track_max_spin: add_track_max_spin.value = 0.8
+				if add_track_bus_opt: add_track_bus_opt.selected = 1 # Music
+				if add_track_color_picker: add_track_color_picker.color = Color("4dd973")
 		2: # Percussion & Drums
-			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Combat_Drums" % next_idx
-			if add_track_min_spin: add_track_min_spin.value = 0.5
-			if add_track_max_spin: add_track_max_spin.value = 1.0
-			if add_track_bus_opt: add_track_bus_opt.selected = 2 # Music_Percussion
-			if add_track_color_picker: add_track_color_picker.color = Color(0.98, 0.65, 0.22)
-			if add_track_file_path_edit: add_track_file_path_edit.text = ""
+			_set_source_mode(0)
+			_filter_synth_presets("Percussion", "")
+			if add_track_synth_item_list and add_track_synth_item_list.get_item_count() > 0:
+				add_track_synth_item_list.select(0)
+				_on_synth_preset_item_selected(0)
+			else:
+				if add_track_name_edit: add_track_name_edit.text = "Layer %d: Combat_Drums" % next_idx
+				if add_track_min_spin: add_track_min_spin.value = 0.4
+				if add_track_max_spin: add_track_max_spin.value = 1.0
+				if add_track_bus_opt: add_track_bus_opt.selected = 2 # Music_Percussion
+				if add_track_color_picker: add_track_color_picker.color = Color("faa638")
 		3: # Brass & Lead
-			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Brass_Climax" % next_idx
-			if add_track_min_spin: add_track_min_spin.value = 0.8
-			if add_track_max_spin: add_track_max_spin.value = 1.0
-			if add_track_bus_opt: add_track_bus_opt.selected = 4 # Music_Leads
-			if add_track_color_picker: add_track_color_picker.color = Color(0.98, 0.25, 0.35)
-			if add_track_file_path_edit: add_track_file_path_edit.text = ""
+			_set_source_mode(0)
+			_filter_synth_presets("Leads", "")
+			if add_track_synth_item_list and add_track_synth_item_list.get_item_count() > 0:
+				add_track_synth_item_list.select(0)
+				_on_synth_preset_item_selected(0)
+			else:
+				if add_track_name_edit: add_track_name_edit.text = "Layer %d: Brass_Climax" % next_idx
+				if add_track_min_spin: add_track_min_spin.value = 0.6
+				if add_track_max_spin: add_track_max_spin.value = 1.0
+				if add_track_bus_opt: add_track_bus_opt.selected = 4 # Music_Leads
+				if add_track_color_picker: add_track_color_picker.color = Color("fa3860")
 		4: # Custom Audio File
+			_set_source_mode(1)
 			if add_track_name_edit: add_track_name_edit.text = "Layer %d: Custom_Audio" % next_idx
 			if add_track_min_spin: add_track_min_spin.value = 0.0
 			if add_track_max_spin: add_track_max_spin.value = 1.0
@@ -1068,23 +1503,33 @@ func _on_add_track_dialog_confirmed() -> void:
 	var max_i = float(add_track_max_spin.value) if add_track_max_spin else 1.0
 	var col = add_track_color_picker.color if add_track_color_picker else Color(0.2, 0.75, 0.95)
 	var b_name = StringName(add_track_bus_opt.get_item_text(add_track_bus_opt.selected)) if add_track_bus_opt else &"Master"
-	var a_path = add_track_file_path_edit.text.strip_edges() if add_track_file_path_edit else ""
+	var a_path = ""
+	var s_preset: StringName = &""
 	
-	_add_track(t_name, min_i, max_i, col, a_path, 0.0, 1.0, b_name)
+	if add_track_source_mode == 0:
+		s_preset = active_synth_preset_name
+		a_path = ""
+	else:
+		s_preset = &""
+		a_path = add_track_file_path_edit.text.strip_edges() if add_track_file_path_edit else ""
+		
+	_add_track(t_name, min_i, max_i, col, a_path, 0.0, 1.0, b_name, s_preset)
 	_update_stem_levels()
 	mark_dirty(true)
 	track_added.emit(t_name)
+	_on_add_track_dialog_closed()
 
 ## Clicking the variation button adds or cycles random sub-tracks.
 func _on_track_variation_clicked(t: OpenDouTrackLaneData) -> void:
 	var next_num = t.sub_tracks.size() + 1
 	var new_var_name = "Var %d" % next_num
-	t.sub_tracks.append({"name": new_var_name, "audio_path": t.audio_file_path, "weight": 1.0})
+	t.sub_tracks.append({"name": new_var_name, "audio_path": t.audio_file_path, "synth_preset": str(t.synth_preset), "weight": 1.0})
 	t.active_sub_index = t.sub_tracks.size() - 1
 	if t.var_btn:
 		t.var_btn.text = "🎲 Var: %d" % t.sub_tracks.size()
 	if t.file_label:
-		t.file_label.text = "%s (%s)" % [t.audio_file_path.get_file() if not t.audio_file_path.is_empty() else "Procedural Synth", new_var_name]
+		var display_name = t.audio_file_path.get_file() if not t.audio_file_path.is_empty() else (str(t.synth_preset) if not t.synth_preset.is_empty() else "Procedural Synth")
+		t.file_label.text = "%s (%s)" % [display_name, new_var_name]
 	mark_dirty(true)
 
 ## Randomly selects sub-tracks on loop completion.
@@ -1096,13 +1541,19 @@ func _pick_random_variations_on_loop() -> void:
 			t.active_sub_index = rand_idx
 			var sub_data = t.sub_tracks[rand_idx]
 			var path = str(sub_data.get("audio_path", ""))
+			var s_preset = StringName(str(sub_data.get("synth_preset", "")))
 			if i < stem_players.size() and stem_players[i]:
-				_assign_default_or_file_stream(stem_players[i], i, path)
+				_assign_default_or_file_stream(stem_players[i], i, path, s_preset)
 			if t.file_label:
-				var fn = path.get_file() if not path.is_empty() else "Procedural Synth"
+				var fn = path.get_file() if not path.is_empty() else (str(s_preset) if not s_preset.is_empty() else "Procedural Synth")
 				t.file_label.text = "%s (%s)" % [fn, str(sub_data.get("name", "Var"))]
 
-func _assign_default_or_file_stream(player: AudioStreamPlayer, idx: int, audio_path: String) -> void:
+func _assign_default_or_file_stream(player: AudioStreamPlayer, idx: int, audio_path: String, synth_preset: StringName = &"") -> void:
+	if not synth_preset.is_empty():
+		var p_stream = SynthPresetRegistry.get_singleton().get_preset_stream(synth_preset, idx + 1)
+		if p_stream:
+			player.stream = p_stream
+			return
 	if not audio_path.is_empty() and ResourceLoader.exists(audio_path):
 		var res = ResourceLoader.load(audio_path)
 		if res is AudioStream:
@@ -1320,6 +1771,7 @@ func save_to_disk() -> void:
 			"is_solo": t.is_solo,
 			"bus_name": str(t.bus_name),
 			"audio_file_path": t.audio_file_path,
+			"synth_preset": str(t.synth_preset),
 			"left_trim": t.left_trim_ratio,
 			"right_trim": t.right_trim_ratio,
 			"sub_tracks": t.sub_tracks,
@@ -1377,6 +1829,7 @@ func load_from_disk(suite_name: StringName) -> void:
 						continue
 					var col = Color.from_string(str(td.get("color", "ffffff")), Color.WHITE)
 					var b_name = StringName(str(td.get("bus_name", "Master")))
+					var s_preset = StringName(str(td.get("synth_preset", "")))
 					var t = _add_track(
 						str(td.get("name", "Track")),
 						float(td.get("min_intensity", 0.0)),
@@ -1385,7 +1838,8 @@ func load_from_disk(suite_name: StringName) -> void:
 						str(td.get("audio_file_path", "")),
 						float(td.get("left_trim", 0.0)),
 						float(td.get("right_trim", 1.0)),
-						b_name
+						b_name,
+						s_preset
 					)
 					if not t:
 						continue

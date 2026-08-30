@@ -1,6 +1,6 @@
-# ⚡ Tarea Activa: Ninguna (Todas las tareas del roadmap completadas)
+# ⚡ Tarea Activa: TASK-050 (Task 2 - Redesign Music DAW Add Track Modal & Live Synth Integration)
 
-* **Estado:** ✅ Completado
-* **Última Tarea Entregada:** TASK-049 (3D Volumetric Acoustic Iso-Bubble & Multi-Selection Debugger - OpenDouAcousticDebugger3D)
+* **Estado:** 🔄 En Progreso (Task 2 completada y verificada)
+* **Sub-tarea:** Task 2 - Add Track Modal Redesign with Live Synth Preset Browser, Audition Playback & Predictive Defaults
 * **Fecha:** 2026-08-30
-* **Verificación:** 240 pruebas unitarias y de integración pasando al 100% (código 0).
+* **Verificación:** 244 pruebas unitarias y de integración pasando al 100% (código 0, 0 fallos).

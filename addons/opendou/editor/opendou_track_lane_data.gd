@@ -13,6 +13,7 @@ var is_solo: bool = false
 var volume_db: float = 0.0
 var current_gain: float = 0.0
 var audio_file_path: String = ""
+var synth_preset: StringName = &""
 var left_trim_ratio: float = 0.0 # 0.0 to 1.0
 var right_trim_ratio: float = 1.0 # 0.0 to 1.0
 var sub_tracks: Array = [] # [{"name": "Var 1", "audio_path": "...", "weight": 1.0}]
