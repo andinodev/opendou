@@ -206,3 +206,49 @@ Este archivo almacena el banco de tareas pendientes y planificadas para **OpenDo
   * Renderizado interactivo de salas acústicas (`AudioRoom`), portales (`AudioPortal`) y posición del oyente/emisor.
 * [x] `TASK-039.2`: **Monitoreo de Oclusión y Difracción en Tiempo Real:**
   * Visualización de rayos acústicos directos, atenuación de aperturas y cálculo de difracción en esquinas.
+
+---
+
+## 🌌 26. AAA Spatial Acoustics: Fase 1 — Física de Propagación Directa & Spline Emitters (`TASK-051`)
+
+* [ ] `TASK-051.1`: **Matriz de Transmisión de Materiales & Ley de Masas (`AcousticMaterialRegistry`):**
+  * Tabla de densidades físicas, resonancia estructural LPF y cálculo de pérdida por transmisión ($\Delta x$).
+* [ ] `TASK-051.2`: **Bifurcación Estricta Obstrucción vs. Oclusión (`OcclusionManager`):**
+  * Obstrucción en misma sala (solo LPF directo) vs Oclusión entre salas (Ley de Masas + amortiguación de reverb).
+* [ ] `TASK-051.3`: **Damping Atmosférico del Aire & Efecto Doppler Estabilizado:**
+  * Atenuación de agudos por distancia y modulación de pitch por velocidad relativa con suavizado (*smoothing*).
+* [ ] `TASK-051.4`: **Emisor Volumétrico 3D (`OpenDouSplineEmitter3D`):**
+  * Seguimiento de punto más cercano con `Curve3D`, curva de *spread* angular ($0^\circ \to 180^\circ$) y culling por distancia/AABB.
+* [ ] `TASK-051.5`: **Suite de Pruebas Unitarias y Registro en Editor Plugin:**
+  * Tests automatizados al 100% y registro de tipo personalizado con ícono SVG.
+
+---
+
+## 🏛️ 27. AAA Spatial Acoustics: Fase 2 — Reflexiones Tempranas, Acoplamiento & LOD Acústico (`TASK-052`)
+
+* [ ] `TASK-052.1`: **Trazador de Rayos Image-Source de Reflexiones Tempranas (6x Rebotes):**
+  * Simulación de slapbacks y ecos tempranos según materiales de paredes/suelo/techo y volumen libre.
+* [ ] `TASK-052.2`: **Difracción Dinámica en Esquinas y Bordes (Huygens-Fresnel):**
+  * Desplazamiento de fuente virtual hacia la esquina libre con curva de difracción LPF.
+* [ ] `TASK-052.3`: **Acoplamiento Acústico de Salas y Portales (`Room Coupling`):**
+  * Captura e inyección continua de reverberación entre salas interconectadas.
+* [ ] `TASK-052.4`: **Gestor de LOD Acústico y Culling Espacial (LOD 0 a 3):**
+  * Escalabilidad de rendimiento degradando cálculos físicos según la distancia al oyente.
+* [ ] `TASK-052.5`: **Mezcla Psicoacústica HDR Audio:**
+  * Ventana dinámica de sonoridad que atenúa sonidos tenues durante estruendos balísticos.
+
+---
+
+## 🎮 28. AAA Spatial Acoustics: Fase 3 — Escena Demo Showcase 3D "Tactical Canyon & Industrial Compound" (`TASK-053`)
+
+* [ ] `TASK-053.1`: **Montaje Declarativo de Escena 3D (`demo_tactical_canyon.tscn`):**
+  * Cañón exterior con río Spline (`OpenDouSplineEmitter3D`), tendidos eléctricos y drones con Doppler.
+* [ ] `TASK-053.2`: **Complejo Industrial con Búnker de Hormigón vs Tabique de Chapa Metálica:**
+  * Demostración en vivo de la Ley de Masas y oclusión por grosor de pared.
+* [ ] `TASK-053.3`: **Acoplamiento de Hangar Metálico Reverberante y Sala de Control Insonorizada:**
+  * Verificación de Room Coupling y difracción en esquinas de maquinaria.
+* [ ] `TASK-053.4`: **Integración de Todos los Nodos Declarativos de Audio 3D y Globales:**
+  * `OpenDouEventPlayer3D`, `OpenDouMusicPlayer`, `OpenDouRoom3D`, `OpenDouPortal3D`, `OpenDouAudibleMonitor`, `OpenDouAcousticDebugger3D`.
+* [ ] `TASK-053.5`: **Tactical HUD con Telemetría en Vivo y Verificación Completa:**
+  * Pruebas de integración automatizadas al 100% (código de salida 0).
+
