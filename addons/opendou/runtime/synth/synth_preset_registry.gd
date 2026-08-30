@@ -110,3 +110,35 @@ func get_preset_stream(preset_name: StringName, rng_seed: int = 0) -> AudioStrea
 		return ModularSynthEngine.synthesize_wav(fallback_dict, rng_seed)
 
 	return ModularSynthEngine.synthesize_wav(p_dict, rng_seed)
+
+## Returns the category of the given preset (e.g. "Leads", "Pads", "Bass", "Percussion", "Nature/Ambience", "SFX").
+func get_preset_category(preset_name: StringName) -> String:
+	var p = get_preset(preset_name)
+	if p.has("category"):
+		return str(p["category"])
+	return "General"
+
+## Returns all preset names matching the given category (case-insensitive). If category is "All" or empty, returns all presets.
+func get_presets_by_category(category: String) -> Array[StringName]:
+	if category.is_empty() or category.to_lower() == "all":
+		return get_preset_names()
+	var result: Array[StringName] = []
+	var cat_lower = category.to_lower()
+	for p_name in get_preset_names():
+		if get_preset_category(p_name).to_lower() == cat_lower:
+			result.append(p_name)
+	return result
+
+## Returns a sorted unique list of all categories present across all registered presets.
+func get_all_categories() -> Array[String]:
+	var cats: Dictionary = {}
+	for p_name in get_preset_names():
+		var c = get_preset_category(p_name)
+		if not c.is_empty():
+			cats[c] = true
+	var arr: Array[String] = []
+	for k in cats.keys():
+		arr.append(str(k))
+	arr.sort()
+	return arr
+

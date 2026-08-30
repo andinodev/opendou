@@ -195,7 +195,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r37)
 	
 	var r38 = TestSynthPresetRegistryClass.run_all()
-	total_tests += 7
+	total_tests += 8
 	all_failures.append_array(r38)
 	
 	var r39 = TestSynthVstWorkspaceClass.run_all()

@@ -132,4 +132,37 @@ static func run_all() -> Array[String]:
 	if registry.get_preset_names().has(custom_name):
 		failures.append("Test 7 Failed: delete_preset did not remove custom preset from registry")
 
+	# Test 8: Preset categories and category query API
+	var all_cats = registry.get_all_categories()
+	var expected_categories = ["Leads", "Nature/Ambience", "Percussion", "SFX"]
+	for exp_cat in expected_categories:
+		if not all_cats.has(exp_cat):
+			failures.append("Test 8 Failed: get_all_categories() is missing expected category '%s'" % exp_cat)
+
+	var hornet_cat = registry.get_preset_category(&"Cyber_Hornet")
+	if hornet_cat != "Leads":
+		failures.append("Test 8 Failed: Cyber_Hornet category expected 'Leads', got '%s'" % hornet_cat)
+
+	var wind_cat = registry.get_preset_category(&"Wind_Canopy")
+	if wind_cat != "Nature/Ambience":
+		failures.append("Test 8 Failed: Wind_Canopy category expected 'Nature/Ambience', got '%s'" % wind_cat)
+
+	var lead_presets = registry.get_presets_by_category("Leads")
+	if not lead_presets.has(&"Cyber_Hornet"):
+		failures.append("Test 8 Failed: get_presets_by_category('Leads') missing Cyber_Hornet")
+
+	var all_presets_by_cat = registry.get_presets_by_category("All")
+	var actual_names = registry.get_preset_names()
+	if all_presets_by_cat.size() != actual_names.size():
+		failures.append("Test 8 Failed: get_presets_by_category('All') size mismatch")
+	else:
+		for n in actual_names:
+			if not all_presets_by_cat.has(n):
+				failures.append("Test 8 Failed: get_presets_by_category('All') missing preset '%s'" % str(n))
+
+	var empty_cat_presets = registry.get_presets_by_category("")
+	if empty_cat_presets.size() != actual_names.size():
+		failures.append("Test 8 Failed: get_presets_by_category('') size mismatch")
+
 	return failures
+
