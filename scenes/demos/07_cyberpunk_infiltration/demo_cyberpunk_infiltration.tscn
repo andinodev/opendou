@@ -1,0 +1,546 @@
+[gd_scene load_steps=14 format=3 uid="uid://b7cx84j1m89pq"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.04, 0.05, 0.12, 1)
+sky_horizon_color = Color(0.12, 0.08, 0.22, 1)
+ground_bottom_color = Color(0.02, 0.02, 0.04, 1)
+ground_horizon_color = Color(0.12, 0.08, 0.22, 1)
+
+[sub_resource type="Sky" id="Sky_cyberpunk"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_cyberpunk"]
+background_mode = 2
+sky = SubResource("Sky_cyberpunk")
+ambient_light_source = 3
+ambient_light_color = Color(0.1, 0.14, 0.24, 1)
+ambient_light_energy = 1.2
+tonemap_mode = 2
+glow_enabled = true
+fog_enabled = true
+fog_light_color = Color(0.06, 0.08, 0.15, 1)
+fog_density = 0.015
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_metal"]
+albedo_color = Color(0.18, 0.22, 0.28, 1)
+metallic = 0.85
+roughness = 0.25
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_concrete"]
+albedo_color = Color(0.25, 0.27, 0.3, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_neon_cyan"]
+albedo_color = Color(0.0, 0.85, 1.0, 1)
+emission_enabled = true
+emission = Color(0.0, 0.85, 1.0, 1)
+emission_energy_multiplier = 4.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_neon_magenta"]
+albedo_color = Color(1.0, 0.1, 0.65, 1)
+emission_enabled = true
+emission = Color(1.0, 0.1, 0.65, 1)
+emission_energy_multiplier = 4.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_neon_green"]
+albedo_color = Color(0.1, 1.0, 0.4, 1)
+emission_enabled = true
+emission = Color(0.1, 1.0, 0.4, 1)
+emission_energy_multiplier = 3.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_water"]
+transparency = 1
+albedo_color = Color(0.05, 0.25, 0.35, 0.8)
+roughness = 0.05
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tile"]
+albedo_color = Color(0.12, 0.14, 0.18, 1)
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_warning"]
+albedo_color = Color(0.9, 0.7, 0.1, 1)
+roughness = 0.5
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.5
+height = 1.8
+
+[node name="CyberpunkInfiltrationDemo" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_cyberpunk")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 25, 0)
+light_color = Color(0.65, 0.78, 1, 1)
+light_energy = 0.45
+shadow_enabled = true
+
+[node name="LevelGeometry" type="Node3D" parent="."]
+
+[node name="Sector1_Rooftop" type="Node3D" parent="LevelGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0, 0)
+
+[node name="RooftopFloor" type="CSGBox3D" parent="LevelGeometry/Sector1_Rooftop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+use_collision = true
+size = Vector3(30, 0.2, 30)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="Catwalk1" type="CSGBox3D" parent="LevelGeometry/Sector1_Rooftop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -6)
+use_collision = true
+size = Vector3(22, 0.3, 3)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="Catwalk2" type="CSGBox3D" parent="LevelGeometry/Sector1_Rooftop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 6)
+use_collision = true
+size = Vector3(18, 0.3, 3)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="RooftopWallNorth" type="CSGBox3D" parent="LevelGeometry/Sector1_Rooftop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -15)
+use_collision = true
+size = Vector3(30, 6, 1)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="RooftopWallSouth" type="CSGBox3D" parent="LevelGeometry/Sector1_Rooftop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 15)
+use_collision = true
+size = Vector3(30, 6, 1)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="EarlyReflector1" type="CSGBox3D" parent="LevelGeometry/Sector1_Rooftop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 3, 0)
+use_collision = true
+size = Vector3(1, 6, 20)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="NeonSignCyan" type="CSGBox3D" parent="LevelGeometry/Sector1_Rooftop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.4, 4, 0)
+size = Vector3(0.2, 1.8, 8)
+material = SubResource("StandardMaterial3D_neon_cyan")
+
+[node name="NeonSignLight" type="OmniLight3D" parent="LevelGeometry/Sector1_Rooftop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 4, 0)
+light_color = Color(0, 0.85, 1, 1)
+light_energy = 2.5
+omni_range = 14.0
+
+[node name="RainEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector1_Rooftop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 0)
+autoplay = true
+
+[node name="Sector2_ServerRoom" type="Node3D" parent="LevelGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="ServerFloor" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+use_collision = true
+size = Vector3(24, 0.2, 20)
+material = SubResource("StandardMaterial3D_tile")
+
+[node name="ServerRoomWalls" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+use_collision = true
+size = Vector3(24, 6, 20)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="ServerRoomInterior" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom/ServerRoomWalls"]
+operation = 2
+size = Vector3(23.2, 5.8, 19.2)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="ServerEntranceCut" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom/ServerRoomWalls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -1, 0)
+operation = 2
+size = Vector3(3, 4, 4)
+
+[node name="ServerExitCut" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom/ServerRoomWalls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, -1, 0)
+operation = 2
+size = Vector3(3, 4, 4)
+
+[node name="ServerAirlockGate" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 1.8, 0)
+use_collision = true
+size = Vector3(0.4, 3.6, 3.6)
+material = SubResource("StandardMaterial3D_warning")
+
+[node name="ServerRack1" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 2, -5)
+use_collision = true
+size = Vector3(2, 4, 6)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="ServerRack2" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2, -5)
+use_collision = true
+size = Vector3(2, 4, 6)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="ServerRack3" type="CSGBox3D" parent="LevelGeometry/Sector2_ServerRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 5)
+use_collision = true
+size = Vector3(6, 4, 2)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="ServerEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector2_ServerRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+autoplay = true
+
+[node name="ServerLight" type="OmniLight3D" parent="LevelGeometry/Sector2_ServerRoom"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+light_color = Color(0.1, 1, 0.4, 1)
+light_energy = 2.2
+omni_range = 12.0
+
+[node name="Sector3_FloodedDrainage" type="Node3D" parent="LevelGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, 0)
+
+[node name="DrainageFloor" type="CSGBox3D" parent="LevelGeometry/Sector3_FloodedDrainage"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+use_collision = true
+size = Vector3(24, 0.2, 16)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="DrainageTunnel" type="CSGBox3D" parent="LevelGeometry/Sector3_FloodedDrainage"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+use_collision = true
+size = Vector3(24, 5, 16)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="DrainageInterior" type="CSGBox3D" parent="LevelGeometry/Sector3_FloodedDrainage/DrainageTunnel"]
+operation = 2
+size = Vector3(23.4, 4.8, 15.4)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="DrainageEntranceCut" type="CSGBox3D" parent="LevelGeometry/Sector3_FloodedDrainage/DrainageTunnel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -1, 0)
+operation = 2
+size = Vector3(3, 4, 4)
+
+[node name="DrainageExitCut" type="CSGBox3D" parent="LevelGeometry/Sector3_FloodedDrainage/DrainageTunnel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, -1, 0)
+operation = 2
+size = Vector3(3, 4, 4)
+
+[node name="WaterPlane" type="CSGBox3D" parent="LevelGeometry/Sector3_FloodedDrainage"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+use_collision = true
+size = Vector3(22, 0.2, 14)
+material = SubResource("StandardMaterial3D_water")
+
+[node name="WaterEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector3_FloodedDrainage"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+autoplay = true
+
+[node name="DrainageLight" type="OmniLight3D" parent="LevelGeometry/Sector3_FloodedDrainage"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+light_color = Color(0.2, 0.5, 0.9, 1)
+light_energy = 1.8
+omni_range = 10.0
+
+[node name="Sector4_ExtractionArena" type="Node3D" parent="LevelGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0, 0)
+
+[node name="HelipadFloor" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+use_collision = true
+size = Vector3(30, 0.2, 30)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="HelipadRing" type="CSGCylinder3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+radius = 8.0
+height = 0.1
+material = SubResource("StandardMaterial3D_warning")
+
+[node name="Pillar1" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 3, -6)
+use_collision = true
+size = Vector3(2.5, 6, 2.5)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="Pillar2" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 3, -6)
+use_collision = true
+size = Vector3(2.5, 6, 2.5)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="Pillar3" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 3, 6)
+use_collision = true
+size = Vector3(2.5, 6, 2.5)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="Pillar4" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 3, 6)
+use_collision = true
+size = Vector3(2.5, 6, 2.5)
+material = SubResource("StandardMaterial3D_concrete")
+
+[node name="CoverBarrier1" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -10)
+use_collision = true
+size = Vector3(10, 2, 1)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="CoverBarrier2" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 10)
+use_collision = true
+size = Vector3(10, 2, 1)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="Turret1" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1.5, 0)
+use_collision = true
+size = Vector3(2, 3, 2)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="Turret2" type="CSGBox3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1.5, 0)
+use_collision = true
+size = Vector3(2, 3, 2)
+material = SubResource("StandardMaterial3D_metal")
+
+[node name="TurretEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 2.5, 0)
+autoplay = true
+
+[node name="RadioBeaconEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+autoplay = true
+
+[node name="ArenaBeaconLight" type="OmniLight3D" parent="LevelGeometry/Sector4_ExtractionArena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
+light_color = Color(1, 0.1, 0.65, 1)
+light_energy = 3.5
+omni_range = 16.0
+
+[node name="ChaosEmittersParent" type="Node3D" parent="LevelGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Player" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 1, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="Camera3D" type="Camera3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+current = true
+
+[node name="AudioListener3D" type="AudioListener3D" parent="Player/Camera3D"]
+current = true
+
+[node name="MuzzleLight" type="OmniLight3D" parent="Player/Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.2, -0.8)
+visible = false
+light_color = Color(1, 0.8, 0.2, 1)
+light_energy = 3.0
+omni_range = 8.0
+
+[node name="FloorRay" type="RayCast3D" parent="Player"]
+target_position = Vector3(0, -1.2, 0)
+
+[node name="FootstepAudio" type="AudioStreamPlayer" parent="Player"]
+
+[node name="WeaponAudio" type="AudioStreamPlayer" parent="Player"]
+
+[node name="RadioAudio" type="AudioStreamPlayer" parent="Player"]
+
+[node name="TacticalHUD" type="CanvasLayer" parent="."]
+
+[node name="TopBar" type="PanelContainer" parent="TacticalHUD"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 56.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="TacticalHUD/TopBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="HBox" type="HBoxContainer" parent="TacticalHUD/TopBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "🌃 OpenDou AAA Showcase: Cyberpunk Infiltration (Sector 7)"
+
+[node name="Spacer" type="Control" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BtnSector1" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "📍 1. Rooftop"
+
+[node name="BtnSector2" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "📍 2. Server Room"
+
+[node name="BtnSector3" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "📍 3. Drainage"
+
+[node name="BtnSector4" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "📍 4. Extraction"
+
+[node name="BtnBack" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "◀ Back to Hub"
+
+[node name="HUDPanel" type="PanelContainer" parent="TacticalHUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -370.0
+offset_top = 68.0
+offset_right = -16.0
+offset_bottom = 360.0
+grow_horizontal = 0
+
+[node name="Margin" type="MarginContainer" parent="TacticalHUD/HUDPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox" type="VBoxContainer" parent="TacticalHUD/HUDPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="HUDTitle" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "📊 Live Tactical Audio Telemetry"
+
+[node name="HSeparator" type="HSeparator" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+
+[node name="LblSector" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Active Sector: Sector 1 (Rooftop)"
+
+[node name="LblSurface" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Ground Surface: Metal"
+
+[node name="LblAcoustics" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Acoustics: Rooftop Outdoor (RT60: 0.2s, LPF: 20000Hz)"
+
+[node name="LblAirlock" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Server Airlock: Closed (Diffraction: 450Hz)"
+
+[node name="LblVoices" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Voice Pool: 16 Physical / 0 Virtual (Cap: 16)"
+
+[node name="LblDucking" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Sidechain Ducking: -0.0 dB (Music -> Voice)"
+
+[node name="LblMusic" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Music Stem: Stealth (Intensity: 0.0)"
+
+[node name="LblDSP" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "DSP Frame Time: 0.12 ms"
+
+[node name="RadarContainer" type="PanelContainer" parent="TacticalHUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -270.0
+offset_top = -290.0
+offset_right = -16.0
+offset_bottom = -100.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="Margin" type="MarginContainer" parent="TacticalHUD/RadarContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="RadarVBox" type="VBoxContainer" parent="TacticalHUD/RadarContainer/Margin"]
+layout_mode = 2
+
+[node name="RadarTitle" type="Label" parent="TacticalHUD/RadarContainer/Margin/RadarVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "📡 Spatial Acoustic Radar"
+
+[node name="RadarView" type="Control" parent="TacticalHUD/RadarContainer/Margin/RadarVBox"]
+custom_minimum_size = Vector2(230, 140)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BottomBar" type="PanelContainer" parent="TacticalHUD"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -84.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Margin" type="MarginContainer" parent="TacticalHUD/BottomBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 10
+
+[node name="HBox" type="HBoxContainer" parent="TacticalHUD/BottomBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="LblControls" type="Label" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "Controls: [WASD] Move • [Click] Shoot • [Tab] Toggle Airlock • [B] 250-Voice Siege"
+
+[node name="Spacer" type="Control" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BtnToggleAirlock" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "🚪 Toggle Airlock"
+
+[node name="BtnBombardment" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "💥 250-Voice Siege"
+
+[node name="BtnLangEN" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "🇬🇧 EN"
+
+[node name="BtnLangES" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "🇪🇸 ES"
+
+[node name="BtnLangJA" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "🇯🇵 JA"
+
+[node name="BtnLangZH" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "🇨🇳 ZH"
