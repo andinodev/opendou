@@ -401,6 +401,7 @@ func _create_modals() -> void:
 	mixer_dialog = Window.new()
 	mixer_dialog.title = "🎚️ OpenDou HDR Mixing Console & Ducking Matrix"
 	mixer_dialog.size = Vector2i(780, 460)
+	mixer_dialog.min_size = Vector2i(600, 360)
 	mixer_dialog.visible = false
 	mixer_dialog.wrap_controls = false
 	mixer_dialog.close_requested.connect(func():
@@ -410,56 +411,43 @@ func _create_modals() -> void:
 	)
 	
 	mixer_drawer = OpenDouMixerDrawerClass.new()
-	mixer_drawer.anchors_preset = Control.PRESET_FULL_RECT
-	mixer_drawer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mixer_drawer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	mixer_drawer.custom_minimum_size = Vector2(0, 0)
 	mixer_drawer.closed_requested.connect(func():
 		mixer_dialog.visible = false
 		if btn_toggle_mixer:
 			btn_toggle_mixer.set_pressed_no_signal(false)
 	)
 	mixer_dialog.add_child(mixer_drawer)
+	_bind_window_root_control(mixer_dialog, mixer_drawer)
 	add_child(mixer_dialog)
 	
 	# 2. Independent Floating Game Syncs Window
 	syncs_dialog = Window.new()
 	syncs_dialog.title = "🎮 OpenDou Game Syncs Manager"
 	syncs_dialog.size = Vector2i(460, 480)
+	syncs_dialog.min_size = Vector2i(380, 320)
 	syncs_dialog.visible = false
 	syncs_dialog.wrap_controls = false
 	syncs_dialog.close_requested.connect(func(): syncs_dialog.visible = false)
 	
-	var syncs_scroll = ScrollContainer.new()
-	syncs_scroll.anchors_preset = Control.PRESET_FULL_RECT
-	syncs_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	syncs_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	syncs_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	
 	var modal_syncs = OpenDouGameSyncsPanelClass.new()
-	modal_syncs.anchors_preset = Control.PRESET_FULL_RECT
-	modal_syncs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	modal_syncs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	modal_syncs.rtpc_value_changed.connect(_on_sync_rtpc_changed)
 	modal_syncs.state_changed.connect(_on_sync_state_changed)
 	modal_syncs.switch_changed.connect(_on_sync_switch_changed)
-	syncs_scroll.add_child(modal_syncs)
-	syncs_dialog.add_child(syncs_scroll)
+	syncs_dialog.add_child(modal_syncs)
+	_bind_window_root_control(syncs_dialog, modal_syncs)
 	add_child(syncs_dialog)
 	
 	# 3. Independent Floating Profiler & SoundBanks Window
 	profiler_dialog = Window.new()
 	profiler_dialog.title = "📊 OpenDou Live Profiler & SoundBanks"
 	profiler_dialog.size = Vector2i(840, 540)
+	profiler_dialog.min_size = Vector2i(640, 380)
 	profiler_dialog.visible = false
 	profiler_dialog.wrap_controls = false
 	profiler_dialog.close_requested.connect(func(): profiler_dialog.visible = false)
 	
 	var modal_tabs = TabContainer.new()
 	modal_tabs.name = "TabContainer"
-	modal_tabs.anchors_preset = Control.PRESET_FULL_RECT
-	modal_tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	modal_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	
 	var modal_profiler = OpenDouProfilerPanelClass.new()
 	modal_profiler.name = "📊 Live Profiler"
@@ -470,7 +458,20 @@ func _create_modals() -> void:
 	modal_tabs.add_child(modal_bank)
 	
 	profiler_dialog.add_child(modal_tabs)
+	_bind_window_root_control(profiler_dialog, modal_tabs)
 	add_child(profiler_dialog)
+
+func _bind_window_root_control(win: Window, ctrl: Control) -> void:
+	ctrl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 0)
+	ctrl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ctrl.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	ctrl.position = Vector2.ZERO
+	ctrl.size = Vector2(win.size)
+	win.size_changed.connect(func():
+		if ctrl and ctrl.get_parent() == win:
+			ctrl.position = Vector2.ZERO
+			ctrl.size = Vector2(win.size)
+	)
 
 func open_hdr_mixer_modal() -> void:
 	if not mixer_dialog:
@@ -478,6 +479,8 @@ func open_hdr_mixer_modal() -> void:
 	mixer_dialog.popup_centered(Vector2i(780, 460))
 	mixer_dialog.visible = true
 	if mixer_drawer:
+		mixer_drawer.position = Vector2.ZERO
+		mixer_drawer.size = Vector2(mixer_dialog.size)
 		mixer_drawer.visible = true
 	if btn_toggle_mixer:
 		btn_toggle_mixer.set_pressed_no_signal(true)
@@ -487,6 +490,10 @@ func open_syncs_modal() -> void:
 		return
 	syncs_dialog.popup_centered(Vector2i(460, 480))
 	syncs_dialog.visible = true
+	for child in syncs_dialog.get_children():
+		if child is Control:
+			child.position = Vector2.ZERO
+			child.size = Vector2(syncs_dialog.size)
 
 func open_profiler_modal() -> void:
 	if not profiler_dialog:
@@ -495,6 +502,8 @@ func open_profiler_modal() -> void:
 	profiler_dialog.visible = true
 	var tabs = profiler_dialog.get_node_or_null("TabContainer")
 	if tabs and tabs is TabContainer:
+		tabs.position = Vector2.ZERO
+		tabs.size = Vector2(profiler_dialog.size)
 		tabs.current_tab = 0
 
 func open_banks_modal() -> void:
@@ -504,6 +513,8 @@ func open_banks_modal() -> void:
 	profiler_dialog.visible = true
 	var tabs = profiler_dialog.get_node_or_null("TabContainer")
 	if tabs and tabs is TabContainer:
+		tabs.position = Vector2.ZERO
+		tabs.size = Vector2(profiler_dialog.size)
 		tabs.current_tab = 1
 
 func _wire_signals() -> void:

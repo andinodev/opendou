@@ -58,6 +58,9 @@ func _build_ui() -> void:
 	add_child(session_file_dialog)
 	
 	var margin = MarginContainer.new()
+	margin.anchors_preset = Control.PRESET_FULL_RECT
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	margin.add_theme_constant_override("margin_left", 8)
 	margin.add_theme_constant_override("margin_top", 8)
 	margin.add_theme_constant_override("margin_right", 8)
@@ -65,6 +68,8 @@ func _build_ui() -> void:
 	add_child(margin)
 	
 	var v_box = VBoxContainer.new()
+	v_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v_box.add_theme_constant_override("separation", 6)
 	margin.add_child(v_box)
 	

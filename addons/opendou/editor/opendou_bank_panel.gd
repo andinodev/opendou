@@ -20,17 +20,31 @@ var current_prefetch_total_kb: float = 64.0
 
 func _init() -> void:
 	custom_minimum_size = Vector2(0, 0)
+	clip_contents = true
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_build_ui()
 
 func _build_ui() -> void:
+	var margin = MarginContainer.new()
+	margin.anchors_preset = Control.PRESET_FULL_RECT
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	add_child(margin)
+	
 	var v_box = VBoxContainer.new()
+	v_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v_box.add_theme_constant_override("separation", 6)
-	add_child(v_box)
+	margin.add_child(v_box)
 	
 	# 1. Header
 	var title_lbl = Label.new()
-	title_lbl.text = " 📦 SoundBank Compiler & RAM Budget"
+	title_lbl.text = "📦 SoundBank Compiler & RAM Budget"
 	title_lbl.add_theme_font_size_override("font_size", 13)
 	v_box.add_child(title_lbl)
 	

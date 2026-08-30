@@ -48,20 +48,27 @@ const DUCK_BUSES = [&"Voice", &"SFX", &"Music", &"Ambient"]
 func _init() -> void:
 	ducking_matrix = AudioDuckingMatrixClass.new()
 	snapshot_manager = AudioMixSnapshotManagerClass.new()
+	anchors_preset = Control.PRESET_FULL_RECT
 	custom_minimum_size = Vector2(0, 0)
+	clip_contents = true
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_build_ui()
 
 func _build_ui() -> void:
 	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 10)
+	margin.anchors_preset = Control.PRESET_FULL_RECT
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 8)
 	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_right", 8)
 	margin.add_theme_constant_override("margin_bottom", 8)
 	add_child(margin)
 	
 	var main_vbox = VBoxContainer.new()
+	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main_vbox.add_theme_constant_override("separation", 6)
 	margin.add_child(main_vbox)
 	

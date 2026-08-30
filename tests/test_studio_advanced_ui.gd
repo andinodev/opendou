@@ -284,16 +284,28 @@ static func run_all() -> Array[String]:
 		failures.append("Test 6p1 Failed: mixer_dialog must be an initialized Window")
 	elif not studio.mixer_dialog.title.contains("HDR Mixing Console") or studio.mixer_dialog.size != Vector2i(780, 460):
 		failures.append("Test 6p2 Failed: mixer_dialog title or size mismatch")
+	elif studio.mixer_drawer.size != Vector2(780, 460) or studio.mixer_drawer.position != Vector2.ZERO:
+		failures.append("Test 6p2b Failed: mixer_drawer did not synchronize size with mixer_dialog")
 	
 	if studio.syncs_dialog == null or not (studio.syncs_dialog is Window):
 		failures.append("Test 6p3 Failed: syncs_dialog must be an initialized Window")
 	elif not studio.syncs_dialog.title.contains("Game Syncs") or studio.syncs_dialog.size != Vector2i(460, 480):
 		failures.append("Test 6p4 Failed: syncs_dialog title or size mismatch")
+	elif studio.syncs_dialog.get_child_count() == 0 or studio.syncs_dialog.get_child(0).size != Vector2(460, 480):
+		failures.append("Test 6p4b Failed: syncs_dialog child did not synchronize size with syncs_dialog")
 		
 	if studio.profiler_dialog == null or not (studio.profiler_dialog is Window):
 		failures.append("Test 6p5 Failed: profiler_dialog must be an initialized Window")
 	elif not studio.profiler_dialog.title.contains("Live Profiler & SoundBanks") or studio.profiler_dialog.size != Vector2i(840, 540):
 		failures.append("Test 6p6 Failed: profiler_dialog title or size mismatch")
+	elif studio.profiler_dialog.get_node("TabContainer").size != Vector2(840, 540):
+		failures.append("Test 6p6b Failed: profiler_dialog TabContainer did not synchronize size with profiler_dialog")
+		
+	# Test dynamic modal resize
+	studio.mixer_dialog.size = Vector2i(920, 600)
+	studio.mixer_dialog.size_changed.emit()
+	if studio.mixer_drawer.size != Vector2(920, 600):
+		failures.append("Test 6p6c Failed: mixer_drawer failed to dynamically adapt to mixer_dialog resizing")
 		
 	if studio.center_workspace_box.get_parent() != studio.center_right_hsplit:
 		failures.append("Test 6p7 Failed: center_workspace_box should be direct child of center_right_hsplit without vertical splitter")

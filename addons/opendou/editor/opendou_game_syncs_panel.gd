@@ -24,19 +24,32 @@ var switches: Dictionary = {}
 
 func _init() -> void:
 	custom_minimum_size = Vector2(0, 0)
+	clip_contents = true
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	load_syncs_from_disk()
 	_build_ui()
 
 func _build_ui() -> void:
+	var margin = MarginContainer.new()
+	margin.anchors_preset = Control.PRESET_FULL_RECT
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	add_child(margin)
+	
 	var v_box = VBoxContainer.new()
+	v_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v_box.add_theme_constant_override("separation", 6)
-	add_child(v_box)
+	margin.add_child(v_box)
 	
 	# Header
 	var title_lbl = Label.new()
-	title_lbl.text = " 🎮 Game Syncs Manager"
+	title_lbl.text = "🎮 Game Syncs Manager"
 	title_lbl.add_theme_font_size_override("font_size", 12)
 	v_box.add_child(title_lbl)
 	
@@ -49,10 +62,14 @@ func _build_ui() -> void:
 	# Tab 1: RTPCs
 	var rtpc_box = VBoxContainer.new()
 	rtpc_box.name = "📈 RTPCs"
+	rtpc_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rtpc_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rtpc_box.add_theme_constant_override("separation", 4)
 	
 	rtpc_tree = Tree.new()
+	rtpc_tree.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rtpc_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rtpc_tree.clip_contents = true
 	rtpc_tree.columns = 3
 	rtpc_tree.set_column_title(0, "Parameter")
 	rtpc_tree.set_column_title(1, "Range")
@@ -77,10 +94,14 @@ func _build_ui() -> void:
 	# Tab 2: States
 	var state_box = VBoxContainer.new()
 	state_box.name = "🏷️ States"
+	state_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	state_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	state_box.add_theme_constant_override("separation", 4)
 	
 	state_tree = Tree.new()
+	state_tree.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	state_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	state_tree.clip_contents = true
 	state_tree.set_column_title(0, "Group / State")
 	state_tree.column_titles_visible = true
 	state_box.add_child(state_tree)
@@ -95,10 +116,14 @@ func _build_ui() -> void:
 	# Tab 3: Switches
 	var switch_box = VBoxContainer.new()
 	switch_box.name = "🔀 Switches"
+	switch_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	switch_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	switch_box.add_theme_constant_override("separation", 4)
 	
 	switch_tree = Tree.new()
+	switch_tree.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	switch_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	switch_tree.clip_contents = true
 	switch_tree.set_column_title(0, "Group / Switch")
 	switch_tree.column_titles_visible = true
 	switch_box.add_child(switch_tree)
