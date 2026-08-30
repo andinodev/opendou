@@ -7,6 +7,7 @@ const OpenDouEventPlayerClass = preload("res://addons/opendou/nodes/opendou_even
 const OpenDouRoom3DClass = preload("res://addons/opendou/nodes/opendou_room_3d.gd")
 const OpenDouPortal3DClass = preload("res://addons/opendou/nodes/opendou_portal_3d.gd")
 const OpenDouReflector3DClass = preload("res://addons/opendou/nodes/opendou_reflector_3d.gd")
+const OpenDouMusicPlayerClass = preload("res://addons/opendou/nodes/opendou_music_player.gd")
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
@@ -277,5 +278,79 @@ static func run_all() -> Array[String]:
 	d_room_a.free()
 	d_room_b.free()
 	d_portal.free()
+
+	# Test 12: OpenDouMusicPlayer inheritance & default properties
+	var mp = OpenDouMusicPlayerClass.new()
+	if not (mp is Node):
+		failures.append("Test 12 Failed: OpenDouMusicPlayer must extend Node")
+	if mp.suite_name != &"Exploration_Ambient_Theme.tres":
+		failures.append("Test 12 Failed: default suite_name should be 'Exploration_Ambient_Theme.tres'")
+	if mp.auto_play != true:
+		failures.append("Test 12 Failed: default auto_play should be true")
+	if mp.auto_loop != true:
+		failures.append("Test 12 Failed: default auto_loop should be true")
+	if not is_equal_approx(mp.combat_intensity, 0.0):
+		failures.append("Test 12 Failed: default combat_intensity should be 0.0")
+	if mp.master_bus != &"Music":
+		failures.append("Test 12 Failed: default master_bus should be 'Music'")
+	if mp.enable_ducking != true:
+		failures.append("Test 12 Failed: default enable_ducking should be true")
+	mp.free()
+
+	# Test 13: OpenDouMusicPlayer default suite loading and suite switching
+	var mp_suite = OpenDouMusicPlayerClass.new()
+	mp_suite.load_suite()
+	if mp_suite.get_stem_count() != 2:
+		failures.append("Test 13 Failed: Exploration_Ambient_Theme expected 2 stems, got %d" % mp_suite.get_stem_count())
+	for p in mp_suite.stem_players:
+		if p == null or p.stream == null:
+			failures.append("Test 13 Failed: Stem player or stream is null")
+			
+	mp_suite.load_suite(&"Dynamic_Combat_Suite.tres")
+	if mp_suite.suite_name != &"Dynamic_Combat_Suite.tres":
+		failures.append("Test 13 Failed: suite_name not updated to Dynamic_Combat_Suite.tres")
+	if mp_suite.get_stem_count() != 4:
+		failures.append("Test 13 Failed: Dynamic_Combat_Suite expected 4 stems, got %d" % mp_suite.get_stem_count())
+	mp_suite.free()
+
+	# Test 14: Dynamic combat intensity modulation and track level fading
+	var mp_intensity = OpenDouMusicPlayerClass.new()
+	mp_intensity.load_suite(&"Dynamic_Combat_Suite.tres")
+	mp_intensity.set_combat_intensity(0.0)
+	if mp_intensity.stem_players[0].volume_db < -10.0:
+		failures.append("Test 14 Failed: Layer 1 should be audible at intensity 0.0, got %f" % mp_intensity.stem_players[0].volume_db)
+	if mp_intensity.stem_players[3].volume_db > -50.0:
+		failures.append("Test 14 Failed: Layer 4 should be muted at intensity 0.0, got %f" % mp_intensity.stem_players[3].volume_db)
+		
+	mp_intensity.set_combat_intensity(0.85)
+	if not is_equal_approx(mp_intensity.combat_intensity, 0.85):
+		failures.append("Test 14 Failed: combat_intensity not updated to 0.85")
+	if mp_intensity.stem_players[0].volume_db > -50.0:
+		failures.append("Test 14 Failed: Layer 1 should be muted at intensity 0.85, got %f" % mp_intensity.stem_players[0].volume_db)
+	if mp_intensity.stem_players[3].volume_db < -10.0:
+		failures.append("Test 14 Failed: Layer 4 should be audible at intensity 0.85, got %f" % mp_intensity.stem_players[3].volume_db)
+	mp_intensity.free()
+
+	# Test 15: OpenDouMusicPlayer playback controls & stinger trigger
+	var mp_play = OpenDouMusicPlayerClass.new()
+	mp_play.load_suite(&"Exploration_Ambient_Theme.tres")
+	mp_play.play()
+	if not mp_play.is_playing():
+		failures.append("Test 15 Failed: is_playing() expected true after play()")
+		
+	mp_play.pause()
+	if not mp_play.is_paused():
+		failures.append("Test 15 Failed: is_paused() expected true after pause()")
+		
+	mp_play.stop()
+	if mp_play.is_playing():
+		failures.append("Test 15 Failed: is_playing() expected false after stop()")
+		
+	var child_count_before = mp_play.get_child_count()
+	mp_play.trigger_stinger(&"Victory_Fanfare")
+	var child_count_after = mp_play.get_child_count()
+	if child_count_after <= child_count_before:
+		failures.append("Test 15 Failed: trigger_stinger did not spawn stinger audio stream player")
+	mp_play.free()
 
 	return failures
