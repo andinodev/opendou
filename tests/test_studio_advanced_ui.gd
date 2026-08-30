@@ -10,6 +10,7 @@ const OpenDouGraphSerializerClass = preload("res://addons/opendou/editor/opendou
 const OpenDouConvolutionGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_convolution_graph_node.gd")
 const OpenDouGranularGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_granular_graph_node.gd")
 const OpenDouBinauralGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_binaural_graph_node.gd")
+const ProfilerSessionRecorderClass = preload("res://addons/opendou/core/telemetry/profiler_session_recorder.gd")
 
 static func run_all() -> Array[String]:
 	var failures: Array[String] = []
@@ -275,6 +276,12 @@ static func run_all() -> Array[String]:
 	else:
 		profiler.radar_view.update_radar_data([{ "event_name": "Test_Step", "world_position": Vector3(5, 0, 5), "is_virtual": false, "volume_db": 0.0 }])
 		profiler.radar_view.update_telemetry_metrics(8, 64, 0.02, 2048)
+
+	# Test Modal Dialog Openers
+	studio.open_syncs_modal()
+	studio.open_profiler_modal()
+	if studio.syncs_dialog == null or studio.profiler_dialog == null:
+		failures.append("Test 6p Failed: Dedicated floating modals not initialized")
 
 	# Test Detach Window & Placeholder
 	if studio.dock_placeholder == null:

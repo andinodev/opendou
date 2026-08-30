@@ -40,7 +40,7 @@ var dsp_time_ms: float = 0.04
 var ram_usage_kb: int = 1420
 
 func _init() -> void:
-	custom_minimum_size = Vector2(240, 160)
+	custom_minimum_size = Vector2(0, 140)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	

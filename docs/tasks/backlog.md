@@ -206,6 +206,3 @@ Este archivo almacena el banco de tareas pendientes y planificadas para **OpenDo
   * Renderizado interactivo de salas acústicas (`AudioRoom`), portales (`AudioPortal`) y posición del oyente/emisor.
 * [x] `TASK-039.2`: **Monitoreo de Oclusión y Difracción en Tiempo Real:**
   * Visualización de rayos acústicos directos, atenuación de aperturas y cálculo de difracción en esquinas.
-
-
-

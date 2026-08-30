@@ -20,6 +20,9 @@ var ducking_matrix: AudioDuckingMatrix
 var channel_faders: Dictionary = {}
 var channel_labels: Dictionary = {}
 var channel_meters: Dictionary = {}
+var channel_mutes: Dictionary = {}
+var channel_solos: Dictionary = {}
+var channel_spinboxes: Dictionary = {}
 var hdr_window_lbl: Label
 var ducking_status_lbl: Label
 var snapshot_tree: Tree
@@ -391,9 +394,9 @@ func _on_duck_param_changed(_val: float) -> void:
 
 func _create_channel_strip(bus_name: StringName) -> Control:
 	var strip_vbox = VBoxContainer.new()
-	strip_vbox.custom_minimum_size = Vector2(58, 0)
+	strip_vbox.custom_minimum_size = Vector2(68, 0)
 	strip_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	strip_vbox.add_theme_constant_override("separation", 2)
+	strip_vbox.add_theme_constant_override("separation", 3)
 	
 	var bus_lbl = Label.new()
 	bus_lbl.text = str(bus_name)
@@ -410,13 +413,13 @@ func _create_channel_strip(bus_name: StringName) -> Control:
 	fader.min_value = -60.0
 	fader.max_value = 6.0
 	fader.value = 0.0
-	fader.step = 0.5
-	fader.custom_minimum_size = Vector2(0, 95)
+	fader.step = 0.1
+	fader.custom_minimum_size = Vector2(24, 110)
 	fader_meter_hbox.add_child(fader)
 	
 	# Gain Reduction & Level Meter Rect
 	var meter = Control.new()
-	meter.custom_minimum_size = Vector2(6, 95)
+	meter.custom_minimum_size = Vector2(8, 110)
 	meter.draw.connect(func():
 		var s = meter.size
 		meter.draw_rect(Rect2(Vector2.ZERO, s), Color(0.1, 0.12, 0.15, 1.0))
@@ -431,28 +434,86 @@ func _create_channel_strip(bus_name: StringName) -> Control:
 	
 	strip_vbox.add_child(fader_meter_hbox)
 	
-	var val_lbl = Label.new()
-	val_lbl.text = "0.0 dB"
-	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	val_lbl.add_theme_font_size_override("font_size", 9)
+	# Numeric dB Input (Editable SpinBox)
+	var db_spin = SpinBox.new()
+	db_spin.min_value = -60.0
+	db_spin.max_value = 6.0
+	db_spin.step = 0.1
+	db_spin.value = 0.0
+	db_spin.suffix = " dB"
+	db_spin.custom_minimum_size = Vector2(64, 20)
+	db_spin.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	db_spin.value_changed.connect(func(v):
+		if fader.value != v:
+			fader.set_value_no_signal(v)
+		bus_volume_changed.emit(bus_name, v)
+	)
+	strip_vbox.add_child(db_spin)
+	channel_spinboxes[bus_name] = db_spin
 	
 	fader.value_changed.connect(func(v):
-		val_lbl.text = ("+%.1f" % v if v > 0.0 else "%.1f" % v) + " dB"
+		if db_spin.value != v:
+			db_spin.set_value_no_signal(v)
 		bus_volume_changed.emit(bus_name, v)
 	)
 	
-	strip_vbox.add_child(val_lbl)
+	# Solo & Mute Buttons Row
+	var btn_hbox = HBoxContainer.new()
+	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_hbox.add_theme_constant_override("separation", 2)
 	
 	var btn_mute = Button.new()
 	btn_mute.text = "M"
 	btn_mute.toggle_mode = true
-	btn_mute.custom_minimum_size = Vector2(24, 18)
+	btn_mute.tooltip_text = "Mute this bus"
+	btn_mute.custom_minimum_size = Vector2(24, 20)
 	btn_mute.add_theme_font_size_override("font_size", 9)
-	strip_vbox.add_child(btn_mute)
+	btn_mute.toggled.connect(func(is_muted):
+		btn_mute.modulate = Color(1.0, 0.3, 0.3) if is_muted else Color.WHITE
+		_update_channel_audio_routing()
+	)
+	btn_hbox.add_child(btn_mute)
+	channel_mutes[bus_name] = btn_mute
+	
+	var btn_solo = Button.new()
+	btn_solo.text = "S"
+	btn_solo.toggle_mode = true
+	btn_solo.tooltip_text = "Solo this bus"
+	btn_solo.custom_minimum_size = Vector2(24, 20)
+	btn_solo.add_theme_font_size_override("font_size", 9)
+	btn_solo.toggled.connect(func(is_soloed):
+		btn_solo.modulate = Color(1.0, 0.85, 0.2) if is_soloed else Color.WHITE
+		_update_channel_audio_routing()
+	)
+	btn_hbox.add_child(btn_solo)
+	channel_solos[bus_name] = btn_solo
+	
+	strip_vbox.add_child(btn_hbox)
 	
 	channel_faders[bus_name] = fader
-	channel_labels[bus_name] = val_lbl
 	return strip_vbox
+
+func _update_channel_audio_routing() -> void:
+	var has_any_solo = false
+	for b in channel_solos:
+		if channel_solos[b].button_pressed:
+			has_any_solo = true
+			break
+			
+	for b in BUSES:
+		var f = channel_faders.get(b)
+		var m = channel_mutes.get(b)
+		var s = channel_solos.get(b)
+		if not f or not m or not s:
+			continue
+		var is_audible = true
+		if has_any_solo:
+			is_audible = s.button_pressed and not m.button_pressed
+		else:
+			is_audible = not m.button_pressed
+			
+		var target_vol = f.value if is_audible else -80.0
+		bus_volume_changed.emit(b, target_vol)
 
 func _on_apply_snapshot_pressed() -> void:
 	var selected = snapshot_tree.get_selected()

@@ -2,7 +2,7 @@
 class_name OpenDouDialogueGrid
 extends PanelContainer
 
-## Spreadsheet-style dialogue and localization manager supporting multi-language asset mapping, instant audio auditioning, and popout window detach for multi-monitor setups.
+## Spreadsheet-style dialogue and localization manager supporting multi-language asset mapping, subtitle metadata, actor assignment, instant audio auditioning, and popout window detach for multi-monitor setups.
 
 signal locale_selected(locale_code: String)
 signal dialogue_audition_requested(dialogue_key: StringName, locale_code: String)
@@ -17,16 +17,63 @@ var dialogue_manager: AudioDialogueManager
 var locale_selector: OptionButton
 var grid_tree: Tree
 var popout_btn: Button
+var file_dialog: FileDialog
+var active_editing_item: TreeItem
 
+var audition_player: AudioStreamPlayer
 var is_popped_out: bool = false
 var detached_window: Window = null
 
 const LOCALES = ["EN", "ES", "JA", "ZH"]
 
+var dialogue_entries: Array[Dictionary] = [
+	{
+		"key": "HERO_GREETING_01",
+		"actor": "Sarah (Protagonist)",
+		"text": "Hello traveler, welcome to our sanctuary.",
+		"en": "hero_greet_en.wav",
+		"es": "hero_greet_es.wav",
+		"ja": "hero_greet_ja.wav",
+		"zh": "hero_greet_zh.wav",
+		"status": "🟢 Ready"
+	},
+	{
+		"key": "HERO_ATTACK_SHOUT",
+		"actor": "Sarah (Protagonist)",
+		"text": "For the realm! Take this!",
+		"en": "hero_atk_en.wav",
+		"es": "hero_atk_es.wav",
+		"ja": "hero_atk_ja.wav",
+		"zh": "hero_atk_zh.wav",
+		"status": "🟢 Ready"
+	},
+	{
+		"key": "NPC_WARNING_LOW_HP",
+		"actor": "Corvus (Medic)",
+		"text": "Watch your flank, you are heavily wounded!",
+		"en": "npc_warn_en.wav",
+		"es": "npc_warn_es.wav",
+		"ja": "npc_warn_ja.wav",
+		"zh": "npc_warn_zh.wav",
+		"status": "🟡 Draft"
+	},
+	{
+		"key": "BOSS_TAUNT_PHASE2",
+		"actor": "Malakor (Shadow Lord)",
+		"text": "Fools! You cannot extinguish eternal darkness!",
+		"en": "boss_taunt_en.wav",
+		"es": "boss_taunt_es.wav",
+		"ja": "boss_taunt_ja.wav",
+		"zh": "boss_taunt_zh.wav",
+		"status": "🟢 Ready"
+	}
+]
+
 func _init() -> void:
 	dialogue_table = AudioDialogueTableClass.new()
 	dialogue_manager = AudioDialogueManagerClass.new("en", dialogue_table)
 	
+	anchors_preset = Control.PRESET_FULL_RECT
 	custom_minimum_size = Vector2(0, 0)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -34,6 +81,9 @@ func _init() -> void:
 
 func _build_ui() -> void:
 	var margin = MarginContainer.new()
+	margin.anchors_preset = Control.PRESET_FULL_RECT
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	margin.add_theme_constant_override("margin_left", 8)
 	margin.add_theme_constant_override("margin_top", 8)
 	margin.add_theme_constant_override("margin_right", 8)
@@ -41,12 +91,14 @@ func _build_ui() -> void:
 	add_child(margin)
 	
 	var main_vbox = VBoxContainer.new()
-	main_vbox.add_theme_constant_override("separation", 8)
+	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_vbox.add_theme_constant_override("separation", 6)
 	margin.add_child(main_vbox)
 	
 	# Top Toolbar
 	var toolbar = HBoxContainer.new()
-	toolbar.add_theme_constant_override("separation", 10)
+	toolbar.add_theme_constant_override("separation", 8)
 	
 	var title_lbl = Label.new()
 	title_lbl.text = "🗣️ Voice Localization & Dialogue Grid"
@@ -56,7 +108,7 @@ func _build_ui() -> void:
 	toolbar.add_child(VSeparator.new())
 	
 	var loc_lbl = Label.new()
-	loc_lbl.text = "Active Audition Locale:"
+	loc_lbl.text = "Active Locale:"
 	loc_lbl.add_theme_font_size_override("font_size", 11)
 	toolbar.add_child(loc_lbl)
 	
@@ -73,8 +125,9 @@ func _build_ui() -> void:
 	toolbar.add_child(spacer)
 	
 	var btn_add_key = Button.new()
-	btn_add_key.text = "➕ Add Key"
-	btn_add_key.tooltip_text = "Add new dialogue entry key"
+	btn_add_key.text = "➕ Add Dialogue Key"
+	btn_add_key.tooltip_text = "Add new dialogue row with actor, subtitles and localized audio stems"
+	btn_add_key.pressed.connect(_on_add_key_pressed)
 	toolbar.add_child(btn_add_key)
 	
 	popout_btn = Button.new()
@@ -92,68 +145,106 @@ func _build_ui() -> void:
 	grid_tree.columns = 6
 	grid_tree.column_titles_visible = true
 	grid_tree.set_column_title(0, "Dialogue ID Key")
-	grid_tree.set_column_title(1, "English (EN)")
-	grid_tree.set_column_title(2, "Spanish (ES)")
-	grid_tree.set_column_title(3, "Japanese (JA)")
-	grid_tree.set_column_title(4, "Chinese (ZH)")
+	grid_tree.set_column_title(1, "Actor / Character")
+	grid_tree.set_column_title(2, "Subtitle Text")
+	grid_tree.set_column_title(3, "Audio File (.wav)")
+	grid_tree.set_column_title(4, "Status")
 	grid_tree.set_column_title(5, "Audition")
 	
 	grid_tree.set_column_custom_minimum_width(0, 160)
 	grid_tree.set_column_custom_minimum_width(1, 130)
-	grid_tree.set_column_custom_minimum_width(2, 130)
-	grid_tree.set_column_custom_minimum_width(3, 130)
-	grid_tree.set_column_custom_minimum_width(4, 130)
+	grid_tree.set_column_custom_minimum_width(2, 220)
+	grid_tree.set_column_custom_minimum_width(3, 160)
+	grid_tree.set_column_custom_minimum_width(4, 90)
 	grid_tree.set_column_custom_minimum_width(5, 75)
 	
 	for col in range(6):
 		grid_tree.set_column_expand(col, true)
 		
 	grid_tree.item_activated.connect(_on_dialogue_item_activated)
+	grid_tree.button_clicked.connect(_on_tree_button_clicked)
 	main_vbox.add_child(grid_tree)
 	
+	# Audio Player & File Picker
 	audition_player = AudioStreamPlayer.new()
 	add_child(audition_player)
+	
+	file_dialog = FileDialog.new()
+	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	file_dialog.access = FileDialog.ACCESS_RESOURCES
+	file_dialog.filters = ["*.wav ; WAV Audio", "*.ogg ; OGG Vorbis"]
+	file_dialog.file_selected.connect(_on_audio_file_selected)
+	add_child(file_dialog)
+	
 	_populate_dialogue_samples()
-
-var audition_player: AudioStreamPlayer
 
 func _populate_dialogue_samples() -> void:
 	grid_tree.clear()
 	var root = grid_tree.create_item()
+	var current_loc = LOCALES[locale_selector.selected].to_lower()
 	
-	var rows = [
-		{ "key": "HERO_GREETING_01", "en": "hero_greet_en.wav", "es": "hero_greet_es.wav", "ja": "hero_greet_ja.wav", "zh": "hero_greet_zh.wav" },
-		{ "key": "HERO_ATTACK_SHOUT", "en": "hero_atk_en.wav", "es": "hero_atk_es.wav", "ja": "hero_atk_ja.wav", "zh": "hero_atk_zh.wav" },
-		{ "key": "NPC_WARNING_LOW_HP", "en": "npc_warn_en.wav", "es": "npc_warn_es.wav", "ja": "npc_warn_ja.wav", "zh": "npc_warn_zh.wav" },
-		{ "key": "BOSS_TAUNT_PHASE2", "en": "boss_taunt_en.wav", "es": "boss_taunt_es.wav", "ja": "boss_taunt_ja.wav", "zh": "boss_taunt_zh.wav" }
-	]
-	
-	for r in rows:
+	for r in dialogue_entries:
 		var item = grid_tree.create_item(root)
-		item.set_text(0, "🗣️ " + r["key"])
-		item.set_text(1, r["en"])
-		item.set_text(2, r["es"])
-		item.set_text(3, r["ja"])
-		item.set_text(4, r["zh"])
+		item.set_text(0, "🗣️ " + str(r["key"]))
+		item.set_text(1, str(r.get("actor", "NPC")))
+		item.set_text(2, str(r.get("text", "")))
+		item.set_text(3, "📂 " + str(r.get(current_loc, r["en"])))
+		item.set_text(4, str(r.get("status", "🟢 Ready")))
 		item.set_text(5, "▶ Audition")
 		item.set_metadata(0, r["key"])
 		
-		# Register in in-memory table
+		# Register in memory table
 		dialogue_table.add_entry(StringName(r["key"]), "en", r["en"])
 		dialogue_table.add_entry(StringName(r["key"]), "es", r["es"])
 		dialogue_table.add_entry(StringName(r["key"]), "ja", r["ja"])
 		dialogue_table.add_entry(StringName(r["key"]), "zh", r["zh"])
 
+func _on_add_key_pressed() -> void:
+	var next_id = "NEW_DIALOGUE_%d" % (dialogue_entries.size() + 1)
+	dialogue_entries.append({
+		"key": next_id,
+		"actor": "Narrator",
+		"text": "New localized line subtitle text.",
+		"en": next_id.to_lower() + "_en.wav",
+		"es": next_id.to_lower() + "_es.wav",
+		"ja": next_id.to_lower() + "_ja.wav",
+		"zh": next_id.to_lower() + "_zh.wav",
+		"status": "🟡 Draft"
+	})
+	_populate_dialogue_samples()
+
+func _on_tree_button_clicked(item: TreeItem, column: int, _id: int, _mouse_button_index: int) -> void:
+	if column == 3:
+		active_editing_item = item
+		if file_dialog:
+			file_dialog.popup_centered(Vector2i(600, 400))
+
+func _on_audio_file_selected(path: String) -> void:
+	if active_editing_item:
+		var key = active_editing_item.get_metadata(0)
+		var current_loc = LOCALES[locale_selector.selected].to_lower()
+		for d in dialogue_entries:
+			if d["key"] == key:
+				d[current_loc] = path.get_file()
+				d["status"] = "🟢 Ready"
+				break
+		_populate_dialogue_samples()
+
 func _on_dialogue_item_activated() -> void:
 	var selected = grid_tree.get_selected()
 	if selected:
+		var col = grid_tree.get_selected_column()
 		var key = selected.get_metadata(0)
 		var loc = LOCALES[locale_selector.selected].to_lower()
-		audition_dialogue_key(key, loc)
+		if col == 3:
+			active_editing_item = selected
+			if file_dialog:
+				file_dialog.popup_centered(Vector2i(600, 400))
+		else:
+			audition_dialogue_key(key, loc)
 
 func audition_dialogue_key(key: StringName, loc: String) -> void:
 	if audition_player:
-		# Synthesize speech-like voice tones modulated by locale phonetics
 		var base_freq = 220.0
 		match loc:
 			"en": base_freq = 200.0
@@ -161,7 +252,7 @@ func audition_dialogue_key(key: StringName, loc: String) -> void:
 			"ja": base_freq = 280.0
 			"zh": base_freq = 320.0
 		audition_player.stream = AudioSynthesizerClass.create_engine_loop(base_freq)
-		audition_player.pitch_scale = randf_range(0.9, 1.1)
+		audition_player.pitch_scale = randf_range(0.95, 1.05)
 		audition_player.volume_db = 0.0
 		audition_player.play()
 		
@@ -172,6 +263,7 @@ func _on_locale_selected(idx: int) -> void:
 		var loc = LOCALES[idx].to_lower()
 		if dialogue_manager:
 			dialogue_manager.set_language(loc)
+		_populate_dialogue_samples()
 		locale_selected.emit(loc)
 
 ## Toggles between embedded spreadsheet view and native floating window.

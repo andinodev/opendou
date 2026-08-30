@@ -5,6 +5,9 @@ extends PanelContainer
 ## Sidebar manager for Game Syncs (RTPCs, States, Switches, and Triggers) in OpenDou Studio with persistent JSON storage across editor sessions.
 
 signal rtpc_selected(param_name: StringName, min_val: float, max_val: float, def_val: float)
+signal rtpc_value_changed(rtpc_name: StringName, value: float)
+signal state_changed(group: StringName, state: StringName)
+signal switch_changed(group: StringName, sw: StringName)
 signal syncs_updated()
 
 const SYNCS_FILE_PATH: String = "res://opendou_syncs.json"
@@ -51,9 +54,9 @@ func _build_ui() -> void:
 	rtpc_tree = Tree.new()
 	rtpc_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rtpc_tree.columns = 3
-	rtpc_tree.set_column_title(0, "Param")
+	rtpc_tree.set_column_title(0, "Parameter")
 	rtpc_tree.set_column_title(1, "Range")
-	rtpc_tree.set_column_title(2, "Default")
+	rtpc_tree.set_column_title(2, "Default Value")
 	rtpc_tree.set_column_expand(0, true)
 	rtpc_tree.set_column_expand(1, true)
 	rtpc_tree.set_column_expand(2, true)
@@ -253,6 +256,11 @@ func _on_add_switch_pressed() -> void:
 	save_syncs_to_disk()
 	_refresh_trees()
 	syncs_updated.emit()
+
+func simulate_rtpc_override(rtpc_name: StringName, value: float) -> void:
+	if rtpcs.has(rtpc_name):
+		rtpcs[rtpc_name]["default"] = value
+		rtpc_value_changed.emit(rtpc_name, value)
 
 func get_all_rtpc_names() -> Array[StringName]:
 	var res: Array[StringName] = []

@@ -13,12 +13,16 @@ const OpenDouOutputGraphNodeClass = preload("res://addons/opendou/editor/nodes/o
 const OpenDouConvolutionGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_convolution_graph_node.gd")
 const OpenDouGranularGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_granular_graph_node.gd")
 const OpenDouBinauralGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_binaural_graph_node.gd")
+const OpenDouAHDSRGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_ahdsr_graph_node.gd")
+const OpenDouLFOGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_lfo_graph_node.gd")
+const OpenDouSequenceGraphNodeClass = preload("res://addons/opendou/editor/nodes/opendou_sequence_graph_node.gd")
 
 const AudioLogicNodeClass = preload("res://addons/opendou/resources/containers/audio_logic_node.gd")
 const AudioPhysicalNodeClass = preload("res://addons/opendou/resources/containers/audio_physical_node.gd")
 const AudioRandomContainerClass = preload("res://addons/opendou/resources/containers/audio_random_container.gd")
 const AudioSwitchContainerClass = preload("res://addons/opendou/resources/containers/audio_switch_container.gd")
 const AudioBlendContainerClass = preload("res://addons/opendou/resources/containers/audio_blend_container.gd")
+const AudioSequenceContainerClass = preload("res://addons/opendou/resources/containers/audio_sequence_container.gd")
 
 ## Reconstructs an executable runtime AudioLogicNode tree and DSP chain from the current GraphEdit canvas.
 static func build_composite_from_graph(graph_edit: GraphEdit) -> Dictionary:
@@ -120,6 +124,47 @@ static func _compile_node_recursive(visual_node: Node, connections: Array, graph
 						idx += 1
 		return sw
 		
+	elif visual_node is OpenDouSequenceGraphNodeClass:
+		var seq = AudioSequenceContainerClass.new()
+		seq.loop = visual_node.loop_check.button_pressed if visual_node.loop_check else false
+		for conn in connections:
+			if conn["to_node"] == visual_node.name:
+				var child_vis = graph_edit.get_node_or_null(NodePath(conn["from_node"]))
+				if child_vis:
+					var child_logic = _compile_node_recursive(child_vis, connections, graph_edit)
+					if child_logic:
+						seq.add_child_node(child_logic)
+		return seq
+		
+	elif visual_node is OpenDouAHDSRGraphNodeClass:
+		for conn in connections:
+			if conn["to_node"] == visual_node.name:
+				var child_vis = graph_edit.get_node_or_null(NodePath(conn["from_node"]))
+				if child_vis:
+					var child_logic = _compile_node_recursive(child_vis, connections, graph_edit)
+					if child_logic:
+						if visual_node.modulator_resource:
+							child_logic.modulators.append(visual_node.modulator_resource)
+						return child_logic
+						
+	elif visual_node is OpenDouLFOGraphNodeClass:
+		for conn in connections:
+			if conn["to_node"] == visual_node.name:
+				var child_vis = graph_edit.get_node_or_null(NodePath(conn["from_node"]))
+				if child_vis:
+					var child_logic = _compile_node_recursive(child_vis, connections, graph_edit)
+					if child_logic:
+						if visual_node.modulator_resource:
+							child_logic.modulators.append(visual_node.modulator_resource)
+						return child_logic
+						
+	elif visual_node is OpenDouConvolutionGraphNodeClass or visual_node is OpenDouGranularGraphNodeClass or visual_node is OpenDouBinauralGraphNodeClass:
+		for conn in connections:
+			if conn["to_node"] == visual_node.name:
+				var child_vis = graph_edit.get_node_or_null(NodePath(conn["from_node"]))
+				if child_vis:
+					return _compile_node_recursive(child_vis, connections, graph_edit)
+		
 	return null
 
 ## Converts an AudioLogicNode composite resource tree into visual GraphNodes and connections inside a GraphEdit.
@@ -174,6 +219,20 @@ static func _recursive_build_visual(logic_node: AudioLogicNode, graph_edit: Grap
 		bl_node.position_offset = offset
 		bl_node.rtpc_name = logic_node.rtpc_parameter
 		visual = bl_node
+	elif logic_node is AudioSequenceContainerClass:
+		var seq_node = OpenDouSequenceGraphNodeClass.new()
+		seq_node.position_offset = offset
+		if seq_node.loop_check: seq_node.loop_check.button_pressed = logic_node.loop
+		visual = seq_node
+		
+		var y_step = 140
+		var start_y = offset.y - (logic_node.children.size() * y_step * 0.5)
+		for i in range(logic_node.children.size()):
+			var child_logic = logic_node.children[i]
+			var child_pos = Vector2(offset.x - 260, start_y + (i * y_step))
+			var child_vis = _recursive_build_visual(child_logic, graph_edit, seq_node, i, child_pos)
+			if child_vis:
+				graph_edit.connect_node(child_vis.name, 0, seq_node.name, i)
 		
 	if visual:
 		graph_edit.add_child(visual)

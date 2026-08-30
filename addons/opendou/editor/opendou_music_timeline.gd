@@ -436,7 +436,7 @@ func _build_ui() -> void:
 	ruler_row.add_theme_constant_override("separation", 6)
 	
 	var track_header_spacer = PanelContainer.new()
-	track_header_spacer.custom_minimum_size = Vector2(250, 34)
+	track_header_spacer.custom_minimum_size = Vector2(280, 34)
 	
 	var spacer_hbox = HBoxContainer.new()
 	spacer_hbox.add_theme_constant_override("margin_left", 6)
@@ -747,9 +747,9 @@ func _add_track(track_name: String, min_int: float, max_int: float, color: Color
 	row.add_theme_constant_override("separation", 6)
 	t.row_container = row
 	
-	# 1. Track Header (Left Panel, 250px)
+	# 1. Track Header (Left Panel, 280px)
 	var header = PanelContainer.new()
-	header.custom_minimum_size = Vector2(250, 60)
+	header.custom_minimum_size = Vector2(280, 60)
 	t.header_panel = header
 	
 	var header_hbox = HBoxContainer.new()
@@ -1720,18 +1720,28 @@ func _on_draw_timeline_ruler() -> void:
 		ruler_canvas.draw_rect(tail_rect, Color(0.65, 0.25, 0.9, 0.6), false, 1.0)
 		ruler_canvas.draw_string(ThemeDB.fallback_font, Vector2(exit_x + 4, size.y - 4), "Tail: +%.1fs" % post_exit_tail_sec, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.85, 0.6, 1.0))
 		
-	# Entry Cue Marker (Green Badge ▼)
+	# Entry Cue Marker (Green Triangular Handle ▼)
 	var entry_x = entry_cue_bar * bar_width
 	if entry_x >= 0 and entry_x <= size.x:
 		ruler_canvas.draw_line(Vector2(entry_x, 0), Vector2(entry_x, size.y), Color(0.25, 0.95, 0.45), 2.5)
-		ruler_canvas.draw_rect(Rect2(Vector2(entry_x - 3, 0), Vector2(6, 10)), Color(0.25, 0.95, 0.45))
-		ruler_canvas.draw_string(ThemeDB.fallback_font, Vector2(entry_x + 4, size.y - 4), "Entry", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.25, 0.95, 0.45))
+		var entry_triangle = PackedVector2Array([
+			Vector2(entry_x - 6, 0),
+			Vector2(entry_x + 6, 0),
+			Vector2(entry_x, 10)
+		])
+		ruler_canvas.draw_colored_polygon(entry_triangle, Color(0.25, 0.95, 0.45))
+		ruler_canvas.draw_string(ThemeDB.fallback_font, Vector2(entry_x + 6, size.y - 4), "Entry ▼", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.25, 0.95, 0.45))
 		
-	# Exit Cue Marker (Red Badge ▼)
+	# Exit Cue Marker (Red Triangular Handle ▼)
 	if exit_x >= 0 and exit_x <= size.x:
 		ruler_canvas.draw_line(Vector2(exit_x, 0), Vector2(exit_x, size.y), Color(0.95, 0.3, 0.35), 2.5)
-		ruler_canvas.draw_rect(Rect2(Vector2(exit_x - 3, 0), Vector2(6, 10)), Color(0.95, 0.3, 0.35))
-		ruler_canvas.draw_string(ThemeDB.fallback_font, Vector2(exit_x - 22, 14), "Exit", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.95, 0.3, 0.35))
+		var exit_triangle = PackedVector2Array([
+			Vector2(exit_x - 6, 0),
+			Vector2(exit_x + 6, 0),
+			Vector2(exit_x, 10)
+		])
+		ruler_canvas.draw_colored_polygon(exit_triangle, Color(0.95, 0.3, 0.35))
+		ruler_canvas.draw_string(ThemeDB.fallback_font, Vector2(exit_x - 36, 14), "Exit ▼", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.95, 0.3, 0.35))
 		
 	# Playhead cursor
 	var playhead_x = current_playhead_ratio * size.x * zoom_factor
