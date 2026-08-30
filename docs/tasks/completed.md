@@ -6,7 +6,22 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
-### 2026-08-29
+* **`TASK-040` - Arquitectura de Ventana Flotante Maximizada, Modales Independientes y Barra de Transporte Contextual**
+  * **Fecha:** 2026-08-29
+  * **Resumen:**
+    * **Apertura Auto-Maximizada y Desacople de Ventana (`Window.MODE_MAXIMIZED`):** Al activar o abrir el dock de OpenDou Studio, se despliega automáticamente en una ventana flotante maximizada a pantalla completa sin desperdicio de espacio vertical/horizontal (`Control.PRESET_FULL_RECT` y `SIZE_EXPAND_FILL`).
+    * **Modales Flotantes Arrastrables e Independientes:**
+      * Consola de Mezcla HDR y Matriz de Ducking (`mixer_dialog`, 780x460) accesible mediante el botón `[ 🎚️ HDR ]` en la barra superior.
+      * Gestor de Game Syncs y Simulación (`syncs_dialog`, 460x480) accesible con el botón `[ 🎮 Syncs ]`.
+      * Live Profiler, Telemetría y SoundBanks (`profiler_dialog`, 840x540) accesible con `[ 📊 Profiler ]` y `[ 📦 Banks ]`.
+    * **Eliminación de Splitter Vertical Central:** El lienzo central (`center_workspace_box` para Grafo, Music DAW y Voice Localization) ocupa ahora el 100% de la altura útil de la pantalla entre la cabecera superior y la barra de transporte inferior.
+    * **Barra de Transporte Inferior Reactiva y Contextual:**
+      * **Modo Grafo (`0`):** Transporte de audición (`▶/⏸/⏹`), insignia de evento activo y faders compuestos de precisión con sincronización bidireccional de slider y spinbox (`Distance`, `RPM`, `Pitch Jitter`).
+      * **Modo Music DAW (`1`):** Contador de compás y tiempo en tiempo real (`⏱️ Bar 1 : Beat 1.0`), spinbox de tempo (120 BPM), selector de cuantización de transición (`Next Bar`, `Next Beat`, `Immediate`) y marcador de cambios sin guardar (`*`).
+      * **Modo Voice (`2`):** Audición instantánea de líneas vocales, toggle de preescucha directa 2D (`🎧 Raw 2D`), medidor RMS vocal (`🎙️ RMS`), selector de idioma rápido (`EN/ES/JA/ZH`) e indicador de estado de ducking.
+      * **Sección Master:** Fader master permanente (-60 dB a +6 dB) con spinbox y vúmetro estéreo de alta resolución.
+    * **Pulido de Lienzos de Trabajo:** Cabeceras de pistas de 280px fijos en la DAW musical, marcadores triangulares sólidos (▼) para cues de entrada/salida y cuadrícula de 6 columnas expandida al 100% en la tabla de localización de diálogos.
+    * **Suite de Pruebas:** 142 pruebas unitarias pasando al 100% (código de salida 0).
 
 * **`TASK-039` - Depurador Visual de Zonas Acústicas, Portales y Oclusión (Spatial Radar & Portals Viewer)**
   * **Fecha:** 2026-08-29
