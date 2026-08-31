@@ -2,6 +2,7 @@ class_name TestSpatialAcousticsPhase1
 extends RefCounted
 
 const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
+const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
 
 static func run_all() -> Array[String]:
 	var failures: Array[String] = []
@@ -64,4 +65,48 @@ static func run_all() -> Array[String]:
 	if lead_loss["attenuation_db"] <= 0.0:
 		failures.append("Test 2 Failed: LeadShield transmission loss attenuation should be > 0 dB")
 	
+	# Test 3: calculate_air_absorption (Distance damping)
+	var acoustics = SpatialAcousticsManagerClass.new()
+	var damp_5m = acoustics.calculate_air_absorption(5.0)
+	var damp_20m = acoustics.calculate_air_absorption(20.0)
+	var damp_80m = acoustics.calculate_air_absorption(80.0)
+	
+	if not (damp_80m < damp_20m and damp_20m < damp_5m):
+		failures.append("Test 3 Failed: Air absorption should decrease high frequencies with distance (5m: %.1f, 20m: %.1f, 80m: %.1f)" % [
+			damp_5m, damp_20m, damp_80m
+		])
+	if damp_80m < 800.0 or damp_5m > 20000.0:
+		failures.append("Test 3 Failed: Air absorption cutoff out of bounds (800Hz - 20000Hz)")
+	
+	# Test 4: calculate_doppler_pitch
+	var pos_rel = Vector3(10.0, 0.0, 0.0)
+	var approaching_emitter = Vector3(30.0, 0.0, 0.0) # Moving towards listener
+	var pitch_approach = acoustics.calculate_doppler_pitch(approaching_emitter, Vector3.ZERO, pos_rel)
+	var receding_emitter = Vector3(-30.0, 0.0, 0.0) # Moving away from listener
+	var pitch_recede = acoustics.calculate_doppler_pitch(receding_emitter, Vector3.ZERO, pos_rel)
+	
+	if pitch_approach <= 1.0:
+		failures.append("Test 4 Failed: Approaching emitter should increase pitch factor (> 1.0), got %.3f" % pitch_approach)
+	if pitch_recede >= 1.0:
+		failures.append("Test 4 Failed: Receding emitter should decrease pitch factor (< 1.0), got %.3f" % pitch_recede)
+	
+	var extreme_vel = Vector3(1000.0, 0.0, 0.0)
+	var pitch_clamped = acoustics.calculate_doppler_pitch(extreme_vel, Vector3.ZERO, pos_rel)
+	if pitch_clamped < 0.5 or pitch_clamped > 2.0:
+		failures.append("Test 4 Failed: Doppler pitch should be clamped [0.5, 2.0], got %.3f" % pitch_clamped)
+	
+	# Test 5: evaluate_acoustic_path (Obstruction vs Occlusion)
+	var same_room_path = acoustics.evaluate_acoustic_path(Vector3(0, 0, 0), Vector3(5, 0, 0), &"RoomA", &"RoomA")
+	if not same_room_path.has("obstruction_factor") or not same_room_path.has("occlusion_factor"):
+		failures.append("Test 5 Failed: evaluate_acoustic_path missing obstruction/occlusion factors")
+	elif same_room_path["occlusion_factor"] != 0.0 or same_room_path["reverb_send_factor"] != 1.0:
+		failures.append("Test 5 Failed: Clear line of sight same-room path should have 0 occlusion and 1.0 reverb factor")
+	
+	var diff_room_path = acoustics.evaluate_acoustic_path(Vector3(0, 0, 0), Vector3(15, 0, 0), &"RoomA", &"RoomB")
+	if diff_room_path["occlusion_factor"] <= 0.0:
+		failures.append("Test 5 Failed: Inter-room path should have occlusion_factor > 0")
+	if diff_room_path["reverb_send_factor"] >= 1.0:
+		failures.append("Test 5 Failed: Inter-room path should dampen reverb_send_factor (< 1.0)")
+	
 	return failures
+

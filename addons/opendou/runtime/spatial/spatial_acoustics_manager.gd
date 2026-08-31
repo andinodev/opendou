@@ -6,6 +6,7 @@ extends RefCounted
 const AudioRoomClass = preload("res://addons/opendou/runtime/spatial/audio_room.gd")
 const AudioPortalClass = preload("res://addons/opendou/runtime/spatial/audio_portal.gd")
 const AcousticPathClass = preload("res://addons/opendou/runtime/spatial/acoustic_path.gd")
+const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
 
 var rooms: Dictionary = {}   # StringName -> AudioRoom
 var portals: Dictionary = {} # StringName -> AudioPortal
@@ -163,3 +164,108 @@ func calculate_acoustic_path(emitter_pos: Vector3, listener_pos: Vector3, emitte
 	# Fallback if no portal path connects rooms (completely occluded)
 	var direct_d = emitter_pos.distance_to(listener_pos)
 	return AcousticPathClass.new(direct_d, 200.0, emitter_pos, false) # Max wall occlusion LPF (200Hz)
+
+## Calculates atmospheric air absorption high-frequency cutoff over distance.
+## Uses exponential decay: cutoff = clamp(20000 * exp(-0.015 * distance), 800, 20000)
+func calculate_air_absorption(distance: float) -> float:
+	var safe_d: float = maxf(0.0, distance)
+	return clampf(20000.0 * exp(-0.015 * safe_d), 800.0, 20000.0)
+
+## Calculates stabilized Doppler pitch factor based on relative velocity vectors.
+## Clamped to safe range [0.5, 2.0].
+func calculate_doppler_pitch(emitter_vel: Vector3, listener_vel: Vector3, rel_pos: Vector3, smoothing_alpha: float = 0.15) -> float:
+	if rel_pos.length_squared() < 0.001:
+		return 1.0
+	var speed_of_sound: float = 343.0
+	var unit_dir: Vector3 = rel_pos.normalized() # Vector from emitter to listener
+	var v_l: float = listener_vel.dot(unit_dir)
+	var v_e: float = emitter_vel.dot(unit_dir)
+	
+	var num: float = speed_of_sound - v_l
+	var denom: float = speed_of_sound - v_e
+	if is_zero_approx(denom):
+		denom = 0.001
+	var pitch_factor: float = num / denom
+	return clampf(pitch_factor, 0.5, 2.0)
+
+## Rigorous evaluation separating Obstrucción (same room partial block, direct LPF only)
+## from Oclusión (inter-room / sealed barrier, mass law + reverb damping).
+func evaluate_acoustic_path(emitter_pos: Vector3, listener_pos: Vector3, emitter_room: StringName, listener_room: StringName, world_3d: World3D = null, collision_mask: int = 1) -> Dictionary:
+	var mat_registry = AcousticMaterialRegistryClass.get_singleton()
+	var is_same_room: bool = (emitter_room == listener_room) and not emitter_room.is_empty()
+	var direct_dist: float = emitter_pos.distance_to(listener_pos)
+	
+	# Raycast check if world_3d is available
+	var hit_obstacle: bool = false
+	var obstacle_thickness: float = 0.2
+	var obstacle_mat: StringName = &"Concrete"
+	
+	if world_3d != null:
+		var space_state = world_3d.direct_space_state
+		var query_fwd = PhysicsRayQueryParameters3D.create(emitter_pos, listener_pos)
+		query_fwd.collision_mask = collision_mask
+		query_fwd.hit_from_inside = false
+		var res_fwd = space_state.intersect_ray(query_fwd)
+		
+		if not res_fwd.is_empty():
+			hit_obstacle = true
+			var hit_pos1: Vector3 = res_fwd["position"]
+			if res_fwd.has("collider"):
+				var col = res_fwd["collider"]
+				if col.has_meta("acoustic_material"):
+					obstacle_mat = StringName(str(col.get_meta("acoustic_material")))
+				elif col.has_meta("surface_type"):
+					obstacle_mat = StringName(str(col.get_meta("surface_type")))
+			
+			# Reverse raycast for thickness measurement
+			var query_rev = PhysicsRayQueryParameters3D.create(listener_pos, emitter_pos)
+			query_rev.collision_mask = collision_mask
+			query_rev.hit_from_inside = false
+			var res_rev = space_state.intersect_ray(query_rev)
+			if not res_rev.is_empty():
+				var hit_pos2: Vector3 = res_rev["position"]
+				obstacle_thickness = maxf(0.05, hit_pos1.distance_to(hit_pos2))
+	
+	var loss_data = {"attenuation_db": 0.0, "cutoff_lpf": 20000.0}
+	if mat_registry != null:
+		loss_data = mat_registry.calculate_transmission_loss(obstacle_mat, obstacle_thickness)
+	
+	if is_same_room:
+		if hit_obstacle:
+			# OBSTRUCTION: Partial block in same room.
+			# Direct sound is filtered with LPF, but room reverb is 100% untouched.
+			return {
+				"obstruction_factor": 0.6,
+				"occlusion_factor": 0.0,
+				"thickness_meters": obstacle_thickness,
+				"material_name": obstacle_mat,
+				"transmission_loss_db": loss_data["attenuation_db"] * 0.5,
+				"direct_lpf_cutoff": minf(5000.0, loss_data["cutoff_lpf"]),
+				"reverb_send_factor": 1.0 # 100% reverb intact!
+			}
+		else:
+			# Direct line of sight
+			return {
+				"obstruction_factor": 0.0,
+				"occlusion_factor": 0.0,
+				"thickness_meters": 0.0,
+				"material_name": &"None",
+				"transmission_loss_db": 0.0,
+				"direct_lpf_cutoff": 20000.0,
+				"reverb_send_factor": 1.0
+			}
+	else:
+		# OCCLUSION: Between different rooms or sealed.
+		# Mass law attenuation applies to both direct sound and room reverb.
+		var occl_factor: float = clampf(loss_data["attenuation_db"] / 24.0, 0.4, 1.0)
+		var reverb_factor: float = clampf(1.0 - (loss_data["attenuation_db"] / 36.0), 0.05, 0.7)
+		return {
+			"obstruction_factor": 0.0,
+			"occlusion_factor": occl_factor,
+			"thickness_meters": obstacle_thickness,
+			"material_name": obstacle_mat,
+			"transmission_loss_db": loss_data["attenuation_db"],
+			"direct_lpf_cutoff": loss_data["cutoff_lpf"],
+			"reverb_send_factor": reverb_factor
+		}
+
