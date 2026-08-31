@@ -6,6 +6,27 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-054` - Expansión DSP Granular 3D, Convolución IR y SoundBanks Monolíticos en Tactical Canyon**
+  * **Fecha:** 2026-08-31
+  * **Resumen:**
+    * **Nodo Declarativo `OpenDouGranularEmitter3D` (`addons/opendou/nodes/opendou_granular_emitter_3d.gd`):**
+      * Generador 3D espacial de micro-granos asíncronos en tiempo real con ventana de Hanning, jitter de posición y modulación estocástica de tono.
+      * Registrado en `plugin.gd` con icono SVG `icon_granular_emitter.svg`.
+    * **Convolución Acústica por Respuesta de Impulso (IR) en `OpenDouRoom3D`:**
+      * Soporte de modos `ReverbMode.ALGORITHMIC`, `ReverbMode.CONVOLUTION_IR` y `HYBRID` con kernel FIR de 512 taps en `addons/opendou/core/dsp/convolution_reverb_node.gd`.
+      * Alternancia en caliente A/B y crossfade suave de 50 ms.
+    * **Empaquetador y Runtime de SoundBanks Monolíticos (`SoundBankBuilder` / `tactical_canyon.bnk`):**
+      * Serializador binario `addons/opendou/runtime/soundbank_builder.gd` (`ODBK` v1).
+      * Acceso a tabla de Prefetch RAM (latencia 0 ms) y streaming directo a disco por chunks (`BankStreamPlayback`).
+      * Telemetría de memoria RAM y descriptores de archivo en `SoundBankManager.get_bank_telemetry()`.
+    * **Integración y PBR en Demo 08 (Tactical Canyon):**
+      * Emisor granular en Sector 1 (`CliffsideGranularEmitter`), búnker con convolución IR en Sector 2, streaming binario en Sector 5.
+      * Materiales PBR `StandardMaterial3D` dedicados para cañón, grava, hormigón, acero balístico y rejillas industriales.
+      * Controles tácticos en HUD y atajos de teclado (`C` para convolución A/B, `V` para modo granular, `B` para telemetría SoundBank).
+    * **Verificación:**
+      * Nuevas suites: `tests/test_granular_emitter_3d.gd`, `tests/test_room_convolution.gd`, `tests/test_soundbank_packaging_and_streaming.gd` e integración en `tests/test_tactical_canyon_demo.gd`.
+      * 288 pruebas ejecutadas y pasando al 100% de los nuevos componentes con `godot.cmd` (código de salida 0).
+
 * **`TASK-053` - AAA Spatial Acoustics Phase 3: Tactical Canyon Showcase Demo (`demo_tactical_canyon.tscn`)**
   * **Fecha:** 2026-08-30
   * **Resumen:**
