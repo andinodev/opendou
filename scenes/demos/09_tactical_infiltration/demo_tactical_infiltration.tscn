@@ -16,6 +16,7 @@
 [ext_resource type="Script" uid="uid://dtlhkuv5w0r76" path="res://addons/opendou/nodes/opendou_event_player.gd" id="13_li1b5"]
 [ext_resource type="Script" uid="uid://da047uvlnsfhn" path="res://addons/opendou/nodes/opendou_audible_monitor.gd" id="13_monitor"]
 [ext_resource type="Script" uid="uid://jq8f55uaybmc" path="res://addons/opendou/nodes/opendou_event_player_3d.gd" id="14_event_player"]
+[ext_resource type="Script" path="res://scenes/demos/09_tactical_infiltration/tactical_enemy.gd" id="15_enemy_ai"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_tactical"]
 sky_top_color = Color(0.02, 0.04, 0.08, 1)
@@ -105,6 +106,17 @@ emission_enabled = true
 emission = Color(0.08, 0.45, 0.75, 1)
 emission_energy_multiplier = 1.5
 
+[sub_resource type="StandardMaterial3D" id="Mat_EnemyArmor"]
+albedo_color = Color(0.18, 0.18, 0.22, 1)
+metallic = 0.7
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="Mat_EnemyVisor"]
+albedo_color = Color(1, 0.1, 0.1, 1)
+emission_enabled = true
+emission = Color(1, 0.15, 0.15, 1)
+emission_energy_multiplier = 3.0
+
 [sub_resource type="BoxShape3D" id="BoxShape3D_room_cavern"]
 size = Vector3(34, 12, 34)
 
@@ -168,16 +180,33 @@ size = Vector3(30, 1, 12)
 material = SubResource("Mat_ToxicConcrete")
 size = Vector3(30, 1, 12)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_blast_wall_side"]
-size = Vector3(1, 8, 9.5)
+[sub_resource type="BoxShape3D" id="BoxShape3D_blast_wall_north"]
+size = Vector3(1.2, 8, 10.5)
 
-[sub_resource type="BoxMesh" id="BoxMesh_blast_wall_side"]
+[sub_resource type="BoxMesh" id="BoxMesh_blast_wall_north"]
 material = SubResource("Mat_BunkerMetal")
-size = Vector3(1, 8, 9.5)
+size = Vector3(1.2, 8, 10.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_blast_wall_south"]
+size = Vector3(1.2, 8, 10.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_blast_wall_south"]
+material = SubResource("Mat_BunkerMetal")
+size = Vector3(1.2, 8, 10.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_blast_wall_top"]
+size = Vector3(1.2, 4.5, 3)
+
+[sub_resource type="BoxMesh" id="BoxMesh_blast_wall_top"]
+material = SubResource("Mat_BunkerMetal")
+size = Vector3(1.2, 4.5, 3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_door"]
+size = Vector3(0.6, 3.6, 3.2)
 
 [sub_resource type="BoxMesh" id="BoxMesh_door"]
 material = SubResource("Mat_Door")
-size = Vector3(0.5, 4, 3)
+size = Vector3(0.6, 3.6, 3.2)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_room_bunker"]
 size = Vector3(28, 10, 28)
@@ -225,8 +254,22 @@ size = Vector3(120, 1, 6)
 material = SubResource("Mat_BunkerMetal")
 size = Vector3(120, 1, 6)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_player"]
-size = Vector3(0.8, 1.8, 0.8)
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_enemy"]
+radius = 0.45
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_enemy_body"]
+material = SubResource("Mat_EnemyArmor")
+radius = 0.45
+height = 1.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_enemy_visor"]
+material = SubResource("Mat_EnemyVisor")
+size = Vector3(0.4, 0.15, 0.25)
+
+[sub_resource type="BoxMesh" id="BoxMesh_enemy_rifle"]
+material = SubResource("Mat_BunkerMetal")
+size = Vector3(0.15, 0.2, 0.9)
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 height = 1.8
@@ -424,35 +467,53 @@ script = ExtResource("7_granular")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 0)
 
 [node name="Blast_Wall_North" type="StaticBody3D" parent="Environment/Bunker_Complex" unique_id=3992837465]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 3.5, -7.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 3.5, -6.75)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Blast_Wall_North" unique_id=4092837465]
-shape = SubResource("BoxShape3D_blast_wall_side")
+shape = SubResource("BoxShape3D_blast_wall_north")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Blast_Wall_North" unique_id=4192837465 groups=["AcousticObstacle"]]
-mesh = SubResource("BoxMesh_blast_wall_side")
+mesh = SubResource("BoxMesh_blast_wall_north")
 metadata/acoustic_material = &"Metal"
 
 [node name="Blast_Wall_South" type="StaticBody3D" parent="Environment/Bunker_Complex" unique_id=4292837465]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 3.5, 7.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 3.5, 6.75)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Blast_Wall_South" unique_id=4392837465]
-shape = SubResource("BoxShape3D_blast_wall_side")
+shape = SubResource("BoxShape3D_blast_wall_south")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Blast_Wall_South" unique_id=4492837465 groups=["AcousticObstacle"]]
-mesh = SubResource("BoxMesh_blast_wall_side")
+mesh = SubResource("BoxMesh_blast_wall_south")
+metadata/acoustic_material = &"Metal"
+
+[node name="Blast_Wall_Top" type="StaticBody3D" parent="Environment/Bunker_Complex" unique_id=4511223344]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 5.75, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Blast_Wall_Top" unique_id=4511223345]
+shape = SubResource("BoxShape3D_blast_wall_top")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Blast_Wall_Top" unique_id=4511223346 groups=["AcousticObstacle"]]
+mesh = SubResource("BoxMesh_blast_wall_top")
 metadata/acoustic_material = &"Metal"
 
 [node name="Access_Portal" type="Node3D" parent="Environment/Bunker_Complex" unique_id=1423786974]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 1.8, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 1.75, 0)
 script = ExtResource("4_portal")
 portal_name = &"Bunker_Access_Portal"
 room_a_name = &"Outer_Cavern"
 room_b_name = &"Generator_Room"
+portal_size = Vector2(3, 3.5)
 
-[node name="Blast_Door" type="MeshInstance3D" parent="Environment/Bunker_Complex/Access_Portal" unique_id=949269811 groups=["AcousticObstacle"]]
+[node name="Blast_Door_Body" type="StaticBody3D" parent="Environment/Bunker_Complex/Access_Portal" unique_id=949269811]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Access_Portal/Blast_Door_Body" unique_id=949269812]
+shape = SubResource("BoxShape3D_door")
+
+[node name="DoorMesh" type="MeshInstance3D" parent="Environment/Bunker_Complex/Access_Portal/Blast_Door_Body" unique_id=949269813 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_door")
 metadata/acoustic_material = &"Metal"
+
+[node name="DoorAudio" type="AudioStreamPlayer3D" parent="Environment/Bunker_Complex/Access_Portal" unique_id=949269814]
 
 [node name="Generator_Room" type="Area3D" parent="Environment/Bunker_Complex" unique_id=1449395944]
 script = ExtResource("3_room")
@@ -557,19 +618,47 @@ light_energy = 2.5
 omni_range = 14.0
 
 [node name="Elite_Enemy" type="CharacterBody3D" parent="Characters" unique_id=370044050]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 85, 1, 0)
+script = ExtResource("15_enemy_ai")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Characters/Elite_Enemy" unique_id=1494068202]
-shape = SubResource("BoxShape3D_player")
+shape = SubResource("CapsuleShape3D_enemy")
 
-[node name="Enemy_Mesh" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=6192837465 groups=["AcousticObstacle"]]
-mesh = SubResource("BoxMesh_door")
+[node name="Enemy_Body" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=6192837465 groups=["AcousticObstacle"]]
+mesh = SubResource("CapsuleMesh_enemy_body")
 metadata/acoustic_material = &"Metal"
 
+[node name="Enemy_Visor" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=6192837466]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, -0.38)
+mesh = SubResource("BoxMesh_enemy_visor")
+
+[node name="Enemy_Rifle" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=6192837467]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.1, -0.45)
+mesh = SubResource("BoxMesh_enemy_rifle")
+
+[node name="VisionConeLight" type="SpotLight3D" parent="Characters/Elite_Enemy" unique_id=6192837468]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.3)
+light_color = Color(0.9, 0.85, 0.4, 1)
+light_energy = 2.5
+spot_range = 22.0
+spot_angle = 42.0
+shadow_enabled = true
+
+[node name="MuzzleLight" type="OmniLight3D" parent="Characters/Elite_Enemy" unique_id=6192837469]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.1, -0.95)
+visible = false
+light_color = Color(1, 0.6, 0.1, 1)
+light_energy = 4.0
+omni_range = 8.0
+
 [node name="VoiceEmitter" type="AudioStreamPlayer3D" parent="Characters/Elite_Enemy" unique_id=289486315]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 script = ExtResource("14_event_player")
 event_name = &"Enemy_Alert_Shout"
 synth_preset = "None"
+
+[node name="WeaponAudio" type="AudioStreamPlayer3D" parent="Characters/Elite_Enemy" unique_id=289486316]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.1, -0.5)
 
 [node name="EnemyAnimationSync" type="Node" parent="Characters/Elite_Enemy" unique_id=155683195]
 script = ExtResource("10_anim_sync")
@@ -692,10 +781,10 @@ text = "🏠 Demo Hub"
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -360.0
+offset_left = -380.0
 offset_top = 50.0
 offset_right = -10.0
-offset_bottom = 260.0
+offset_bottom = 270.0
 grow_horizontal = 0
 
 [node name="Margin" type="MarginContainer" parent="TacticalHUD/HUDPanel" unique_id=863208761]
@@ -732,6 +821,10 @@ text = "Baked Triangles: 0 | AABBs: 0"
 [node name="LblVoices" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox" unique_id=91160160]
 layout_mode = 2
 text = "Acoustic Enclosure: Exterior Cavern (Diffused)"
+
+[node name="LblAcousticFilter" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox" unique_id=91160161]
+layout_mode = 2
+text = "Generator Audio: Direct 20kHz | 0dB"
 
 [node name="BottomBar" type="PanelContainer" parent="TacticalHUD" unique_id=1760612337]
 anchors_preset = 12

@@ -166,16 +166,29 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 		runtime_room.convolution_wet_db = convolution_wet_db
 		runtime_room.convolution_dry_db = convolution_dry_db
 
-	_update_ir_kernel()
+	if _dimensions == Vector3.ZERO:
+		for child in get_children():
+			if child is CollisionShape3D and child.shape != null:
+				if child.shape is BoxShape3D:
+					_dimensions = (child.shape as BoxShape3D).size
+					break
 
 	if _dimensions != Vector3.ZERO:
-		var center_pos: Vector3 = global_position if is_inside_tree() else position
+		var center_pos: Vector3 = global_position if is_inside_tree() else _get_world_position_fallback()
 		runtime_room.set_bounds(AABB(center_pos - _dimensions * 0.5, _dimensions))
 
 	if mgr != null:
 		mgr.register_room(runtime_room)
 
 	return runtime_room
+
+func _get_world_position_fallback() -> Vector3:
+	var pos: Vector3 = position
+	var cur: Node = get_parent()
+	while cur != null and cur is Node3D:
+		pos += (cur as Node3D).position
+		cur = cur.get_parent()
+	return pos
 
 func _update_ir_kernel() -> void:
 	if _convolution_node == null:

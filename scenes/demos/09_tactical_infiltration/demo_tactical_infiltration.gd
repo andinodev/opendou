@@ -15,14 +15,18 @@ const OpenDouParameterArea3DClass = preload("res://addons/opendou/nodes/opendou_
 const OpenDouMultiPositionEmitter3DClass = preload("res://addons/opendou/nodes/opendou_multi_position_emitter_3d.gd")
 const OpenDouAcousticGeometryBakeClass = preload("res://addons/opendou/nodes/opendou_acoustic_geometry_bake.gd")
 const OpenDouAnimationSyncClass = preload("res://addons/opendou/nodes/opendou_animation_sync.gd")
+const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 # Runtime State
+var spatial_acoustics: SpatialAcousticsManager = null
 var active_sector_idx: int = 1
 var is_blast_door_open: bool = true
 var is_debugger_active: bool = false
 var debugger_mode: int = 0
 var toxic_tension_value: float = 0.0
 var active_surface: StringName = &"Stone"
+var generator_filtered_lpf: float = 20000.0
+var generator_attenuation_db: float = 0.0
 
 # Sector Positions
 const SECTOR_POSITIONS: Dictionary = {
@@ -43,7 +47,8 @@ var acoustic_bake: OpenDouAcousticGeometryBake = null
 var room_cavern: OpenDouRoom3D = null
 var room_bunker: OpenDouRoom3D = null
 var access_portal: OpenDouPortal3D = null
-var blast_door_mesh: Node3D = null
+var blast_door_body: Node3D = null
+var door_audio: AudioStreamPlayer3D = null
 
 var toxic_area: OpenDouParameterArea3D = null
 var river_spline: AudioStreamPlayer3D = null
@@ -75,6 +80,7 @@ var lbl_tension: Label = null
 var lbl_generator: Label = null
 var lbl_bake_stats: Label = null
 var lbl_voices: Label = null
+var lbl_acoustic_filter: Label = null
 
 # ─── INITIALIZATION ───────────────────────────────────────────────────────────
 
@@ -86,6 +92,9 @@ func _ready() -> void:
 	teleport_to_sector(1)
 
 func _init_scene_references() -> void:
+	if spatial_acoustics == null:
+		spatial_acoustics = SpatialAcousticsManagerClass.new()
+
 	if player == null: player = get_node_or_null("Player_Rig")
 	if player_anim_sync == null: player_anim_sync = get_node_or_null("Player_Rig/AnimationSync")
 	if enemy_rig == null: enemy_rig = get_node_or_null("Characters/Elite_Enemy")
@@ -95,7 +104,8 @@ func _init_scene_references() -> void:
 	if room_cavern == null: room_cavern = get_node_or_null("Environment/Outer_Cavern")
 	if room_bunker == null: room_bunker = get_node_or_null("Environment/Bunker_Complex/Generator_Room")
 	if access_portal == null: access_portal = get_node_or_null("Environment/Bunker_Complex/Access_Portal")
-	if blast_door_mesh == null: blast_door_mesh = get_node_or_null("Environment/Bunker_Complex/Access_Portal/Blast_Door")
+	if blast_door_body == null: blast_door_body = get_node_or_null("Environment/Bunker_Complex/Access_Portal/Blast_Door_Body")
+	if door_audio == null: door_audio = get_node_or_null("Environment/Bunker_Complex/Access_Portal/DoorAudio")
 
 	if toxic_area == null: toxic_area = get_node_or_null("Environment/Toxic_Zone")
 	if river_spline == null: river_spline = get_node_or_null("Environment/Outer_Cavern/Underground_River")
@@ -125,6 +135,19 @@ func _init_scene_references() -> void:
 	if lbl_generator == null: lbl_generator = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblGenerator")
 	if lbl_bake_stats == null: lbl_bake_stats = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblBakeStats")
 	if lbl_voices == null: lbl_voices = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblVoices")
+	if lbl_acoustic_filter == null: lbl_acoustic_filter = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblAcousticFilter")
+
+	# Register spatial nodes into graph
+	if spatial_acoustics:
+		if room_cavern: spatial_acoustics.register_room(room_cavern.register_in_manager(spatial_acoustics))
+		if room_bunker: spatial_acoustics.register_room(room_bunker.register_in_manager(spatial_acoustics))
+		if access_portal: spatial_acoustics.register_portal(access_portal.register_in_manager(spatial_acoustics))
+
+	# Initial door openness
+	if blast_door_body:
+		blast_door_body.position = Vector3(0.0, 3.8, 0.0) if is_blast_door_open else Vector3.ZERO
+	if access_portal:
+		access_portal.set_open_factor(1.0 if is_blast_door_open else 0.0)
 
 func _connect_ui() -> void:
 	if btn_sector1:
@@ -151,8 +174,9 @@ func _connect_ui() -> void:
 
 # ─── RUNTIME PROCESS ──────────────────────────────────────────────────────────
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_update_player_locomotion()
+	_update_acoustic_propagation(delta)
 	_update_telemetry()
 
 func _update_player_locomotion() -> void:
@@ -172,6 +196,24 @@ func _update_player_locomotion() -> void:
 		toxic_tension_value = clampf((p_pos.x - 20.0) / 20.0, 0.0, 1.0)
 	else:
 		toxic_tension_value = 0.0
+
+func _update_acoustic_propagation(delta: float) -> void:
+	var p_pos = player.global_position if (player and player.is_inside_tree()) else (player.position if player else Vector3.ZERO)
+	var gen_origin = generator_multi.global_position if (generator_multi and generator_multi.is_inside_tree()) else Vector3(60.0, 1.8, 0.0)
+	var nearest_vertex = generator_multi.get_closest_point_to(p_pos) if generator_multi else gen_origin
+
+	if spatial_acoustics:
+		var path = spatial_acoustics.calculate_acoustic_path(nearest_vertex, p_pos)
+		generator_filtered_lpf = path.accumulated_lpf
+
+		# Calculate real transmission attenuation based on door occlusion
+		var is_inside_bunker = p_pos.x >= 47.5
+		var target_atten: float = 0.0 if (is_inside_bunker or is_blast_door_open) else -22.0
+		var blend_rate: float = clampf(10.0 * delta, 0.0, 1.0) if delta < 0.5 else 1.0
+		generator_attenuation_db = lerpf(generator_attenuation_db, target_atten, blend_rate)
+
+		if generator_multi:
+			generator_multi.volume_db = generator_attenuation_db
 
 func _update_telemetry() -> void:
 	var p_pos = player.global_position if (player and player.is_inside_tree()) else Vector3.ZERO
@@ -196,12 +238,20 @@ func _update_telemetry() -> void:
 			acoustic_bake.get_baked_aabbs().size()
 		]
 	if lbl_voices:
-		var enc = "Exterior Cavern (Stone RT60: 9.6s)"
+		var enc = "Exterior Cavern (Stone RT60: 9.66s | Reverb Diffuse)"
 		if p_pos.x >= 50.0:
-			enc = "Bunker Generator Core (Metal RT60: 7.1s)"
+			enc = "Bunker Generator Core (Metal RT60: 7.15s | Early Reflections)"
 		elif p_pos.x >= 20.0:
 			enc = "Toxic Tunnel (Concrete RT60: 4.5s | Spores Active)"
 		lbl_voices.text = "Acoustic Enclosure: %s" % enc
+
+	if lbl_acoustic_filter:
+		var state_str = "Direct 20kHz (Open)" if (p_pos.x >= 47.5 or is_blast_door_open) else "Occluded 300Hz (Sealed)"
+		lbl_acoustic_filter.text = "Generator Sound: %s | LPF: %d Hz | Atten: %.1f dB" % [
+			state_str,
+			int(generator_filtered_lpf),
+			generator_attenuation_db
+		]
 
 func _get_sector_name(idx: int) -> String:
 	match idx:
@@ -224,20 +274,28 @@ func teleport_to_sector(idx: int) -> void:
 
 func toggle_blast_door() -> void:
 	is_blast_door_open = not is_blast_door_open
-	if blast_door_mesh:
-		blast_door_mesh.visible = not is_blast_door_open
+	
+	if blast_door_body:
+		# Smoothly position door: 0 when closed (blocking vano), 3.8 when open (recessed into lintel)
+		blast_door_body.position = Vector3(0.0, 3.8, 0.0) if is_blast_door_open else Vector3.ZERO
+
 	if access_portal:
 		access_portal.set_open_factor(1.0 if is_blast_door_open else 0.0)
+
+	if door_audio:
+		if door_audio.stream == null:
+			door_audio.stream = AudioSynthesizerClass.create_stinger_impact(0.6)
+		if door_audio.is_inside_tree():
+			door_audio.play()
+
 	if btn_toggle_door:
-		btn_toggle_door.text = "🚪 Door: OPEN (Diffracting)" if is_blast_door_open else "🚪 Door: CLOSED (Isolated 300Hz)"
+		btn_toggle_door.text = "🚪 Door: OPEN (Diffracting 20kHz)" if is_blast_door_open else "🚪 Door: CLOSED (Isolated 300Hz / -22dB)"
 
 func trigger_enemy_alert() -> void:
-	if enemy_anim_sync:
+	if enemy_rig and enemy_rig.has_method("trigger_alert"):
+		enemy_rig.call("trigger_alert")
+	elif enemy_anim_sync:
 		enemy_anim_sync.play_audio_event(&"Enemy_Alert_Shout")
-	if enemy_rig and enemy_rig.has_node("VoiceEmitter"):
-		var emitter = enemy_rig.get_node("VoiceEmitter")
-		if emitter.has_method("play_event"):
-			emitter.call("play_event", &"Enemy_Alert_Shout")
 
 func _on_bake_pressed() -> void:
 	if acoustic_bake:
