@@ -7,10 +7,29 @@ const AudioRoomClass = preload("res://addons/opendou/runtime/spatial/audio_room.
 const AudioPortalClass = preload("res://addons/opendou/runtime/spatial/audio_portal.gd")
 const AcousticPathClass = preload("res://addons/opendou/runtime/spatial/acoustic_path.gd")
 const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
+const AcousticReflectorEngineClass = preload("res://addons/opendou/runtime/spatial/acoustic_reflector_engine.gd")
+const EdgeDiffractionEngineClass = preload("res://addons/opendou/runtime/spatial/edge_diffraction_engine.gd")
+const RoomCouplingEngineClass = preload("res://addons/opendou/runtime/spatial/room_coupling_engine.gd")
+const AcousticLODControllerClass = preload("res://addons/opendou/runtime/spatial/acoustic_lod_controller.gd")
+const HDRAudioManagerClass = preload("res://addons/opendou/runtime/spatial/hdr_audio_manager.gd")
 
 var rooms: Dictionary = {}   # StringName -> AudioRoom
 var portals: Dictionary = {} # StringName -> AudioPortal
 var reflectors: Dictionary = {} # StringName -> RefCounted/Node3D
+
+# Phase 2 Spatial Engines
+var reflector_engine: RefCounted
+var diffraction_engine: RefCounted
+var coupling_engine: RefCounted
+var lod_controller: RefCounted
+var hdr_manager: RefCounted
+
+func _init() -> void:
+	reflector_engine = AcousticReflectorEngineClass.new()
+	diffraction_engine = EdgeDiffractionEngineClass.new()
+	coupling_engine = RoomCouplingEngineClass.new()
+	lod_controller = AcousticLODControllerClass.new()
+	hdr_manager = HDRAudioManagerClass.new()
 
 ## Registers a room in the acoustics manager.
 func register_room(room: AudioRoom) -> void:

@@ -6,6 +6,7 @@ const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spat
 const EdgeDiffractionEngineClass = preload("res://addons/opendou/runtime/spatial/edge_diffraction_engine.gd")
 const RoomCouplingEngineClass = preload("res://addons/opendou/runtime/spatial/room_coupling_engine.gd")
 const AcousticLODControllerClass = preload("res://addons/opendou/runtime/spatial/acoustic_lod_controller.gd")
+const HDRAudioManagerClass = preload("res://addons/opendou/runtime/spatial/hdr_audio_manager.gd")
 
 static func run_all() -> Array[String]:
 	var failures: Array[String] = []
@@ -140,5 +141,38 @@ static func run_all() -> Array[String]:
 			failures.append("Test 8 Failed: LOD 2 must disable physics raytracing")
 		if not feats_lod3.get("is_culled", false):
 			failures.append("Test 8 Failed: LOD 3 must flag is_culled = true")
+	
+	# Test 9: HDRAudioManager loudness window tracking and dynamic ducking
+	var hdr = HDRAudioManagerClass.new()
+	if hdr == null:
+		failures.append("Test 9 Failed: Could not instantiate HDRAudioManager")
+	else:
+		# Initial state: top = -6.0 dB, floor = -46.0 dB
+		var initial_gain_mid = hdr.calculate_voice_gain(-20.0)
+		var initial_gain_quiet = hdr.calculate_voice_gain(-40.0)
+		if initial_gain_mid != 1.0 or initial_gain_quiet != 1.0:
+			failures.append("Test 9 Failed: Voices inside HDR window should have linear gain 1.0")
+		
+		# Register loud explosion (+3 dB FS)
+		hdr.register_loudness_event(3.0)
+		if hdr.current_window_top_db != 3.0:
+			failures.append("Test 9 Failed: Window top should shift to 3.0 dB, got %.1f dB" % hdr.current_window_top_db)
+		if hdr.current_floor_db != -37.0: # 3.0 - 40.0
+			failures.append("Test 9 Failed: Dynamic floor should shift to -37.0 dB, got %.1f dB" % hdr.current_floor_db)
+		
+		# Quiet ambient sound at -45 dB FS falls below the new dynamic floor (-37 dB FS) -> gets ducked!
+		var ducked_gain = hdr.calculate_voice_gain(-45.0)
+		if ducked_gain >= 0.8:
+			failures.append("Test 9 Failed: Sound below HDR floor should be ducked (< 0.8 gain), got %.3f" % ducked_gain)
+		
+		# Test 10: Smooth decay recovery
+		hdr.process_decay(0.5) # Process 0.5s of decay
+		if hdr.current_window_top_db >= 3.0:
+			failures.append("Test 10 Failed: HDR window should decay towards top_threshold over time")
+		
+		# Reset to baseline
+		hdr.process_decay(2.0)
+		if is_equal_approx(hdr.current_window_top_db, -6.0) == false:
+			failures.append("Test 10 Failed: HDR window should recover to baseline -6.0 dB, got %.1f dB" % hdr.current_window_top_db)
 	
 	return failures

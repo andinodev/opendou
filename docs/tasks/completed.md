@@ -6,6 +6,23 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-052` - AAA Spatial Acoustics Phase 2: Early Reflections 6x, Edge Diffraction, Room Coupling, Acoustic LOD & HDR Audio**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Trazador 6x de Reflexiones Tempranas (`AcousticReflectorEngine`):**
+      * Raytracing ortogonal en 6 ejes ($\pm X, \pm Y, \pm Z$) para calcular retardos físicos de eco ($t_i = (d_1+d_2)/c$), fuentes espejo virtuales ($E' = E - 2(\vec{n}\cdot\vec{v})\vec{n}$) y absorción espectral de materiales (`Metal`, `Concrete`, `Wood`, `Foliage`).
+    * **Difracción en Bordes y Esquinas Huygens-Fresnel (`EdgeDiffractionEngine`):**
+      * Búsqueda de aristas silueta perimetrales de obstáculos, cálculo de ángulo de sombra acústica $\theta \in [0, \pi]$ y curvatura espectral paso-bajo ($f(\theta) = 20000 \cdot \cos^2(\theta/2)$) con atenuación suave de ganancia.
+    * **Acoplamiento de Reverberación Inter-Habitaciones (`RoomCouplingEngine`):**
+      * Transmisión de colas de decaimiento RT60 entre volúmenes arquitectónicos conectados por portales según el área de apertura, y apertura angular (*Sound Spread*) dinámica ($15^\circ \to 180^\circ$) según la proximidad del oyente.
+    * **Gobernador de Rendimiento Acústico en 4 Niveles (`AcousticLODController`):**
+      * Culling y escalabilidad de CPU para consolas y móviles: LOD 0 ($0-10\text{m}$, física completa), LOD 1 ($10-25\text{m}$, oclusión simple), LOD 2 ($25-50\text{m}$, paneo 3D estándar), LOD 3 ($>50\text{m}$, virtualización total).
+    * **Ventana de Rango Dinámico HDR (`HDRAudioManager`):**
+      * Seguimiento en tiempo real de niveles pico dB FS, elevación de piso dinámico ante transientes de alta energía (explosiones/disparos) y compresión/ducking suave del fondo ambiental con recuperación exponencial configurable.
+    * **Verificación:**
+      * Suite `tests/test_spatial_acoustics_phase2.gd` con 10 pruebas unitarias y de integración.
+      * 262 pruebas pasando al 100% con `godot.cmd` (código de salida 0, 0 fallos).
+
 * **`TASK-051` - AAA Spatial Acoustics Phase 1: Physical Propagation, Material Mass Law, Obstruction/Occlusion & Volumetric Splines**
   * **Fecha:** 2026-08-30
   * **Resumen:**
