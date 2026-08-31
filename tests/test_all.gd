@@ -242,7 +242,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r46)
 	
 	var r47 = TestParameterArea3DClass.run_all()
-	total_tests += 10
+	total_tests += 11
 	all_failures.append_array(r47)
 	
 	var r48 = TestMultiPositionEmitter3DClass.run_all()

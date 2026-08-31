@@ -110,11 +110,11 @@ func _detect_surface() -> void:
 			var col_name = col.name.to_lower()
 			if "mud" in col_name:
 				new_surface = &"Mud"
-			elif "metal" in col_name:
+			elif "metal" in col_name or "bunker" in col_name or "generator" in col_name or "steel" in col_name:
 				new_surface = &"Metal"
-			elif "crypt" in col_name or "pillar" in col_name:
+			elif "crypt" in col_name or "pillar" in col_name or "stone" in col_name or "cavern" in col_name or "rock" in col_name:
 				new_surface = &"Stone"
-			elif "glass" in col_name:
+			elif "glass" in col_name or "concrete" in col_name or "corridor" in col_name or "toxic" in col_name or "lab" in col_name:
 				new_surface = &"Concrete"
 			elif "asphalt" in col_name or "floor" in col_name:
 				new_surface = &"Asphalt"

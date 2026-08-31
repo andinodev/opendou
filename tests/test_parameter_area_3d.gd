@@ -85,5 +85,14 @@ static func run_all() -> Array[String]:
 	if not is_debounced:
 		failures.append("Test 10 Failed: 50ms is below 150ms hysteresis threshold and should be debounced (return true)")
 
+	# Test 11: Parameter dispatch to AudioEventManager
+	var mgr = AudioEventManagerClass.new()
+	area.set_event_manager(mgr)
+	area.parameter_name = &"Radiation_Level"
+	area._apply_parameter_value(42.5)
+	if not is_equal_approx(mgr.get_rtpc(&"Radiation_Level"), 42.5):
+		failures.append("Test 11 Failed: _apply_parameter_value did not update RTPC on AudioEventManager")
+	mgr.free()
+
 	area.free()
 	return failures

@@ -107,7 +107,13 @@ func get_rtpc(param_name: StringName, default_value: float = 0.0) -> float:
 func post_trigger(trigger_name: StringName) -> void:
 	sync_manager.post_trigger(trigger_name)
 
-# Legacy global_parameter aliases for backward compatibility
+# Legacy and cross-node RTPC aliases for backward compatibility
+func set_rtpc_value(param_name: StringName, value: float, immediate: bool = false) -> void:
+	set_rtpc(param_name, value, immediate)
+
+func get_rtpc_value(param_name: StringName, default_value: float = 0.0) -> float:
+	return get_rtpc(param_name, default_value)
+
 func set_global_parameter(param_name: StringName, value: float, immediate: bool = false) -> void:
 	set_rtpc(param_name, value, immediate)
 

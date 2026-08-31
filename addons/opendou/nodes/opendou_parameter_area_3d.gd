@@ -65,7 +65,6 @@ var _event_manager: AudioEventManager = null
 
 func _ready() -> void:
 	if not Engine.is_editor_hint():
-		_event_manager = AudioEventManagerClass.new()
 		collision_mask = target_entity_mask
 		if not body_entered.is_connected(_on_body_entered):
 			body_entered.connect(_on_body_entered)
@@ -254,23 +253,47 @@ func _on_target_tree_exited(target: Node3D) -> void:
 # SNAPSHOT & RTPC DISPATCH
 # ==============================================================================
 
+## Sets an explicit AudioEventManager instance for dependency injection or isolated tests.
+func set_event_manager(manager: AudioEventManager) -> void:
+	_event_manager = manager
+
+func _get_manager() -> AudioEventManager:
+	if _event_manager != null and is_instance_valid(_event_manager):
+		return _event_manager
+	if is_inside_tree() and get_tree() != null:
+		var root = get_tree().root
+		if root != null and root.has_node("OpenDou"):
+			var node = root.get_node("OpenDou")
+			if node is AudioEventManager:
+				return node
+	if Engine.has_singleton("OpenDou"):
+		var s = Engine.get_singleton("OpenDou")
+		if s is AudioEventManager:
+			return s
+	return null
+
 func _apply_parameter_value(val: float) -> void:
 	if parameter_name.is_empty():
 		return
-	if _event_manager != null:
-		_event_manager.set_rtpc_value(parameter_name, val)
+	var mgr: AudioEventManager = _get_manager()
+	if mgr != null:
+		if mgr.has_method("set_rtpc"):
+			mgr.set_rtpc(parameter_name, val)
+		elif mgr.has_method("set_rtpc_value"):
+			mgr.set_rtpc_value(parameter_name, val)
 
 func _activate_snapshot() -> void:
 	if target_snapshot.is_empty() or _is_snapshot_active:
 		return
 	_is_snapshot_active = true
-	# Snapshot activation hook for master bus / snapshot manager
-	if _event_manager != null and _event_manager.has_method("push_snapshot"):
-		_event_manager.call("push_snapshot", target_snapshot)
+	var mgr: AudioEventManager = _get_manager()
+	if mgr != null and mgr.has_method("push_snapshot"):
+		mgr.call("push_snapshot", target_snapshot)
 
 func _release_snapshot() -> void:
 	if not _is_snapshot_active or target_snapshot.is_empty():
 		return
 	_is_snapshot_active = false
-	if _event_manager != null and _event_manager.has_method("pop_snapshot"):
-		_event_manager.call("pop_snapshot", target_snapshot)
+	var mgr: AudioEventManager = _get_manager()
+	if mgr != null and mgr.has_method("pop_snapshot"):
+		mgr.call("pop_snapshot", target_snapshot)
