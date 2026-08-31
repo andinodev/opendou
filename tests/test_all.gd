@@ -221,7 +221,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r42)
 	
 	var r43 = TestTacticalCanyonDemoClass.run_all()
-	total_tests += 8
+	total_tests += 11
 	all_failures.append_array(r43)
 	
 	var r44 = TestGranularEmitter3DClass.run_all()

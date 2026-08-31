@@ -11,6 +11,29 @@
 [ext_resource type="Script" uid="uid://ctbxqaxaxju70" path="res://addons/opendou/nodes/opendou_music_player.gd" id="9_music"]
 [ext_resource type="Script" uid="uid://bjggbw8iy7l6s" path="res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd" id="10_debugger"]
 [ext_resource type="Script" uid="uid://da047uvlnsfhn" path="res://addons/opendou/nodes/opendou_audible_monitor.gd" id="11_monitor"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_granular_emitter_3d.gd" id="12_granular"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_CanyonRock"]
+albedo_color = Color(0.48, 0.38, 0.28, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Mat_Gravel"]
+albedo_color = Color(0.32, 0.30, 0.28, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Mat_BunkerConcrete"]
+albedo_color = Color(0.38, 0.40, 0.42, 1)
+roughness = 0.88
+
+[sub_resource type="StandardMaterial3D" id="Mat_BunkerSteel"]
+albedo_color = Color(0.22, 0.24, 0.26, 1)
+metallic = 0.88
+roughness = 0.25
+
+[sub_resource type="StandardMaterial3D" id="Mat_TacticalGrid"]
+albedo_color = Color(0.25, 0.27, 0.30, 1)
+metallic = 0.5
+roughness = 0.5
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.25, 0.45, 0.75, 1)
@@ -117,6 +140,7 @@ synth_preset = "Wind_Canopy"
 
 [node name="GorgeTerrain" type="CSGBox3D" parent="LevelGeometry/Sector1_RiverGorge" unique_id=609852637]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+material_override = SubResource("Mat_CanyonRock")
 use_collision = true
 size = Vector3(25, 1, 50)
 
@@ -129,41 +153,61 @@ curve = SubResource("Curve3D_river")
 spline_path = SubResource("Curve3D_river")
 sound_spread_curve = SubResource("Curve_nqocu")
 
+[node name="CliffsideGranularEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector1_RiverGorge" unique_id=987654321]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, -5)
+unit_size = 3.0
+autoplay = true
+max_distance = 35.0
+script = ExtResource("12_granular")
+grain_size_ms = 40.0
+grain_rate_hz = 45.0
+position_jitter_ms = 15.0
+pitch_jitter_semitones = 2.0
+max_concurrent_grains = 32
+auto_play_emitter = true
+
 [node name="Sector2_Bunker" type="Node3D" parent="LevelGeometry" unique_id=283981031]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 0)
 
 [node name="BunkerFloor" type="CSGBox3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1581811720]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+material_override = SubResource("Mat_BunkerConcrete")
 use_collision = true
 size = Vector3(20, 1, 20)
 
 [node name="BunkerWallLeft" type="CSGBox3D" parent="LevelGeometry/Sector2_Bunker" unique_id=241358654]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 2.5, 0)
+material_override = SubResource("Mat_BunkerConcrete")
 use_collision = true
 size = Vector3(1, 5, 15)
 
 [node name="BunkerWallRight" type="CSGBox3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1031845173]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 2.5, 0)
+material_override = SubResource("Mat_BunkerConcrete")
 use_collision = true
 size = Vector3(1, 5, 15)
 
 [node name="BunkerWallBack" type="CSGBox3D" parent="LevelGeometry/Sector2_Bunker" unique_id=94153124]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -7)
+material_override = SubResource("Mat_BunkerConcrete")
 use_collision = true
 size = Vector3(15, 5, 1)
 
 [node name="BunkerWallFrontLeft" type="CSGBox3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1225245051]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 2.5, 7)
+material_override = SubResource("Mat_BunkerConcrete")
 use_collision = true
 size = Vector3(5, 5, 1)
 
 [node name="BunkerWallFrontRight" type="CSGBox3D" parent="LevelGeometry/Sector2_Bunker" unique_id=403685456]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5, 7)
+material_override = SubResource("Mat_BunkerConcrete")
 use_collision = true
 size = Vector3(5, 5, 1)
 
 [node name="BunkerDoor" type="CSGBox3D" parent="LevelGeometry/Sector2_Bunker" unique_id=2100538496]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, 7)
+material_override = SubResource("Mat_BunkerSteel")
 use_collision = true
 size = Vector3(4, 3, 0.4)
 
@@ -203,6 +247,9 @@ synth_preset = "Server_Hum"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 script = ExtResource("6_room")
 room_name = &"Bunker_Interior"
+reverb_mode = 1
+convolution_wet_db = -6.0
+convolution_dry_db = 0.0
 calculated_rt60 = 5.201538461538462
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="LevelGeometry/Sector2_Bunker/BunkerRoomArea" unique_id=342413984]
@@ -220,26 +267,31 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 0)
 
 [node name="LabFloor" type="CSGBox3D" parent="LevelGeometry/Sector3_MaterialLab" unique_id=1762929880]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+material_override = SubResource("Mat_TacticalGrid")
 use_collision = true
 size = Vector3(20, 1, 20)
 
 [node name="WallConcrete" type="CSGBox3D" parent="LevelGeometry/Sector3_MaterialLab" unique_id=1744233826]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2, 4)
+material_override = SubResource("Mat_BunkerConcrete")
 use_collision = true
 size = Vector3(3, 4, 0.5)
 
 [node name="WallMetal" type="CSGBox3D" parent="LevelGeometry/Sector3_MaterialLab" unique_id=170667304]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 2, 4)
+material_override = SubResource("Mat_BunkerSteel")
 use_collision = true
 size = Vector3(3, 4, 0.5)
 
 [node name="WallWood" type="CSGBox3D" parent="LevelGeometry/Sector3_MaterialLab" unique_id=507677629]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 2, 4)
+material_override = SubResource("Mat_CanyonRock")
 use_collision = true
 size = Vector3(3, 4, 0.5)
 
 [node name="WallFoliage" type="CSGBox3D" parent="LevelGeometry/Sector3_MaterialLab" unique_id=104943656]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, 4)
+material_override = SubResource("Mat_Gravel")
 use_collision = true
 size = Vector3(3, 4, 0.5)
 
@@ -267,6 +319,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 0, 0)
 
 [node name="DroneFloor" type="CSGBox3D" parent="LevelGeometry/Sector4_DroneRange" unique_id=1189757405]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+material_override = SubResource("Mat_TacticalGrid")
 use_collision = true
 size = Vector3(25, 1, 25)
 
@@ -274,6 +327,7 @@ size = Vector3(25, 1, 25)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 3, 0)
 
 [node name="DroneMesh" type="CSGBox3D" parent="LevelGeometry/Sector4_DroneRange/DroneEmitter" unique_id=27728850]
+material_override = SubResource("Mat_BunkerSteel")
 size = Vector3(1, 0.4, 1)
 
 [node name="DroneAudio" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector4_DroneRange/DroneEmitter" unique_id=2081938475]
@@ -291,11 +345,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 0)
 
 [node name="RangeFloor" type="CSGBox3D" parent="LevelGeometry/Sector5_HDRFiringRange" unique_id=1321878677]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+material_override = SubResource("Mat_TacticalGrid")
 use_collision = true
 size = Vector3(20, 1, 20)
 
 [node name="ExplosiveTarget" type="CSGCylinder3D" parent="LevelGeometry/Sector5_HDRFiringRange" unique_id=531273982]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 8)
+material_override = SubResource("Mat_BunkerSteel")
 use_collision = true
 radius = 0.8
 height = 1.6
@@ -363,7 +419,7 @@ text = "💣 S5: HDR Range"
 anchors_preset = 9
 anchor_bottom = 1.0
 offset_top = 56.0
-offset_right = 360.0
+offset_right = 380.0
 offset_bottom = -60.0
 grow_vertical = 2
 
@@ -440,6 +496,14 @@ layout_mode = 2
 [node name="BtnDetonate" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=1438459396]
 layout_mode = 2
 text = "💣 Detonate HDR"
+
+[node name="BtnToggleReverb" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=738820621]
+layout_mode = 2
+text = "🏛️ Reverb: CONV (C)"
+
+[node name="BtnToggleGranular" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=738820622]
+layout_mode = 2
+text = "🌾 Granular: GRAVEL (V)"
 
 [node name="BtnToggleAcoustics" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox" unique_id=738820620]
 layout_mode = 2

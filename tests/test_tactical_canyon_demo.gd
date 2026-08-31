@@ -124,6 +124,40 @@ static func run_all() -> Array[String]:
 		if hub.DEMO_SCENES[8] != "res://scenes/demos/08_tactical_canyon/demo_tactical_canyon.tscn":
 			failures.append("Test 8 Failed: Demo 8 path mismatch: %s" % hub.DEMO_SCENES[8])
 	hub.free()
+
+	# Test 9: Granular Emitter Node Existence & Preset Toggling
+	var granular = demo.get_node_or_null("LevelGeometry/Sector1_RiverGorge/CliffsideGranularEmitter")
+	if granular == null:
+		failures.append("Test 9 Failed: CliffsideGranularEmitter missing from Sector1_RiverGorge")
+	else:
+		if granular.grain_size_ms != 40.0:
+			failures.append("Test 9 Failed: Granular initial grain_size_ms should be 40.0")
+		demo.toggle_granular_preset() # switches to WIND
+		if demo.granular_mode != 1:
+			failures.append("Test 9 Failed: Granular mode toggle failed to switch to 1 (WIND)")
+		demo.toggle_granular_preset() # switches back to GRAVEL
+		if demo.granular_mode != 0:
+			failures.append("Test 9 Failed: Granular mode toggle failed to switch back to 0 (GRAVEL)")
+
+	# Test 10: Bunker Room Reverb Mode & Convolution Toggle
+	if demo.is_convolution_active != true:
+		failures.append("Test 10 Failed: Bunker convolution should initially be active")
+	demo.toggle_reverb_convolution() # switches to ALGORITHMIC
+	if demo.is_convolution_active != false or demo.room_bunker.reverb_mode != 0:
+		failures.append("Test 10 Failed: Reverb toggle failed to switch to ALGORITHMIC")
+	demo.toggle_reverb_convolution() # switches back to CONVOLUTION_IR
+	if demo.is_convolution_active != true or demo.room_bunker.reverb_mode != 1:
+		failures.append("Test 10 Failed: Reverb toggle failed to switch back to CONVOLUTION_IR")
+
+	# Test 11: Monolithic SoundBank Loading & Telemetry
+	if demo.soundbank_manager == null:
+		failures.append("Test 11 Failed: demo.soundbank_manager is null")
+	else:
+		var telem = demo.inspect_soundbank()
+		if not telem.has("bank_name") or telem["bank_name"] != &"tactical_canyon":
+			failures.append("Test 11 Failed: SoundBank telemetry missing bank_name 'tactical_canyon'")
+		if not telem.has("prefetch_ram_bytes") or telem["prefetch_ram_bytes"] <= 0:
+			failures.append("Test 11 Failed: SoundBank prefetch RAM bytes invalid")
+
 	demo.free()
-	
 	return failures

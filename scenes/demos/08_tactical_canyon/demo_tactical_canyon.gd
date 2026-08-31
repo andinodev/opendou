@@ -12,10 +12,14 @@ const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spati
 const AudioRoomClass = preload("res://addons/opendou/runtime/spatial/audio_room.gd")
 const AudioPortalClass = preload("res://addons/opendou/runtime/spatial/audio_portal.gd")
 const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
+const SoundBankManagerClass = preload("res://addons/opendou/runtime/soundbank_manager.gd")
+const SoundBankBuilderClass = preload("res://addons/opendou/runtime/soundbank_builder.gd")
+const OpenDouRoom3DClass = preload("res://addons/opendou/nodes/opendou_room_3d.gd")
 
 # Core Audio Managers (instanciados en código; los nodos de escena se integran automáticamente)
 var voice_pool: VoicePoolManager
 var spatial_acoustics: SpatialAcousticsManager
+var soundbank_manager: SoundBankManager
 
 # Acoustic Rooms & Portals (creados en código para el motor de acoplamiento de sala)
 var room_canyon: AudioRoom
@@ -30,6 +34,8 @@ var active_test_material: StringName = &"Concrete"
 var drone_orbit_angle: float = 0.0
 var is_debugger_active: bool = false
 var debugger_mode: int = 0
+var granular_mode: int = 0 # 0 = Gravel Slide, 1 = Wind Turbulence
+var is_convolution_active: bool = true
 
 # Sector Coordinates
 const SECTOR_POSITIONS: Dictionary = {
@@ -46,10 +52,14 @@ const SECTOR_POSITIONS: Dictionary = {
 
 @onready var player: Node3D = get_node_or_null("Player")
 @onready var bunker_door_mesh: CSGBox3D = get_node_or_null("LevelGeometry/Sector2_Bunker/BunkerDoor")
+@onready var bunker_room_node: OpenDouRoom3D = get_node_or_null("LevelGeometry/Sector2_Bunker/BunkerRoomArea")
 @onready var drone_emitter: Node3D = get_node_or_null("LevelGeometry/Sector4_DroneRange/DroneEmitter")
 
 # DroneAudio: único emisor que el script manipula activamente (pitch_scale por Doppler)
 @onready var drone_audio: AudioStreamPlayer3D = get_node_or_null("LevelGeometry/Sector4_DroneRange/DroneEmitter/DroneAudio")
+
+# Granular Audio: emisor granular 3D en el desfiladero
+@onready var granular_emitter: AudioStreamPlayer3D = get_node_or_null("LevelGeometry/Sector1_RiverGorge/CliffsideGranularEmitter")
 
 # ExplosionAudio: one-shot disparado manualmente por botón o teclado E
 @onready var explosion_audio: Node = get_node_or_null("LevelGeometry/Sector5_HDRFiringRange/ExplosionAudio")
@@ -71,6 +81,8 @@ const SECTOR_POSITIONS: Dictionary = {
 @onready var btn_toggle_door: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleDoor")
 @onready var opt_material: OptionButton = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/OptMaterial")
 @onready var btn_detonate: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnDetonate")
+@onready var btn_toggle_reverb: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleReverb")
+@onready var btn_toggle_granular: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleGranular")
 @onready var btn_toggle_acoustics: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics")
 @onready var btn_toggle_monitor: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleMonitor")
 
@@ -114,10 +126,12 @@ func _assign_river_stream() -> void:
 func _setup_runtime_systems() -> void:
 	voice_pool = VoicePoolManagerClass.new(16)
 	spatial_acoustics = SpatialAcousticsManagerClass.new()
+	soundbank_manager = SoundBankManagerClass.new()
 
 	# Registrar salas físicas en el motor acústico
 	room_canyon = AudioRoomClass.new(&"Canyon_Exterior", 2.2, 0.15, &"Stone")
 	room_bunker = AudioRoomClass.new(&"Bunker_Interior", 0.8, 0.85, &"Concrete")
+	room_bunker.reverb_mode = 1 # CONVOLUTION_IR por defecto
 	room_matlab = AudioRoomClass.new(&"Material_Lab", 1.1, 0.60, &"Metal")
 
 	spatial_acoustics.register_room(room_canyon)
@@ -127,6 +141,32 @@ func _setup_runtime_systems() -> void:
 	# Portal de acoplamiento de sala entre el cañón y el búnker
 	bunker_portal = AudioPortalClass.new(&"Bunker_Portal", &"Canyon_Exterior", &"Bunker_Interior", Vector3(30.0, 1.0, 0.0), 1.0)
 	spatial_acoustics.register_portal(bunker_portal)
+
+	# Empaquetar y cargar SoundBank binario monolítico (tactical_canyon.bnk)
+	var bank_path = "user://tactical_canyon.bnk"
+	if not FileAccess.file_exists(bank_path):
+		var bnk_entries: Dictionary = {
+			101: {
+				"name": &"Gunshot_Rifle",
+				"is_prefetch": true,
+				"sample_rate": 44100,
+				"channels": 1,
+				"samples": PackedFloat32Array([0.0, 0.9, -0.7, 0.5, -0.3, 0.1, 0.0])
+			},
+			102: {
+				"name": &"Radio_Chatter_Tactical",
+				"is_prefetch": false,
+				"sample_rate": 44100,
+				"channels": 1,
+				"samples": PackedFloat32Array([0.1, 0.2, 0.3, 0.2, 0.1, 0.0])
+			}
+		}
+		SoundBankBuilderClass.build_bank(bank_path, bnk_entries)
+	soundbank_manager.load_bank(bank_path, &"tactical_canyon")
+
+func _exit_tree() -> void:
+	if soundbank_manager:
+		soundbank_manager.unload_bank(&"tactical_canyon")
 
 # ─── UI & PLAYER CONNECTIONS ──────────────────────────────────────────────────
 
@@ -150,6 +190,8 @@ func _connect_ui() -> void:
 	if btn_back:
 		btn_back.pressed.connect(func():
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+			if soundbank_manager:
+				soundbank_manager.unload_bank(&"tactical_canyon")
 			if get_tree():
 				get_tree().change_scene_to_file("res://scenes/demos/demo_hub.tscn")
 		)
@@ -168,6 +210,12 @@ func _connect_ui() -> void:
 	if btn_detonate:
 		btn_detonate.pressed.connect(trigger_hdr_explosion)
 
+	if btn_toggle_reverb:
+		btn_toggle_reverb.pressed.connect(toggle_reverb_convolution)
+
+	if btn_toggle_granular:
+		btn_toggle_granular.pressed.connect(toggle_granular_preset)
+
 	if btn_toggle_acoustics:
 		btn_toggle_acoustics.pressed.connect(_on_toggle_acoustics_pressed)
 
@@ -181,6 +229,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_ESCAPE: Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 			KEY_TAB:    toggle_bunker_door()
+			KEY_C:      toggle_reverb_convolution()
+			KEY_V:      toggle_granular_preset()
+			KEY_B:      inspect_soundbank()
 			KEY_G:      _on_toggle_acoustics_pressed()
 			KEY_M, KEY_F8: _on_toggle_monitor_pressed()
 			KEY_E:      trigger_hdr_explosion()
@@ -189,6 +240,39 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_3:      teleport_to_sector(3)
 			KEY_4:      teleport_to_sector(4)
 			KEY_5:      teleport_to_sector(5)
+
+# ─── PUBLIC DEMO ACTIONS ──────────────────────────────────────────────────────
+
+func toggle_reverb_convolution() -> void:
+	is_convolution_active = not is_convolution_active
+	var target_mode = OpenDouRoom3DClass.ReverbMode.CONVOLUTION_IR if is_convolution_active else OpenDouRoom3DClass.ReverbMode.ALGORITHMIC
+	var b_room = bunker_room_node if bunker_room_node != null else get_node_or_null("LevelGeometry/Sector2_Bunker/BunkerRoomArea")
+	if b_room:
+		b_room.reverb_mode = target_mode
+	if room_bunker:
+		room_bunker.reverb_mode = 1 if is_convolution_active else 0
+	if btn_toggle_reverb:
+		btn_toggle_reverb.text = "🏛️ Reverb: CONV (C)" if is_convolution_active else "🏛️ Reverb: ALGO (C)"
+	_update_hud()
+
+func toggle_granular_preset() -> void:
+	granular_mode = (granular_mode + 1) % 2
+	var g = granular_emitter if granular_emitter != null else get_node_or_null("LevelGeometry/Sector1_RiverGorge/CliffsideGranularEmitter")
+	if g and g.has_method("set_grain_parameters"):
+		if granular_mode == 0:
+			g.set_grain_parameters(40.0, 45.0, 15.0, 2.0)
+		else:
+			g.set_grain_parameters(80.0, 90.0, 25.0, 5.0)
+	if btn_toggle_granular:
+		btn_toggle_granular.text = "🌾 Granular: GRAVEL (V)" if granular_mode == 0 else "🌾 Granular: WIND (V)"
+	_update_hud()
+
+func inspect_soundbank() -> Dictionary:
+	if soundbank_manager:
+		var telem = soundbank_manager.get_bank_telemetry(&"tactical_canyon")
+		_update_hud()
+		return telem
+	return {}
 
 # ─── PUBLIC DEMO ACTIONS ──────────────────────────────────────────────────────
 
@@ -351,6 +435,16 @@ func _update_hud() -> void:
 		lbl_material_tl.text = "🧱 Material: %s | TL: -%.1f dB | LPF: %.0f Hz" % [
 			active_test_material, att_db, cutoff
 		]
+
+	if lbl_acoustics:
+		var rev_str = "CONV IR" if is_convolution_active else "ALGO"
+		var gran_str = "GRAVEL" if granular_mode == 0 else "WIND"
+		var bnk_info = ""
+		if soundbank_manager:
+			var telem = soundbank_manager.get_bank_telemetry(&"tactical_canyon")
+			if telem.has("prefetch_ram_bytes"):
+				bnk_info = " | BNK RAM: %d B" % telem["prefetch_ram_bytes"]
+		lbl_acoustics.text = "🔊 Reverb: %s | Granular: %s%s" % [rev_str, gran_str, bnk_info]
 
 	if lbl_active_voices:
 		var count: int = 0
