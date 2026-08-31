@@ -34,55 +34,97 @@ const SECTOR_POSITIONS: Dictionary = {
 
 # ─── SCENE REFERENCES ─────────────────────────────────────────────────────────
 
-@onready var player: CharacterBody3D = get_node_or_null("Player_Rig")
-@onready var player_anim_sync: OpenDouAnimationSync = get_node_or_null("Player_Rig/AnimationSync")
-@onready var enemy_rig: CharacterBody3D = get_node_or_null("Characters/Elite_Enemy")
-@onready var enemy_anim_sync: OpenDouAnimationSync = get_node_or_null("Characters/Elite_Enemy/EnemyAnimationSync")
+var player: CharacterBody3D = null
+var player_anim_sync: OpenDouAnimationSync = null
+var enemy_rig: CharacterBody3D = null
+var enemy_anim_sync: OpenDouAnimationSync = null
 
-@onready var acoustic_bake: OpenDouAcousticGeometryBake = get_node_or_null("Acoustic_Processor")
-@onready var room_cavern: OpenDouRoom3D = get_node_or_null("Environment/Outer_Cavern")
-@onready var room_bunker: OpenDouRoom3D = get_node_or_null("Environment/Bunker_Complex/Generator_Room")
-@onready var access_portal: OpenDouPortal3D = get_node_or_null("Environment/Bunker_Complex/Access_Portal")
-@onready var blast_door_mesh: Node3D = get_node_or_null("Environment/Bunker_Complex/Access_Portal/Blast_Door")
+var acoustic_bake: OpenDouAcousticGeometryBake = null
+var room_cavern: OpenDouRoom3D = null
+var room_bunker: OpenDouRoom3D = null
+var access_portal: OpenDouPortal3D = null
+var blast_door_mesh: Node3D = null
 
-@onready var toxic_area: OpenDouParameterArea3D = get_node_or_null("Environment/Toxic_Zone")
-@onready var river_spline: AudioStreamPlayer3D = get_node_or_null("Environment/Outer_Cavern/Underground_River")
-@onready var spore_granular: AudioStreamPlayer3D = get_node_or_null("Environment/Toxic_Zone/Toxic_Spores")
-@onready var generator_multi: OpenDouMultiPositionEmitter3D = get_node_or_null("Environment/Bunker_Complex/Generator_Room/Main_Generator")
-@onready var cavern_reflector: Node3D = get_node_or_null("Environment/Outer_Cavern/Cavern_Reflector")
+var toxic_area: OpenDouParameterArea3D = null
+var river_spline: AudioStreamPlayer3D = null
+var spore_granular: AudioStreamPlayer3D = null
+var generator_multi: OpenDouMultiPositionEmitter3D = null
+var cavern_reflector: Node3D = null
 
-@onready var music_player: Node = get_node_or_null("Systems/Dynamic_Soundtrack")
-@onready var acoustic_debugger: Node = get_node_or_null("Systems/Acoustic_Debugger")
-@onready var audible_monitor: Node = get_node_or_null("TacticalHUD/AudibleMonitor")
+var music_player: Node = null
+var acoustic_debugger: Node = null
+var audible_monitor: Node = null
 
 # ─── UI REFERENCES ─────────────────────────────────────────────────────────────
 
-@onready var btn_sector1: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector1")
-@onready var btn_sector2: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector2")
-@onready var btn_sector3: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector3")
-@onready var btn_sector4: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector4")
-@onready var btn_back: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnBack")
+var btn_sector1: Button = null
+var btn_sector2: Button = null
+var btn_sector3: Button = null
+var btn_sector4: Button = null
+var btn_back: Button = null
 
-@onready var btn_toggle_door: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleDoor")
-@onready var btn_bake: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnBake")
-@onready var btn_alert_enemy: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnAlertEnemy")
-@onready var btn_toggle_acoustics: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics")
-@onready var btn_toggle_monitor: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleMonitor")
+var btn_toggle_door: Button = null
+var btn_bake: Button = null
+var btn_alert_enemy: Button = null
+var btn_toggle_acoustics: Button = null
+var btn_toggle_monitor: Button = null
 
-@onready var lbl_sector: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSector")
-@onready var lbl_surface: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSurface")
-@onready var lbl_tension: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblTension")
-@onready var lbl_generator: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblGenerator")
-@onready var lbl_bake_stats: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblBakeStats")
-@onready var lbl_voices: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblVoices")
+var lbl_sector: Label = null
+var lbl_surface: Label = null
+var lbl_tension: Label = null
+var lbl_generator: Label = null
+var lbl_bake_stats: Label = null
+var lbl_voices: Label = null
 
 # ─── INITIALIZATION ───────────────────────────────────────────────────────────
 
 func _ready() -> void:
+	_init_scene_references()
 	_connect_ui()
 	if acoustic_bake:
 		acoustic_bake.bake_geometry()
 	teleport_to_sector(1)
+
+func _init_scene_references() -> void:
+	if player == null: player = get_node_or_null("Player_Rig")
+	if player_anim_sync == null: player_anim_sync = get_node_or_null("Player_Rig/AnimationSync")
+	if enemy_rig == null: enemy_rig = get_node_or_null("Characters/Elite_Enemy")
+	if enemy_anim_sync == null: enemy_anim_sync = get_node_or_null("Characters/Elite_Enemy/EnemyAnimationSync")
+
+	if acoustic_bake == null: acoustic_bake = get_node_or_null("Acoustic_Processor")
+	if room_cavern == null: room_cavern = get_node_or_null("Environment/Outer_Cavern")
+	if room_bunker == null: room_bunker = get_node_or_null("Environment/Bunker_Complex/Generator_Room")
+	if access_portal == null: access_portal = get_node_or_null("Environment/Bunker_Complex/Access_Portal")
+	if blast_door_mesh == null: blast_door_mesh = get_node_or_null("Environment/Bunker_Complex/Access_Portal/Blast_Door")
+
+	if toxic_area == null: toxic_area = get_node_or_null("Environment/Toxic_Zone")
+	if river_spline == null: river_spline = get_node_or_null("Environment/Outer_Cavern/Underground_River")
+	if spore_granular == null: spore_granular = get_node_or_null("Environment/Toxic_Zone/Toxic_Spores")
+	if generator_multi == null: generator_multi = get_node_or_null("Environment/Bunker_Complex/Generator_Room/Main_Generator")
+	if cavern_reflector == null: cavern_reflector = get_node_or_null("Environment/Outer_Cavern/Cavern_Reflector")
+
+	if music_player == null: music_player = get_node_or_null("Systems/Dynamic_Soundtrack")
+	if acoustic_debugger == null: acoustic_debugger = get_node_or_null("Systems/Acoustic_Debugger")
+	if audible_monitor == null: audible_monitor = get_node_or_null("TacticalHUD/AudibleMonitor")
+
+	if btn_sector1 == null: btn_sector1 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector1")
+	if btn_sector2 == null: btn_sector2 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector2")
+	if btn_sector3 == null: btn_sector3 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector3")
+	if btn_sector4 == null: btn_sector4 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector4")
+	if btn_back == null: btn_back = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnBack")
+
+	if btn_toggle_door == null: btn_toggle_door = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleDoor")
+	if btn_bake == null: btn_bake = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnBake")
+	if btn_alert_enemy == null: btn_alert_enemy = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnAlertEnemy")
+	if btn_toggle_acoustics == null: btn_toggle_acoustics = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics")
+	if btn_toggle_monitor == null: btn_toggle_monitor = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleMonitor")
+
+	if lbl_sector == null: lbl_sector = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSector")
+	if lbl_surface == null: lbl_surface = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSurface")
+	if lbl_tension == null: lbl_tension = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblTension")
+	if lbl_generator == null: lbl_generator = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblGenerator")
+	if lbl_bake_stats == null: lbl_bake_stats = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblBakeStats")
+	if lbl_voices == null: lbl_voices = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblVoices")
 
 func _connect_ui() -> void:
 	if btn_sector1:
@@ -132,6 +174,7 @@ func _update_player_locomotion() -> void:
 		toxic_tension_value = 0.0
 
 func _update_telemetry() -> void:
+	var p_pos = player.global_position if (player and player.is_inside_tree()) else Vector3.ZERO
 	if lbl_sector:
 		lbl_sector.text = "Sector: %d / 4 (%s)" % [active_sector_idx, _get_sector_name(active_sector_idx)]
 	if lbl_surface:
@@ -142,7 +185,6 @@ func _update_telemetry() -> void:
 			"Snapshot Active" if toxic_tension_value > 0.5 else "Normal"
 		]
 	if lbl_generator and generator_multi:
-		var p_pos = player.global_position if (player and player.is_inside_tree()) else Vector3.ZERO
 		var nearest = generator_multi.get_closest_point_to(p_pos)
 		lbl_generator.text = "Generator Active Vertex: %s (Dist: %.1fm)" % [
 			str(nearest),
@@ -154,7 +196,12 @@ func _update_telemetry() -> void:
 			acoustic_bake.get_baked_aabbs().size()
 		]
 	if lbl_voices:
-		lbl_voices.text = "FPS: %d | Spatial Pipeline: Active" % int(Engine.get_frames_per_second())
+		var enc = "Exterior Cavern (Stone RT60: 9.6s)"
+		if p_pos.x >= 50.0:
+			enc = "Bunker Generator Core (Metal RT60: 7.1s)"
+		elif p_pos.x >= 20.0:
+			enc = "Toxic Tunnel (Concrete RT60: 4.5s | Spores Active)"
+		lbl_voices.text = "Acoustic Enclosure: %s" % enc
 
 func _get_sector_name(idx: int) -> String:
 	match idx:
@@ -182,7 +229,7 @@ func toggle_blast_door() -> void:
 	if access_portal:
 		access_portal.set_open_factor(1.0 if is_blast_door_open else 0.0)
 	if btn_toggle_door:
-		btn_toggle_door.text = "Door: OPEN" if is_blast_door_open else "Door: CLOSED"
+		btn_toggle_door.text = "🚪 Door: OPEN (Diffracting)" if is_blast_door_open else "🚪 Door: CLOSED (Isolated 300Hz)"
 
 func trigger_enemy_alert() -> void:
 	if enemy_anim_sync:
