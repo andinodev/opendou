@@ -208,7 +208,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r40)
 	
 	var r41 = TestSpatialAcousticsPhase1Class.run_all()
-	total_tests += 5
+	total_tests += 8
 	all_failures.append_array(r41)
 	
 	return {

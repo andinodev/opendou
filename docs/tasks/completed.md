@@ -6,6 +6,25 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-051` - AAA Spatial Acoustics Phase 1: Physical Propagation, Material Mass Law, Obstruction/Occlusion & Volumetric Splines**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Matriz de Materiales Físicos y Atenuación por Ley de Masas (`AcousticMaterialRegistry`):**
+      * Registro canónico físico inmutable para 8 materiales estándar: `Concrete` ($2400\text{ kg/m}^3, 350\text{ Hz}$), `Stone` ($2400\text{ kg/m}^3, 350\text{ Hz}$), `Metal` ($7800\text{ kg/m}^3, 1200\text{ Hz}$), `Glass` ($2500\text{ kg/m}^3, 800\text{ Hz}$), `Wood` ($700\text{ kg/m}^3, 2000\text{ Hz}$), `Foliage` ($150\text{ kg/m}^3, 4500\text{ Hz}$), `Water` ($1000\text{ kg/m}^3, 600\text{ Hz}$), `Asphalt` ($2100\text{ kg/m}^3, 400\text{ Hz}$).
+      * Cálculo determinista de pérdidas de transmisión: $\text{TL}_{\text{dB}} = 20 \cdot \log_{10}(1.0 + \frac{\rho}{500} \cdot \Delta x \cdot \sqrt{\frac{f}{1000}})$, interpolación del corte LPF y soporte de sobreescrituras en `opendou_acoustic_materials.json`.
+    * **Separación de Obstrucción vs. Oclusión (`SpatialAcousticsManager` / `evaluate_acoustic_path`):**
+      * Obstrucción (misma sala): Bloqueo parcial en línea de visión directa aplica LPF solo a la señal directa manteniendo el envío de reverberación al 100% (`reverb_send_factor = 1.0`).
+      * Oclusión (entre salas / muros): Atenuación por ley de masas aplicada tanto a la señal directa como a los envíos de reverberación (`reverb_send_factor < 1.0`).
+      * Amortiguación atmosférica por distancia: $f_{\text{cutoff}} = \text{clamp}(20000 \cdot e^{-0.015 \cdot d}, 800, 20000)$.
+      * Efecto Doppler cinemático estabilizado: $f' = f \cdot \frac{c - \vec{v}_l \cdot \hat{u}}{c - \vec{v}_e \cdot \hat{u}}$, acotado de forma segura entre $[0.5, 2.0]$.
+    * **Emisor Volumétrico 3D por Splines (`OpenDouSplineEmitter3D`):**
+      * Proyección acústica continua a lo largo de un `Curve3D` proyectando la posición virtual en el punto más cercano al oyente en tiempo real.
+      * Culling de distancia al cuadrado ($d > \text{max\_virtual\_distance} + 10\text{m}$) para omitir cálculo de splines fuera de rango.
+      * Icono SVG personalizado `icon_spline_emitter_3d.svg` y registro en `plugin.gd`.
+    * **Verificación:**
+      * Suite `tests/test_spatial_acoustics_phase1.gd` con 8 pruebas exhaustivas.
+      * 252 pruebas unitarias y de integración pasando al 100% con `godot.cmd` (código de salida 0, 0 fallos).
+
 * **`TASK-050 (Task 2)` - Rediseño del Diálogo Add Track en Music DAW Timeline con Navegador de Sintetizadores, Audición y Auto-relleno Predictivo**
   * **Fecha:** 2026-08-30
   * **Resumen:**

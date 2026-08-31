@@ -3,6 +3,7 @@ extends RefCounted
 
 const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
+const OpenDouSplineEmitter3DClass = preload("res://addons/opendou/nodes/opendou_spline_emitter_3d.gd")
 
 static func run_all() -> Array[String]:
 	var failures: Array[String] = []
@@ -108,5 +109,44 @@ static func run_all() -> Array[String]:
 	if diff_room_path["reverb_send_factor"] >= 1.0:
 		failures.append("Test 5 Failed: Inter-room path should dampen reverb_send_factor (< 1.0)")
 	
+	# Test 6: OpenDouSplineEmitter3D instantiation and default properties
+	var emitter = OpenDouSplineEmitter3DClass.new()
+	if emitter == null:
+		failures.append("Test 6 Failed: Could not instantiate OpenDouSplineEmitter3D")
+	else:
+		if not emitter.enable_air_absorption or not emitter.enable_doppler:
+			failures.append("Test 6 Failed: Spline emitter defaults should enable air absorption and doppler")
+		if emitter.max_virtual_distance <= 0.0:
+			failures.append("Test 6 Failed: Invalid max_virtual_distance on spline emitter")
+		
+		# Test 7: Closest-point tracking along Curve3D path
+		var curve = Curve3D.new()
+		curve.add_point(Vector3(0, 0, 0))
+		curve.add_point(Vector3(10, 0, 0))
+		curve.add_point(Vector3(10, 0, 10))
+		emitter.curve = curve
+		
+		var listener_mid = Vector3(5, 0, 10)
+		var closest_pt = emitter.get_closest_virtual_point(listener_mid)
+		# Closest point on the L curve to (5, 0, 10) is along segment (10,0,0)->(10,0,10) or (0,0,0)->(10,0,0)
+		if closest_pt.distance_to(Vector3(5, 0, 0)) > 0.1 and closest_pt.distance_to(Vector3(10, 0, 10)) > 0.1:
+			failures.append("Test 7 Failed: Spline emitter did not resolve closest point on curve (got %s)" % str(closest_pt))
+		
+		emitter.free()
+	
+	# Test 8: Custom SVG icon and plugin registration verification
+	if not FileAccess.file_exists("res://addons/opendou/icons/icon_spline_emitter_3d.svg"):
+		failures.append("Test 8 Failed: icon_spline_emitter_3d.svg not found")
+	
+	var plugin_file = FileAccess.open("res://addons/opendou/plugin.gd", FileAccess.READ)
+	if plugin_file:
+		var plugin_text = plugin_file.get_as_text()
+		plugin_file.close()
+		if not plugin_text.contains("OpenDouSplineEmitter3D"):
+			failures.append("Test 8 Failed: OpenDouSplineEmitter3D not registered in plugin.gd")
+	else:
+		failures.append("Test 8 Failed: Could not read plugin.gd")
+	
 	return failures
+
 
