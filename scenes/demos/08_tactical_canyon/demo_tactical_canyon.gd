@@ -2,20 +2,22 @@ class_name OpenDouTacticalCanyonDemo
 extends Node3D
 
 ## Master Coordinator & Logic Controller for Tactical Canyon AAA Showcase Demo (Sector 8)
+##
+## Todos los emisores de audio son nodos OpenDou declarativos configurados en la escena .tscn.
+## Este script solo gestiona la lógica de coordenadas, el HUD táctico, y las lecturas de
+## telemetría acústica. No crea ni arranca streams de audio manualmente.
 
 const VoicePoolManagerClass = preload("res://addons/opendou/runtime/voice_pool_manager.gd")
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
 const AudioRoomClass = preload("res://addons/opendou/runtime/spatial/audio_room.gd")
 const AudioPortalClass = preload("res://addons/opendou/runtime/spatial/audio_portal.gd")
-const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
-const OpenDouSplineEmitter3DClass = preload("res://addons/opendou/nodes/opendou_spline_emitter_3d.gd")
 
-# Core Audio Managers
+# Core Audio Managers (instanciados en código; los nodos de escena se integran automáticamente)
 var voice_pool: VoicePoolManager
 var spatial_acoustics: SpatialAcousticsManager
 
-# Acoustic Rooms & Portals
+# Acoustic Rooms & Portals (creados en código para el motor de acoplamiento de sala)
 var room_canyon: AudioRoom
 var room_bunker: AudioRoom
 var room_matlab: AudioRoom
@@ -26,40 +28,46 @@ var active_sector_idx: int = 1
 var is_bunker_door_open: bool = true
 var active_test_material: StringName = &"Concrete"
 var drone_orbit_angle: float = 0.0
-var drone_speed: float = 25.0 # m/s
 var is_debugger_active: bool = false
 var debugger_mode: int = 0
 
 # Sector Coordinates
 const SECTOR_POSITIONS: Dictionary = {
-	1: Vector3(0.0, 1.0, 0.0),    # Sector 1: River Gorge (Spline Emitter)
-	2: Vector3(30.0, 1.0, 0.0),   # Sector 2: Bunker & Coupled Portal
-	3: Vector3(60.0, 1.0, 0.0),   # Sector 3: Material Mass-Law Lab
-	4: Vector3(90.0, 1.0, 0.0),   # Sector 4: Combat Drone (Doppler & LOD)
+	1: Vector3(0.0, 1.0, 0.0),    # Sector 1: River Gorge
+	2: Vector3(30.0, 1.0, 0.0),   # Sector 2: Bunker & Portal
+	3: Vector3(60.0, 1.0, 0.0),   # Sector 3: Material Lab
+	4: Vector3(90.0, 1.0, 0.0),   # Sector 4: Drone Range
 	5: Vector3(120.0, 1.0, 0.0)   # Sector 5: HDR Firing Range
 }
 
-# Scene Node References
+# ─── SCENE NODE REFERENCES ────────────────────────────────────────────────────
+# Solo se referencian los nodos que requieren interacción activa del script.
+# Los emisores con auto_play_event = true se gestionan solos vía OpenDouEventPlayer.
+
 @onready var player: Node3D = get_node_or_null("Player")
-@onready var river_spline_emitter: Node3D = get_node_or_null("LevelGeometry/Sector1_RiverGorge/RiverSplineEmitter")
 @onready var bunker_door_mesh: CSGBox3D = get_node_or_null("LevelGeometry/Sector2_Bunker/BunkerDoor")
-@onready var bunker_generator_audio: AudioStreamPlayer3D = get_node_or_null("LevelGeometry/Sector2_Bunker/BunkerGeneratorAudio")
-@onready var lab_speaker_audio: AudioStreamPlayer3D = get_node_or_null("LevelGeometry/Sector3_MaterialLab/LabSpeakerAudio")
 @onready var drone_emitter: Node3D = get_node_or_null("LevelGeometry/Sector4_DroneRange/DroneEmitter")
+
+# DroneAudio: único emisor que el script manipula activamente (pitch_scale por Doppler)
 @onready var drone_audio: AudioStreamPlayer3D = get_node_or_null("LevelGeometry/Sector4_DroneRange/DroneEmitter/DroneAudio")
-@onready var explosion_audio: AudioStreamPlayer3D = get_node_or_null("LevelGeometry/Sector5_HDRFiringRange/ExplosionAudio")
-@onready var canyon_wind_audio: AudioStreamPlayer = get_node_or_null("CanyonWindAudio")
+
+# ExplosionAudio: one-shot disparado manualmente por botón o teclado E
+@onready var explosion_audio: Node = get_node_or_null("LevelGeometry/Sector5_HDRFiringRange/ExplosionAudio")
+
 @onready var acoustic_debugger: Node = get_node_or_null("LevelGeometry/AcousticDebugger")
 @onready var audible_monitor: Node = get_node_or_null("AudibleMonitor")
 
-# UI References
+# River spline: el script llama a update_virtual_position() cada frame
+@onready var river_spline_emitter: Node = get_node_or_null("LevelGeometry/Sector1_RiverGorge/RiverSplineEmitter")
+
+# ─── UI REFERENCES ─────────────────────────────────────────────────────────────
+
 @onready var btn_sector1: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector1")
 @onready var btn_sector2: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector2")
 @onready var btn_sector3: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector3")
 @onready var btn_sector4: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector4")
 @onready var btn_sector5: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector5")
 @onready var btn_back: Button = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnBack")
-
 @onready var btn_toggle_door: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleDoor")
 @onready var opt_material: OptionButton = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/OptMaterial")
 @onready var btn_detonate: Button = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnDetonate")
@@ -75,115 +83,61 @@ const SECTOR_POSITIONS: Dictionary = {
 @onready var lbl_hdr_window: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblHDRWindow")
 @onready var lbl_active_voices: Label = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblActiveVoices")
 
+# ─── LIFECYCLE ────────────────────────────────────────────────────────────────
+
 func _init() -> void:
 	_setup_runtime_systems()
 
 func _ready() -> void:
-	_bind_nodes()
-	if not voice_pool:
-		_setup_runtime_systems()
-	_start_ambient_audio()
-	_connect_player()
 	_connect_ui()
+	_connect_player()
+	_assign_river_stream()
 	_update_hud()
 
-func _bind_nodes() -> void:
-	if not player: player = get_node_or_null("Player")
-	if not river_spline_emitter: river_spline_emitter = get_node_or_null("LevelGeometry/Sector1_RiverGorge/RiverSplineEmitter")
-	if not bunker_door_mesh: bunker_door_mesh = get_node_or_null("LevelGeometry/Sector2_Bunker/BunkerDoor")
-	if not bunker_generator_audio: bunker_generator_audio = get_node_or_null("LevelGeometry/Sector2_Bunker/BunkerGeneratorAudio")
-	if not lab_speaker_audio: lab_speaker_audio = get_node_or_null("LevelGeometry/Sector3_MaterialLab/LabSpeakerAudio")
-	if not drone_emitter: drone_emitter = get_node_or_null("LevelGeometry/Sector4_DroneRange/DroneEmitter")
-	if not drone_audio: drone_audio = get_node_or_null("LevelGeometry/Sector4_DroneRange/DroneEmitter/DroneAudio")
-	if not explosion_audio: explosion_audio = get_node_or_null("LevelGeometry/Sector5_HDRFiringRange/ExplosionAudio")
-	if not canyon_wind_audio: canyon_wind_audio = get_node_or_null("CanyonWindAudio")
-	if not acoustic_debugger: acoustic_debugger = get_node_or_null("LevelGeometry/AcousticDebugger")
-	if not audible_monitor: audible_monitor = get_node_or_null("AudibleMonitor")
-	
-	if not btn_sector1: btn_sector1 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector1")
-	if not btn_sector2: btn_sector2 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector2")
-	if not btn_sector3: btn_sector3 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector3")
-	if not btn_sector4: btn_sector4 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector4")
-	if not btn_sector5: btn_sector5 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector5")
-	if not btn_back: btn_back = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnBack")
-	
-	if not btn_toggle_door: btn_toggle_door = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleDoor")
-	if not opt_material: opt_material = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/OptMaterial")
-	if not btn_detonate: btn_detonate = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnDetonate")
-	if not btn_toggle_acoustics: btn_toggle_acoustics = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics")
-	if not btn_toggle_monitor: btn_toggle_monitor = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleMonitor")
-	
-	if not lbl_sector: lbl_sector = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSector")
-	if not lbl_surface: lbl_surface = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSurface")
-	if not lbl_acoustics: lbl_acoustics = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblAcoustics")
-	if not lbl_portal_spread: lbl_portal_spread = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblPortalSpread")
-	if not lbl_material_tl: lbl_material_tl = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblMaterialTL")
-	if not lbl_drone_doppler: lbl_drone_doppler = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblDroneDoppler")
-	if not lbl_hdr_window: lbl_hdr_window = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblHDRWindow")
-	if not lbl_active_voices: lbl_active_voices = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblActiveVoices")
+func _assign_river_stream() -> void:
+	if river_spline_emitter == null:
+		return
+	var reg_script = load("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
+	if reg_script == null:
+		return
+	var reg = reg_script.get_singleton()
+	if reg == null:
+		return
+	var stream = reg.get_preset_stream("Waterfall_Stream")
+	if stream != null:
+		river_spline_emitter.stream = stream
+		if not river_spline_emitter.playing:
+			river_spline_emitter.play()
+
+# ─── RUNTIME SYSTEM SETUP ─────────────────────────────────────────────────────
 
 func _setup_runtime_systems() -> void:
 	voice_pool = VoicePoolManagerClass.new(16)
 	spatial_acoustics = SpatialAcousticsManagerClass.new()
-	
-	# Create Physical Rooms
+
+	# Registrar salas físicas en el motor acústico
 	room_canyon = AudioRoomClass.new(&"Canyon_Exterior", 2.2, 0.15, &"Stone")
 	room_bunker = AudioRoomClass.new(&"Bunker_Interior", 0.8, 0.85, &"Concrete")
 	room_matlab = AudioRoomClass.new(&"Material_Lab", 1.1, 0.60, &"Metal")
-	
+
 	spatial_acoustics.register_room(room_canyon)
 	spatial_acoustics.register_room(room_bunker)
 	spatial_acoustics.register_room(room_matlab)
-	
-	# Create Portal between Canyon and Bunker
+
+	# Portal de acoplamiento de sala entre el cañón y el búnker
 	bunker_portal = AudioPortalClass.new(&"Bunker_Portal", &"Canyon_Exterior", &"Bunker_Interior", Vector3(30.0, 1.0, 0.0), 1.0)
 	spatial_acoustics.register_portal(bunker_portal)
 
-func _start_ambient_audio() -> void:
-	# 1. Continuous River Gorge Spline Emitter
-	if river_spline_emitter:
-		if river_spline_emitter.get("stream") == null:
-			river_spline_emitter.set("stream", AudioSynthesizerClass.create_water_stream_ambient_loop(3.0))
-		if river_spline_emitter.is_inside_tree() and river_spline_emitter.has_method("play") and not river_spline_emitter.get("playing"):
-			river_spline_emitter.call("play")
-			
-	# 2. Bunker Generator Hum
-	if bunker_generator_audio:
-		if bunker_generator_audio.stream == null:
-			bunker_generator_audio.stream = AudioSynthesizerClass.create_server_ambient_loop(2.0)
-		if bunker_generator_audio.is_inside_tree() and not bunker_generator_audio.playing:
-			bunker_generator_audio.play()
-			
-	# 3. Material Lab Acoustic Test Speaker
-	if lab_speaker_audio:
-		if lab_speaker_audio.stream == null:
-			lab_speaker_audio.stream = AudioSynthesizerClass.create_chord_loop(2.0)
-		if lab_speaker_audio.is_inside_tree() and not lab_speaker_audio.playing:
-			lab_speaker_audio.play()
-			
-	# 4. Combat Drone Engine Thruster
-	if drone_audio:
-		if drone_audio.stream == null:
-			drone_audio.stream = AudioSynthesizerClass.create_engine_loop(85.0, 1.5)
-		if drone_audio.is_inside_tree() and not drone_audio.playing:
-			drone_audio.play()
-			
-	# 5. Canyon Atmospheric Wind Ambience
-	if canyon_wind_audio:
-		if canyon_wind_audio.stream == null:
-			canyon_wind_audio.stream = AudioSynthesizerClass.create_canopy_wind_loop(3.0)
-		if canyon_wind_audio.is_inside_tree() and not canyon_wind_audio.playing:
-			canyon_wind_audio.play()
+# ─── UI & PLAYER CONNECTIONS ──────────────────────────────────────────────────
 
 func _connect_player() -> void:
-	if player:
-		if player.has_signal("weapon_fired") and not player.weapon_fired.is_connected(_on_player_weapon_fired):
+	if player and player.has_signal("weapon_fired"):
+		if not player.weapon_fired.is_connected(_on_player_weapon_fired):
 			player.weapon_fired.connect(_on_player_weapon_fired)
 
-func _on_player_weapon_fired(bullet_pos: Vector3) -> void:
-	# If shooting inside Sector 5 Firing Range, trigger explosive target detonation
-	var p_pos = player.global_position if (player and player.is_inside_tree()) else Vector3.ZERO
-	if p_pos.x > 105.0 or active_sector_idx == 5:
+func _on_player_weapon_fired(_bullet_pos: Vector3) -> void:
+	# Disparar en el Sector 5 activa el target explosivo HDR
+	if active_sector_idx == 5:
 		trigger_hdr_explosion()
 
 func _connect_ui() -> void:
@@ -192,17 +146,17 @@ func _connect_ui() -> void:
 	if btn_sector3: btn_sector3.pressed.connect(func(): teleport_to_sector(3))
 	if btn_sector4: btn_sector4.pressed.connect(func(): teleport_to_sector(4))
 	if btn_sector5: btn_sector5.pressed.connect(func(): teleport_to_sector(5))
-	
+
 	if btn_back:
 		btn_back.pressed.connect(func():
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 			if get_tree():
 				get_tree().change_scene_to_file("res://scenes/demos/demo_hub.tscn")
 		)
-	
+
 	if btn_toggle_door:
 		btn_toggle_door.pressed.connect(toggle_bunker_door)
-	
+
 	if opt_material:
 		opt_material.clear()
 		opt_material.add_item("Concrete (2400 kg/m³)")
@@ -210,48 +164,44 @@ func _connect_ui() -> void:
 		opt_material.add_item("Wood (700 kg/m³)")
 		opt_material.add_item("Foliage (150 kg/m³)")
 		opt_material.item_selected.connect(_on_material_selected)
-		
+
 	if btn_detonate:
 		btn_detonate.pressed.connect(trigger_hdr_explosion)
-		
+
 	if btn_toggle_acoustics:
 		btn_toggle_acoustics.pressed.connect(_on_toggle_acoustics_pressed)
-		
+
 	if btn_toggle_monitor:
 		btn_toggle_monitor.pressed.connect(_on_toggle_monitor_pressed)
 
+# ─── KEYBOARD SHORTCUTS ───────────────────────────────────────────────────────
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_ESCAPE:
-			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-		elif event.keycode == KEY_TAB:
-			toggle_bunker_door()
-		elif event.keycode == KEY_G:
-			_on_toggle_acoustics_pressed()
-		elif event.keycode == KEY_M:
-			_on_toggle_monitor_pressed()
-		elif event.keycode == KEY_E:
-			trigger_hdr_explosion()
-		elif event.keycode == KEY_1:
-			teleport_to_sector(1)
-		elif event.keycode == KEY_2:
-			teleport_to_sector(2)
-		elif event.keycode == KEY_3:
-			teleport_to_sector(3)
-		elif event.keycode == KEY_4:
-			teleport_to_sector(4)
-		elif event.keycode == KEY_5:
-			teleport_to_sector(5)
+		match event.keycode:
+			KEY_ESCAPE: Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+			KEY_TAB:    toggle_bunker_door()
+			KEY_G:      _on_toggle_acoustics_pressed()
+			KEY_M, KEY_F8: _on_toggle_monitor_pressed()
+			KEY_E:      trigger_hdr_explosion()
+			KEY_1:      teleport_to_sector(1)
+			KEY_2:      teleport_to_sector(2)
+			KEY_3:      teleport_to_sector(3)
+			KEY_4:      teleport_to_sector(4)
+			KEY_5:      teleport_to_sector(5)
+
+# ─── PUBLIC DEMO ACTIONS ──────────────────────────────────────────────────────
 
 func teleport_to_sector(sector_idx: int) -> void:
-	_bind_nodes()
 	if SECTOR_POSITIONS.has(sector_idx):
 		active_sector_idx = sector_idx
-		if player:
-			if player.is_inside_tree():
-				player.global_position = SECTOR_POSITIONS[sector_idx]
+		var p = player if player != null else get_node_or_null("Player")
+		if p:
+			var pos = SECTOR_POSITIONS[sector_idx]
+			if p.is_inside_tree():
+				p.global_position = pos
 			else:
-				player.position = SECTOR_POSITIONS[sector_idx]
+				p.position = pos
 		_update_hud()
 
 func toggle_bunker_door() -> void:
@@ -264,28 +214,36 @@ func toggle_bunker_door() -> void:
 		btn_toggle_door.text = "🚪 Door: OPEN" if is_bunker_door_open else "🚪 Door: CLOSED"
 	_update_hud()
 
+func trigger_hdr_explosion() -> void:
+	# El nodo OpenDouEventPlayer3D dispara su synth_preset en play_event()
+	if explosion_audio and explosion_audio.has_method("play_event"):
+		explosion_audio.call("play_event")
+
+	# Registrar el transitorio masivo (+3 dB FS) en el gestor HDR
+	if spatial_acoustics and spatial_acoustics.hdr_manager:
+		spatial_acoustics.hdr_manager.register_loudness_event(3.0)
+	_update_hud()
+
+func set_test_material(mat_name: StringName) -> void:
+	active_test_material = mat_name
+	_update_hud()
+
+func detect_footstep_surface() -> StringName:
+	var pos = Vector3.ZERO
+	if player:
+		pos = player.global_position if player.is_inside_tree() else player.position
+	if spatial_acoustics:
+		return spatial_acoustics.detect_surface_at(pos)
+	return &"Stone"
+
+# ─── UI CALLBACKS ─────────────────────────────────────────────────────────────
+
 func _on_material_selected(idx: int) -> void:
 	match idx:
 		0: set_test_material(&"Concrete")
 		1: set_test_material(&"Metal")
 		2: set_test_material(&"Wood")
 		3: set_test_material(&"Foliage")
-
-func set_test_material(mat_name: StringName) -> void:
-	active_test_material = mat_name
-	_update_hud()
-
-func trigger_hdr_explosion() -> void:
-	# 1. Play Explosion 3D Sound in Sector 5 Firing Range
-	if explosion_audio:
-		explosion_audio.stream = AudioSynthesizerClass.create_stinger_impact(1.5)
-		if explosion_audio.is_inside_tree():
-			explosion_audio.play()
-		
-	# 2. Register loud transient (+3 dB FS) in HDR Manager
-	if spatial_acoustics and spatial_acoustics.hdr_manager:
-		spatial_acoustics.hdr_manager.register_loudness_event(3.0)
-	_update_hud()
 
 func _on_toggle_acoustics_pressed() -> void:
 	if acoustic_debugger:
@@ -303,30 +261,26 @@ func _on_toggle_monitor_pressed() -> void:
 	if audible_monitor:
 		if audible_monitor.has_method("toggle_overlay"):
 			audible_monitor.toggle_overlay()
-		elif "is_overlay_visible" in audible_monitor:
-			audible_monitor.is_overlay_visible = not audible_monitor.is_overlay_visible
-		elif "visible" in audible_monitor:
+		else:
 			audible_monitor.visible = not audible_monitor.visible
 		if btn_toggle_monitor:
 			var is_vis = audible_monitor.get("is_overlay_visible") if ("is_overlay_visible" in audible_monitor) else audible_monitor.visible
 			btn_toggle_monitor.text = "📊 Monitor: " + ("ON (M)" if is_vis else "OFF (M)")
 
-func detect_footstep_surface() -> StringName:
-	var pos = (player.global_position if player.is_inside_tree() else player.position) if player else Vector3.ZERO
-	if spatial_acoustics:
-		return spatial_acoustics.detect_surface_at(pos)
-	return &"Stone"
+# ─── PHYSICS PROCESS ──────────────────────────────────────────────────────────
 
 func _physics_process(_delta: float) -> void:
-	# Synchronize player's footstep audio surface with physical acoustic terrain
-	if player and spatial_acoustics:
+	# Sincronizar la superficie de pasos del jugador con el terreno acústico físico
+	if player and spatial_acoustics and "current_surface" in player:
 		var pos = player.global_position if player.is_inside_tree() else player.position
 		var detected = spatial_acoustics.detect_surface_at(pos)
-		if "current_surface" in player and player.current_surface != detected:
+		if player.current_surface != detected:
 			player.current_surface = detected
 
+# ─── PROCESS ──────────────────────────────────────────────────────────────────
+
 func _process(delta: float) -> void:
-	# 1. Drone Orbit Motion & Doppler Simulation
+	# 1. Orbitar el dron y actualizar Doppler + pitch_scale del OpenDouEventPlayer3D
 	if drone_emitter:
 		drone_orbit_angle += delta * 1.5
 		var orbit_radius: float = 12.0
@@ -335,29 +289,34 @@ func _process(delta: float) -> void:
 		var prev_pos = drone_emitter.global_position
 		drone_emitter.global_position = new_pos
 		var drone_vel = (new_pos - prev_pos) / maxf(0.001, delta)
-		
+
 		if player and spatial_acoustics:
 			var listener_pos = player.global_position if player.is_inside_tree() else player.position
 			var rel_pos = listener_pos - new_pos
 			var pitch = spatial_acoustics.calculate_doppler_pitch(drone_vel, Vector3.ZERO, rel_pos)
+
+			# Aplicar Doppler al AudioStreamPlayer3D subyacente del nodo OpenDouEventPlayer3D
 			if drone_audio:
 				drone_audio.pitch_scale = pitch
+
 			var lod = spatial_acoustics.lod_controller.evaluate_emitter_lod(new_pos, listener_pos)
 			if lbl_drone_doppler:
 				lbl_drone_doppler.text = "🚁 Drone Doppler: x%.2f (LOD %d)" % [pitch, lod["lod_level"]]
-	
-	# 2. HDR Loudness Window Decay
+
+	# 2. Decaimiento del pico HDR
 	if spatial_acoustics and spatial_acoustics.hdr_manager:
 		spatial_acoustics.hdr_manager.process_decay(delta)
 		if lbl_hdr_window:
 			var top_db = spatial_acoustics.hdr_manager.current_window_top_db
 			var floor_db = spatial_acoustics.hdr_manager.current_floor_db
 			lbl_hdr_window.text = "🎚️ HDR Window: Top %.1f dB | Floor %.1f dB" % [top_db, floor_db]
-			
-	# 3. Update Real-time River Spline Projection
-	if river_spline_emitter and player and river_spline_emitter.has_method("update_virtual_position"):
+
+	# 3. Proyección continua del spline del río al punto más cercano al oyente
+	if river_spline_emitter and player and river_spline_emitter.has_method("update_spline_acoustics"):
 		var p_pos = player.global_position if player.is_inside_tree() else player.position
-		river_spline_emitter.update_virtual_position(p_pos)
+		river_spline_emitter.update_spline_acoustics(p_pos, Vector3.ZERO, delta)
+
+# ─── HUD UPDATE ───────────────────────────────────────────────────────────────
 
 func _update_hud() -> void:
 	if lbl_sector:
@@ -369,17 +328,17 @@ func _update_hud() -> void:
 			5: "Sector 5: HDR Firing Range"
 		}
 		lbl_sector.text = "📍 Location: %s" % sector_names.get(active_sector_idx, "Unknown")
-		
+
 	if lbl_surface:
 		lbl_surface.text = "👟 Floor Surface: %s" % detect_footstep_surface()
-		
+
 	if lbl_portal_spread and bunker_portal and player and spatial_acoustics:
 		var pos = player.global_position if player.is_inside_tree() else player.position
 		var coupling = spatial_acoustics.coupling_engine.evaluate_room_coupling(room_canyon, bunker_portal, pos)
 		lbl_portal_spread.text = "🚪 Portal Spread: %.1f° | RT60 Coupled: %.2fs" % [
 			coupling["sound_spread_degrees"], coupling["coupled_rt60"]
 		]
-		
+
 	if lbl_material_tl and spatial_acoustics and spatial_acoustics.material_registry:
 		var tl = spatial_acoustics.material_registry.calculate_transmission_loss(active_test_material, 0.3, 1000.0)
 		var att_db = tl.get("attenuation_db", 0.0)

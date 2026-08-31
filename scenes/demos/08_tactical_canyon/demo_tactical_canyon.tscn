@@ -1,14 +1,16 @@
 [gd_scene format=3 uid="uid://b6erfaxsgfq4p"]
 
 [ext_resource type="Script" uid="uid://vpuj6v3epwar" path="res://scenes/demos/08_tactical_canyon/demo_tactical_canyon.gd" id="1_demo"]
-[ext_resource type="Script" uid="uid://bw6odb6jfd2eg" path="res://scenes/demos/master_sandbox/player_controller.gd" id="2_2njrm"]
-[ext_resource type="Script" uid="uid://ctkd4hgirp55s" path="res://addons/opendou/nodes/opendou_spline_emitter_3d.gd" id="2_spline"]
-[ext_resource type="Script" uid="uid://dtlhkuv5w0r76" path="res://addons/opendou/nodes/opendou_event_player.gd" id="3_ggo8s"]
-[ext_resource type="Script" uid="uid://d0hkkttbjrmmd" path="res://addons/opendou/nodes/opendou_room_3d.gd" id="3_room"]
-[ext_resource type="Script" uid="uid://ctbxqaxaxju70" path="res://addons/opendou/nodes/opendou_music_player.gd" id="4_6cwpr"]
-[ext_resource type="Script" uid="uid://cwrgsln6e32r7" path="res://addons/opendou/nodes/opendou_portal_3d.gd" id="4_portal"]
-[ext_resource type="Script" uid="uid://bjggbw8iy7l6s" path="res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd" id="5_debugger"]
-[ext_resource type="Script" uid="uid://da047uvlnsfhn" path="res://addons/opendou/nodes/opendou_audible_monitor.gd" id="6_monitor"]
+[ext_resource type="Script" uid="uid://bw6odb6jfd2eg" path="res://scenes/demos/master_sandbox/player_controller.gd" id="2_player"]
+[ext_resource type="Script" uid="uid://ctkd4hgirp55s" path="res://addons/opendou/nodes/opendou_spline_emitter_3d.gd" id="3_spline"]
+[ext_resource type="Script" uid="uid://jq8f55uaybmc" path="res://addons/opendou/nodes/opendou_event_player_3d.gd" id="4_ep3d"]
+[ext_resource type="Script" uid="uid://dtlhkuv5w0r76" path="res://addons/opendou/nodes/opendou_event_player.gd" id="5_ep"]
+[ext_resource type="Script" uid="uid://d0hkkttbjrmmd" path="res://addons/opendou/nodes/opendou_room_3d.gd" id="6_room"]
+[ext_resource type="Script" uid="uid://cwrgsln6e32r7" path="res://addons/opendou/nodes/opendou_portal_3d.gd" id="7_portal"]
+[ext_resource type="Script" uid="uid://cii5tsut4w0mc" path="res://addons/opendou/nodes/opendou_reflector_3d.gd" id="8_refl"]
+[ext_resource type="Script" uid="uid://ctbxqaxaxju70" path="res://addons/opendou/nodes/opendou_music_player.gd" id="9_music"]
+[ext_resource type="Script" uid="uid://bjggbw8iy7l6s" path="res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd" id="10_debugger"]
+[ext_resource type="Script" uid="uid://da047uvlnsfhn" path="res://addons/opendou/nodes/opendou_audible_monitor.gd" id="11_monitor"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.25, 0.45, 0.75, 1)
@@ -42,6 +44,9 @@ point_count = 2
 [sub_resource type="BoxShape3D" id="BoxShape3D_bunker_room"]
 size = Vector3(14, 6, 14)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_lab_room"]
+size = Vector3(18, 5, 18)
+
 [node name="TacticalCanyonDemo" type="Node3D" unique_id=179079874]
 script = ExtResource("1_demo")
 
@@ -53,7 +58,7 @@ transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0
 shadow_enabled = true
 
 [node name="Player" type="CharacterBody3D" parent="." unique_id=1386803663]
-script = ExtResource("2_2njrm")
+script = ExtResource("2_player")
 metadata/_custom_type_script = "uid://bw6odb6jfd2eg"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1815191045]
@@ -77,37 +82,34 @@ omni_range = 8.0
 target_position = Vector3(0, -1.2, 0)
 
 [node name="FootstepAudio" type="AudioStreamPlayer" parent="Player" unique_id=875451729]
-volume_db = 0.0
-script = ExtResource("3_ggo8s")
+script = ExtResource("5_ep")
 event_name = &"Footstep"
 switch_group = &"Surface"
 synth_preset = "None"
 
 [node name="WeaponAudio" type="AudioStreamPlayer" parent="Player" unique_id=1785106495]
-volume_db = 0.0
-script = ExtResource("3_ggo8s")
+script = ExtResource("5_ep")
 event_name = &"Gunshot_Rifle"
 synth_preset = "None"
 
 [node name="RadioAudio" type="AudioStreamPlayer" parent="Player" unique_id=2133687978]
-script = ExtResource("3_ggo8s")
+script = ExtResource("5_ep")
 event_name = &"Radio_Transmission"
 bus_category = "Voice"
 synth_preset = "None"
 
-[node name="MusicAudio" type="AudioStreamPlayer" parent="Player" unique_id=816845580]
-volume_db = -6.0
-script = ExtResource("3_ggo8s")
-bus_category = "Music"
-synth_preset = "None"
-
 [node name="MusicPlayer" type="Node" parent="Player" unique_id=1662228317]
-script = ExtResource("4_6cwpr")
+script = ExtResource("9_music")
 auto_play = false
 combat_intensity = 0.53
 
 [node name="CanyonWindAudio" type="AudioStreamPlayer" parent="." unique_id=1849201948]
 volume_db = -12.0
+script = ExtResource("5_ep")
+event_name = &"Wind_Canyon_Ambience"
+bus_category = "Ambience"
+synth_preset = "Wind_Canopy"
+auto_play_event = true
 
 [node name="LevelGeometry" type="Node3D" parent="." unique_id=2056055664]
 
@@ -119,12 +121,13 @@ use_collision = true
 size = Vector3(25, 1, 50)
 
 [node name="RiverSplineEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector1_RiverGorge" unique_id=1961251267]
-script = ExtResource("2_spline")
+unit_size = 4.0
+max_distance = 60.0
+autoplay = true
+script = ExtResource("3_spline")
 curve = SubResource("Curve3D_river")
 spline_path = SubResource("Curve3D_river")
 sound_spread_curve = SubResource("Curve_nqocu")
-unit_size = 4.0
-max_distance = 60.0
 
 [node name="Sector2_Bunker" type="Node3D" parent="LevelGeometry" unique_id=283981031]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 0)
@@ -133,11 +136,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 0)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 use_collision = true
 size = Vector3(20, 1, 20)
-
-[node name="BunkerGeneratorAudio" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1498112233]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -5)
-unit_size = 3.0
-max_distance = 30.0
 
 [node name="BunkerWallLeft" type="CSGBox3D" parent="LevelGeometry/Sector2_Bunker" unique_id=241358654]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 2.5, 0)
@@ -169,9 +167,42 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, 7)
 use_collision = true
 size = Vector3(4, 3, 0.4)
 
+[node name="ReflectorWallBack" type="Node3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1847293011]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -7)
+script = ExtResource("8_refl")
+reflector_name = &"Bunker_WallBack"
+plane_normal = Vector3(0, 0, 1)
+absorption = 0.15
+
+[node name="ReflectorWallLeft" type="Node3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1847293012]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 2.5, 0)
+script = ExtResource("8_refl")
+reflector_name = &"Bunker_WallLeft"
+plane_normal = Vector3(1, 0, 0)
+absorption = 0.15
+
+[node name="ReflectorWallRight" type="Node3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1847293013]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 2.5, 0)
+script = ExtResource("8_refl")
+reflector_name = &"Bunker_WallRight"
+plane_normal = Vector3(-1, 0, 0)
+absorption = 0.15
+
+[node name="BunkerGeneratorAudio" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1498112233]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -5)
+unit_size = 3.0
+max_distance = 30.0
+script = ExtResource("4_ep3d")
+event_name = &"Generator_Hum"
+bus_category = "Ambience"
+synth_preset = "Server_Hum"
+auto_play_event = true
+enable_dynamic_occlusion = true
+base_priority = 30.0
+
 [node name="BunkerRoomArea" type="Area3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1683473604]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
-script = ExtResource("3_room")
+script = ExtResource("6_room")
 room_name = &"Bunker_Interior"
 calculated_rt60 = 5.201538461538462
 
@@ -180,7 +211,7 @@ shape = SubResource("BoxShape3D_bunker_room")
 
 [node name="BunkerPortal" type="Node3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1286450286]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 7)
-script = ExtResource("4_portal")
+script = ExtResource("7_portal")
 portal_name = &"Bunker_Portal"
 room_a_name = &"Canyon_Exterior"
 room_b_name = &"Bunker_Interior"
@@ -217,6 +248,22 @@ size = Vector3(3, 4, 0.5)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 6.5)
 unit_size = 4.0
 max_distance = 40.0
+script = ExtResource("4_ep3d")
+event_name = &"Lab_Speaker_Reference"
+bus_category = "SFX"
+synth_preset = "EV_Electric_Engine"
+auto_play_event = true
+enable_dynamic_occlusion = true
+base_priority = 40.0
+
+[node name="LabRoomArea" type="Area3D" parent="LevelGeometry/Sector3_MaterialLab" unique_id=1683473699]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+script = ExtResource("6_room")
+room_name = &"Material_Lab"
+calculated_rt60 = 1.1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="LevelGeometry/Sector3_MaterialLab/LabRoomArea" unique_id=342413999]
+shape = SubResource("BoxShape3D_lab_room")
 
 [node name="Sector4_DroneRange" type="Node3D" parent="LevelGeometry" unique_id=273329800]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 0, 0)
@@ -235,6 +282,13 @@ size = Vector3(1, 0.4, 1)
 [node name="DroneAudio" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector4_DroneRange/DroneEmitter" unique_id=2081938475]
 unit_size = 4.0
 max_distance = 60.0
+script = ExtResource("4_ep3d")
+event_name = &"Drone_Engine"
+bus_category = "SFX"
+synth_preset = "EV_Electric_Engine"
+auto_play_event = true
+base_priority = 60.0
+cull_distance = 80.0
 
 [node name="Sector5_HDRFiringRange" type="Node3D" parent="LevelGeometry" unique_id=1862237420]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 0)
@@ -254,13 +308,19 @@ height = 1.6
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 8)
 unit_size = 8.0
 max_distance = 150.0
+script = ExtResource("4_ep3d")
+event_name = &"Explosion_Impact_HDR"
+bus_category = "SFX"
+synth_preset = "SciFi_Heavy_Explosion"
+auto_play_event = false
+base_priority = 100.0
 
 [node name="AcousticDebugger" type="Node3D" parent="LevelGeometry" unique_id=1831175532]
-script = ExtResource("5_debugger")
+script = ExtResource("10_debugger")
 
 [node name="AudibleMonitor" type="CanvasLayer" parent="." unique_id=1235316179]
 layer = 100
-script = ExtResource("6_monitor")
+script = ExtResource("11_monitor")
 
 [node name="TacticalHUD" type="CanvasLayer" parent="." unique_id=708966243]
 
