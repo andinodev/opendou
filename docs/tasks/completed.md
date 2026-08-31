@@ -6,7 +6,20 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
-* **`TASK-056` - Horneado de Geometría Acústica y Gizmos 3D de Viewport (Fase 2)**
+* **`TASK-057` - Sincronización de Audio por Animación (Fase 3)**
+  * **Fecha:** 2026-08-31
+  * **Resumen:**
+    * **Nodo Declarativo `OpenDouAnimationSync` (`addons/opendou/nodes/opendou_animation_sync.gd`):**
+      * Puente declarativo entre el subsistema de animación de Godot (`AnimationPlayer`, `AnimationTree`) y el motor de audio OpenDou.
+      * Soporte directo para pistas de métodos de animación (`play_audio_event`, `footstep`, `set_rtpc`).
+      * Sincronización declarativa basada en marcas de tiempo (`event_bindings` por animación y segundos/frames).
+      * Disparo de pasos (`footstep`) con detección contextual automática de superficies mediante `SpatialAcousticsManager.detect_surface_at()` y overrides de material.
+      * Extracción y modulación en tiempo real de BlendSpaces 1D/2D de `AnimationTree` hacia parámetros RTPC de OpenDou (`blend_space_rtpc_map`).
+      * Enrutamiento flexible a emisores de escena (`OpenDouEventPlayer3D` / `2D` / `OpenDouEventPlayer`) o despacho global a través de `AudioEventManager`.
+      * Icono SVG `addons/opendou/icons/icon_animation_sync.svg` y registro en `addons/opendou/plugin.gd`.
+    * **Verificación y Pruebas:**
+      * Creada suite `tests/test_animation_sync.gd` (+10 tests) verificando instanciación, callbacks directos de métodos, detección de superficies, modulación de RTPCs, vinculación con `AnimationPlayer`/`AnimationTree` y robustez ante desvinculación o nodos destruidos.
+      * Total de la suite OpenDou alcanzando **326 pruebas** con **100% de éxito (0 fallos)** en `godot --headless`.
   * **Fecha:** 2026-08-31
   * **Resumen:**
     * **Nodo Declarativo `OpenDouAcousticGeometryBake` (`addons/opendou/nodes/opendou_acoustic_geometry_bake.gd`):**
