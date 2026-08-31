@@ -5,6 +5,7 @@ const AcousticReflectorEngineClass = preload("res://addons/opendou/runtime/spati
 const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
 const EdgeDiffractionEngineClass = preload("res://addons/opendou/runtime/spatial/edge_diffraction_engine.gd")
 const RoomCouplingEngineClass = preload("res://addons/opendou/runtime/spatial/room_coupling_engine.gd")
+const AcousticLODControllerClass = preload("res://addons/opendou/runtime/spatial/acoustic_lod_controller.gd")
 
 static func run_all() -> Array[String]:
 	var failures: Array[String] = []
@@ -108,5 +109,36 @@ static func run_all() -> Array[String]:
 			failures.append("Test 6 Failed: Spread should expand smoothly with proximity (far: %.1f, mid: %.1f, near: %.1f)" % [
 				spread_far, spread_mid, spread_near
 			])
+	
+	# Test 7: AcousticLODController distance evaluation
+	var lod_ctrl = AcousticLODControllerClass.new()
+	if lod_ctrl == null:
+		failures.append("Test 7 Failed: Could not instantiate AcousticLODController")
+	else:
+		var lod_5m = lod_ctrl.get_lod_level(5.0)
+		var lod_18m = lod_ctrl.get_lod_level(18.0)
+		var lod_35m = lod_ctrl.get_lod_level(35.0)
+		var lod_75m = lod_ctrl.get_lod_level(75.0)
+		
+		if lod_5m != AcousticLODControllerClass.AcousticLOD.LOD_0_FULL:
+			failures.append("Test 7 Failed: 5m should be LOD 0 (Full), got %d" % lod_5m)
+		if lod_18m != AcousticLODControllerClass.AcousticLOD.LOD_1_MEDIUM:
+			failures.append("Test 7 Failed: 18m should be LOD 1 (Medium), got %d" % lod_18m)
+		if lod_35m != AcousticLODControllerClass.AcousticLOD.LOD_2_LOW:
+			failures.append("Test 7 Failed: 35m should be LOD 2 (Low), got %d" % lod_35m)
+		if lod_75m != AcousticLODControllerClass.AcousticLOD.LOD_3_CULLED:
+			failures.append("Test 7 Failed: 75m should be LOD 3 (Culled), got %d" % lod_75m)
+		
+		# Test 8: LOD feature enablement flags
+		var feats_lod0 = lod_ctrl.get_lod_features(AcousticLODControllerClass.AcousticLOD.LOD_0_FULL)
+		var feats_lod2 = lod_ctrl.get_lod_features(AcousticLODControllerClass.AcousticLOD.LOD_2_LOW)
+		var feats_lod3 = lod_ctrl.get_lod_features(AcousticLODControllerClass.AcousticLOD.LOD_3_CULLED)
+		
+		if not feats_lod0.get("enable_early_reflections", false) or not feats_lod0.get("enable_mass_law_raycast", false):
+			failures.append("Test 8 Failed: LOD 0 must enable early reflections and mass-law raycasting")
+		if feats_lod2.get("enable_early_reflections", true) or feats_lod2.get("enable_mass_law_raycast", true):
+			failures.append("Test 8 Failed: LOD 2 must disable physics raytracing")
+		if not feats_lod3.get("is_culled", false):
+			failures.append("Test 8 Failed: LOD 3 must flag is_culled = true")
 	
 	return failures
