@@ -42,6 +42,7 @@ const TestSynthPresetRegistryClass = preload("res://tests/test_synth_preset_regi
 const TestSynthVstWorkspaceClass = preload("res://tests/test_synth_vst_workspace.gd")
 const TestAcousticDebuggerClass = preload("res://tests/test_acoustic_debugger.gd")
 const TestSpatialAcousticsPhase1Class = preload("res://tests/test_spatial_acoustics_phase1.gd")
+const TestSpatialAcousticsPhase2Class = preload("res://tests/test_spatial_acoustics_phase2.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -210,6 +211,10 @@ static func run_suite() -> Dictionary:
 	var r41 = TestSpatialAcousticsPhase1Class.run_all()
 	total_tests += 8
 	all_failures.append_array(r41)
+	
+	var r42 = TestSpatialAcousticsPhase2Class.run_all()
+	total_tests += 2
+	all_failures.append_array(r42)
 	
 	return {
 		"total": total_tests,
