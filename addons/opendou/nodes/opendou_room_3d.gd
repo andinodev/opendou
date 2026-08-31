@@ -9,6 +9,13 @@ extends Area3D
 
 const AudioRoomClass = preload("res://addons/opendou/runtime/spatial/audio_room.gd")
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
+const ConvolutionReverbNodeClass = preload("res://addons/opendou/core/dsp/convolution_reverb_node.gd")
+
+enum ReverbMode {
+	ALGORITHMIC,
+	CONVOLUTION_IR,
+	HYBRID
+}
 
 # ==============================================================================
 # EXPORT GROUPS
@@ -23,6 +30,34 @@ const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spati
 @export var calculated_rt60: float = 0.0
 @export var snapshot_on_enter: StringName = &""
 
+@export_group("Reverb & Convolution IR")
+@export var reverb_mode: ReverbMode = ReverbMode.ALGORITHMIC:
+	set(val):
+		reverb_mode = val
+		if runtime_room != null:
+			runtime_room.reverb_mode = int(val)
+
+@export var impulse_response_stream: AudioStreamWAV = null:
+	set(val):
+		impulse_response_stream = val
+		_update_ir_kernel()
+
+@export_range(-60.0, 0.0, 0.5) var convolution_wet_db: float = -6.0:
+	set(val):
+		convolution_wet_db = val
+		if runtime_room != null:
+			runtime_room.convolution_wet_db = val
+		if _convolution_node:
+			_convolution_node.wet_gain_db = val
+
+@export_range(-60.0, 0.0, 0.5) var convolution_dry_db: float = 0.0:
+	set(val):
+		convolution_dry_db = val
+		if runtime_room != null:
+			runtime_room.convolution_dry_db = val
+		if _convolution_node:
+			_convolution_node.dry_gain_db = val
+
 # ==============================================================================
 # RUNTIME STATE
 # ==============================================================================
@@ -30,6 +65,7 @@ const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spati
 var runtime_room: AudioRoom = null
 var _acoustics_manager: SpatialAcousticsManager = null
 var _dimensions: Vector3 = Vector3.ZERO
+var _convolution_node: ConvolutionReverbNode = null
 
 func _ready() -> void:
 	# Auto-detect child CollisionShape3D box dimensions
@@ -117,12 +153,20 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 	if runtime_room == null:
 		runtime_room = AudioRoomClass.new(room_name, reverb_time, alpha, floor_surface)
 		runtime_room.material_preset = material_preset
+		runtime_room.reverb_mode = int(reverb_mode)
+		runtime_room.convolution_wet_db = convolution_wet_db
+		runtime_room.convolution_dry_db = convolution_dry_db
 	else:
 		runtime_room.room_name = room_name
 		runtime_room.reverb_decay_time = reverb_time
 		runtime_room.damping = alpha
 		runtime_room.floor_surface = floor_surface
 		runtime_room.material_preset = material_preset
+		runtime_room.reverb_mode = int(reverb_mode)
+		runtime_room.convolution_wet_db = convolution_wet_db
+		runtime_room.convolution_dry_db = convolution_dry_db
+
+	_update_ir_kernel()
 
 	if _dimensions != Vector3.ZERO:
 		var center_pos: Vector3 = global_position if is_inside_tree() else position
@@ -132,6 +176,34 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 		mgr.register_room(runtime_room)
 
 	return runtime_room
+
+func _update_ir_kernel() -> void:
+	if _convolution_node == null:
+		_convolution_node = ConvolutionReverbNodeClass.new()
+	_convolution_node.wet_gain_db = convolution_wet_db
+	_convolution_node.dry_gain_db = convolution_dry_db
+
+	var kernel: PackedFloat32Array = PackedFloat32Array()
+	if impulse_response_stream != null and impulse_response_stream.data.size() > 0:
+		var raw = impulse_response_stream.data
+		var count = min(raw.size() / 2, 512)
+		kernel.resize(count)
+		for i in range(count):
+			var b0 = raw[i * 2]
+			var b1 = raw[i * 2 + 1]
+			var val16 = b0 | (b1 << 8)
+			if val16 >= 32768:
+				val16 -= 65536
+			kernel[i] = float(val16) / 32768.0
+	else:
+		# Calibrated default concrete bunker IR kernel (exponential decay)
+		kernel.resize(512)
+		for i in range(512):
+			kernel[i] = exp(-float(i) / 64.0) * sin(float(i) * 0.2)
+
+	_convolution_node.set_impulse_response(kernel)
+	if runtime_room != null:
+		runtime_room.ir_kernel = kernel
 
 # ==============================================================================
 # INTERNAL HELPERS

@@ -45,6 +45,7 @@ const TestSpatialAcousticsPhase1Class = preload("res://tests/test_spatial_acoust
 const TestSpatialAcousticsPhase2Class = preload("res://tests/test_spatial_acoustics_phase2.gd")
 const TestTacticalCanyonDemoClass = preload("res://tests/test_tactical_canyon_demo.gd")
 const TestGranularEmitter3DClass = preload("res://tests/test_granular_emitter_3d.gd")
+const TestRoomConvolutionClass = preload("res://tests/test_room_convolution.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -225,6 +226,10 @@ static func run_suite() -> Dictionary:
 	var r44 = TestGranularEmitter3DClass.run_all()
 	total_tests += 5
 	all_failures.append_array(r44)
+	
+	var r45 = TestRoomConvolutionClass.run_all()
+	total_tests += 5
+	all_failures.append_array(r45)
 	
 	return {
 		"total": total_tests,

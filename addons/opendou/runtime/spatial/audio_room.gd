@@ -19,6 +19,11 @@ var reverb_send_level: float = 0.2
 var floor_surface: StringName = &"Concrete"
 var material_preset: String = "Concrete"
 
+var reverb_mode: int = 0 # 0 = ALGORITHMIC, 1 = CONVOLUTION_IR, 2 = HYBRID
+var convolution_wet_db: float = -6.0
+var convolution_dry_db: float = 0.0
+var ir_kernel: PackedFloat32Array = PackedFloat32Array()
+
 var bounds: AABB = AABB()
 var has_bounds: bool = false
 var connected_portals: Array = [] # Array of AudioPortal
