@@ -4,6 +4,7 @@ extends RefCounted
 const AcousticReflectorEngineClass = preload("res://addons/opendou/runtime/spatial/acoustic_reflector_engine.gd")
 const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
 const EdgeDiffractionEngineClass = preload("res://addons/opendou/runtime/spatial/edge_diffraction_engine.gd")
+const RoomCouplingEngineClass = preload("res://addons/opendou/runtime/spatial/room_coupling_engine.gd")
 
 static func run_all() -> Array[String]:
 	var failures: Array[String] = []
@@ -78,5 +79,34 @@ static func run_all() -> Array[String]:
 		var edge_pt = diffraction.find_diffraction_edge(Vector3(0, 0, -5), Vector3(0, 0, 5), Vector3(0, 0, 0), Vector3(2, 2, 0.5))
 		if edge_pt.distance_to(Vector3(2, 0, 0)) > 0.1 and edge_pt.distance_to(Vector3(-2, 0, 0)) > 0.1:
 			failures.append("Test 4 Failed: Expected edge point at (+-2, 0, 0), got %s" % str(edge_pt))
+	
+	# Test 5: RoomCouplingEngine energy coupling calculation
+	var coupling = RoomCouplingEngineClass.new()
+	if coupling == null:
+		failures.append("Test 5 Failed: Could not instantiate RoomCouplingEngine")
+	else:
+		# Open portal coupling
+		var open_energy = coupling.calculate_coupled_energy(100.0, 4.0, 100.0, 1.0)
+		var closed_energy = coupling.calculate_coupled_energy(100.0, 4.0, 100.0, 0.0)
+		var half_open_energy = coupling.calculate_coupled_energy(100.0, 4.0, 100.0, 0.5)
+		
+		if closed_energy != 0.0:
+			failures.append("Test 5 Failed: Closed portal (0.0 open) should have 0.0 coupled energy, got %.2f" % closed_energy)
+		if open_energy <= half_open_energy:
+			failures.append("Test 5 Failed: Fully open portal energy (%.2f) should be > half open energy (%.2f)" % [open_energy, half_open_energy])
+		
+		# Test 6: Portal sound spread expansion with listener proximity
+		var spread_far = coupling.calculate_portal_sound_spread(Vector3(0, 0, 20), Vector3(0, 0, 0), 2.0, 15.0)
+		var spread_near = coupling.calculate_portal_sound_spread(Vector3(0, 0, 1), Vector3(0, 0, 0), 2.0, 15.0)
+		var spread_mid = coupling.calculate_portal_sound_spread(Vector3(0, 0, 8), Vector3(0, 0, 0), 2.0, 15.0)
+		
+		if is_equal_approx(spread_far, 15.0) == false:
+			failures.append("Test 6 Failed: Distant listener should hear narrow point source (~15 deg spread), got %.1f" % spread_far)
+		if is_equal_approx(spread_near, 180.0) == false:
+			failures.append("Test 6 Failed: Listener at portal threshold should hear wide wrap (180 deg spread), got %.1f" % spread_near)
+		if not (spread_far < spread_mid and spread_mid < spread_near):
+			failures.append("Test 6 Failed: Spread should expand smoothly with proximity (far: %.1f, mid: %.1f, near: %.1f)" % [
+				spread_far, spread_mid, spread_near
+			])
 	
 	return failures
