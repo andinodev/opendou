@@ -28,6 +28,13 @@ var active_surface: StringName = &"Stone"
 var generator_filtered_lpf: float = 20000.0
 var generator_attenuation_db: float = 0.0
 
+# Audio Server DSP Effect References
+var gen_lpf_effect: AudioEffectLowPassFilter = null
+var gen_reverb_effect: AudioEffectReverb = null
+var room_reverb_effect: AudioEffectReverb = null
+var gen_bus_idx: int = -1
+var room_bus_idx: int = -1
+
 # Sector Positions
 const SECTOR_POSITIONS: Dictionary = {
 	1: Vector3(0.0, 1.0, 0.0),    # Sector 1: Outer Cavern & Spline River
@@ -86,6 +93,8 @@ var lbl_acoustic_filter: Label = null
 
 func _ready() -> void:
 	_init_scene_references()
+	_setup_audio_dsp_buses()
+	_start_ambient_audio_streams()
 	_connect_ui()
 	if acoustic_bake:
 		acoustic_bake.bake_geometry()
@@ -149,6 +158,86 @@ func _init_scene_references() -> void:
 	if access_portal:
 		access_portal.set_open_factor(1.0 if is_blast_door_open else 0.0)
 
+## Programmatically initializes dedicated DSP buses on Godot AudioServer for true LPF & Reverb
+func _setup_audio_dsp_buses() -> void:
+	if not Engine.is_editor_hint():
+		# 1. Generator Bus with LPF & Reverb
+		gen_bus_idx = AudioServer.get_bus_index("GeneratorBus")
+		if gen_bus_idx == -1:
+			AudioServer.add_bus()
+			gen_bus_idx = AudioServer.bus_count - 1
+			AudioServer.set_bus_name(gen_bus_idx, "GeneratorBus")
+			AudioServer.set_bus_send(gen_bus_idx, "Master")
+			
+			gen_lpf_effect = AudioEffectLowPassFilter.new()
+			gen_lpf_effect.cutoff_hz = 20000.0
+			gen_lpf_effect.resonance = 0.5
+			AudioServer.add_bus_effect(gen_bus_idx, gen_lpf_effect, 0)
+			
+			gen_reverb_effect = AudioEffectReverb.new()
+			gen_reverb_effect.room_size = 0.7
+			gen_reverb_effect.damping = 0.2
+			gen_reverb_effect.wet = 0.35
+			gen_reverb_effect.dry = 0.85
+			AudioServer.add_bus_effect(gen_bus_idx, gen_reverb_effect, 1)
+		else:
+			for eff_idx in range(AudioServer.get_bus_effect_count(gen_bus_idx)):
+				var eff = AudioServer.get_bus_effect(gen_bus_idx, eff_idx)
+				if eff is AudioEffectLowPassFilter: gen_lpf_effect = eff
+				elif eff is AudioEffectReverb: gen_reverb_effect = eff
+
+		# 2. Room Reverb Bus for Player Footsteps and Weapon Echoes
+		room_bus_idx = AudioServer.get_bus_index("RoomReverbBus")
+		if room_bus_idx == -1:
+			AudioServer.add_bus()
+			room_bus_idx = AudioServer.bus_count - 1
+			AudioServer.set_bus_name(room_bus_idx, "RoomReverbBus")
+			AudioServer.set_bus_send(room_bus_idx, "Master")
+			
+			room_reverb_effect = AudioEffectReverb.new()
+			room_reverb_effect.room_size = 0.6
+			room_reverb_effect.damping = 0.3
+			room_reverb_effect.wet = 0.3
+			room_reverb_effect.dry = 0.85
+			AudioServer.add_bus_effect(room_bus_idx, room_reverb_effect, 0)
+		else:
+			if AudioServer.get_bus_effect_count(room_bus_idx) > 0:
+				var eff = AudioServer.get_bus_effect(room_bus_idx, 0)
+				if eff is AudioEffectReverb: room_reverb_effect = eff
+
+## Synthesizes and loops rich, authentic streams for all scene audio emitters
+func _start_ambient_audio_streams() -> void:
+	if generator_multi:
+		if generator_multi.stream == null:
+			generator_multi.stream = AudioSynthesizerClass.create_engine_loop(55.0, 2.0)
+		generator_multi.bus = &"GeneratorBus"
+		generator_multi.unit_size = 12.0
+		generator_multi.max_distance = 90.0
+		if generator_multi.is_inside_tree() and not generator_multi.playing:
+			generator_multi.play()
+
+	if river_spline:
+		if river_spline.stream == null:
+			river_spline.stream = AudioSynthesizerClass.create_water_stream_ambient_loop(2.0)
+		river_spline.unit_size = 8.0
+		river_spline.max_distance = 50.0
+		if river_spline.is_inside_tree() and not river_spline.playing:
+			river_spline.play()
+
+	if spore_granular:
+		if spore_granular.stream == null:
+			spore_granular.stream = AudioSynthesizerClass.create_nature_foley_loop(2.0)
+		spore_granular.unit_size = 8.0
+		spore_granular.max_distance = 40.0
+		if spore_granular.is_inside_tree() and not spore_granular.playing:
+			spore_granular.play()
+
+	if player:
+		var foot_audio = player.get_node_or_null("FootstepAudio")
+		if foot_audio: foot_audio.set("bus", &"RoomReverbBus")
+		var weap_audio = player.get_node_or_null("WeaponAudio")
+		if weap_audio: weap_audio.set("bus", &"RoomReverbBus")
+
 func _connect_ui() -> void:
 	if btn_sector1:
 		btn_sector1.pressed.connect(func(): teleport_to_sector(1))
@@ -186,7 +275,7 @@ func _update_player_locomotion() -> void:
 	var p_pos = player.global_position if player.is_inside_tree() else player.position
 	
 	# Determine acoustic surface by room or position
-	if p_pos.x >= 50.0:
+	if p_pos.x >= 47.5:
 		active_surface = &"Metal" # Inside Bunker
 	else:
 		active_surface = &"Stone" # In Cavern
@@ -202,18 +291,71 @@ func _update_acoustic_propagation(delta: float) -> void:
 	var gen_origin = generator_multi.global_position if (generator_multi and generator_multi.is_inside_tree()) else Vector3(60.0, 1.8, 0.0)
 	var nearest_vertex = generator_multi.get_closest_point_to(p_pos) if generator_multi else gen_origin
 
+	var is_inside_bunker = p_pos.x >= 47.5
+	var target_lpf: float = 20000.0
+	var target_atten: float = 0.0
+
+	if is_inside_bunker:
+		# Inside bunker with generator: Loud industrial roar (+2dB) & Metallic Flutter Echo
+		target_lpf = 20000.0
+		target_atten = 2.0
+		
+		# Configure Metallic Room Reverb (RT60: 7.15s, low damping, early metallic reflections)
+		if gen_reverb_effect:
+			gen_reverb_effect.room_size = 0.80
+			gen_reverb_effect.damping = 0.08
+			gen_reverb_effect.wet = 0.45
+			gen_reverb_effect.dry = 0.85
+			gen_reverb_effect.predelay_feedback = 0.65
+		if room_reverb_effect:
+			room_reverb_effect.room_size = 0.75
+			room_reverb_effect.damping = 0.08
+			room_reverb_effect.wet = 0.40
+			room_reverb_effect.dry = 0.85
+	else:
+		# Outside in Cavern / Toxic Corridor
+		if is_blast_door_open:
+			# Open Door: Sound diffracts out of doorway up to 20kHz
+			target_lpf = 20000.0
+			target_atten = 0.0
+			if gen_reverb_effect:
+				gen_reverb_effect.room_size = 0.85
+				gen_reverb_effect.damping = 0.45
+				gen_reverb_effect.wet = 0.25
+				gen_reverb_effect.dry = 0.85
+		else:
+			# Closed Door: Physical transmission loss through blast wall -> 300Hz LPF & -24dB attenuation
+			target_lpf = 300.0
+			target_atten = -24.0
+			if gen_reverb_effect:
+				gen_reverb_effect.room_size = 0.90
+				gen_reverb_effect.damping = 0.60
+				gen_reverb_effect.wet = 0.15
+				gen_reverb_effect.dry = 0.90
+
+		# Cavern Reverb for player footsteps (stone diffuse reverb)
+		if room_reverb_effect:
+			room_reverb_effect.room_size = 0.92
+			room_reverb_effect.damping = 0.55
+			room_reverb_effect.wet = 0.22
+			room_reverb_effect.dry = 0.90
+
+	# Smooth DSP interpolation
+	var blend_rate: float = clampf(12.0 * delta, 0.0, 1.0) if delta < 0.5 else 1.0
+	generator_filtered_lpf = lerpf(generator_filtered_lpf, target_lpf, blend_rate)
+	generator_attenuation_db = lerpf(generator_attenuation_db, target_atten, blend_rate)
+
+	# Apply to AudioServer effects & 3D emitter
+	if gen_lpf_effect:
+		gen_lpf_effect.cutoff_hz = generator_filtered_lpf
+
+	if generator_multi:
+		generator_multi.volume_db = generator_attenuation_db
+
 	if spatial_acoustics:
 		var path = spatial_acoustics.calculate_acoustic_path(nearest_vertex, p_pos)
-		generator_filtered_lpf = path.accumulated_lpf
-
-		# Calculate real transmission attenuation based on door occlusion
-		var is_inside_bunker = p_pos.x >= 47.5
-		var target_atten: float = 0.0 if (is_inside_bunker or is_blast_door_open) else -22.0
-		var blend_rate: float = clampf(10.0 * delta, 0.0, 1.0) if delta < 0.5 else 1.0
-		generator_attenuation_db = lerpf(generator_attenuation_db, target_atten, blend_rate)
-
-		if generator_multi:
-			generator_multi.volume_db = generator_attenuation_db
+		if not is_inside_bunker and not is_blast_door_open:
+			generator_filtered_lpf = minf(generator_filtered_lpf, path.accumulated_lpf)
 
 func _update_telemetry() -> void:
 	var p_pos = player.global_position if (player and player.is_inside_tree()) else Vector3.ZERO
@@ -239,14 +381,16 @@ func _update_telemetry() -> void:
 		]
 	if lbl_voices:
 		var enc = "Exterior Cavern (Stone RT60: 9.66s | Reverb Diffuse)"
-		if p_pos.x >= 50.0:
-			enc = "Bunker Generator Core (Metal RT60: 7.15s | Early Reflections)"
+		if p_pos.x >= 47.5:
+			enc = "Bunker Enclosed (Metal RT60: 7.15s | Flutter Echo Active)"
 		elif p_pos.x >= 20.0:
 			enc = "Toxic Tunnel (Concrete RT60: 4.5s | Spores Active)"
 		lbl_voices.text = "Acoustic Enclosure: %s" % enc
 
 	if lbl_acoustic_filter:
 		var state_str = "Direct 20kHz (Open)" if (p_pos.x >= 47.5 or is_blast_door_open) else "Occluded 300Hz (Sealed)"
+		if p_pos.x >= 47.5:
+			state_str = "Enclosed Core (+2dB | Flutter Echo)"
 		lbl_acoustic_filter.text = "Generator Sound: %s | LPF: %d Hz | Atten: %.1f dB" % [
 			state_str,
 			int(generator_filtered_lpf),
@@ -289,7 +433,7 @@ func toggle_blast_door() -> void:
 			door_audio.play()
 
 	if btn_toggle_door:
-		btn_toggle_door.text = "🚪 Door: OPEN (Diffracting 20kHz)" if is_blast_door_open else "🚪 Door: CLOSED (Isolated 300Hz / -22dB)"
+		btn_toggle_door.text = "🚪 Door: OPEN (Diffracting 20kHz)" if is_blast_door_open else "🚪 Door: CLOSED (Isolated 300Hz / -24dB)"
 
 func trigger_enemy_alert() -> void:
 	if enemy_rig and enemy_rig.has_method("trigger_alert"):

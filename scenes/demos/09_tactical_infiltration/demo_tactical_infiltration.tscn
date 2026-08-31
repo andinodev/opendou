@@ -16,7 +16,7 @@
 [ext_resource type="Script" uid="uid://dtlhkuv5w0r76" path="res://addons/opendou/nodes/opendou_event_player.gd" id="13_li1b5"]
 [ext_resource type="Script" uid="uid://da047uvlnsfhn" path="res://addons/opendou/nodes/opendou_audible_monitor.gd" id="13_monitor"]
 [ext_resource type="Script" uid="uid://jq8f55uaybmc" path="res://addons/opendou/nodes/opendou_event_player_3d.gd" id="14_event_player"]
-[ext_resource type="Script" path="res://scenes/demos/09_tactical_infiltration/tactical_enemy.gd" id="15_enemy_ai"]
+[ext_resource type="Script" uid="uid://e4y18oiuvsm4" path="res://scenes/demos/09_tactical_infiltration/tactical_enemy.gd" id="15_enemy_ai"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_tactical"]
 sky_top_color = Color(0.02, 0.04, 0.08, 1)
@@ -29,10 +29,10 @@ sky_material = SubResource("ProceduralSkyMaterial_tactical")
 
 [sub_resource type="Environment" id="Environment_dark"]
 background_mode = 2
+background_color = Color(0.02, 0.03, 0.05, 1)
 sky = SubResource("Sky_tactical")
 ambient_light_source = 3
 ambient_light_color = Color(0.12, 0.16, 0.22, 1)
-ambient_light_energy = 1.0
 tonemap_mode = 2
 glow_enabled = true
 glow_intensity = 0.6
@@ -44,78 +44,17 @@ volumetric_fog_enabled = true
 volumetric_fog_density = 0.02
 volumetric_fog_albedo = Color(0.15, 0.25, 0.3, 1)
 
-[sub_resource type="StandardMaterial3D" id="Mat_Stone"]
-albedo_color = Color(0.26, 0.24, 0.22, 1)
-roughness = 0.95
-
-[sub_resource type="StandardMaterial3D" id="Mat_CavernWall"]
-albedo_color = Color(0.18, 0.16, 0.15, 1)
-roughness = 0.98
-
-[sub_resource type="StandardMaterial3D" id="Mat_RiverWater"]
-transparency = 1
-albedo_color = Color(0.08, 0.45, 0.75, 0.75)
-roughness = 0.05
-emission_enabled = true
-emission = Color(0.02, 0.25, 0.45, 1)
-emission_energy_multiplier = 0.8
-
-[sub_resource type="StandardMaterial3D" id="Mat_ToxicConcrete"]
-albedo_color = Color(0.28, 0.32, 0.26, 1)
-roughness = 0.85
-
-[sub_resource type="StandardMaterial3D" id="Mat_ToxicGasParticle"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0.25, 0.95, 0.35, 0.45)
-
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_spores"]
-emission_shape = 3
-emission_box_extents = Vector3(14, 3, 5)
-gravity = Vector3(0, 0.1, 0)
-initial_velocity_min = 0.2
-initial_velocity_max = 0.8
-angular_velocity_min = -20.0
-angular_velocity_max = 20.0
-scale_min = 0.4
-scale_max = 1.2
-color = Color(0.3, 1, 0.4, 0.5)
-
-[sub_resource type="SphereMesh" id="SphereMesh_particle"]
-material = SubResource("Mat_ToxicGasParticle")
-radius = 0.2
-height = 0.4
-radial_segments = 8
-rings = 4
+[sub_resource type="BoxShape3D" id="BoxShape3D_walkway"]
+size = Vector3(120, 1, 6)
 
 [sub_resource type="StandardMaterial3D" id="Mat_BunkerMetal"]
 albedo_color = Color(0.2, 0.24, 0.28, 1)
 metallic = 0.85
 roughness = 0.25
 
-[sub_resource type="StandardMaterial3D" id="Mat_Door"]
-albedo_color = Color(0.75, 0.2, 0.15, 1)
-metallic = 0.9
-roughness = 0.2
-
-[sub_resource type="StandardMaterial3D" id="Mat_Generator"]
-albedo_color = Color(0.15, 0.35, 0.55, 1)
-metallic = 0.85
-roughness = 0.25
-emission_enabled = true
-emission = Color(0.08, 0.45, 0.75, 1)
-emission_energy_multiplier = 1.5
-
-[sub_resource type="StandardMaterial3D" id="Mat_EnemyArmor"]
-albedo_color = Color(0.18, 0.18, 0.22, 1)
-metallic = 0.7
-roughness = 0.4
-
-[sub_resource type="StandardMaterial3D" id="Mat_EnemyVisor"]
-albedo_color = Color(1, 0.1, 0.1, 1)
-emission_enabled = true
-emission = Color(1, 0.15, 0.15, 1)
-emission_energy_multiplier = 3.0
+[sub_resource type="BoxMesh" id="BoxMesh_walkway"]
+material = SubResource("Mat_BunkerMetal")
+size = Vector3(120, 1, 6)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_room_cavern"]
 size = Vector3(34, 12, 34)
@@ -123,12 +62,20 @@ size = Vector3(34, 12, 34)
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor_cavern"]
 size = Vector3(32, 1, 32)
 
+[sub_resource type="StandardMaterial3D" id="Mat_Stone"]
+albedo_color = Color(0.26, 0.24, 0.22, 1)
+roughness = 0.95
+
 [sub_resource type="BoxMesh" id="BoxMesh_floor_cavern"]
 material = SubResource("Mat_Stone")
 size = Vector3(32, 1, 32)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wall_cavern_long"]
 size = Vector3(32, 10, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_CavernWall"]
+albedo_color = Color(0.18, 0.16, 0.15, 1)
+roughness = 0.98
 
 [sub_resource type="BoxMesh" id="BoxMesh_wall_cavern_long"]
 material = SubResource("Mat_CavernWall")
@@ -148,6 +95,14 @@ size = Vector3(3, 10, 3)
 material = SubResource("Mat_Stone")
 size = Vector3(3, 10, 3)
 
+[sub_resource type="StandardMaterial3D" id="Mat_RiverWater"]
+transparency = 1
+albedo_color = Color(0.08, 0.45, 0.75, 0.75)
+roughness = 0.05
+emission_enabled = true
+emission = Color(0.02, 0.25, 0.45, 1)
+emission_energy_multiplier = 0.8
+
 [sub_resource type="BoxMesh" id="BoxMesh_river_bed"]
 material = SubResource("Mat_RiverWater")
 size = Vector3(8, 0.15, 30)
@@ -157,28 +112,56 @@ _data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_toxic_area"]
-size = Vector3(30, 8, 14)
+size = Vector3(33.620422, 8, 14)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor_corridor"]
-size = Vector3(30, 1, 12)
+size = Vector3(31.993652, 1, 12)
+
+[sub_resource type="StandardMaterial3D" id="Mat_ToxicConcrete"]
+albedo_color = Color(0.28, 0.32, 0.26, 1)
+roughness = 0.85
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor_corridor"]
 material = SubResource("Mat_ToxicConcrete")
-size = Vector3(30, 1, 12)
+size = Vector3(32.112427, 1, 12)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wall_tunnel"]
-size = Vector3(30, 6, 1)
+size = Vector3(32.87506, 6, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_wall_tunnel"]
 material = SubResource("Mat_ToxicConcrete")
-size = Vector3(30, 6, 1)
+size = Vector3(33.413086, 6, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_roof_tunnel"]
-size = Vector3(30, 1, 12)
+size = Vector3(31.028809, 1, 12)
 
 [sub_resource type="BoxMesh" id="BoxMesh_roof_tunnel"]
 material = SubResource("Mat_ToxicConcrete")
-size = Vector3(30, 1, 12)
+size = Vector3(32.07141, 1, 12)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_spores"]
+emission_shape = 3
+emission_box_extents = Vector3(14, 3, 5)
+initial_velocity_min = 0.2
+initial_velocity_max = 0.8
+angular_velocity_min = -20.0
+angular_velocity_max = 20.0
+gravity = Vector3(0, 0.1, 0)
+scale_min = 0.4
+scale_max = 1.2
+color = Color(0.3, 1, 0.4, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="Mat_ToxicGasParticle"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.25, 0.95, 0.35, 0.45)
+
+[sub_resource type="SphereMesh" id="SphereMesh_particle"]
+material = SubResource("Mat_ToxicGasParticle")
+radius = 0.2
+height = 0.4
+radial_segments = 8
+rings = 4
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_blast_wall_north"]
 size = Vector3(1.2, 8, 10.5)
@@ -202,11 +185,16 @@ material = SubResource("Mat_BunkerMetal")
 size = Vector3(1.2, 4.5, 3)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_door"]
-size = Vector3(0.6, 3.6, 3.2)
+size = Vector3(0.6, 4.358008, 3.7570922)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Door"]
+albedo_color = Color(0.75, 0.2, 0.15, 1)
+metallic = 0.9
+roughness = 0.2
 
 [sub_resource type="BoxMesh" id="BoxMesh_door"]
 material = SubResource("Mat_Door")
-size = Vector3(0.6, 3.6, 3.2)
+size = Vector3(0.6, 3.6, 3.9335449)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_room_bunker"]
 size = Vector3(28, 10, 28)
@@ -239,6 +227,14 @@ size = Vector3(26, 1, 26)
 material = SubResource("Mat_BunkerMetal")
 size = Vector3(26, 1, 26)
 
+[sub_resource type="StandardMaterial3D" id="Mat_Generator"]
+albedo_color = Color(0.15, 0.35, 0.55, 1)
+metallic = 0.85
+roughness = 0.25
+emission_enabled = true
+emission = Color(0.08, 0.45, 0.75, 1)
+emission_energy_multiplier = 1.5
+
 [sub_resource type="BoxMesh" id="BoxMesh_generator"]
 material = SubResource("Mat_Generator")
 size = Vector3(4.5, 3.5, 4.5)
@@ -247,21 +243,25 @@ size = Vector3(4.5, 3.5, 4.5)
 material = SubResource("Mat_BunkerMetal")
 size = Vector3(2, 2, 2)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_walkway"]
-size = Vector3(120, 1, 6)
-
-[sub_resource type="BoxMesh" id="BoxMesh_walkway"]
-material = SubResource("Mat_BunkerMetal")
-size = Vector3(120, 1, 6)
-
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_enemy"]
 radius = 0.45
 height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="Mat_EnemyArmor"]
+albedo_color = Color(0.18, 0.18, 0.22, 1)
+metallic = 0.7
+roughness = 0.4
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_enemy_body"]
 material = SubResource("Mat_EnemyArmor")
 radius = 0.45
 height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="Mat_EnemyVisor"]
+albedo_color = Color(1, 0.1, 0.1, 1)
+emission_enabled = true
+emission = Color(1, 0.15, 0.15, 1)
+emission_energy_multiplier = 3.0
 
 [sub_resource type="BoxMesh" id="BoxMesh_enemy_visor"]
 material = SubResource("Mat_EnemyVisor")
@@ -305,7 +305,7 @@ metadata/acoustic_material = &"Metal"
 script = ExtResource("3_room")
 room_name = &"Outer_Cavern"
 floor_surface = &"Stone"
-calculated_rt60 = 9.66
+calculated_rt60 = 11.32551724137931
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Outer_Cavern" unique_id=443245452]
 shape = SubResource("BoxShape3D_room_cavern")
@@ -356,25 +356,25 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4.5, -6)
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Outer_Cavern/Cavern_Pillar_1" unique_id=2092837465]
 shape = SubResource("BoxShape3D_pillar")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Outer_Cavern/Cavern_Pillar_1" unique_id=2192837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Outer_Cavern/Cavern_Pillar_1" unique_id=-2102129831 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_pillar")
 metadata/acoustic_material = &"Stone"
 
-[node name="Cavern_Pillar_2" type="StaticBody3D" parent="Environment/Outer_Cavern" unique_id=2292837465]
+[node name="Cavern_Pillar_2" type="StaticBody3D" parent="Environment/Outer_Cavern" unique_id=-2002129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4.5, 6)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Outer_Cavern/Cavern_Pillar_2" unique_id=2392837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Outer_Cavern/Cavern_Pillar_2" unique_id=-1902129831]
 shape = SubResource("BoxShape3D_pillar")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Outer_Cavern/Cavern_Pillar_2" unique_id=2492837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Outer_Cavern/Cavern_Pillar_2" unique_id=-1802129831 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_pillar")
 metadata/acoustic_material = &"Stone"
 
-[node name="River_Water_Mesh" type="MeshInstance3D" parent="Environment/Outer_Cavern" unique_id=2592837465]
+[node name="River_Water_Mesh" type="MeshInstance3D" parent="Environment/Outer_Cavern" unique_id=-1702129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.08, 0)
 mesh = SubResource("BoxMesh_river_bed")
 
-[node name="Cavern_Light" type="OmniLight3D" parent="Environment/Outer_Cavern" unique_id=2692837465]
+[node name="Cavern_Light" type="OmniLight3D" parent="Environment/Outer_Cavern" unique_id=-1602129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 4, 0)
 light_color = Color(0.2, 0.55, 0.85, 1)
 light_energy = 2.0
@@ -398,62 +398,71 @@ gradient_axis = Vector3(0, 0, 1)
 target_snapshot = &"Toxic_Spores_Snapshot"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Toxic_Zone" unique_id=666109810]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8102112, 0, 0)
 shape = SubResource("BoxShape3D_toxic_area")
 
 [node name="Corridor_Floor_Body" type="StaticBody3D" parent="Environment/Toxic_Zone" unique_id=1384756291]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Toxic_Zone/Corridor_Floor_Body" unique_id=1472839401]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9968262, 0, 0)
 shape = SubResource("BoxShape3D_floor_corridor")
 
 [node name="Corridor_Mesh" type="MeshInstance3D" parent="Environment/Toxic_Zone/Corridor_Floor_Body" unique_id=1219634552 groups=["AcousticObstacle"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0562134, 0, 0)
 mesh = SubResource("BoxMesh_floor_corridor")
 metadata/acoustic_material = &"Concrete"
 
-[node name="Corridor_Wall_North" type="StaticBody3D" parent="Environment/Toxic_Zone" unique_id=2792837465]
+[node name="Corridor_Wall_North" type="StaticBody3D" parent="Environment/Toxic_Zone" unique_id=-1502129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -5.5)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Toxic_Zone/Corridor_Wall_North" unique_id=2892837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Toxic_Zone/Corridor_Wall_North" unique_id=-1402129831]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9175415, 0, 0)
 shape = SubResource("BoxShape3D_wall_tunnel")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Toxic_Zone/Corridor_Wall_North" unique_id=2992837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Toxic_Zone/Corridor_Wall_North" unique_id=-1302129831 groups=["AcousticObstacle"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.706543, 0, 0)
 mesh = SubResource("BoxMesh_wall_tunnel")
 metadata/acoustic_material = &"Concrete"
 
-[node name="Corridor_Wall_South" type="StaticBody3D" parent="Environment/Toxic_Zone" unique_id=3092837465]
+[node name="Corridor_Wall_South" type="StaticBody3D" parent="Environment/Toxic_Zone" unique_id=-1202129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 5.5)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Toxic_Zone/Corridor_Wall_South" unique_id=3192837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Toxic_Zone/Corridor_Wall_South" unique_id=-1102129831]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.519989, 0, 0)
 shape = SubResource("BoxShape3D_wall_tunnel")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Toxic_Zone/Corridor_Wall_South" unique_id=3292837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Toxic_Zone/Corridor_Wall_South" unique_id=-1002129831 groups=["AcousticObstacle"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.69705963, 0, 0)
 mesh = SubResource("BoxMesh_wall_tunnel")
 metadata/acoustic_material = &"Concrete"
 
-[node name="Corridor_Roof" type="StaticBody3D" parent="Environment/Toxic_Zone" unique_id=3392837465]
+[node name="Corridor_Roof" type="StaticBody3D" parent="Environment/Toxic_Zone" unique_id=-902129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Toxic_Zone/Corridor_Roof" unique_id=3492837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Toxic_Zone/Corridor_Roof" unique_id=-802129831]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5144043, 0, 0)
 shape = SubResource("BoxShape3D_roof_tunnel")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Toxic_Zone/Corridor_Roof" unique_id=3592837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Toxic_Zone/Corridor_Roof" unique_id=-702129831 groups=["AcousticObstacle"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0357056, 0, 0)
 mesh = SubResource("BoxMesh_roof_tunnel")
 metadata/acoustic_material = &"Concrete"
 
-[node name="Toxic_Mist_Particles" type="GPUParticles3D" parent="Environment/Toxic_Zone" unique_id=3692837465]
+[node name="Toxic_Mist_Particles" type="GPUParticles3D" parent="Environment/Toxic_Zone" unique_id=-602129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 amount = 48
 lifetime = 3.5
 process_material = SubResource("ParticleProcessMaterial_spores")
 draw_pass_1 = SubResource("SphereMesh_particle")
 
-[node name="Toxic_Light_1" type="OmniLight3D" parent="Environment/Toxic_Zone" unique_id=3792837465]
+[node name="Toxic_Light_1" type="OmniLight3D" parent="Environment/Toxic_Zone" unique_id=-502129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 3.5, 0)
 light_color = Color(0.25, 0.95, 0.35, 1)
 light_energy = 3.0
 omni_range = 12.0
 
-[node name="Toxic_Light_2" type="OmniLight3D" parent="Environment/Toxic_Zone" unique_id=3892837465]
+[node name="Toxic_Light_2" type="OmniLight3D" parent="Environment/Toxic_Zone" unique_id=-402129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 3.5, 0)
 light_color = Color(0.25, 0.95, 0.35, 1)
 light_energy = 3.0
@@ -462,37 +471,38 @@ omni_range = 12.0
 [node name="Toxic_Spores" type="AudioStreamPlayer3D" parent="Environment/Toxic_Zone" unique_id=1044743289]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 script = ExtResource("7_granular")
+grain_size_ms = 27.0
 
 [node name="Bunker_Complex" type="Node3D" parent="Environment" unique_id=825631223]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 0)
 
-[node name="Blast_Wall_North" type="StaticBody3D" parent="Environment/Bunker_Complex" unique_id=3992837465]
+[node name="Blast_Wall_North" type="StaticBody3D" parent="Environment/Bunker_Complex" unique_id=-302129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 3.5, -6.75)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Blast_Wall_North" unique_id=4092837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Blast_Wall_North" unique_id=-202129831]
 shape = SubResource("BoxShape3D_blast_wall_north")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Blast_Wall_North" unique_id=4192837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Blast_Wall_North" unique_id=-102129831 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_blast_wall_north")
 metadata/acoustic_material = &"Metal"
 
-[node name="Blast_Wall_South" type="StaticBody3D" parent="Environment/Bunker_Complex" unique_id=4292837465]
+[node name="Blast_Wall_South" type="StaticBody3D" parent="Environment/Bunker_Complex" unique_id=-2129831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 3.5, 6.75)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Blast_Wall_South" unique_id=4392837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Blast_Wall_South" unique_id=97870169]
 shape = SubResource("BoxShape3D_blast_wall_south")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Blast_Wall_South" unique_id=4492837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Blast_Wall_South" unique_id=197870169 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_blast_wall_south")
 metadata/acoustic_material = &"Metal"
 
-[node name="Blast_Wall_Top" type="StaticBody3D" parent="Environment/Bunker_Complex" unique_id=4511223344]
+[node name="Blast_Wall_Top" type="StaticBody3D" parent="Environment/Bunker_Complex" unique_id=216256048]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 5.75, 0)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Blast_Wall_Top" unique_id=4511223345]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Blast_Wall_Top" unique_id=216256049]
 shape = SubResource("BoxShape3D_blast_wall_top")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Blast_Wall_Top" unique_id=4511223346 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Blast_Wall_Top" unique_id=216256050 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_blast_wall_top")
 metadata/acoustic_material = &"Metal"
 
@@ -500,16 +510,20 @@ metadata/acoustic_material = &"Metal"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 1.75, 0)
 script = ExtResource("4_portal")
 portal_name = &"Bunker_Access_Portal"
-room_a_name = &"Outer_Cavern"
+room_a = NodePath("../../Toxic_Zone")
+room_b = NodePath("../Generator_Room")
+room_a_name = &"Toxic_Zone"
 room_b_name = &"Generator_Room"
 portal_size = Vector2(3, 3.5)
 
 [node name="Blast_Door_Body" type="StaticBody3D" parent="Environment/Bunker_Complex/Access_Portal" unique_id=949269811]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Access_Portal/Blast_Door_Body" unique_id=949269812]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04951191, -0.033697605)
 shape = SubResource("BoxShape3D_door")
 
 [node name="DoorMesh" type="MeshInstance3D" parent="Environment/Bunker_Complex/Access_Portal/Blast_Door_Body" unique_id=949269813 groups=["AcousticObstacle"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.040551722)
 mesh = SubResource("BoxMesh_door")
 metadata/acoustic_material = &"Metal"
 
@@ -519,7 +533,7 @@ metadata/acoustic_material = &"Metal"
 script = ExtResource("3_room")
 room_name = &"Generator_Room"
 floor_surface = &"Metal"
-calculated_rt60 = 7.155555555555556
+calculated_rt60 = 9.391666666666666
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=2091603104]
 shape = SubResource("BoxShape3D_room_bunker")
@@ -534,47 +548,47 @@ shape = SubResource("BoxShape3D_floor_bunker")
 mesh = SubResource("BoxMesh_floor_bunker")
 metadata/acoustic_material = &"Metal"
 
-[node name="Bunker_Wall_North" type="StaticBody3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=4592837465]
+[node name="Bunker_Wall_North" type="StaticBody3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=297870169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, -12.5)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_North" unique_id=4692837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_North" unique_id=397870169]
 shape = SubResource("BoxShape3D_wall_bunker_long")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_North" unique_id=4792837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_North" unique_id=497870169 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_wall_bunker_long")
 metadata/acoustic_material = &"Metal"
 
-[node name="Bunker_Wall_South" type="StaticBody3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=4892837465]
+[node name="Bunker_Wall_South" type="StaticBody3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=597870169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, 12.5)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_South" unique_id=4992837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_South" unique_id=697870169]
 shape = SubResource("BoxShape3D_wall_bunker_long")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_South" unique_id=5092837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_South" unique_id=797870169 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_wall_bunker_long")
 metadata/acoustic_material = &"Metal"
 
-[node name="Bunker_Wall_East" type="StaticBody3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=5192837465]
+[node name="Bunker_Wall_East" type="StaticBody3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=897870169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5, 3.5, 0)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_East" unique_id=5292837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_East" unique_id=997870169]
 shape = SubResource("BoxShape3D_wall_bunker_side")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_East" unique_id=5392837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Wall_East" unique_id=1097870169 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_wall_bunker_side")
 metadata/acoustic_material = &"Metal"
 
-[node name="Bunker_Roof" type="StaticBody3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=5492837465]
+[node name="Bunker_Roof" type="StaticBody3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=1197870169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.5, 0)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Roof" unique_id=5592837465]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Roof" unique_id=1297870169]
 shape = SubResource("BoxShape3D_roof_bunker")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Roof" unique_id=5692837465 groups=["AcousticObstacle"]]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Bunker_Roof" unique_id=1397870169 groups=["AcousticObstacle"]]
 mesh = SubResource("BoxMesh_roof_bunker")
 metadata/acoustic_material = &"Metal"
 
-[node name="Bunker_Alarm_Light" type="OmniLight3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=5792837465]
+[node name="Bunker_Alarm_Light" type="OmniLight3D" parent="Environment/Bunker_Complex/Generator_Room" unique_id=1497870169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0)
 light_color = Color(0.9, 0.3, 0.15, 1)
 light_energy = 3.5
@@ -589,12 +603,12 @@ emission_points = Array[Vector3]([Vector3(-2.2, -1.2, -2.2), Vector3(2.2, -1.2, 
 mesh = SubResource("BoxMesh_generator")
 metadata/acoustic_material = &"Metal"
 
-[node name="Turbine_Left" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Main_Generator" unique_id=5892837465 groups=["AcousticObstacle"]]
+[node name="Turbine_Left" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Main_Generator" unique_id=1597870169 groups=["AcousticObstacle"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 0)
 mesh = SubResource("BoxMesh_turbine")
 metadata/acoustic_material = &"Metal"
 
-[node name="Turbine_Right" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Main_Generator" unique_id=5992837465 groups=["AcousticObstacle"]]
+[node name="Turbine_Right" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Main_Generator" unique_id=1697870169 groups=["AcousticObstacle"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 0)
 mesh = SubResource("BoxMesh_turbine")
 metadata/acoustic_material = &"Metal"
@@ -611,7 +625,7 @@ shape = SubResource("BoxShape3D_floor_bunker")
 mesh = SubResource("BoxMesh_floor_bunker")
 metadata/acoustic_material = &"Metal"
 
-[node name="Overlook_Light" type="OmniLight3D" parent="Characters" unique_id=6092837465]
+[node name="Overlook_Light" type="OmniLight3D" parent="Characters" unique_id=1797870169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 4, 0)
 light_color = Color(0.85, 0.25, 0.2, 1)
 light_energy = 2.5
@@ -624,27 +638,27 @@ script = ExtResource("15_enemy_ai")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Characters/Elite_Enemy" unique_id=1494068202]
 shape = SubResource("CapsuleShape3D_enemy")
 
-[node name="Enemy_Body" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=6192837465 groups=["AcousticObstacle"]]
+[node name="Enemy_Body" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=1897870169 groups=["AcousticObstacle"]]
 mesh = SubResource("CapsuleMesh_enemy_body")
 metadata/acoustic_material = &"Metal"
 
-[node name="Enemy_Visor" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=6192837466]
+[node name="Enemy_Visor" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=1897870170]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, -0.38)
 mesh = SubResource("BoxMesh_enemy_visor")
 
-[node name="Enemy_Rifle" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=6192837467]
+[node name="Enemy_Rifle" type="MeshInstance3D" parent="Characters/Elite_Enemy" unique_id=1897870171]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.1, -0.45)
 mesh = SubResource("BoxMesh_enemy_rifle")
 
-[node name="VisionConeLight" type="SpotLight3D" parent="Characters/Elite_Enemy" unique_id=6192837468]
+[node name="VisionConeLight" type="SpotLight3D" parent="Characters/Elite_Enemy" unique_id=1897870172]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.3)
 light_color = Color(0.9, 0.85, 0.4, 1)
 light_energy = 2.5
+shadow_enabled = true
 spot_range = 22.0
 spot_angle = 42.0
-shadow_enabled = true
 
-[node name="MuzzleLight" type="OmniLight3D" parent="Characters/Elite_Enemy" unique_id=6192837469]
+[node name="MuzzleLight" type="OmniLight3D" parent="Characters/Elite_Enemy" unique_id=1897870173]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.1, -0.95)
 visible = false
 light_color = Color(1, 0.6, 0.1, 1)
@@ -705,13 +719,13 @@ current = true
 [node name="AudioListener3D" type="AudioListener3D" parent="Player_Rig/Camera3D" unique_id=270228771]
 current = true
 
-[node name="Flashlight" type="SpotLight3D" parent="Player_Rig/Camera3D" unique_id=6292837465]
+[node name="Flashlight" type="SpotLight3D" parent="Player_Rig/Camera3D" unique_id=1997870169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, -0.2, -0.2)
 light_color = Color(0.95, 0.98, 1, 1)
 light_energy = 3.0
+shadow_enabled = true
 spot_range = 35.0
 spot_angle = 38.0
-shadow_enabled = true
 
 [node name="MuzzleLight" type="OmniLight3D" parent="Player_Rig/Camera3D" unique_id=1775060231]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.2, -0.8)

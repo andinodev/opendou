@@ -124,7 +124,12 @@ static func run_all() -> Array[String]:
 		enemy_rig._fire_weapon()
 		enemy_rig._process_footstep_audio(0.5)
 
-	# Test 10: Real-Time Acoustic Filtering and Attenuation
+	# Test 10: Ambient Audio Streams & Real-Time Acoustic Filtering
+	demo._setup_audio_dsp_buses()
+	demo._start_ambient_audio_streams()
+	if demo.generator_multi.stream == null or demo.river_spline.stream == null or demo.spore_granular.stream == null:
+		failures.append("Test 10 Failed: Ambient audio streams were not initialized")
+
 	demo.teleport_to_sector(1) # Outside in cavern
 	demo.is_blast_door_open = false
 	access_portal.set_open_factor(0.0)
@@ -133,6 +138,13 @@ static func run_all() -> Array[String]:
 		failures.append("Test 10 Failed: Closed door should filter generator LPF to ~300Hz, got %.1fHz" % demo.generator_filtered_lpf)
 	if demo.generator_attenuation_db > -5.0:
 		failures.append("Test 10 Failed: Closed door should attenuate generator volume, got %.1fdB" % demo.generator_attenuation_db)
+
+	demo.teleport_to_sector(3) # Inside bunker with generator
+	demo._update_acoustic_propagation(1.0)
+	if demo.generator_filtered_lpf < 15000.0:
+		failures.append("Test 10 Failed: Inside bunker should hear full 20kHz spectrum, got %.1fHz" % demo.generator_filtered_lpf)
+	if demo.generator_attenuation_db < 0.0:
+		failures.append("Test 10 Failed: Inside bunker should have full volume (+2dB), got %.1fdB" % demo.generator_attenuation_db)
 
 	# Test 11: HUD Acoustic Debugger Cycle
 	demo._on_toggle_acoustics_pressed()
