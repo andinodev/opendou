@@ -6,7 +6,31 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
-* **`TASK-055` - Nodos de Gameplay Espacial y Modulación Dinámica (Fase 1)**
+* **`TASK-056` - Horneado de Geometría Acústica y Gizmos 3D de Viewport (Fase 2)**
+  * **Fecha:** 2026-08-31
+  * **Resumen:**
+    * **Nodo Declarativo `OpenDouAcousticGeometryBake` (`addons/opendou/nodes/opendou_acoustic_geometry_bake.gd`):**
+      * Pre-procesador de geometría estática para oclusión y difracción acústica sin sobrecargar el motor de físicas (`PhysicsRayQueryParameters3D`).
+      * Escaneo recursivo por jerarquía de hijos y por grupos de escena (`target_group`, ej. `AcousticObstacle`).
+      * Simplificación poligonal por paso de caras (`simplification_step`), cálculo de normales, centros de triángulos y asignación de materiales desde `AcousticMaterialRegistry`.
+      * Motor de intersección de rayos en CPU por algoritmo de Möller–Trumbore con evaluación ultra-rápida de oclusión y distancias.
+      * Icono SVG `addons/opendou/icons/icon_acoustic_bake.svg` y registro en `addons/opendou/plugin.gd`.
+    * **Plugin de Inspector `OpenDouAcousticGeometryBakeInspectorPlugin` (`addons/opendou/editor/opendou_acoustic_geometry_bake_inspector.gd`):**
+      * Interfaz de usuario inyectada en el Inspector de Godot con botones interactivos `⚡ Bake Geometry` y `🗑️ Clear`.
+      * Panel con telemetría en tiempo real de mallas escaneadas, número de triángulos acústicos horneados y volumen geométrico $m^3$.
+    * **Plugin de Gizmos 3D de Viewport `OpenDouGizmoPlugin3D` (`addons/opendou/editor/gizmos/opendou_gizmo_plugin_3d.gd`):**
+      * Renderizado 3D de wireframes y vectores de audio en el Viewport del editor de Godot para los 8 nodos espaciales:
+        * `OpenDouRoom3D`: Volumen 3D y prismas coloreados por material acústico.
+        * `OpenDouPortal3D`: Marco de apertura rectangular y vector normal con arco de *Sound Spread*.
+        * `OpenDouReflector3D`: Plano reflector 3D con vectores de rebote especular.
+        * `OpenDouSplineEmitter3D`: Trazo de curva spline continuo y punto de proyección del oyente.
+        * `OpenDouGranularEmitter3D`: Esferas de radio de emisión y volumen de dispersión de micro-granos.
+        * `OpenDouParameterArea3D`: Gradiente radial/cilíndrico y vector de dirección de gradiente de eje.
+        * `OpenDouMultiPositionEmitter3D`: Constelación de líneas y cruces de vértices de emisión.
+        * `OpenDouAcousticGeometryBake`: Wireframe 3D de triángulos y AABBs acústicos horneados.
+    * **Verificación y Pruebas:**
+      * Creada suite `tests/test_acoustic_geometry_bake.gd` (+10 tests) verificando extracción de mallas, diezmado, normales, raycasts Möller-Trumbore (hit/miss), limpieza de datos y detección estática en plugins.
+      * Total de la suite OpenDou incrementado a **316 pruebas** con **100% de éxito (0 fallos)** en `godot --headless`.
   * **Fecha:** 2026-08-31
   * **Resumen:**
     * **Nodo Declarativo `OpenDouParameterArea3D` (`addons/opendou/nodes/opendou_parameter_area_3d.gd`):**

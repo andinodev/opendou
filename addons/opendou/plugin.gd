@@ -22,6 +22,9 @@ const OpenDouSplineEmitter3DClass = preload("res://addons/opendou/nodes/opendou_
 const OpenDouGranularEmitter3DClass = preload("res://addons/opendou/nodes/opendou_granular_emitter_3d.gd")
 const OpenDouParameterArea3DClass = preload("res://addons/opendou/nodes/opendou_parameter_area_3d.gd")
 const OpenDouMultiPositionEmitter3DClass = preload("res://addons/opendou/nodes/opendou_multi_position_emitter_3d.gd")
+const OpenDouAcousticGeometryBakeClass = preload("res://addons/opendou/nodes/opendou_acoustic_geometry_bake.gd")
+const OpenDouAcousticGeometryBakeInspectorPluginClass = preload("res://addons/opendou/editor/opendou_acoustic_geometry_bake_inspector.gd")
+const OpenDouGizmoPlugin3DClass = preload("res://addons/opendou/editor/gizmos/opendou_gizmo_plugin_3d.gd")
 
 # Declarative Node Icons
 const IconEventPlayer3D = preload("res://addons/opendou/icons/icon_event_player_3d.svg")
@@ -37,9 +40,12 @@ const IconSplineEmitter3D = preload("res://addons/opendou/icons/icon_spline_emit
 const IconGranularEmitter = preload("res://addons/opendou/icons/icon_granular_emitter.svg")
 const IconParameterArea3D = preload("res://addons/opendou/icons/icon_parameter_area_3d.svg")
 const IconMultiPositionEmitter3D = preload("res://addons/opendou/icons/icon_multi_position_emitter_3d.svg")
+const IconAcousticBake = preload("res://addons/opendou/icons/icon_acoustic_bake.svg")
 
 var studio_instance: Control
 var dock_button: Button
+var gizmo_plugin_instance: OpenDouGizmoPlugin3D
+var bake_inspector_instance: OpenDouAcousticGeometryBakeInspectorPlugin
 
 func _enter_tree() -> void:
 	# 1. Register Runtime Autoload Singleton
@@ -68,6 +74,14 @@ func _enter_tree() -> void:
 	add_custom_type("OpenDouGranularEmitter3D", "AudioStreamPlayer3D", OpenDouGranularEmitter3DClass, IconGranularEmitter)
 	add_custom_type("OpenDouParameterArea3D", "Area3D", OpenDouParameterArea3DClass, IconParameterArea3D)
 	add_custom_type("OpenDouMultiPositionEmitter3D", "AudioStreamPlayer3D", OpenDouMultiPositionEmitter3DClass, IconMultiPositionEmitter3D)
+	add_custom_type("OpenDouAcousticGeometryBake", "Node3D", OpenDouAcousticGeometryBakeClass, IconAcousticBake)
+
+	# 5. Register Spatial 3D Gizmos & Inspector Tools
+	gizmo_plugin_instance = OpenDouGizmoPlugin3DClass.new()
+	add_node_3d_gizmo_plugin(gizmo_plugin_instance)
+
+	bake_inspector_instance = OpenDouAcousticGeometryBakeInspectorPluginClass.new()
+	add_inspector_plugin(bake_inspector_instance)
 
 func _on_dock_button_pressed() -> void:
 	if studio_instance:
@@ -75,6 +89,14 @@ func _on_dock_button_pressed() -> void:
 		hide_bottom_panel()
 
 func _exit_tree() -> void:
+	# Remove Spatial 3D Gizmos & Inspector Tools
+	if gizmo_plugin_instance:
+		remove_node_3d_gizmo_plugin(gizmo_plugin_instance)
+		gizmo_plugin_instance = null
+	if bake_inspector_instance:
+		remove_inspector_plugin(bake_inspector_instance)
+		bake_inspector_instance = null
+
 	# Remove Declarative Audio Custom Types
 	remove_custom_type("OpenDouEventPlayer3D")
 	remove_custom_type("OpenDouEventPlayer2D")
@@ -89,6 +111,7 @@ func _exit_tree() -> void:
 	remove_custom_type("OpenDouGranularEmitter3D")
 	remove_custom_type("OpenDouParameterArea3D")
 	remove_custom_type("OpenDouMultiPositionEmitter3D")
+	remove_custom_type("OpenDouAcousticGeometryBake")
 
 	# Remove bottom panel dock
 	if studio_instance:
