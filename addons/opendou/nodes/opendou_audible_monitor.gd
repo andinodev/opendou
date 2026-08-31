@@ -89,8 +89,8 @@ func toggle_overlay() -> void:
 	self.is_overlay_visible = not is_overlay_visible
 
 ## Forces an immediate refresh of the audible voices HUD telemetry.
-func refresh_now() -> void:
-	_refresh_monitor()
+func refresh_now(override_tree: SceneTree = null) -> void:
+	_refresh_monitor(override_tree)
 
 ## Returns the number of audible voices currently displayed in the HUD.
 func get_displayed_voices_count() -> int:
@@ -228,15 +228,19 @@ func _find_listener_position() -> Vector3:
 			
 	return Vector3.ZERO
 
-func _refresh_monitor() -> void:
-	if not is_inside_tree():
-		return
+func _refresh_monitor(override_tree: SceneTree = null) -> void:
 	if panel_container == null or items_vbox == null:
 		_build_ui()
 		if items_vbox == null:
 			return
 			
-	var tree = get_tree()
+	var tree: SceneTree = override_tree
+	if tree == null:
+		if is_inside_tree():
+			tree = get_tree()
+		if tree == null:
+			tree = Engine.get_main_loop() as SceneTree
+			
 	var listener_pos = _find_listener_position()
 	var voices = AudibleVoiceMonitorClass.collect_audible_voices(tree, listener_pos, ducking_matrix, min_db_threshold)
 	

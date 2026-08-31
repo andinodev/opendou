@@ -33,15 +33,37 @@ func calculate_portal_sound_spread(listener_pos: Vector3, portal_pos: Vector3, p
 	var t = clampf(1.0 - ((dist - portal_radius) / maxf(0.1, max_spread_dist - portal_radius)), 0.0, 1.0)
 	return lerpf(15.0, 180.0, t)
 
-## Evaluates inter-room reverb coupling across an AudioPortal.
-func evaluate_room_coupling(source_room: AudioRoom, portal: AudioPortal, listener_pos: Vector3) -> Dictionary:
-	var open_ratio = portal.open_state if portal != null else 1.0
-	var portal_pos = portal.position if portal != null else Vector3.ZERO
-	var source_rt60 = source_room.rt60 if source_room != null else 1.2
+## Evaluates inter-room reverb coupling across an AudioPortal or OpenDouPortal3D.
+func evaluate_room_coupling(source_room, portal, listener_pos: Vector3) -> Dictionary:
+	var open_ratio: float = 1.0
+	var portal_pos: Vector3 = Vector3.ZERO
+	var portal_lpf: float = 20000.0
+	
+	if portal != null:
+		if "open_state" in portal:
+			open_ratio = float(portal.get("open_state"))
+		elif "open_factor" in portal:
+			open_ratio = float(portal.get("open_factor"))
+			
+		if "position" in portal:
+			portal_pos = portal.get("position")
+		elif "global_position" in portal:
+			portal_pos = portal.get("global_position")
+			
+		if portal.has_method("get_current_lpf"):
+			portal_lpf = portal.get_current_lpf()
+	
+	var source_rt60: float = 1.2
+	if source_room != null:
+		if "reverb_decay_time" in source_room:
+			source_rt60 = float(source_room.get("reverb_decay_time"))
+		elif "reverb_time" in source_room:
+			source_rt60 = float(source_room.get("reverb_time"))
+		elif "rt60" in source_room:
+			source_rt60 = float(source_room.get("rt60"))
 	
 	var coupled_energy = calculate_coupled_energy(source_rt60, 4.0, 100.0, open_ratio)
 	var spread_deg = calculate_portal_sound_spread(listener_pos, portal_pos)
-	var portal_lpf = portal.get_current_lpf() if portal != null else 20000.0
 	
 	return {
 		"coupled_rt60": coupled_energy,

@@ -168,11 +168,11 @@ static func run_all() -> Array[String]:
 	if monitor.listener_node_path != NodePath(""):
 		failures.append("Test 6h Failed: listener_node_path default should be empty NodePath")
 		
-	# Test UI hierarchy & tree attachment
 	var test_tree = SceneTree.new()
 	var test_root = Node.new()
 	test_tree.root.add_child(test_root)
 	test_root.add_child(monitor)
+	monitor._ready()
 	
 	if monitor.panel_container == null or not is_instance_valid(monitor.panel_container):
 		failures.append("Test 6i Failed: OpenDouAudibleMonitor did not create panel_container on _ready")
@@ -197,12 +197,12 @@ static func run_all() -> Array[String]:
 	test_tree.root.add_child(test_mgr)
 	
 	var hud_def = AudioEventDefClass.new(&"HUDVoiceTest")
-	hud_def.bus = &"SFX"
+	hud_def.target_bus = &"SFX"
 	hud_def.base_volume_db = -6.0
 	var hud_inst = test_mgr.post_event(hud_def)
 	hud_inst.set_position(Vector3(2.0, 0.0, 0.0))
 	
-	monitor.refresh_now()
+	monitor.refresh_now(test_tree)
 	if monitor.get_displayed_voices_count() < 1:
 		failures.append("Test 6m Failed: Expected displayed voice count >= 1, got %d" % monitor.get_displayed_voices_count())
 	if monitor.items_vbox != null and monitor.items_vbox.get_child_count() < 1:

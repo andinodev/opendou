@@ -323,5 +323,3 @@ func _auto_infer_synth_preset() -> void:
 		synth_preset = "Footstep"
 	if synth_preset != "None":
 		_apply_synth_preset()
-
-

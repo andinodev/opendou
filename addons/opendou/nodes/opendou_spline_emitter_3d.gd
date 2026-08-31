@@ -13,6 +13,10 @@ const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spati
 		curve = val
 		update_configuration_warnings()
 
+@export var spline_path: Curve3D:
+	get: return curve
+	set(val): curve = val
+
 ## Spread expansion curve over normalized distance (0.0 = far -> 0 deg, 1.0 = near -> 180 deg).
 @export var sound_spread_curve: Curve
 

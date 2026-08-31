@@ -26,7 +26,7 @@ var lod_controller: RefCounted
 var hdr_manager: RefCounted
 
 func _init() -> void:
-	material_registry = AcousticMaterialRegistryClass.get_instance()
+	material_registry = AcousticMaterialRegistryClass.new()
 	reflector_engine = AcousticReflectorEngineClass.new()
 	diffraction_engine = EdgeDiffractionEngineClass.new()
 	coupling_engine = RoomCouplingEngineClass.new()
@@ -289,4 +289,3 @@ func evaluate_acoustic_path(emitter_pos: Vector3, listener_pos: Vector3, emitter
 			"direct_lpf_cutoff": loss_data["cutoff_lpf"],
 			"reverb_send_factor": reverb_factor
 		}
-

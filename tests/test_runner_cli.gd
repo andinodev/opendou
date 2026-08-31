@@ -8,19 +8,26 @@ func _init() -> void:
 	var passed: int = res["passed"]
 	var failures: Array = res["failures"]
 	
-	# var log_path: String = ProjectSettings.globalize_path("res://test_results.log")
-	var log_path: String = "user://test_results.log"
+	var content: String = ""
+	if failures.is_empty():
+		content = "STATUS: PASSED\nTOTAL: %d\nPASSED: %d\nFAILURES: 0\n" % [total, passed]
+	else:
+		content = "STATUS: FAILED\nTOTAL: %d\nPASSED: %d\nFAILURES: %d\n" % [total, passed, failures.size()]
+		for f in failures:
+			content += "- " + str(f) + "\n"
 
-	var file = FileAccess.open(log_path, FileAccess.WRITE)
-	if file:
-		if failures.is_empty():
-			file.store_string("STATUS: PASSED\nTOTAL: %d\nPASSED: %d\nFAILURES: 0\n" % [total, passed])
-		else:
-			file.store_string("STATUS: FAILED\nTOTAL: %d\nPASSED: %d\nFAILURES: %d\n" % [total, passed, failures.size()])
-			for f in failures:
-				file.store_string("- " + str(f) + "\n")
-		file.flush()
-		file.close()
+	var paths_to_write: Array[String] = [
+		"res://test_results.log",
+		ProjectSettings.globalize_path("res://test_results.log"),
+		"user://test_results.log"
+	]
+	
+	for path in paths_to_write:
+		var file = FileAccess.open(path, FileAccess.WRITE)
+		if file:
+			file.store_string(content)
+			file.flush()
+			file.close()
 	
 	if failures.is_empty():
 		print("STATUS: PASSED | TOTAL: %d | PASSED: %d | FAILURES: 0" % [total, passed])

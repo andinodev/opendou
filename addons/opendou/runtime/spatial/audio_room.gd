@@ -7,6 +7,12 @@ const AudioPortalClass = preload("res://addons/opendou/runtime/spatial/audio_por
 
 var room_name: StringName = &""
 var reverb_decay_time: float = 1.5
+var reverb_time: float:
+	get: return reverb_decay_time
+	set(v): reverb_decay_time = maxf(0.01, v)
+var rt60: float:
+	get: return reverb_decay_time
+	set(v): reverb_decay_time = maxf(0.01, v)
 var damping: float = 0.5
 var reverb_send_level: float = 0.2
 

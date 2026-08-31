@@ -37,25 +37,27 @@ static func run_all() -> Array[String]:
 		failures.append("Test 1 Failed: Missing drone, acoustic debugger or tactical HUD")
 		
 	# Test 2: Sector Teleportation & Positions
+	var get_pos = func() -> Vector3: return player.global_position if player.is_inside_tree() else player.position
+	
 	demo.teleport_to_sector(1)
-	if demo.active_sector_idx != 1 or player.global_position.distance_to(Vector3(0, 1, 0)) > 0.1:
-		failures.append("Test 2 Failed: Sector 1 teleport failed, got pos %s" % str(player.global_position))
+	if demo.active_sector_idx != 1 or get_pos.call().distance_to(Vector3(0, 1, 0)) > 0.1:
+		failures.append("Test 2 Failed: Sector 1 teleport failed, got pos %s" % str(get_pos.call()))
 		
 	demo.teleport_to_sector(2)
-	if demo.active_sector_idx != 2 or player.global_position.distance_to(Vector3(30, 1, 0)) > 0.1:
-		failures.append("Test 2 Failed: Sector 2 teleport failed, got pos %s" % str(player.global_position))
+	if demo.active_sector_idx != 2 or get_pos.call().distance_to(Vector3(30, 1, 0)) > 0.1:
+		failures.append("Test 2 Failed: Sector 2 teleport failed, got pos %s" % str(get_pos.call()))
 		
 	demo.teleport_to_sector(3)
-	if demo.active_sector_idx != 3 or player.global_position.distance_to(Vector3(60, 1, 0)) > 0.1:
-		failures.append("Test 2 Failed: Sector 3 teleport failed, got pos %s" % str(player.global_position))
+	if demo.active_sector_idx != 3 or get_pos.call().distance_to(Vector3(60, 1, 0)) > 0.1:
+		failures.append("Test 2 Failed: Sector 3 teleport failed, got pos %s" % str(get_pos.call()))
 		
 	demo.teleport_to_sector(4)
-	if demo.active_sector_idx != 4 or player.global_position.distance_to(Vector3(90, 1, 0)) > 0.1:
-		failures.append("Test 2 Failed: Sector 4 teleport failed, got pos %s" % str(player.global_position))
+	if demo.active_sector_idx != 4 or get_pos.call().distance_to(Vector3(90, 1, 0)) > 0.1:
+		failures.append("Test 2 Failed: Sector 4 teleport failed, got pos %s" % str(get_pos.call()))
 		
 	demo.teleport_to_sector(5)
-	if demo.active_sector_idx != 5 or player.global_position.distance_to(Vector3(120, 1, 0)) > 0.1:
-		failures.append("Test 2 Failed: Sector 5 teleport failed, got pos %s" % str(player.global_position))
+	if demo.active_sector_idx != 5 or get_pos.call().distance_to(Vector3(120, 1, 0)) > 0.1:
+		failures.append("Test 2 Failed: Sector 5 teleport failed, got pos %s" % str(get_pos.call()))
 		
 	# Test 3: River Spline Emitter Closest Point Projection
 	if spline_emitter:
@@ -76,13 +78,13 @@ static func run_all() -> Array[String]:
 		
 	# Test 5: Material Mass-Law Transmission Loss Evaluation
 	demo.set_test_material(&"Concrete")
-	var tl_concrete = demo.spatial_acoustics.material_registry.calculate_transmission_loss(&"Concrete", 0.3, 1000.0)
+	var tl_concrete = demo.spatial_acoustics.material_registry.calculate_transmission_loss(&"Concrete", 0.3, 1000.0)["attenuation_db"]
 	demo.set_test_material(&"Metal")
-	var tl_metal = demo.spatial_acoustics.material_registry.calculate_transmission_loss(&"Metal", 0.3, 1000.0)
+	var tl_metal = demo.spatial_acoustics.material_registry.calculate_transmission_loss(&"Metal", 0.3, 1000.0)["attenuation_db"]
 	demo.set_test_material(&"Wood")
-	var tl_wood = demo.spatial_acoustics.material_registry.calculate_transmission_loss(&"Wood", 0.3, 1000.0)
+	var tl_wood = demo.spatial_acoustics.material_registry.calculate_transmission_loss(&"Wood", 0.3, 1000.0)["attenuation_db"]
 	demo.set_test_material(&"Foliage")
-	var tl_foliage = demo.spatial_acoustics.material_registry.calculate_transmission_loss(&"Foliage", 0.3, 1000.0)
+	var tl_foliage = demo.spatial_acoustics.material_registry.calculate_transmission_loss(&"Foliage", 0.3, 1000.0)["attenuation_db"]
 	
 	if not (tl_metal > tl_concrete and tl_concrete > tl_wood and tl_wood > tl_foliage):
 		failures.append("Test 5 Failed: Transmission loss ranking invalid: Metal (%.1f) > Concrete (%.1f) > Wood (%.1f) > Foliage (%.1f)" % [

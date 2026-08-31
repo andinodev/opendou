@@ -10,6 +10,9 @@ var position: Vector3 = Vector3.ZERO
 
 # Aperture openness: 0.0 (closed solid wall) to 1.0 (fully open)
 var open_factor: float = 1.0
+var open_state: float:
+	get: return open_factor
+	set(v): open_factor = clampf(v, 0.0, 1.0)
 var base_lpf_cutoff: float = 20000.0
 var min_lpf_cutoff: float = 200.0
 

@@ -69,7 +69,7 @@ size = Vector3(25, 1, 50)
 
 [node name="RiverSplineEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector1_RiverGorge"]
 script = ExtResource("2_spline")
-spline_path = SubResource("Curve3D_river")
+curve = SubResource("Curve3D_river")
 max_virtual_distance = 60.0
 
 [node name="Sector2_Bunker" type="Node3D" parent="LevelGeometry"]

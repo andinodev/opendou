@@ -404,24 +404,25 @@ size = Vector3(2, 3, 2)
 material = SubResource("StandardMaterial3D_metal")
 
 [node name="TurretEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=390967330]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 2.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.511112, 2.5, 0)
 volume_db = -16.0
 unit_size = 2.5
 autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Turret_Scan"
-synth_preset = "Turret_Scan"
+base_priority = 69.0
+synth_preset = "Homer_Doh_Synth"
 
 [node name="RadioBeaconEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=2142646796]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
-volume_db = -16.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4694786, 0)
+volume_db = -1.376
 unit_size = 2.5
 autoplay = true
 max_distance = 15.0
 script = ExtResource("4_p3d")
 event_name = &"Radio_Beacon"
-synth_preset = "Radio_Beacon"
+synth_preset = "Plucked_Wood_Step"
 
 [node name="ArenaBeaconLight" type="OmniLight3D" parent="LevelGeometry/Sector4_ExtractionArena" unique_id=961045293]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
@@ -484,7 +485,6 @@ room_b = NodePath("../../Sector4_ExtractionArena/ExtractionArenaRoom")
 
 [node name="CanopyWind_FL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100001]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 3.5, -6)
-visible = false
 volume_db = -8.0
 unit_size = 5.0
 autoplay = true
@@ -496,7 +496,6 @@ synth_preset = "Wind_Canopy"
 
 [node name="Waterfall_FR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100002]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 3.5, -6)
-visible = false
 volume_db = -8.0
 unit_size = 5.0
 autoplay = true
@@ -508,7 +507,6 @@ synth_preset = "Waterfall_Stream"
 
 [node name="Bird_C" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100003]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 2, -8)
-visible = false
 volume_db = -6.0
 unit_size = 5.0
 autoplay = true
@@ -519,7 +517,6 @@ synth_preset = "Bird_Chirp"
 
 [node name="Thunder_LFE" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100004]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80, 0.38746023, 0)
-visible = false
 volume_db = -4.0
 unit_size = 6.0
 autoplay = true
@@ -530,7 +527,6 @@ synth_preset = "Thunder_Rumble"
 
 [node name="Cicada_SL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100005]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71, 1.5, 0)
-visible = false
 volume_db = -9.0
 unit_size = 5.0
 autoplay = true
@@ -542,7 +538,6 @@ synth_preset = "Cicada_Swarm"
 
 [node name="Frog_SR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100006]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89, 1.5, 0)
-visible = false
 volume_db = -7.0
 unit_size = 5.0
 autoplay = true
@@ -554,7 +549,6 @@ synth_preset = "Frog_Croak"
 
 [node name="Rain_RL" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100007]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 2.5, 6)
-visible = false
 volume_db = -9.0
 unit_size = 5.0
 autoplay = true
@@ -566,7 +560,6 @@ synth_preset = "Rain_Atmosphere"
 
 [node name="Droplet_RR" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100008]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 2.5, 6)
-visible = false
 volume_db = -7.0
 unit_size = 5.0
 autoplay = true
@@ -578,7 +571,6 @@ synth_preset = "Water_Droplet"
 
 [node name="OrbitingBeeEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector5_Biosphere" unique_id=310100009]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 85, 1.5, 0)
-visible = false
 volume_db = -8.0
 unit_size = 4.0
 autoplay = true

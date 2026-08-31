@@ -64,6 +64,9 @@ static func get_singleton():
 		_instance = script.new()
 	return _instance
 
+static func get_instance():
+	return get_singleton()
+
 func _reset_to_defaults() -> void:
 	_materials.clear()
 	for k in DEFAULT_MATERIALS.keys():
@@ -79,6 +82,14 @@ func get_material(mat_name: StringName) -> Dictionary:
 ## Returns true if material is registered.
 func has_material(mat_name: StringName) -> bool:
 	return _materials.has(mat_name)
+
+## Returns material resonance LPF cutoff frequency in Hz.
+func get_material_cutoff(mat_name: StringName) -> float:
+	return float(get_material(mat_name).get("resonance_lpf", 350.0))
+
+## Returns material physical density in kg/m3.
+func get_material_density(mat_name: StringName) -> float:
+	return float(get_material(mat_name).get("density", 2400.0))
 
 ## Registers or overrides a custom physical acoustic material.
 func register_custom_material(mat_name: StringName, density: float, resonance_lpf: float, absorption: float) -> void:

@@ -74,10 +74,41 @@ func _init() -> void:
 	_setup_runtime_systems()
 
 func _ready() -> void:
+	_bind_nodes()
 	if not voice_pool:
 		_setup_runtime_systems()
 	_connect_ui()
 	_update_hud()
+
+func _bind_nodes() -> void:
+	if not player: player = get_node_or_null("Player")
+	if not river_spline_emitter: river_spline_emitter = get_node_or_null("LevelGeometry/Sector1_RiverGorge/RiverSplineEmitter")
+	if not bunker_door_mesh: bunker_door_mesh = get_node_or_null("LevelGeometry/Sector2_Bunker/BunkerDoor")
+	if not drone_emitter: drone_emitter = get_node_or_null("LevelGeometry/Sector4_DroneRange/DroneEmitter")
+	if not acoustic_debugger: acoustic_debugger = get_node_or_null("LevelGeometry/AcousticDebugger")
+	if not audible_monitor: audible_monitor = get_node_or_null("AudibleMonitor")
+	
+	if not btn_sector1: btn_sector1 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector1")
+	if not btn_sector2: btn_sector2 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector2")
+	if not btn_sector3: btn_sector3 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector3")
+	if not btn_sector4: btn_sector4 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector4")
+	if not btn_sector5: btn_sector5 = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnSector5")
+	if not btn_back: btn_back = get_node_or_null("TacticalHUD/TopBar/Margin/HBox/BtnBack")
+	
+	if not btn_toggle_door: btn_toggle_door = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleDoor")
+	if not opt_material: opt_material = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/OptMaterial")
+	if not btn_detonate: btn_detonate = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnDetonate")
+	if not btn_toggle_acoustics: btn_toggle_acoustics = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleAcoustics")
+	if not btn_toggle_monitor: btn_toggle_monitor = get_node_or_null("TacticalHUD/BottomBar/Margin/HBox/BtnToggleMonitor")
+	
+	if not lbl_sector: lbl_sector = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSector")
+	if not lbl_surface: lbl_surface = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblSurface")
+	if not lbl_acoustics: lbl_acoustics = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblAcoustics")
+	if not lbl_portal_spread: lbl_portal_spread = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblPortalSpread")
+	if not lbl_material_tl: lbl_material_tl = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblMaterialTL")
+	if not lbl_drone_doppler: lbl_drone_doppler = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblDroneDoppler")
+	if not lbl_hdr_window: lbl_hdr_window = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblHDRWindow")
+	if not lbl_active_voices: lbl_active_voices = get_node_or_null("TacticalHUD/HUDPanel/Margin/VBox/LblActiveVoices")
 
 func _setup_runtime_systems() -> void:
 	voice_pool = VoicePoolManagerClass.new(16)
@@ -130,6 +161,7 @@ func _connect_ui() -> void:
 		btn_toggle_monitor.pressed.connect(_on_toggle_monitor_pressed)
 
 func teleport_to_sector(sector_idx: int) -> void:
+	_bind_nodes()
 	if SECTOR_POSITIONS.has(sector_idx):
 		active_sector_idx = sector_idx
 		if player:
@@ -244,7 +276,8 @@ func _update_hud() -> void:
 		
 	if lbl_material_tl and spatial_acoustics and spatial_acoustics.material_registry:
 		var tl = spatial_acoustics.material_registry.calculate_transmission_loss(active_test_material, 0.3, 1000.0)
-		var cutoff = spatial_acoustics.material_registry.get_material_cutoff(active_test_material)
+		var att_db = tl.get("attenuation_db", 0.0)
+		var cutoff = tl.get("cutoff_lpf", 20000.0)
 		lbl_material_tl.text = "🧱 Material: %s | TL: -%.1f dB | LPF: %.0f Hz" % [
-			active_test_material, tl, cutoff
+			active_test_material, att_db, cutoff
 		]
