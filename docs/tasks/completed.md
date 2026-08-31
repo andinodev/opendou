@@ -6,7 +6,28 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
-* **`TASK-054` - Expansión DSP Granular 3D, Convolución IR y SoundBanks Monolíticos en Tactical Canyon**
+* **`TASK-055` - Nodos de Gameplay Espacial y Modulación Dinámica (Fase 1)**
+  * **Fecha:** 2026-08-31
+  * **Resumen:**
+    * **Nodo Declarativo `OpenDouParameterArea3D` (`addons/opendou/nodes/opendou_parameter_area_3d.gd`):**
+      * Volumen de modulación dinámica para parámetros de juego RTPC, snapshots globales de mezcla y envíos auxiliares.
+      * Modos de penetración matemática: Radial Esférica, Cilíndrica 2D (`ignore_y_axis = true`), Gradiente por Eje Arbitrario y Disparador Binario.
+      * Resolución robusta de solapamiento de áreas: Operaciones de mezcla `MAX`, `ADD` (clamped) y `REPLACE` por prioridad (`rtpc_priority`).
+      * Integración de snapshots globales de mezcla (`target_snapshot`) con empuje y pop automático al entrar/salir del volumen.
+      * Prevención de jitter en límites de colisión con histéresis temporal (`edge_hysteresis_ms = 150.0`).
+      * Manejo seguro de ciclo de vida (`tree_exited`) para liberar parámetros y snapshots si un nodo es destruido dentro del volumen.
+      * Icono SVG `addons/opendou/icons/icon_parameter_area_3d.svg` y registro en `addons/opendou/plugin.gd`.
+    * **Nodo Declarativo `OpenDouMultiPositionEmitter3D` (`addons/opendou/nodes/opendou_multi_position_emitter_3d.gd`):**
+      * Emisor para objetos acústicos masivos o distribuidos (ríos, cascadas, tuberías, vallas perimetrales).
+      * Modos de renderizado espacial: Tracking al vértice más cercano (`CLOSEST_POINT_TRACKING`) y centroid blended ponderado (`MULTI_POINT_BLENDED`).
+      * Supresión determinista de filtro de peine (*comb filtering*) mediante micro-desfases acústicos $\Delta t_i \in [0.1, 2.5]\text{ ms}$ por vértice.
+      * Transición continua a envolvente 2D difuso (`spread = 180^\circ`) al penetrar en el volumen AABB de emisión (`envelopment_on_inside`).
+      * Oclusión discreta con origen de raycast trazado desde el vértice activo hacia el oyente (no desde el centroide del nodo).
+      * API pública dinámica para vértices: `add_emission_point`, `remove_emission_point`, `clear_emission_points`, `set_emission_points` y extracción automática desde geometrías `MeshInstance3D` (`update_points_from_mesh`).
+      * Icono SVG `addons/opendou/icons/icon_multi_position_emitter_3d.svg` y registro en `addons/opendou/plugin.gd`.
+    * **Verificación y Pruebas:**
+      * Creadas suites `tests/test_parameter_area_3d.gd` (10 tests) y `tests/test_multi_position_emitter_3d.gd` (8 tests).
+      * Total de la suite OpenDou incrementado a **306 pruebas** con **100% de éxito (0 fallos)** en `godot --headless`.
   * **Fecha:** 2026-08-31
   * **Resumen:**
     * **Nodo Declarativo `OpenDouGranularEmitter3D` (`addons/opendou/nodes/opendou_granular_emitter_3d.gd`):**

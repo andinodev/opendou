@@ -1,10 +1,13 @@
-# ⚡ Tarea Activa: TASK-054 — Expansión DSP Granular 3D, Convolución IR y SoundBanks Monolíticos en Tactical Canyon
+# ⚡ Tarea Activa: TASK-055 — Nodos de Gameplay Espacial y Modulación Dinámica (Fase 1)
 
-* **Estado:** ✅ Completado y Verificado al 100%
-* **Hitos Alcanzados:**
-  * **Task 1:** Implementado el nodo declarativo `OpenDouGranularEmitter3D` (`addons/opendou/nodes/opendou_granular_emitter_3d.gd`), icono SVG `icon_granular_emitter.svg`, y suite de pruebas `tests/test_granular_emitter_3d.gd`.
-  * **Task 2:** Implementado el modo de Convolución Acústica IR en `OpenDouRoom3D` (`addons/opendou/nodes/opendou_room_3d.gd`, `audio_room.gd`, `convolution_reverb_node.gd`), y suite `tests/test_room_convolution.gd`.
-  * **Task 3:** Implementado el empaquetador binario `SoundBankBuilder` (`addons/opendou/runtime/soundbank_builder.gd`), streaming por chunks y telemetría de memoria en `SoundBankManager`, y suite `tests/test_soundbank_packaging_and_streaming.gd`.
-  * **Task 4:** Integración en la escena `demo_tactical_canyon.tscn` (Sector 1 Granular, Sector 2 Búnker IR, Sector 5 SoundBank), materiales PBR `StandardMaterial3D`, y controles interactivos en HUD táctico (`C`, `V`, `B`), con suite `tests/test_tactical_canyon_demo.gd`.
-* **Fecha de Entrega:** 2026-08-31
-* **Verificación:** 288 pruebas unitarias y de integración ejecutadas con `godot.cmd` (código de salida 0).
+* **Documento de Especificación:** [`docs/specs/spec_spatial_gameplay_nodes_phase1.md`](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/specs/spec_spatial_gameplay_nodes_phase1.md)
+* **Plan de Implementación:** [`docs/plans/2026-08-31-spatial-gameplay-nodes-phase1.md`](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/plans/2026-08-31-spatial-gameplay-nodes-phase1.md)
+* **Estado:** ✅ Completado y Verificado
+* **Checklist de Tareas:**
+  * [x] **Task 1:** Implementar `OpenDouParameterArea3D` (`Area3D`), icono SVG, y suite `tests/test_parameter_area_3d.gd` (10 tests).
+  * [x] **Task 2:** Implementar `OpenDouMultiPositionEmitter3D` (`AudioStreamPlayer3D`), icono SVG, y suite `tests/test_multi_position_emitter_3d.gd` (8 tests).
+  * [x] **Task 3:** Integrar suites en `tests/test_all.gd`, verificar 306 pruebas al 100% y actualizar documentación.
+* **Criterios de Aceptación (Definition of Done):**
+  * [x] `OpenDouParameterArea3D` soporta modulación radial (esférica y cilíndrica con `ignore_y_axis`), por gradiente de eje, operaciones de mezcla (`MAX`, `ADD`, `REPLACE`), activación de snapshots, histéresis y seguridad anti-despawn (`tree_exited`).
+  * [x] `OpenDouMultiPositionEmitter3D` soporta tracking al punto más cercano, mezcla multi-fuente ponderada, supresión de *comb filtering*, oclusión discreta por vértice activo, envolvimiento 2D interior y extracción dinámica de vértices desde `MeshInstance3D`.
+  * [x] 100% de tests unitarios y de integración pasando con código de salida 0 en `godot --headless` (306/306 tests).

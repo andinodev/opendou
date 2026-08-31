@@ -1064,7 +1064,11 @@ func _on_preset_name_submitted(new_name_str: String) -> void:
 func _on_add_preset_pressed() -> void:
 	var registry = SynthPresetRegistry.get_singleton()
 	var names = registry.get_preset_names()
-	var new_name = StringName("Synth_Preset_%d" % (names.size() + 1))
+	var base_idx = names.size() + 1
+	var new_name = StringName("Synth_Preset_%d" % base_idx)
+	while not registry.get_preset(new_name).is_empty():
+		base_idx += 1
+		new_name = StringName("Synth_Preset_%d" % base_idx)
 	var new_dict: Dictionary = {
 		"type": "Single_Generator",
 		"generator_type": "Basic_Wave",
