@@ -3,6 +3,7 @@ extends RefCounted
 
 const AcousticReflectorEngineClass = preload("res://addons/opendou/runtime/spatial/acoustic_reflector_engine.gd")
 const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
+const EdgeDiffractionEngineClass = preload("res://addons/opendou/runtime/spatial/edge_diffraction_engine.gd")
 
 static func run_all() -> Array[String]:
 	var failures: Array[String] = []
@@ -44,5 +45,38 @@ static func run_all() -> Array[String]:
 			])
 		if metal_response["cutoff_lpf"] <= 500.0:
 			failures.append("Test 2 Failed: Metal reflection cutoff LPF should be > 500 Hz, got %.1f" % metal_response["cutoff_lpf"])
+	
+	# Test 3: EdgeDiffractionEngine shadow angle calculation
+	var diffraction = EdgeDiffractionEngineClass.new()
+	if diffraction == null:
+		failures.append("Test 3 Failed: Could not instantiate EdgeDiffractionEngine")
+	else:
+		# Straight line (no bend): angle should be ~0 radians
+		var angle_straight = diffraction.calculate_shadow_angle(Vector3(-10, 0, 0), Vector3(0, 0, 0), Vector3(10, 0, 0))
+		if absf(angle_straight) > 0.01:
+			failures.append("Test 3 Failed: Straight line should have 0 shadow angle, got %.3f rad" % angle_straight)
+		
+		# 90-degree corner bend
+		var angle_90 = diffraction.calculate_shadow_angle(Vector3(0, 0, -10), Vector3(0, 0, 0), Vector3(10, 0, 0))
+		if absf(angle_90 - (PI / 2.0)) > 0.05:
+			failures.append("Test 3 Failed: Expected ~1.571 rad (90 deg) shadow angle, got %.3f rad" % angle_90)
+		
+		# Test 4: Diffraction filter cutoff & gain curves
+		var filter_straight = diffraction.calculate_diffraction_filter(0.0)
+		var filter_90 = diffraction.calculate_diffraction_filter(PI / 2.0)
+		var filter_160 = diffraction.calculate_diffraction_filter(deg_to_rad(160.0))
+		
+		if not (filter_160["cutoff_lpf"] < filter_90["cutoff_lpf"] and filter_90["cutoff_lpf"] < filter_straight["cutoff_lpf"]):
+			failures.append("Test 4 Failed: Diffraction cutoff LPF should decrease as shadow angle increases (0: %.0f, 90: %.0f, 160: %.0f)" % [
+				filter_straight["cutoff_lpf"], filter_90["cutoff_lpf"], filter_160["cutoff_lpf"]
+			])
+		
+		if filter_160["gain"] >= filter_straight["gain"]:
+			failures.append("Test 4 Failed: Diffraction gain should decrease into shadow")
+		
+		# Obstacle corner edge detection
+		var edge_pt = diffraction.find_diffraction_edge(Vector3(0, 0, -5), Vector3(0, 0, 5), Vector3(0, 0, 0), Vector3(2, 2, 0.5))
+		if edge_pt.distance_to(Vector3(2, 0, 0)) > 0.1 and edge_pt.distance_to(Vector3(-2, 0, 0)) > 0.1:
+			failures.append("Test 4 Failed: Expected edge point at (+-2, 0, 0), got %s" % str(edge_pt))
 	
 	return failures
