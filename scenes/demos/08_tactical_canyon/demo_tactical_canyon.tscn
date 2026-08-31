@@ -107,9 +107,9 @@ combat_intensity = 0.53
 volume_db = -12.0
 script = ExtResource("5_ep")
 event_name = &"Wind_Canyon_Ambience"
+auto_play_event = true
 bus_category = "Ambience"
 synth_preset = "Wind_Canopy"
-auto_play_event = true
 
 [node name="LevelGeometry" type="Node3D" parent="." unique_id=2056055664]
 
@@ -122,8 +122,8 @@ size = Vector3(25, 1, 50)
 
 [node name="RiverSplineEmitter" type="AudioStreamPlayer3D" parent="LevelGeometry/Sector1_RiverGorge" unique_id=1961251267]
 unit_size = 4.0
-max_distance = 60.0
 autoplay = true
+max_distance = 60.0
 script = ExtResource("3_spline")
 curve = SubResource("Curve3D_river")
 spline_path = SubResource("Curve3D_river")
@@ -194,11 +194,10 @@ unit_size = 3.0
 max_distance = 30.0
 script = ExtResource("4_ep3d")
 event_name = &"Generator_Hum"
+auto_play_event = true
+base_priority = 30.0
 bus_category = "Ambience"
 synth_preset = "Server_Hum"
-auto_play_event = true
-enable_dynamic_occlusion = true
-base_priority = 30.0
 
 [node name="BunkerRoomArea" type="Area3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1683473604]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
@@ -250,17 +249,15 @@ unit_size = 4.0
 max_distance = 40.0
 script = ExtResource("4_ep3d")
 event_name = &"Lab_Speaker_Reference"
-bus_category = "SFX"
-synth_preset = "EV_Electric_Engine"
 auto_play_event = true
-enable_dynamic_occlusion = true
 base_priority = 40.0
+synth_preset = "EV_Electric_Engine"
 
 [node name="LabRoomArea" type="Area3D" parent="LevelGeometry/Sector3_MaterialLab" unique_id=1683473699]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 script = ExtResource("6_room")
 room_name = &"Material_Lab"
-calculated_rt60 = 1.1
+calculated_rt60 = 5.174999999999999
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="LevelGeometry/Sector3_MaterialLab/LabRoomArea" unique_id=342413999]
 shape = SubResource("BoxShape3D_lab_room")
@@ -284,11 +281,10 @@ unit_size = 4.0
 max_distance = 60.0
 script = ExtResource("4_ep3d")
 event_name = &"Drone_Engine"
-bus_category = "SFX"
-synth_preset = "EV_Electric_Engine"
 auto_play_event = true
 base_priority = 60.0
 cull_distance = 80.0
+synth_preset = "EV_Electric_Engine"
 
 [node name="Sector5_HDRFiringRange" type="Node3D" parent="LevelGeometry" unique_id=1862237420]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 0)
@@ -310,10 +306,8 @@ unit_size = 8.0
 max_distance = 150.0
 script = ExtResource("4_ep3d")
 event_name = &"Explosion_Impact_HDR"
-bus_category = "SFX"
-synth_preset = "SciFi_Heavy_Explosion"
-auto_play_event = false
 base_priority = 100.0
+synth_preset = "SciFi_Heavy_Explosion"
 
 [node name="AcousticDebugger" type="Node3D" parent="LevelGeometry" unique_id=1831175532]
 script = ExtResource("10_debugger")

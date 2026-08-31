@@ -316,6 +316,11 @@ func _process(delta: float) -> void:
 		var p_pos = player.global_position if player.is_inside_tree() else player.position
 		river_spline_emitter.update_spline_acoustics(p_pos, Vector3.ZERO, delta)
 
+	# 4. Actualizar contador de voces activas en HUD
+	if lbl_active_voices and audible_monitor and audible_monitor.has_method("get_displayed_voices_count"):
+		lbl_active_voices.text = "🎙️ Voices: %d Active" % audible_monitor.get_displayed_voices_count()
+
+
 # ─── HUD UPDATE ───────────────────────────────────────────────────────────────
 
 func _update_hud() -> void:
@@ -346,3 +351,10 @@ func _update_hud() -> void:
 		lbl_material_tl.text = "🧱 Material: %s | TL: -%.1f dB | LPF: %.0f Hz" % [
 			active_test_material, att_db, cutoff
 		]
+
+	if lbl_active_voices:
+		var count: int = 0
+		if audible_monitor and audible_monitor.has_method("get_displayed_voices_count"):
+			count = audible_monitor.get_displayed_voices_count()
+		lbl_active_voices.text = "🎙️ Voices: %d Active" % count
+

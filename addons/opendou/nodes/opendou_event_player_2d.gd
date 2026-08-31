@@ -122,8 +122,14 @@ func play_event(p_event_name: StringName = &"") -> void:
 	if manager != null:
 		if event_def != null and p_event_name.is_empty():
 			active_instance = manager.post_event(event_def, self)
-		elif not target_name.is_empty():
+		elif not target_name.is_empty() and manager.event_registry.has(target_name):
 			active_instance = manager.post_event(target_name, self)
+		elif not target_name.is_empty():
+			var fallback_def = AudioEventDefClass.new(target_name)
+			fallback_def.target_bus = StringName(bus_category)
+			active_instance = EventInstanceClass.new(fallback_def, self)
+			active_instance.play()
+			manager.active_instances.append(active_instance)
 	elif event_def != null:
 		active_instance = EventInstanceClass.new(event_def, self)
 		active_instance.play()
@@ -147,10 +153,23 @@ func play_event(p_event_name: StringName = &"") -> void:
 		if not state_group.is_empty() and not active_state.is_empty():
 			set_state(state_group, active_state)
 
+	if stream == null and synth_preset != "None":
+		_apply_synth_preset()
+	elif stream == null and not target_name.is_empty():
+		_auto_infer_synth_preset()
+
+	if AudioServer.get_bus_index(bus_category) != -1:
+		bus = bus_category
+
+	if stream != null and is_inside_tree():
+		play(0.0)
+
 ## Stops playback of the currently active event instance.
 func stop_event(fade_time: float = 0.0) -> void:
 	if active_instance != null:
 		active_instance.stop(fade_time)
+	if is_inside_tree() and playing:
+		stop()
 
 ## Sets a local RTPC parameter value on this emitter and updates the active instance.
 func set_rtpc(param_name: StringName, value: float) -> void:
