@@ -1,0 +1,322 @@
+[gd_scene load_steps=24 format=3 uid="uid://b7infiltrationdemo09uid"]
+
+[ext_resource type="Script" path="res://scenes/demos/09_tactical_infiltration/demo_tactical_infiltration.gd" id="1_controller"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_acoustic_geometry_bake.gd" id="2_bake"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_room_3d.gd" id="3_room"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_portal_3d.gd" id="4_portal"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_reflector_3d.gd" id="5_reflector"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_spline_emitter_3d.gd" id="6_spline"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_granular_emitter_3d.gd" id="7_granular"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_parameter_area_3d.gd" id="8_param_area"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_multi_position_emitter_3d.gd" id="9_multi_pos"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_animation_sync.gd" id="10_anim_sync"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_music_player.gd" id="11_music"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd" id="12_debugger"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_audible_monitor.gd" id="13_monitor"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_event_player_3d.gd" id="14_event_player"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_player"]
+size = Vector3(0.8, 1.8, 0.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_room_cavern"]
+size = Vector3(30, 10, 30)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_room_bunker"]
+size = Vector3(20, 8, 20)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_toxic_area"]
+size = Vector3(15, 6, 25)
+
+[sub_resource type="Curve3D" id="Curve3D_river"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -10, 0, -10, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 0, 0, 10, 0, 12),
+"tilts": PackedFloat32Array(0, 0, 0, 0)
+}
+point_count = 4
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(20, 0.5, 20)
+
+[sub_resource type="BoxMesh" id="BoxMesh_generator"]
+size = Vector3(4, 3, 4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_door"]
+size = Vector3(0.4, 3, 2.5)
+
+[sub_resource type="Environment" id="Environment_dark"]
+background_mode = 1
+background_color = Color(0.02, 0.03, 0.05, 1)
+ambient_light_color = Color(0.15, 0.2, 0.25, 1)
+
+[node name="Infiltration_Level" type="Node3D"]
+script = ExtResource("1_controller")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_dark")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 15, 0)
+light_color = Color(0.75, 0.85, 0.95, 1)
+light_energy = 0.6
+
+[node name="Acoustic_Processor" type="Node3D" parent="."]
+script = ExtResource("2_bake")
+target_group = &"AcousticObstacle"
+scan_child_meshes = true
+default_acoustic_material = &"Concrete"
+
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="Outer_Cavern" type="Area3D" parent="Environment"]
+script = ExtResource("3_room")
+room_name = &"Outer_Cavern"
+reverb_preset = "Stone"
+floor_surface = &"Stone"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Outer_Cavern"]
+shape = SubResource("BoxShape3D_room_cavern")
+
+[node name="Cavern_Floor" type="MeshInstance3D" parent="Environment/Outer_Cavern" groups=["AcousticObstacle"]]
+transform = Transform3D(1.5, 0, 0, 0, 1, 0, 0, 0, 1.5, 0, -0.25, 0)
+mesh = SubResource("BoxMesh_floor")
+metadata/acoustic_material = &"Stone"
+
+[node name="Cavern_Reflector" type="Node3D" parent="Environment/Outer_Cavern"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 2, 0)
+script = ExtResource("5_reflector")
+reflector_name = &"Cavern_Wall_Reflector"
+
+[node name="Underground_River" type="AudioStreamPlayer3D" parent="Environment/Outer_Cavern"]
+script = ExtResource("6_spline")
+spline_curve = SubResource("Curve3D_river")
+
+[node name="Toxic_Zone" type="Area3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 0)
+script = ExtResource("8_param_area")
+parameter_name = &"Toxic_Tension"
+modulation_mode = 1
+gradient_axis = Vector3(0, 0, 1)
+target_snapshot = &"Toxic_Spores_Snapshot"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Toxic_Zone"]
+shape = SubResource("BoxShape3D_toxic_area")
+
+[node name="Corridor_Mesh" type="MeshInstance3D" parent="Environment/Toxic_Zone" groups=["AcousticObstacle"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+mesh = SubResource("BoxMesh_floor")
+metadata/acoustic_material = &"Concrete"
+
+[node name="Toxic_Spores" type="AudioStreamPlayer3D" parent="Environment/Toxic_Zone"]
+script = ExtResource("7_granular")
+emission_radius = 6.0
+
+[node name="Bunker_Complex" type="Node3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 0)
+
+[node name="Access_Portal" type="Node3D" parent="Environment/Bunker_Complex"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1.5, 0)
+script = ExtResource("4_portal")
+portal_name = &"Bunker_Access_Portal"
+room_a_name = &"Outer_Cavern"
+room_b_name = &"Generator_Room"
+
+[node name="Blast_Door" type="MeshInstance3D" parent="Environment/Bunker_Complex/Access_Portal"]
+mesh = SubResource("BoxMesh_door")
+
+[node name="Generator_Room" type="Area3D" parent="Environment/Bunker_Complex"]
+script = ExtResource("3_room")
+room_name = &"Generator_Room"
+reverb_preset = "Metal"
+floor_surface = &"Metal"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Bunker_Complex/Generator_Room"]
+shape = SubResource("BoxShape3D_room_bunker")
+
+[node name="Bunker_Floor" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room" groups=["AcousticObstacle"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+mesh = SubResource("BoxMesh_floor")
+metadata/acoustic_material = &"Metal"
+
+[node name="Main_Generator" type="AudioStreamPlayer3D" parent="Environment/Bunker_Complex/Generator_Room"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+script = ExtResource("9_multi_pos")
+emission_points = [Vector3(-2, -1, -2), Vector3(2, -1, -2), Vector3(2, -1, 2), Vector3(-2, -1, 2), Vector3(0, 1.5, 0)]
+render_mode = 0
+
+[node name="Generator_Mesh" type="MeshInstance3D" parent="Environment/Bunker_Complex/Generator_Room/Main_Generator" groups=["AcousticObstacle"]]
+mesh = SubResource("BoxMesh_generator")
+metadata/acoustic_material = &"Metal"
+
+[node name="Characters" type="Node3D" parent="."]
+
+[node name="Player_Rig" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player_Rig"]
+shape = SubResource("BoxShape3D_player")
+
+[node name="AudioListener3D" type="AudioListener3D" parent="Player_Rig"]
+current = true
+
+[node name="Camera3D" type="Camera3D" parent="Player_Rig"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 3, 5)
+
+[node name="AnimationSync" type="Node" parent="Player_Rig"]
+script = ExtResource("10_anim_sync")
+auto_detect_surface = true
+default_footstep_event = &"Footstep"
+
+[node name="Elite_Enemy" type="CharacterBody3D" parent="Characters"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 1, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Characters/Elite_Enemy"]
+shape = SubResource("BoxShape3D_player")
+
+[node name="VoiceEmitter" type="AudioStreamPlayer3D" parent="Characters/Elite_Enemy"]
+script = ExtResource("14_event_player")
+event_name = &"Enemy_Alert_Shout"
+
+[node name="EnemyAnimationSync" type="Node" parent="Characters/Elite_Enemy"]
+script = ExtResource("10_anim_sync")
+target_emitter_path = NodePath("../VoiceEmitter")
+
+[node name="Systems" type="Node3D" parent="."]
+
+[node name="Dynamic_Soundtrack" type="Node" parent="Systems"]
+script = ExtResource("11_music")
+auto_play_on_ready = false
+
+[node name="Acoustic_Debugger" type="Node3D" parent="Systems"]
+visible = false
+script = ExtResource("12_debugger")
+
+[node name="TacticalHUD" type="CanvasLayer" parent="."]
+
+[node name="AudibleMonitor" type="CanvasLayer" parent="TacticalHUD"]
+script = ExtResource("13_monitor")
+
+[node name="TopBar" type="PanelContainer" parent="TacticalHUD"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 44.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="TacticalHUD/TopBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="HBox" type="HBoxContainer" parent="TacticalHUD/TopBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LblTitle" type="Label" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "🎯 OpenDou Infiltration Showcase (Demo 09)"
+
+[node name="BtnSector1" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "1: Cavern"
+
+[node name="BtnSector2" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "2: Toxic Corridor"
+
+[node name="BtnSector3" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "3: Bunker"
+
+[node name="BtnSector4" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "4: Enemy Overlook"
+
+[node name="BtnBack" type="Button" parent="TacticalHUD/TopBar/Margin/HBox"]
+layout_mode = 2
+text = "🏠 Demo Hub"
+
+[node name="HUDPanel" type="PanelContainer" parent="TacticalHUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 50.0
+offset_right = -10.0
+offset_bottom = 240.0
+grow_horizontal = 0
+
+[node name="Margin" type="MarginContainer" parent="TacticalHUD/HUDPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="TacticalHUD/HUDPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LblSector" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Sector: 1 / 4 (Outer Cavern)"
+
+[node name="LblSurface" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Floor Surface: Stone (Auto-Detected)"
+
+[node name="LblTension" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Toxic Tension RTPC: 0.00"
+
+[node name="LblGenerator" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Generator Active Vertex: N/A"
+
+[node name="LblBakeStats" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "Baked Triangles: 0 | AABBs: 0"
+
+[node name="LblVoices" type="Label" parent="TacticalHUD/HUDPanel/Margin/VBox"]
+layout_mode = 2
+text = "FPS: 60 | Spatial Pipeline: Active"
+
+[node name="BottomBar" type="PanelContainer" parent="TacticalHUD"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -46.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Margin" type="MarginContainer" parent="TacticalHUD/BottomBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="HBox" type="HBoxContainer" parent="TacticalHUD/BottomBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BtnToggleDoor" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "Door: OPEN"
+
+[node name="BtnBake" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "⚡ Re-Bake Geometry"
+
+[node name="BtnAlertEnemy" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "🚨 Alert Enemy"
+
+[node name="BtnToggleAcoustics" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "Acoustics: OFF"
+
+[node name="BtnToggleMonitor" type="Button" parent="TacticalHUD/BottomBar/Margin/HBox"]
+layout_mode = 2
+text = "📊 Toggle Telemetry"

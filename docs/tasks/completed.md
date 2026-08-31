@@ -6,7 +6,22 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
-* **`TASK-057` - Sincronización de Audio por Animación (Fase 3)**
+* **`TASK-058` - Demo 09: Nivel de Infiltración Táctica AAA (Showcase Suite Completa)**
+  * **Fecha:** 2026-08-31
+  * **Resumen:**
+    * **Construcción Declarativa de la Escena `demo_tactical_infiltration.tscn`:**
+      * Integración de los 13 tipos de nodos de la suite OpenDou en un nivel 3D jugable estructurado en 4 sectores tácticos.
+      * **Sector 1 (Caverna Exterior):** `OpenDouRoom3D` (suelo Stone), `OpenDouReflector3D` (rebotes tempranos) y `OpenDouSplineEmitter3D` (río subterráneo).
+      * **Sector 2 (Corredor de Esporas):** `OpenDouParameterArea3D` (`AXIS_GRADIENT` a lo largo de Z modulando el RTPC `Toxic_Tension` y activando snapshots globales) y `OpenDouGranularEmitter3D` (micro-granos de esporas ambientales).
+      * **Sector 3 (Búnker y Generador Principal):** `OpenDouPortal3D` (`Access_Portal` con compuerta blindada interactiva), `OpenDouRoom3D` (suelo Metal) y `OpenDouMultiPositionEmitter3D` (`Main_Generator` con tracking al vértice más cercano y anti-comb filter).
+      * **Sector 4 (Mirador del Enemigo Élite):** `OpenDouAcousticGeometryBake` (malla acústica horneada para oclusión por CPU Möller–Trumbore), `OpenDouAnimationSync` en el Jugador (`AnimationTree` $\to$ velocidad/fatiga y `footstep()` contextual) y en el Enemigo Élite (`AnimationPlayer` $\to$ alertas vocales).
+      * **Sistemas & HUD:** `OpenDouMusicPlayer` (banda sonora adaptativa), `OpenDouAcousticDebugger3D` (visualizador de campo sonoro 3D / iso-burbujas) y `OpenDouAudibleMonitor` (telemetría de radio táctica).
+    * **Controlador `demo_tactical_infiltration.gd`:**
+      * Teletransporte instantáneo entre sectores, control de puerta blindada, detección dinámica de superficies y telemetría completa en pantalla.
+    * **Integración en Hub & Pruebas Unitarias:**
+      * Integrado en `demo_hub.tscn` y `demo_hub.gd` como Demo 09.
+      * Creada suite `tests/test_tactical_infiltration_demo.gd` (+10 tests) verificando instanciación, nodos, sectores, bake, modulación de gradiente, portales, detección de superficies y tracking multipunto.
+      * Total de la suite OpenDou alcanzando **336 pruebas** con **100% de éxito (0 fallos)** en `godot --headless`.
   * **Fecha:** 2026-08-31
   * **Resumen:**
     * **Nodo Declarativo `OpenDouAnimationSync` (`addons/opendou/nodes/opendou_animation_sync.gd`):**

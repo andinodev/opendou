@@ -57,17 +57,20 @@ func bake_geometry(root_node: Node = null) -> Dictionary:
 		scan_root = get_tree().current_scene if (is_inside_tree() and get_tree() and get_tree().current_scene) else self
 
 	# 1. Collect from child hierarchy if enabled
-	if scan_child_meshes:
-		_collect_child_meshes(self, candidate_meshes)
+	if scan_child_meshes and scan_root != null:
+		_collect_child_meshes(scan_root, candidate_meshes)
 
-	# 2. Collect from target group across the scene
-	if not target_group.is_empty() and is_inside_tree() and get_tree():
-		var group_nodes = get_tree().get_nodes_in_group(target_group)
-		for node in group_nodes:
-			if node is MeshInstance3D and not candidate_meshes.has(node):
-				candidate_meshes.append(node)
-			elif node is Node3D:
-				_collect_child_meshes(node, candidate_meshes)
+	# 2. Collect from target group across the scene or subtree
+	if not target_group.is_empty():
+		if is_inside_tree() and get_tree():
+			var group_nodes = get_tree().get_nodes_in_group(target_group)
+			for node in group_nodes:
+				if node is MeshInstance3D and not candidate_meshes.has(node):
+					candidate_meshes.append(node)
+				elif node is Node3D:
+					_collect_child_meshes(node, candidate_meshes)
+		elif scan_root != null:
+			_collect_group_meshes(scan_root, target_group, candidate_meshes)
 
 	# 3. Extract and simplify geometry
 	var total_triangles: int = 0
@@ -137,6 +140,12 @@ func _collect_child_meshes(parent_node: Node, out_list: Array[MeshInstance3D]) -
 		if child is MeshInstance3D and not out_list.has(child):
 			out_list.append(child)
 		_collect_child_meshes(child, out_list)
+
+func _collect_group_meshes(parent_node: Node, group: StringName, out_list: Array[MeshInstance3D]) -> void:
+	if parent_node.is_in_group(group) and parent_node is MeshInstance3D and not out_list.has(parent_node):
+		out_list.append(parent_node)
+	for child in parent_node.get_children():
+		_collect_group_meshes(child, group, out_list)
 
 ## Clears all currently baked geometry data and resets stats.
 func clear_baked_data() -> void:
