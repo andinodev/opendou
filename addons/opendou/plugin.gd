@@ -19,6 +19,7 @@ const OpenDouMusicPlayerClass = preload("res://addons/opendou/nodes/opendou_musi
 const OpenDouAudibleMonitorClass = preload("res://addons/opendou/nodes/opendou_audible_monitor.gd")
 const OpenDouAcousticDebugger3DClass = preload("res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd")
 const OpenDouSplineEmitter3DClass = preload("res://addons/opendou/nodes/opendou_spline_emitter_3d.gd")
+const OpenDouGranularEmitter3DClass = preload("res://addons/opendou/nodes/opendou_granular_emitter_3d.gd")
 
 # Declarative Node Icons
 const IconEventPlayer3D = preload("res://addons/opendou/icons/icon_event_player_3d.svg")
@@ -31,6 +32,7 @@ const IconMusicPlayer = preload("res://addons/opendou/icons/icon_music_player.sv
 const IconAudibleMonitor = preload("res://addons/opendou/icons/icon_audible_monitor.svg")
 const IconAcousticDebugger = preload("res://addons/opendou/icons/icon_acoustic_debugger.svg")
 const IconSplineEmitter3D = preload("res://addons/opendou/icons/icon_spline_emitter_3d.svg")
+const IconGranularEmitter = preload("res://addons/opendou/icons/icon_granular_emitter.svg")
 
 var studio_instance: Control
 var dock_button: Button
@@ -59,6 +61,7 @@ func _enter_tree() -> void:
 	add_custom_type("OpenDouAudibleMonitor", "CanvasLayer", OpenDouAudibleMonitorClass, IconAudibleMonitor)
 	add_custom_type("OpenDouAcousticDebugger3D", "Node3D", OpenDouAcousticDebugger3DClass, IconAcousticDebugger)
 	add_custom_type("OpenDouSplineEmitter3D", "AudioStreamPlayer3D", OpenDouSplineEmitter3DClass, IconSplineEmitter3D)
+	add_custom_type("OpenDouGranularEmitter3D", "AudioStreamPlayer3D", OpenDouGranularEmitter3DClass, IconGranularEmitter)
 
 func _on_dock_button_pressed() -> void:
 	if studio_instance:
@@ -77,6 +80,7 @@ func _exit_tree() -> void:
 	remove_custom_type("OpenDouAudibleMonitor")
 	remove_custom_type("OpenDouAcousticDebugger3D")
 	remove_custom_type("OpenDouSplineEmitter3D")
+	remove_custom_type("OpenDouGranularEmitter3D")
 
 	# Remove bottom panel dock
 	if studio_instance:
