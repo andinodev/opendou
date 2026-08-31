@@ -17,7 +17,8 @@ var rooms: Dictionary = {}   # StringName -> AudioRoom
 var portals: Dictionary = {} # StringName -> AudioPortal
 var reflectors: Dictionary = {} # StringName -> RefCounted/Node3D
 
-# Phase 2 Spatial Engines
+# Phase 1 & 2 Spatial Engines
+var material_registry: RefCounted
 var reflector_engine: RefCounted
 var diffraction_engine: RefCounted
 var coupling_engine: RefCounted
@@ -25,6 +26,7 @@ var lod_controller: RefCounted
 var hdr_manager: RefCounted
 
 func _init() -> void:
+	material_registry = AcousticMaterialRegistryClass.get_instance()
 	reflector_engine = AcousticReflectorEngineClass.new()
 	diffraction_engine = EdgeDiffractionEngineClass.new()
 	coupling_engine = RoomCouplingEngineClass.new()

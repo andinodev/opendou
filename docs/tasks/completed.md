@@ -6,6 +6,21 @@ Este archivo registra todas las tareas terminadas, verificadas y entregadas en e
 
 ## 📑 Registro Histórico
 
+* **`TASK-053` - AAA Spatial Acoustics Phase 3: Tactical Canyon Showcase Demo (`demo_tactical_canyon.tscn`)**
+  * **Fecha:** 2026-08-30
+  * **Resumen:**
+    * **Escena Demo Showcase Táctica 3D Declarativa (`scenes/demos/08_tactical_canyon/demo_tactical_canyon.tscn`):**
+      * **Sector 1 (River Gorge):** Emisor continuo volumétrico a lo largo de un `Curve3D` con [`OpenDouSplineEmitter3D`](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/addons/opendou/nodes/opendou_spline_emitter_3d.gd) proyectando el flujo de agua al punto más cercano al oyente en tiempo real.
+      * **Sector 2 (Bunker & Portal Airlock):** Búnker de hormigón reforzado conectado por [`OpenDouPortal3D`](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/addons/opendou/nodes/opendou_portal_3d.gd) interactivo; apertura/cierre de compuerta modula el acoplamiento de reverberación RT60 y el *Sound Spread* angular ($15^\circ \to 180^\circ$).
+      * **Sector 3 (Material Mass-Law Lab):** Laboratorio de pruebas acústicas con 4 particiones físicas (`Concrete`, `Metal`, `Wood`, `Foliage`) demostrando las pérdidas de transmisión espectral ($\text{TL}_{\text{dB}}$) y filtrado de frecuencias paso-bajo.
+      * **Sector 4 (Drone Patrol Range):** Dron de combate orbitando a alta velocidad ($25\text{ m/s}$) demostrando el desplazamiento de tono por efecto Doppler cinemático ($[0.5, 2.0]$) y la transición continua entre los 4 niveles de LOD acústico (LOD 0 a LOD 3).
+      * **Sector 5 (HDR Firing Range):** Detonaciones explosivas de alta energía (+3 dB FS) que elevan dinámicamente el piso de la ventana HDR y comprimen (*ducking*) el ambiente del cañón con decaimiento natural.
+      * **Visualización Acústica & Monitor:** Integración de [`OpenDouAcousticDebugger3D`](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/addons/opendou/nodes/opendou_acoustic_debugger_3d.gd) (rayos de difracción y burbujas iso-acústicas) y [`OpenDouAudibleMonitor`](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/addons/opendou/nodes/opendou_audible_monitor.gd).
+    * **Integración en Hub:** Registro interactivo de Demo 8 en [`scenes/demos/demo_hub.gd`](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/scenes/demos/demo_hub.gd).
+    * **Verificación:**
+      * Suite `tests/test_tactical_canyon_demo.gd` con 8 pruebas de integración.
+      * 270 pruebas unitarias y de integración pasando al 100% con `godot.cmd` (código de salida 0, 0 fallos).
+
 * **`TASK-052` - AAA Spatial Acoustics Phase 2: Early Reflections 6x, Edge Diffraction, Room Coupling, Acoustic LOD & HDR Audio**
   * **Fecha:** 2026-08-30
   * **Resumen:**
