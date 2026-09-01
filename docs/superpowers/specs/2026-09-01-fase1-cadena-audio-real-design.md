@@ -52,6 +52,8 @@ decisiones. No son supuestos.
 |-------|--------------|
 | `AudioStreamPlayer3D` tiene `attenuation_filter_cutoff_hz` y `attenuation_filter_db` | Presentes. Filtro paso-bajo **por voz, en C++**. Elimina la necesidad de un bus por voz para la oclusión. |
 | `AudioStreamPlayer3D` expone `unit_size`, `max_db`, `panning_strength`, `doppler_tracking`, `area_mask`, `max_polyphony` | Todas presentes. |
+| El filtro por voz es exclusivo de 3D | `AudioStreamPlayer` y `AudioStreamPlayer2D` **no** tienen `attenuation_filter_*`. La oclusión con LPF solo es aplicable a voces 3D; en 2D y no-espacial se aplica como atenuación de volumen. |
+| Un error de script aborta la función que lo contiene | Reproducido: la llamada con array mal tipado interrumpe la ejecución y la función devuelve `null`. Explica la cascada de los errores 4 y 5. |
 | `play(from_position)` reanuda con offset | `play(0.5)` sobre un WAV de 1 s → `get_playback_position()` = 0.503. La desvirtualización con reanudación es real. |
 | Señal `finished` disponible | Sí. Es la fuente de verdad para cerrar voces. |
 | `Area3D` tiene reverb nativo por zona | `reverb_bus_enabled`, `reverb_bus_name`, `reverb_bus_amount`, `reverb_bus_uniformity`, `audio_bus_override`, `audio_bus_name`. (El nombre correcto es `reverb_bus_enabled`, no `reverb_bus_enable`.) |
@@ -66,8 +68,13 @@ decisiones. No son supuestos.
 - **En el mismo log Godot emite 5 `SCRIPT ERROR`** y filtra 1015 instancias ObjectDB.
   Métodos inexistentes que la suite cree cubrir: `RTPCBinding.evaluate_fast`,
   `OpenDouBlendGraphNode.set_live_rtpc_progress`, `OpenDouBankPanel._on_add_stream_pressed`;
-  más un desajuste de array tipado en `VoicePoolManager.get_active_virtual_count` y un
-  acceso a `physical_voices` sobre `Nil`.
+  más un desajuste de array tipado en `VoicePoolManager.get_active_virtual_count`, que
+  aborta `AudioTelemetryCollector.collect_snapshot()` y provoca en cascada el acceso a
+  `physical_voices` sobre `Nil`: son una única causa raíz, no dos.
+
+  **Corrección:** la tabla LUT O(1) del roadmap **sí existe** (`RTPCBinding.bake_lut()`, y
+  `evaluate()` la consulta). El defecto es solo que el test invoca un nombre de método que
+  no existe. Un análisis previo lo describió como LUT ausente; era inexacto.
 - **Correr la suite muta datos versionados**: inyectó `RTPC_210`, `RTPC_211` en
   `opendou_syncs.json` y 102 líneas en `opendou_synth_presets.json` (manifestación de la nº17).
 
@@ -273,7 +280,7 @@ no es el framework, es que no falla.
 8. `enable_binaural_hrtf` no existe; README y `plugin.cfg` no mencionan HRTF.
 9. `enable_early_reflections` activado produce voces de reflexión medibles.
 10. El runner falla si el log contiene `SCRIPT ERROR`, `Parse Error` o fugas de ObjectDB.
-11. Los 5 `SCRIPT ERROR` del baseline quedan resueltos.
+11. Los 5 `SCRIPT ERROR` del baseline quedan resueltos (4 causas raíz: dos de ellos son la misma en cascada).
 12. Correr la suite deja el árbol de git limpio.
 13. `run_tests.sh` funciona en macOS.
 
