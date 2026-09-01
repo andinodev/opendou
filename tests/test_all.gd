@@ -62,6 +62,7 @@ const TestNoUnfulfilledClaimsClass = preload("res://tests/test_no_unfulfilled_cl
 const TestTransformUtilsClass = preload("res://tests/test_transform_utils.gd")
 const TestWavDecoderClass = preload("res://tests/test_wav_decoder.gd")
 const TestSplineAnchorClass = preload("res://tests/test_spline_anchor.gd")
+const TestPortalDiffractionClass = preload("res://tests/test_portal_diffraction.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -288,6 +289,10 @@ static func run_suite() -> Dictionary:
 	var wav_res = TestWavDecoderClass.run_all()
 	total_tests += wav_res.assertions_run
 	all_failures.append_array(wav_res.failures)
+
+	var portal_res = TestPortalDiffractionClass.run_all()
+	total_tests += portal_res.assertions_run
+	all_failures.append_array(portal_res.failures)
 
 	return {
 		"total": total_tests,

@@ -11,6 +11,17 @@ const AudioPortalClass = preload("res://addons/opendou/runtime/spatial/audio_por
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
 const TransformUtilsClass = preload("res://addons/opendou/runtime/spatial/transform_utils.gd")
 
+## Corte del filtro con el portal cerrado, en Hz.
+const MIN_DIFFRACTION_LPF_HZ: float = 300.0
+
+## Corte del filtro con una apertura de referencia completamente abierta, en Hz.
+const MAX_DIFFRACTION_LPF_HZ: float = 20000.0
+
+## Area de apertura de referencia, en metros cuadrados: una puerta de 2 x 3 m.
+## Una apertura de este tamano abierta del todo no filtra nada, lo que conserva
+## el comportamiento anterior para el portal_size por defecto.
+const REFERENCE_APERTURE_AREA_M2: float = 6.0
+
 # ==============================================================================
 # EXPORT GROUPS
 # ==============================================================================
@@ -21,7 +32,18 @@ const TransformUtilsClass = preload("res://addons/opendou/runtime/spatial/transf
 @export_node_path("Area3D") var room_b: NodePath
 @export var room_a_name: StringName = &""
 @export var room_b_name: StringName = &""
-@export_range(0.0, 1.0, 0.01) var open_factor: float = 1.0
+## Apertura del portal, de 0 (cerrado) a 1 (completamente abierto).
+##
+## Va con setter porque asignarlo es la forma natural de animarlo desde un tween
+## o un AnimationPlayer, y antes ese camino no actualizaba el portal en runtime:
+## habia que acordarse de llamar set_open_factor(). Room3D ya usaba setters para
+## sus propiedades, asi que los dos nodos hermanos se comportaban distinto ante la
+## misma operacion.
+@export_range(0.0, 1.0, 0.01) var open_factor: float = 1.0:
+	set(val):
+		open_factor = clampf(val, 0.0, 1.0)
+		if runtime_portal != null:
+			runtime_portal.open_factor = open_factor
 @export var portal_size: Vector2 = Vector2(2.0, 3.0)
 
 # ==============================================================================
@@ -38,15 +60,22 @@ func _ready() -> void:
 # PUBLIC API
 # ==============================================================================
 
-## Calculates Low-Pass Filter cutoff frequency in Hz based on portal openness.
+## Corte del filtro paso-bajo de difraccion, en Hz.
+##
+## Depende de la apertura EFECTIVA, no solo de open_factor: portal_size estaba
+## expuesto y no se leia en ninguna parte, asi que una gatera y un porton abierto
+## difractaban igual. Fisicamente, cuanto menor es la apertura frente a la
+## longitud de onda, mas difracta y mas agudos pierde.
 func get_diffraction_lpf() -> float:
-	return lerpf(300.0, 20000.0, clampf(open_factor, 0.0, 1.0))
+	var area: float = maxf(0.0, portal_size.x) * maxf(0.0, portal_size.y)
+	var effective: float = clampf(open_factor, 0.0, 1.0) * (area / REFERENCE_APERTURE_AREA_M2)
+	return lerpf(MIN_DIFFRACTION_LPF_HZ, MAX_DIFFRACTION_LPF_HZ, clampf(effective, 0.0, 1.0))
 
-## Updates the portal openness factor dynamically at runtime.
+## Actualiza la apertura del portal.
+##
+## Se conserva como API publica; asignar open_factor directamente hace lo mismo.
 func set_open_factor(p_factor: float) -> void:
-	open_factor = clampf(p_factor, 0.0, 1.0)
-	if runtime_portal != null:
-		runtime_portal.open_factor = open_factor
+	open_factor = p_factor
 
 ## Explicitly injects a SpatialAcousticsManager for isolated testing.
 func set_acoustics_manager(manager: SpatialAcousticsManager) -> void:
