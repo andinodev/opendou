@@ -66,4 +66,30 @@ static func run_all() -> OpenDouAssert:
 			"res://addons/opendou/runtime/spatial/hdr_audio_manager.gd"]:
 		a.ok(not FileAccess.file_exists(path), "%s no existe" % path)
 
+	# Los .import llevan el UID del recurso: sin versionarlos, cada clon regenera
+	# UIDs distintos. Godot documenta que deben ir al control de versiones.
+	var gitignore := FileAccess.open("res://.gitignore", FileAccess.READ)
+	if gitignore != null:
+		var gtext: String = gitignore.get_as_text()
+		gitignore.close()
+		var ignores_import := false
+		for line in gtext.split("\n"):
+			if line.strip_edges() == "*.import":
+				ignores_import = true
+				break
+		a.ok(not ignores_import, ".gitignore no ignora *.import")
+
+	# Y cada icono SVG debe tener su .import al lado.
+	var missing: Array[String] = []
+	var icons := DirAccess.open("res://addons/opendou/icons")
+	if icons != null:
+		icons.list_dir_begin()
+		var n: String = icons.get_next()
+		while n != "":
+			if n.ends_with(".svg") and not FileAccess.file_exists("res://addons/opendou/icons/%s.import" % n):
+				missing.append(n)
+			n = icons.get_next()
+		icons.list_dir_end()
+	a.eq(missing.size(), 0, "todos los iconos SVG tienen su .import, faltan: %s" % str(missing))
+
 	return a
