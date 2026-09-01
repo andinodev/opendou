@@ -21,6 +21,27 @@ prueba.
 Las 10 demos actuales se borran. Su test más profundo afirmaba `chunk.size() != 12`, y
 seis de ellas ni siquiera podían sonar antes de la Fase 1.
 
+### Un defecto que esta fase tiene que arreglar primero
+
+Al revisar cómo se construyen las pisadas apareció un defecto que no estaba entre las
+24 observaciones. `OpenDouAnimationSync.trigger_footstep()` invoca:
+
+```gdscript
+surface = _event_manager.spatial_acoustics.detect_surface_at(pos)
+```
+
+con un solo argumento. La firma es `detect_surface_at(pos, world_3d = null)`, y su
+**prioridad 1 —el raycast hacia abajo— solo se ejecuta si `world_3d != null`**. Así que
+`AnimationSync` nunca raycastea: cae directo a la prioridad 2, el `floor_surface` de la
+sala que contenga la posición.
+
+Consecuencia: **las pisadas solo varían si el personaje está dentro de un
+`OpenDouRoom3D` con `floor_surface` puesto**. Caminar sobre tres parches de material
+distinto dentro de la misma sala produce tres pisadas idénticas.
+
+Es la **observación 25** del proyecto, y va como primer trabajo de la fase: el rig de
+personaje y el banco dependen de que la detección funcione.
+
 ### Marco elegido: una tesis por demo
 
 Cada demo prueba **una** cosa difícil de falsear. La cobertura de nodos es
@@ -37,6 +58,11 @@ la paleta del addon está construida para ello: 22 generadores en `AudioSynthesi
 (lluvia, viento, truenos, cigarras, ranas, gotas, pájaros, motor, disparos, pisadas
 por superficie, stems musicales, stingers), el motor modular con osciladores y filtros,
 y 104 presets autorados.
+
+**La clave de metadata es `surface_type`.** Es la que leen **los dos** sistemas:
+`detect_surface_at()` busca `surface_type` en el collider, y `AcousticReflectorEngine`
+busca `acoustic_material` primero pero acepta `surface_type` como alternativa. Usar
+`acoustic_material` funcionaría para las reflexiones y no para las pisadas.
 
 **Ocho nombres de superficie, no once.** `create_footstep` acepta 11 superficies y el
 registro acústico define 8. Los **8 comunes** —`Concrete`, `Stone`, `Metal`, `Glass`,
@@ -69,11 +95,16 @@ monzón» los NPC pasan a ser parte de los emisores que presionan el pool.
 listener y se instanciase para tres NPC, habría cuatro oyentes compitiendo. El rig se
 parte: **cuerpo y emisores** son comunes; **el oyente es del jugador**.
 
-**Una sola convención de superficie.** `AcousticReflectorEngine` ya lee la metadata
-`acoustic_material` (con `surface_type` como alternativa) de los colliders. Las
-pisadas leen **esa misma clave**: el suelo dice lo que es una vez y lo consumen tanto
-el motor de reflexiones como el sistema de pisadas. Dos convenciones para la misma
-cosa es cómo se acumulan las inconsistencias.
+**La detección de superficie no se escribe: ya existe.** El diseño inicial preveía un
+`surface_probe.gd` propio. Es innecesario:
+`SpatialAcousticsManager.detect_surface_at()` ya hace exactamente eso, y con más
+prioridades —raycast leyendo metadata, material físico del cuerpo, palabras clave del
+nombre del collider, `floor_surface` de la sala, y `Concrete` como último recurso—.
+El rig usa `AnimationSync`, que ya la invoca.
+
+Lo que sí es una decisión: **una sola clave de metadata**, `surface_type`, consumida
+tanto por el motor de reflexiones como por las pisadas. El suelo dice lo que es una
+vez. Dos convenciones para la misma cosa es cómo se acumulan las inconsistencias.
 
 **Composición, no herencia.** Un rig de audio autocontenido que no sabe si lo mueve un
 humano o una IA, y dos controladores hermanos que mueven el mismo cuerpo. Si el rig
@@ -92,9 +123,36 @@ y el NPC no.
 | Archivo | Responsabilidad |
 |---|---|
 | `scenes/shared/character_audio_rig.gd` | El rig: `OpenDouEventPlayer3D` para pisadas y foley, `OpenDouAnimationSync` para el despacho por superficie. Sin oyente. |
-| `scenes/shared/surface_probe.gd` | Raycast hacia abajo que devuelve el nombre de superficie leyendo la metadata del collider, con `Concrete` como valor de respaldo. |
 | `scenes/shared/player_controller.gd` | Entrada WASD, cámara y **el `AudioListener3D`**. |
 | `scenes/shared/npc_controller.gd` | Patrulla entre waypoints. Sin oyente. |
+
+### 3.3 La pisada se autora con un switch container, no con ocho eventos
+
+`AnimationSync.trigger_footstep()` fija el switch `SurfaceType` y luego busca un evento
+llamado `Footstep_<Superficie>` en el registro; si no lo encuentra, cae a
+`default_footstep_event`. Registrar los ocho eventos por nombre funcionaría, pero
+**no demostraría nada**: la elección la haría una búsqueda de cadenas, no el plugin.
+
+El camino idiomático usa el mecanismo que existe para esto, y **no requiere tocar
+`AnimationSync`**: basta con no registrar ningún `Footstep_<Superficie>` y definir un
+único evento:
+
+```
+AudioEventDef("Footstep")
+  root_container = AudioSwitchContainer(switch_group_name = "SurfaceType")
+    "Concrete" → AudioRandomContainer[ create_footstep("Concrete", 1..3) ]
+    "Metal"    → AudioRandomContainer[ create_footstep("Metal", 1..3) ]
+    ... una rama por cada uno de los ocho nombres
+```
+
+Así las pisadas ejercitan `AudioSwitchContainer`, `AudioRandomContainer` y los switches
+de Game Syncs, en lugar de una concatenación de cadenas.
+
+**El papel de `create_footstep` queda claro:** es el **generador de los streams** que
+rellenan las ramas, no el mecanismo de despacho. Cubre los ocho nombres del vocabulario
+con seis timbres distintos, porque `Stone` comparte rama con `Asphalt` y `Foliage` con
+`Grass`. En un proyecto con audio real, esas ramas se rellenarían con archivos; aquí se
+sintetizan.
 
 ---
 
@@ -219,8 +277,14 @@ liberarla.
 3. Ningún archivo de `scenes/` referencia un `.wav`, `.ogg` o `.mp3`.
 4. El rig de personaje se instancia en las cuatro escenas.
 5. El jugador expone un `AudioListener3D`; el NPC no.
-6. La sonda de superficie devuelve el nombre de la metadata del collider bajo los pies,
-   y `Concrete` cuando no hay ninguna.
+6. `detect_surface_at()` **con el mundo físico** devuelve el nombre de la metadata
+   `surface_type` del collider bajo los pies, y `Concrete` cuando no hay ninguna.
+6b. `AnimationSync.trigger_footstep()` pasa el `World3D` a `detect_surface_at()`, así
+   que el raycast se ejecuta. Caminar sobre tres parches de material distinto **dentro
+   de la misma sala** produce tres switches de superficie distintos. Cierra la
+   observación 25.
+6c. Existe **un solo** `AudioEventDef` de pisada, con un `AudioSwitchContainer` sobre
+   `SurfaceType`; no hay eventos `Footstep_<Superficie>` registrados.
 7. Todas las aserciones de la tabla del apartado 6 pasan: son nueve en total,
    repartidas entre las cuatro escenas.
 8. Los diez directorios de demos viejas y sus cuatro suites no existen.
@@ -252,5 +316,5 @@ liberarla.
 | El chatter de radio sintetizado suena a ruido y no a radio | La ficción se eligió porque la limitación es invisible ahí. Si aun así no convence, se reduce su peso en la escena: la tesis de «La cabina» es la coherencia de los syncs, no el realismo vocal. |
 | Tres escenas complejas son mucho trabajo y la fase se alarga | El rig compartido y el banco reducen la parte no-audio. Si hay que recortar, se recorta **geometría y visuales**, nunca aserciones. |
 | Los NPC como emisores masivos disparan las fugas de ObjectDB | Cada demo libera lo que instancia, y el trinquete lo detecta. Ya delató 399 objetos en fases anteriores. |
-| La convención de metadata falla y tres escenas dependen de ella | Por eso el banco del rig existe y se construye **antes** de las tres demos. |
+| La convención de metadata falla y tres escenas dependen de ella | Por eso el banco del rig existe y se construye **antes** de las tres demos, y por eso el arreglo de la observación 25 va primero: sin el raycast, la detección de superficie no funciona en absoluto. |
 | Una demo pasa sus aserciones pero suena mal | Las aserciones prueban que el mecanismo funciona, no que el diseño sonoro sea bueno. Eso solo se juzga escuchándolo, y es trabajo del autor tras la fase. |
