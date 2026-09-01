@@ -32,7 +32,7 @@
 #           -que desde la observacion 29 si desconecta y detiene-, asi que los dos
 #           objetos son la retencion del servidor de audio descrita abajo.
 #    633 -> +40 por «El monzon». Medido aislando el bloque: sin el, el total es 593 y
-#           no 597, porque los arreglos de las observaciones 29 y 33 -stop() y
+#           no 597, porque los arreglos de las observaciones 29 y 32 -stop() y
 #           notify_stream_finished() dejaban de soltar el canal, que se quedaba is_busy
 #           para siempre- recuperaron los cuatro objetos que el techo llevaba de mas.
 #           Atribucion honesta y parcial: la escena reproduce OCHO streams distintos
