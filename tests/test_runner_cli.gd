@@ -7,6 +7,12 @@ func _init() -> void:
 	var total: int = res["total"]
 	var passed: int = res["passed"]
 	var failures: Array = res["failures"]
+
+	# Suite asincrona (aserciones de audio real). Necesita frames del SceneTree.
+	var async_res = await TestAllClass.run_async_suite(self)
+	total += int(async_res["total"])
+	passed += int(async_res["passed"])
+	failures.append_array(async_res["failures"])
 	
 	var content: String = ""
 	if failures.is_empty():

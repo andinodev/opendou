@@ -52,6 +52,8 @@ const TestMultiPositionEmitter3DClass = preload("res://tests/test_multi_position
 const TestAcousticGeometryBakeClass = preload("res://tests/test_acoustic_geometry_bake.gd")
 const TestAnimationSyncClass = preload("res://tests/test_animation_sync.gd")
 const TestTacticalInfiltrationDemoClass = preload("res://tests/test_tactical_infiltration_demo.gd")
+const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
+const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -265,4 +267,19 @@ static func run_suite() -> Dictionary:
 		"total": total_tests,
 		"failures": all_failures,
 		"passed": total_tests - all_failures.size()
+	}
+
+## Suite asincrona: tests que necesitan avanzar frames del SceneTree, como todas
+## las aserciones de audio real. Se ejecuta despues de la suite sincrona.
+##
+## Cada funcion run_*_async que se anada a un test de audio hay que invocarla
+## desde aqui (o desde el run_all_async de su archivo), o quedara escrita y nunca
+## se ejecutara, que es exactamente el tipo de ceguera que esta fase corrige.
+static func run_async_suite(tree: SceneTree):
+	var acc := OpenDouAssertClass.new()
+	acc.absorb(await TestAudioOutputClass.new().run_all_async(tree))
+	return {
+		"total": acc.assertions_run,
+		"failures": acc.failures,
+		"passed": acc.assertions_run - acc.failures.size(),
 	}
