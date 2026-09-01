@@ -7,7 +7,7 @@ const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const OpenDouEventPlayer3DClass = preload("res://addons/opendou/nodes/opendou_event_player_3d.gd")
 
-func run_all_async(tree: SceneTree):
+static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("occlusion_scheduler")
 
 	var sched = OcclusionSchedulerClass.new()

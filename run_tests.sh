@@ -42,18 +42,33 @@ echo "[OpenDou] Godot: $GODOT_BIN"
 echo "[OpenDou] Script: $TEST_SCRIPT"
 
 # Un class_name recien anadido no existe como tipo global hasta que Godot
-# regenera su cache de clases, y sin editor eso solo pasa al importar. Sin este
-# paso, anotar un tipo nuevo produce "Could not find type ... in the current
-# scope" y toda la suite deja de compilar.
+# regenera su cache de clases, y sin editor eso solo ocurre al importar. Sin este
+# paso, anotar un tipo nuevo produce "Parse Error: Could not find type ... in the
+# current scope" y toda la suite deja de compilar, ademas de colgar a Godot.
+#
+# La comprobacion es exacta en lugar de basarse en fechas: se compara la lista de
+# class_name declarados con los que la cache conoce. Asi se importa solo cuando
+# de verdad falta alguno, y no en cada edicion de un cuerpo de funcion.
 CLASS_CACHE=".godot/global_script_class_cache.cfg"
 NEEDS_IMPORT=0
+MISSING_CLASSES=""
 if [[ ! -f "$CLASS_CACHE" ]]; then
 	NEEDS_IMPORT=1
-elif [[ -n "$(find addons tests -name '*.gd' -newer "$CLASS_CACHE" -print -quit 2>/dev/null)" ]]; then
-	NEEDS_IMPORT=1
+	echo "[OpenDou] no hay cache de clases"
+else
+	while IFS= read -r cls; do
+		[[ -z "$cls" ]] && continue
+		if ! grep -q "\"$cls\"" "$CLASS_CACHE"; then
+			MISSING_CLASSES="$MISSING_CLASSES $cls"
+			NEEDS_IMPORT=1
+		fi
+	done < <(grep -rhoE '^class_name[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' addons tests --include='*.gd' 2>/dev/null | awk '{print $2}' | sort -u)
+	if [[ -n "$MISSING_CLASSES" ]]; then
+		echo "[OpenDou] class_name sin registrar:$MISSING_CLASSES"
+	fi
 fi
 if [[ "$NEEDS_IMPORT" -eq 1 ]]; then
-	echo "[OpenDou] regenerando cache de clases (hay scripts mas nuevos)"
+	echo "[OpenDou] regenerando cache de clases"
 	"$GODOT_BIN" --headless --path . --import > /dev/null 2>&1
 fi
 START_TS=$(date +%s)

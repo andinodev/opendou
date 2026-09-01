@@ -9,7 +9,7 @@ const OpenDouEventPlayer3DClass = preload("res://addons/opendou/nodes/opendou_ev
 const OpenDouEventPlayer2DClass = preload("res://addons/opendou/nodes/opendou_event_player_2d.gd")
 const OpenDouEventPlayerClass = preload("res://addons/opendou/nodes/opendou_event_player.gd")
 
-func run_all():
+static func run_all() -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("no_unfulfilled_claims")
 
 	# El toggle no debe existir en ningun emisor.

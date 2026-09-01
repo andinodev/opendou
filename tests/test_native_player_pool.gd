@@ -4,7 +4,7 @@ extends RefCounted
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 
-func run_all():
+static func run_all() -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("native_player_pool")
 
 	var pool = NativePlayerPoolClass.new(3)

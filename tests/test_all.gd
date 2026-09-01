@@ -270,11 +270,11 @@ static func run_suite() -> Dictionary:
 	
 	# Suites nuevas de la Fase 1: cuentan aserciones reales en lugar de un total
 	# escrito a mano.
-	var pool_res = TestNativePlayerPoolClass.new().run_all()
+	var pool_res = TestNativePlayerPoolClass.run_all()
 	total_tests += pool_res.assertions_run
 	all_failures.append_array(pool_res.failures)
 
-	var claims_res = TestNoUnfulfilledClaimsClass.new().run_all()
+	var claims_res = TestNoUnfulfilledClaimsClass.run_all()
 	total_tests += claims_res.assertions_run
 	all_failures.append_array(claims_res.failures)
 
@@ -292,10 +292,10 @@ static func run_suite() -> Dictionary:
 ## se ejecutara, que es exactamente el tipo de ceguera que esta fase corrige.
 static func run_async_suite(tree: SceneTree):
 	var acc := OpenDouAssertClass.new()
-	acc.absorb(await TestAudioOutputClass.new().run_all_async(tree))
-	acc.absorb(await TestListenerResolverClass.new().run_all_async(tree))
-	acc.absorb(await TestOcclusionSchedulerClass.new().run_all_async(tree))
-	acc.absorb(await TestEarlyReflectionsClass.new().run_all_async(tree))
+	acc.absorb(await TestAudioOutputClass.run_all_async(tree))
+	acc.absorb(await TestListenerResolverClass.run_all_async(tree))
+	acc.absorb(await TestOcclusionSchedulerClass.run_all_async(tree))
+	acc.absorb(await TestEarlyReflectionsClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

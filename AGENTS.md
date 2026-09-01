@@ -70,9 +70,40 @@ opendou/
 
 ---
 
-## 5. Reglas Modulares de Referencia
+## 5. Ejecutar los tests (obligatorio antes de dar algo por hecho)
+
+Usa **siempre** `./run_tests.sh` (macOS/Linux) o `run_tests.ps1` (Windows). No
+invoques Godot a mano: el runner hace tres comprobaciones que la suite por si
+sola no hace, y sin ellas es posible reportar exito con el motor roto.
+
+1. **`SCRIPT ERROR` y `Parse Error` son fatales.** En GDScript una llamada a un
+   metodo inexistente emite error, aborta la funcion que la contiene y devuelve
+   `null`. Un test puede por tanto reportar PASSED mientras el motor grita: asi
+   convivieron durante 58 tareas un "337/337 PASSED" con cinco defectos reales.
+2. **Trinquete de fugas de ObjectDB.** El techo vive en `tests/leak_budget.txt`
+   con su justificacion escrita. Si sube, investiga antes de tocar el numero:
+   cada subida de esta fase delato fugas preexistentes (399 objetos en total).
+3. **Regeneracion de la cache de clases.** Un `class_name` recien anadido **no
+   existe como tipo global** hasta que Godot regenera
+   `.godot/global_script_class_cache.cfg`, y sin editor eso solo ocurre al
+   importar. Anotar un tipo nuevo antes de eso produce `Parse Error: Could not
+   find type ... in the current scope`, tumba la compilacion de toda la suite y
+   deja a Godot colgado. El runner compara los `class_name` declarados con los
+   que la cache conoce e importa solo si falta alguno.
+
+Nota para evitar un diagnostico equivocado: las funciones **estaticas con
+`await` y tipo de retorno propio funcionan correctamente entre scripts**. Si una
+falla al compilar, la causa es el punto 3, no la corrutina.
+
+Aserciones de audio: no cuentes frames fijos para afirmar silencio. En headless
+el bucle corre a maxima velocidad, asi que los frames no son proporcionales al
+tiempo de audio. Usa `OpenDouAudioProbe.await_silence()`.
+
+---
+
+## 6. Reglas Modulares de Referencia
 
 Para directivas detalladas, consulta:
-* [Reglas de Estilo y Código](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/.agents/rules/01_code_style.md)
-* [Reglas de Arquitectura y Patrones](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/.agents/rules/02_architecture.md)
-* [Flujo de Trabajo y Commits](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/.agents/rules/03_workflow.md)
+* [Reglas de Estilo y Código](.agents/rules/01_code_style.md)
+* [Reglas de Arquitectura y Patrones](.agents/rules/02_architecture.md)
+* [Flujo de Trabajo y Commits](.agents/rules/03_workflow.md)

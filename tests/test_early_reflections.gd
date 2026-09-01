@@ -8,7 +8,7 @@ const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
-func run_all_async(tree: SceneTree):
+static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("early_reflections")
 
 	var pool = NativePlayerPoolClass.new(16)

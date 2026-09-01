@@ -4,7 +4,7 @@ extends RefCounted
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
 
-func run_all_async(tree: SceneTree):
+static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("listener_resolver")
 	var r = ListenerResolverClass.new()
 

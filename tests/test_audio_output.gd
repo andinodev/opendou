@@ -19,11 +19,7 @@ const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event
 const OpenDouEventPlayer3DClass = preload("res://addons/opendou/nodes/opendou_event_player_3d.gd")
 
 ## Punto de entrada de la suite asincrona de audio.
-##
-## Son metodos de instancia y sin anotacion de tipo de retorno a proposito:
-## GDScript no resuelve el tipo de retorno de una funcion estatica que contiene
-## await cuando se la invoca desde otro script, y falla al compilar.
-func run_all_async(tree: SceneTree):
+static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new()
 	a.absorb(await run_probe_selftest_async(tree))
 	a.absorb(await run_channel_audio_async(tree))
@@ -41,7 +37,7 @@ func run_all_async(tree: SceneTree):
 ## de audio retiene el AudioStreamGeneratorPlayback incluso despues de stop(), y
 ## el trinquete de fugas lo detecta como un objeto filtrado. Un WAV real ademas
 ## se parece mas a como suenan las voces de verdad.
-func run_probe_selftest_async(tree: SceneTree):
+static func run_probe_selftest_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("probe_selftest")
 
 	var probe = OpenDouAudioProbeClass.new()
@@ -82,7 +78,7 @@ func run_probe_selftest_async(tree: SceneTree):
 ## Un canal fisico vinculado a un reproductor real debe producir audio medible.
 ## Este es el test que la observacion n1 no habria pasado nunca: play_stream()
 ## almacenaba el stream y activaba banderas, sin emitir nada.
-func run_channel_audio_async(tree: SceneTree):
+static func run_channel_audio_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("channel_audio")
 
 	var probe = OpenDouAudioProbeClass.new()
@@ -129,7 +125,7 @@ func run_channel_audio_async(tree: SceneTree):
 
 ## Superado el presupuesto, las voces de menor prioridad se virtualizan y
 ## liberan su canal; las de mayor prioridad se quedan con el permiso.
-func run_budget_async(tree: SceneTree):
+static func run_budget_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("budget")
 
 	var pool = NativePlayerPoolClass.new(4)
@@ -196,7 +192,7 @@ func run_budget_async(tree: SceneTree):
 	return a
 
 ## Detiene todos los reproductores del pool antes de liberarlo.
-func probe_free_all(pool) -> void:
+static func probe_free_all(pool) -> void:
 	for child in pool.get_children():
 		if child.has_method("stop"):
 			child.stop()
@@ -208,7 +204,7 @@ func probe_free_all(pool) -> void:
 ## VIRTUAL, asi que una voz fisica no avanzaba su posicion logica y jamas detectaba
 ## el fin del stream. is_finished() era siempre falso, active_instances crecia sin
 ## limite, y con 64 voces el pool quedaba ocupado de forma permanente.
-func run_lifecycle_async(tree: SceneTree):
+static func run_lifecycle_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("lifecycle")
 
 	var manager = AudioEventManagerClass.new()
@@ -248,7 +244,7 @@ func run_lifecycle_async(tree: SceneTree):
 ## Sin el paso «aplicar» del ciclo por frame, calculated_volume_db se recalcula
 ## cada frame y la salida no se entera: el volumen, el pitch y el cutoff de
 ## oclusion eran numeros que no afectaban a ningun sonido.
-func run_rtpc_affects_output_async(tree: SceneTree):
+static func run_rtpc_affects_output_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("rtpc_output")
 
 	var probe = OpenDouAudioProbeClass.new()
@@ -300,7 +296,7 @@ func run_rtpc_affects_output_async(tree: SceneTree):
 ## Antes creaba un EventInstance y ADEMAS llamaba a su propio play(): dos
 ## reproducciones simultaneas del mismo sonido, con el sumado de +6 dB y el
 ## comb filtering que eso implica.
-func run_single_voice_async(tree: SceneTree):
+static func run_single_voice_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("single_voice")
 
 	var probe = OpenDouAudioProbeClass.new()
@@ -353,7 +349,7 @@ func run_single_voice_async(tree: SceneTree):
 ## Es el criterio que cierra la observacion 5 por el lado del gameplay: con el
 ## oyente clavado en Vector3.ZERO, dos voces equidistantes del origen pero a
 ## distancias muy distintas del jugador competian con el peso equivocado.
-func run_listener_drives_priority_async(tree: SceneTree):
+static func run_listener_drives_priority_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("listener_priority")
 
 	var pool = NativePlayerPoolClass.new(4)
