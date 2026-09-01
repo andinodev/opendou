@@ -1,4 +1,4 @@
-593
+595
 # Techo de instancias ObjectDB filtradas al salir. El runner falla si aumenta.
 #
 # Historia del techo:
@@ -13,6 +13,9 @@
 #           test_declarative_nodes creaban sin liberar: otros 186 objetos
 #    593 -> al centralizar la oclusion: los emisores ya no crean un
 #           OcclusionManager propio cada uno
+#    595 -> +2 por el test del reverb por sala, que reproduce un WAV mas (misma
+#           retencion descrita abajo; verificado aislando el test: filtra solo
+#           esos dos objetos y ninguno propio)
 #
 # Sobre esos +2: son un AudioStreamPlaybackWAV y su AudioStreamWAV que el
 # servidor de audio de Godot retiene para cualquier WAV que se haya reproducido.

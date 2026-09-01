@@ -17,6 +17,7 @@ const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
 const OpenDouEventPlayer3DClass = preload("res://addons/opendou/nodes/opendou_event_player_3d.gd")
+const OpenDouRoom3DClass = preload("res://addons/opendou/nodes/opendou_room_3d.gd")
 
 ## Punto de entrada de la suite asincrona de audio.
 static func run_all_async(tree: SceneTree) -> OpenDouAssert:
@@ -28,6 +29,7 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_rtpc_affects_output_async(tree))
 	a.absorb(await run_single_voice_async(tree))
 	a.absorb(await run_listener_drives_priority_async(tree))
+	a.absorb(await run_room_reverb_async(tree))
 	return a
 
 ## La sonda debe medir una senal conocida. Si esto falla, ninguna otra asercion
@@ -399,4 +401,84 @@ static func run_listener_drives_priority_async(tree: SceneTree) -> OpenDouAssert
 	vpool2.virtualize(voice_b)
 	tree.root.remove_child(pool)
 	pool.free()
+	return a
+
+## Una voz dentro de una sala debe producir energia medible en el bus de reverb de
+## esa sala. Es la asercion que demuestra que el reverb por sala existe de verdad,
+## en lugar de ser un ConvolutionReverbNode desconectado calculando 512 taps que
+## nadie reproducia.
+static func run_room_reverb_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("room_reverb")
+
+	var manager = AudioEventManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	# Una sala grande y reflectante, con su colisionador para que se detecten sus
+	# dimensiones.
+	var room = OpenDouRoom3DClass.new()
+	room.room_name = &"NaveIndustrial"
+	room.material_preset = "Metal"
+	room.reverb_send_amount = 1.0
+	room.reverb_uniformity = 1.0
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(30.0, 12.0, 30.0)
+	shape.shape = box
+	room.add_child(shape)
+	tree.root.add_child(room)
+	await tree.process_frame
+	await tree.physics_frame
+
+	var bus: StringName = room.get_assigned_reverb_bus()
+	a.ok(not String(bus).is_empty(), "la sala tiene un bus de reverb asignado")
+	# La trampa: si el bus no existiera, Godot habria coaccionado el nombre a
+	# Master sin avisar y el reverb de la sala se iria al bus maestro.
+	a.ok(String(bus) != "Master", "el nombre del bus no quedo coaccionado a Master")
+	a.ok(room.reverb_bus_enabled, "el reverb del Area3D quedo activado")
+	a.eq(String(room.reverb_bus_name), String(bus), "Area3D conserva el nombre asignado")
+
+	# Sonda enganchada al bus de reverb de la sala.
+	var probe = OpenDouAudioProbeClass.new()
+	a.ok(probe.attach_to_existing_bus(bus, 2.0), "la sonda se engancha al bus de reverb")
+
+	# Hace falta un oyente: un AudioStreamPlayer3D sin Camera3D ni AudioListener3D
+	# activos no emite nada, porque no tiene contra que calcular atenuacion ni
+	# paneo. Es la diferencia entre este test y los de voces no espaciales.
+	var cam := Camera3D.new()
+	tree.root.add_child(cam)
+	cam.global_position = Vector3(0.0, 0.0, 5.0)
+	cam.make_current()
+	await tree.process_frame
+
+	# Un emisor dentro de la sala, con area_mask 1 para que el reverb nativo de
+	# Area3D lo alcance.
+	var emitter := AudioStreamPlayer3D.new()
+	emitter.stream = AudioSynthesizerClass.create_tone(440.0, 4.0, 0.9, false)
+	emitter.area_mask = 1
+	emitter.unit_size = 60.0
+	tree.root.add_child(emitter)
+	await tree.process_frame
+	emitter.global_position = Vector3.ZERO
+	await tree.physics_frame
+	await tree.physics_frame
+	emitter.play()
+
+	probe.drain()
+	var peak: float = await probe.measure_peak_over_frames(tree, 60)
+	a.gt(peak, 0.001, "la voz dentro de la sala produce energia en su bus de reverb")
+
+	emitter.stop()
+	emitter.stream = null
+	probe.teardown()
+	tree.root.remove_child(emitter)
+	emitter.free()
+	tree.root.remove_child(room)
+	room.free()
+	# clear_current() antes de liberar: un make_current() deja al viewport
+	# referenciando la camara y el trinquete de fugas la detecta.
+	cam.clear_current()
+	tree.root.remove_child(cam)
+	cam.free()
+	manager.free()
 	return a

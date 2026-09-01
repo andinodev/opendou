@@ -12,6 +12,7 @@ const EdgeDiffractionEngineClass = preload("res://addons/opendou/runtime/spatial
 const RoomCouplingEngineClass = preload("res://addons/opendou/runtime/spatial/room_coupling_engine.gd")
 const AcousticLODControllerClass = preload("res://addons/opendou/runtime/spatial/acoustic_lod_controller.gd")
 const HDRAudioManagerClass = preload("res://addons/opendou/runtime/spatial/hdr_audio_manager.gd")
+const ReverbBusPoolClass = preload("res://addons/opendou/runtime/spatial/reverb_bus_pool.gd")
 
 var rooms: Dictionary = {}   # StringName -> AudioRoom
 var portals: Dictionary = {} # StringName -> AudioPortal
@@ -25,6 +26,12 @@ var coupling_engine: RefCounted
 var lod_controller: RefCounted
 var hdr_manager: RefCounted
 
+## Pool compartido de buses de reverb, agrupados por RT60.
+##
+## Sustituye a la convolucion en GDScript: el reverb lo aplica Godot en C++ sobre
+## un bus compartido en lugar de calcularse como 512 taps por muestra.
+var reverb_bus_pool: OpenDouReverbBusPool = null
+
 func _init() -> void:
 	material_registry = AcousticMaterialRegistryClass.new()
 	reflector_engine = AcousticReflectorEngineClass.new()
@@ -32,6 +39,7 @@ func _init() -> void:
 	coupling_engine = RoomCouplingEngineClass.new()
 	lod_controller = AcousticLODControllerClass.new()
 	hdr_manager = HDRAudioManagerClass.new()
+	reverb_bus_pool = ReverbBusPoolClass.new()
 
 ## Registers a room in the acoustics manager.
 func register_room(room: AudioRoom) -> void:

@@ -56,6 +56,18 @@ enum ReverbMode {
 		convolution_dry_db = val
 		if runtime_room != null:
 			runtime_room.convolution_dry_db = val
+
+## Cuanta senal de los emisores de dentro se envia al bus de reverb de la sala.
+@export_range(0.0, 1.0, 0.01) var reverb_send_amount: float = 0.5:
+	set(val):
+		reverb_send_amount = clampf(val, 0.0, 1.0)
+		reverb_bus_amount = reverb_send_amount
+
+## Uniformidad del reverb dentro del volumen de la sala.
+@export_range(0.0, 1.0, 0.01) var reverb_uniformity: float = 0.5:
+	set(val):
+		reverb_uniformity = clampf(val, 0.0, 1.0)
+		reverb_bus_uniformity = reverb_uniformity
 		if _convolution_node:
 			_convolution_node.dry_gain_db = val
 
@@ -67,6 +79,9 @@ var runtime_room: AudioRoom = null
 var _acoustics_manager: SpatialAcousticsManager = null
 var _dimensions: Vector3 = Vector3.ZERO
 var _convolution_node: ConvolutionReverbNode = null
+
+## Bus de reverb que el pool asigno a esta sala.
+var _assigned_reverb_bus: StringName = &""
 
 func _ready() -> void:
 	# Auto-detect child CollisionShape3D box dimensions
@@ -186,6 +201,8 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 	if mgr != null:
 		mgr.register_room(runtime_room)
 
+	_route_native_reverb(mgr)
+
 	return runtime_room
 
 func _update_ir_kernel() -> void:
@@ -219,6 +236,41 @@ func _update_ir_kernel() -> void:
 # ==============================================================================
 # INTERNAL HELPERS
 # ==============================================================================
+
+## Bus de reverb que el pool asigno a esta sala.
+func get_assigned_reverb_bus() -> StringName:
+	return _assigned_reverb_bus
+
+## Pide su bus de reverb al pool y enruta el reverb nativo del Area3D hacia el.
+##
+## Sustituye a la convolucion en GDScript, que calculaba 512 taps que nadie
+## reproducia. Aqui el reverb lo aplica Godot en C++ sobre un bus compartido.
+func _route_native_reverb(mgr: SpatialAcousticsManager) -> void:
+	if mgr == null or mgr.reverb_bus_pool == null:
+		return
+
+	var bus: StringName = mgr.reverb_bus_pool.bus_for_rt60(get_effective_reverb_time(), get_absorption())
+	if bus.is_empty():
+		return
+	_assigned_reverb_bus = bus
+
+	reverb_bus_enabled = true
+	reverb_bus_name = String(bus)
+	reverb_bus_amount = reverb_send_amount
+	reverb_bus_uniformity = reverb_uniformity
+
+	# Godot NO da error si el bus no existe: coacciona el nombre a "Master" y el
+	# reverb de la sala entera se va al bus maestro sin que nadie se entere. Hay
+	# que releer el valor para saber si la asignacion pego.
+	if String(reverb_bus_name) != String(bus):
+		push_error("[OpenDou] la sala '%s' no pudo enrutar su reverb al bus '%s': Godot lo coacciono a '%s'." % [
+			str(room_name), String(bus), String(reverb_bus_name)])
+		_assigned_reverb_bus = StringName(reverb_bus_name)
+
+	# El reverb nativo solo alcanza a los reproductores cuyo area_mask corte la
+	# capa de este Area3D. Las voces del pool nacen con area_mask = 1.
+	if (collision_layer & 1) == 0:
+		push_warning("[OpenDou] la sala '%s' no esta en la capa fisica 1, asi que el reverb nativo no alcanzara a las voces del pool de OpenDou." % str(room_name))
 
 func _get_acoustics_manager() -> SpatialAcousticsManager:
 	if _acoustics_manager != null and is_instance_valid(_acoustics_manager):

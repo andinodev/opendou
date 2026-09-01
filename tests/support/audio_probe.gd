@@ -12,6 +12,9 @@ const BUS_NAME: StringName = &"OpenDouTestProbe"
 
 var bus_index: int = -1
 
+## Verdadero si el bus lo creo esta sonda; falso si solo se engancho a uno ajeno.
+var _owns_bus: bool = false
+
 var _capture: AudioEffectCapture = null
 
 ## Crea el bus de sonda con la captura insertada. Devuelve el indice del bus.
@@ -24,10 +27,31 @@ func setup(buffer_length_sec: float = 2.0) -> int:
 	_capture = AudioEffectCapture.new()
 	_capture.buffer_length = buffer_length_sec
 	AudioServer.add_bus_effect(bus_index, _capture, 0)
+	_owns_bus = true
 	return bus_index
+
+## Inserta una captura en un bus que YA existe, sin crear ninguno.
+##
+## Sirve para medir cuanta energia llega a un bus que gestiona otro, por ejemplo
+## el bus de reverb que el pool asigno a una sala. Devuelve false si no existe.
+func attach_to_existing_bus(target_bus: StringName, buffer_length_sec: float = 2.0) -> bool:
+	teardown()
+	var idx: int = AudioServer.get_bus_index(String(target_bus))
+	if idx == -1:
+		return false
+	bus_index = idx
+	_owns_bus = false
+	_capture = AudioEffectCapture.new()
+	_capture.buffer_length = buffer_length_sec
+	# Al final de la cadena: interesa medir la salida del bus, ya procesada por el
+	# reverb, no su entrada.
+	AudioServer.add_bus_effect(idx, _capture, AudioServer.get_bus_effect_count(idx))
+	return true
 
 ## Nombre del bus al que deben enrutarse los reproductores bajo prueba.
 func bus_name() -> StringName:
+	if not _owns_bus and bus_index >= 0 and bus_index < AudioServer.bus_count:
+		return StringName(AudioServer.get_bus_name(bus_index))
 	return BUS_NAME
 
 ## Vacia la captura sin medir. Usalo antes de empezar una medicion para descartar
@@ -92,9 +116,17 @@ func await_silence(tree: SceneTree, threshold: float = 0.01, consecutive: int = 
 			quiet_streak = 0
 	return false
 
-## Elimina el bus de sonda y su captura.
+## Elimina la captura, y el bus solo si lo creo esta sonda.
 func teardown() -> void:
 	if bus_index >= 0 and bus_index < AudioServer.bus_count:
-		AudioServer.remove_bus(bus_index)
+		if _owns_bus:
+			AudioServer.remove_bus(bus_index)
+		elif _capture != null:
+			# Quitar solo nuestra captura: el bus es de otro.
+			for i in range(AudioServer.get_bus_effect_count(bus_index) - 1, -1, -1):
+				if AudioServer.get_bus_effect(bus_index, i) == _capture:
+					AudioServer.remove_bus_effect(bus_index, i)
+					break
 	bus_index = -1
+	_owns_bus = false
 	_capture = null
