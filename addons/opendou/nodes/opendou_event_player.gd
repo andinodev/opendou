@@ -73,10 +73,11 @@ func _ready() -> void:
 		elif stream == null and not event_name.is_empty():
 			_auto_infer_synth_preset()
 			
-		if auto_play_event:
+		# Un unico camino de arranque: play_event() es quien crea la voz. Antes
+		# autoplay llamaba al play() nativo por su cuenta, dejando una voz que el
+		# manager no conocia.
+		if auto_play_event or (autoplay and stream != null):
 			play_event()
-		elif autoplay and stream != null and not playing:
-			play()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_EXIT_TREE:
@@ -117,6 +118,9 @@ func play_event(p_event_name: StringName = &"") -> void:
 		active_instance.play()
 		
 	if active_instance != null:
+		# El reproductor de este nodo ES la voz fisica. Vincularlo evita que el
+		# pool le asigne ademas una voz anonima, que era la doble reproduccion.
+		active_instance.bind_player(self)
 		active_instance.virtualization_mode = virtualization_mode
 		
 		for param_name in rtpc_bindings:
@@ -135,8 +139,6 @@ func play_event(p_event_name: StringName = &"") -> void:
 	if AudioServer.get_bus_index(bus_category) != -1:
 		bus = bus_category
 
-	if stream != null and is_inside_tree():
-		play(0.0)
 
 ## Stops playback of the currently active event instance.
 func stop_event(fade_time: float = 0.0) -> void:

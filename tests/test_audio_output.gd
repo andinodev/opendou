@@ -16,6 +16,7 @@ const VoicePoolManagerClass = preload("res://addons/opendou/runtime/voice_pool_m
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
+const OpenDouEventPlayer3DClass = preload("res://addons/opendou/nodes/opendou_event_player_3d.gd")
 
 ## Punto de entrada de la suite asincrona de audio.
 ##
@@ -29,6 +30,7 @@ func run_all_async(tree: SceneTree):
 	a.absorb(await run_budget_async(tree))
 	a.absorb(await run_lifecycle_async(tree))
 	a.absorb(await run_rtpc_affects_output_async(tree))
+	a.absorb(await run_single_voice_async(tree))
 	return a
 
 ## La sonda debe medir una senal conocida. Si esto falla, ninguna otra asercion
@@ -289,5 +291,58 @@ func run_rtpc_affects_output_async(tree: SceneTree):
 
 	manager.stop_all()
 	probe.teardown()
+	manager.free()
+	return a
+
+## Un emisor declarativo debe producir UNA voz, no dos.
+##
+## Antes creaba un EventInstance y ADEMAS llamaba a su propio play(): dos
+## reproducciones simultaneas del mismo sonido, con el sumado de +6 dB y el
+## comb filtering que eso implica.
+func run_single_voice_async(tree: SceneTree):
+	var a := OpenDouAssertClass.new("single_voice")
+
+	var probe = OpenDouAudioProbeClass.new()
+	probe.setup(2.0)
+
+	var manager = AudioEventManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	var tone := AudioSynthesizerClass.create_tone(440.0, 4.0, 0.5, false)
+	var def = AudioEventDefClass.new(&"EmitterTone", tone)
+	def.target_bus = probe.bus_name()
+	def.stream_length = float(tone.get_length())
+	def.is_looping = true
+
+	var emitter = OpenDouEventPlayer3DClass.new()
+	emitter.event_def = def
+	emitter.set_event_manager(manager)
+	tree.root.add_child(emitter)
+	await tree.process_frame
+
+	var K = NativePlayerPoolClass.PlayerKind
+	var busy_before: int = manager.player_pool.busy_count(K.SPATIAL_3D)
+	emitter.play_event()
+	for _f in range(6):
+		await tree.process_frame
+
+	# La voz sale del propio nodo, no del pool anonimo.
+	a.eq(manager.player_pool.busy_count(K.SPATIAL_3D), busy_before,
+		"el emisor no consume una voz anonima del pool")
+	a.eq(manager.active_instances.size(), 1, "una sola instancia activa")
+	a.ok(emitter.active_instance != null, "el emisor guarda su instancia")
+	if emitter.active_instance != null:
+		a.eq(emitter.active_instance.get_bound_player(), emitter,
+			"la instancia esta vinculada al propio emisor")
+
+	# El toggle de HRTF debe haber desaparecido: no se puede cumplir en esta
+	# arquitectura y prometerlo era deshonesto.
+	a.has_no_property(emitter, "enable_binaural_hrtf", "toggle de HRTF retirado")
+
+	manager.stop_all()
+	probe.teardown()
+	tree.root.remove_child(emitter)
+	emitter.free()
 	manager.free()
 	return a

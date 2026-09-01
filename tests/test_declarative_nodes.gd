@@ -27,8 +27,14 @@ static func run_all() -> Array[String]:
 		failures.append("Test 1 Failed: auto_play_event default should be false")
 	if p3d.stop_on_tree_exit != true:
 		failures.append("Test 1 Failed: stop_on_tree_exit default should be true")
-	if not p3d.enable_binaural_hrtf or not p3d.enable_early_reflections or not p3d.enable_dynamic_occlusion:
+	if not p3d.enable_early_reflections or not p3d.enable_dynamic_occlusion:
 		failures.append("Test 1 Failed: spatial acoustics flags should default to true")
+	# enable_binaural_hrtf se retiro: Godot no tiene HRTF nativo y un HRTF real
+	# exige convolucionar cada voz con un par de HRIR, o sea DSP por muestra en
+	# GDScript. El toggle prometia algo que esta arquitectura no puede dar.
+	for prop in p3d.get_property_list():
+		if String(prop["name"]) == "enable_binaural_hrtf":
+			failures.append("Test 1 Failed: enable_binaural_hrtf deberia haber sido retirado")
 	if p3d.occlusion_collision_mask != 1:
 		failures.append("Test 1 Failed: occlusion_collision_mask should default to 1")
 	if not is_equal_approx(p3d.occlusion_refresh_interval, 0.05):
