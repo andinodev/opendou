@@ -7,6 +7,8 @@ extends AudioStreamPlayer3D
 ## Binds a single physical audio stream to multiple spatial emission vertices
 ## with closest-point tracking, blended gain, comb-filter suppression, and per-vertex occlusion.
 
+const TransformUtilsClass = preload("res://addons/opendou/runtime/spatial/transform_utils.gd")
+
 enum RenderingMode {
 	CLOSEST_POINT_TRACKING,
 	MULTI_POINT_BLENDED
@@ -95,9 +97,9 @@ func _process(delta: float) -> void:
 ## Returns the global coordinate of the emission vertex closest to the target position.
 func get_closest_point_to(global_target: Vector3) -> Vector3:
 	if emission_points.is_empty():
-		return global_position if is_inside_tree() else _get_world_position_fallback()
+		return TransformUtilsClass.world_position_of(self)
 
-	var node_pos = global_position if is_inside_tree() else _get_world_position_fallback()
+	var node_pos = TransformUtilsClass.world_position_of(self)
 	var closest_pos: Vector3 = node_pos + emission_points[0]
 	var min_dist_sq: float = (closest_pos - global_target).length_squared()
 	_active_vertex_idx = 0
@@ -115,9 +117,9 @@ func get_closest_point_to(global_target: Vector3) -> Vector3:
 ## Calculates the weighted centroid position across all active vertices.
 func calculate_blended_position(global_target: Vector3) -> Vector3:
 	if emission_points.is_empty():
-		return global_position if is_inside_tree() else _get_world_position_fallback()
+		return TransformUtilsClass.world_position_of(self)
 
-	var node_pos = global_position if is_inside_tree() else _get_world_position_fallback()
+	var node_pos = TransformUtilsClass.world_position_of(self)
 	var sum_pos = Vector3.ZERO
 	var sum_weight = 0.0
 	var d_max = maxf(1.0, cull_distance)
@@ -137,18 +139,10 @@ func calculate_blended_position(global_target: Vector3) -> Vector3:
 ## Evaluates whether a point is inside the bounding AABB of all emission points.
 func is_position_inside_emission_volume(global_target: Vector3) -> bool:
 	_update_cached_aabb()
-	var local_target = global_target - (global_position if is_inside_tree() else _get_world_position_fallback())
+	var local_target = global_target - (TransformUtilsClass.world_position_of(self))
 	# Expand slightly to account for boundary margin
 	var expanded = _cached_aabb.grow(1.0)
 	return expanded.has_point(local_target)
-
-func _get_world_position_fallback() -> Vector3:
-	var pos: Vector3 = position
-	var cur: Node = get_parent()
-	while cur != null and cur is Node3D:
-		pos += (cur as Node3D).position
-		cur = cur.get_parent()
-	return pos
 
 func _update_cached_aabb() -> void:
 	if emission_points.is_empty():

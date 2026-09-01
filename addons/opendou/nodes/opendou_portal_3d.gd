@@ -9,6 +9,7 @@ extends Node3D
 
 const AudioPortalClass = preload("res://addons/opendou/runtime/spatial/audio_portal.gd")
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
+const TransformUtilsClass = preload("res://addons/opendou/runtime/spatial/transform_utils.gd")
 
 # ==============================================================================
 # EXPORT GROUPS
@@ -56,7 +57,7 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioPortal
 	var mgr: SpatialAcousticsManager = manager if manager != null else _get_acoustics_manager()
 	var r_a: StringName = _resolve_room_name(room_a, room_a_name)
 	var r_b: StringName = _resolve_room_name(room_b, room_b_name)
-	var pos: Vector3 = global_position if is_inside_tree() else _get_world_position_fallback()
+	var pos: Vector3 = TransformUtilsClass.world_position_of(self)
 
 	if runtime_portal == null:
 		runtime_portal = AudioPortalClass.new(portal_name, r_a, r_b, pos, open_factor)
@@ -88,14 +89,6 @@ func _resolve_room_name(target_path: NodePath, direct_name: StringName) -> Strin
 				return node.room_name
 			return StringName(node.name)
 	return &""
-
-func _get_world_position_fallback() -> Vector3:
-	var pos: Vector3 = position
-	var cur: Node = get_parent()
-	while cur != null and cur is Node3D:
-		pos += (cur as Node3D).position
-		cur = cur.get_parent()
-	return pos
 
 func _get_acoustics_manager() -> SpatialAcousticsManager:
 	if _acoustics_manager != null and is_instance_valid(_acoustics_manager):

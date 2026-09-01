@@ -10,6 +10,7 @@ extends Area3D
 const AudioRoomClass = preload("res://addons/opendou/runtime/spatial/audio_room.gd")
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
 const ConvolutionReverbNodeClass = preload("res://addons/opendou/core/dsp/convolution_reverb_node.gd")
+const TransformUtilsClass = preload("res://addons/opendou/runtime/spatial/transform_utils.gd")
 
 enum ReverbMode {
 	ALGORITHMIC,
@@ -174,21 +175,13 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 					break
 
 	if _dimensions != Vector3.ZERO:
-		var center_pos: Vector3 = global_position if is_inside_tree() else _get_world_position_fallback()
+		var center_pos: Vector3 = TransformUtilsClass.world_position_of(self)
 		runtime_room.set_bounds(AABB(center_pos - _dimensions * 0.5, _dimensions))
 
 	if mgr != null:
 		mgr.register_room(runtime_room)
 
 	return runtime_room
-
-func _get_world_position_fallback() -> Vector3:
-	var pos: Vector3 = position
-	var cur: Node = get_parent()
-	while cur != null and cur is Node3D:
-		pos += (cur as Node3D).position
-		cur = cur.get_parent()
-	return pos
 
 func _update_ir_kernel() -> void:
 	if _convolution_node == null:
