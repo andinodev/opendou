@@ -1,4 +1,4 @@
-595
+597
 # Techo de instancias ObjectDB filtradas al salir. El runner falla si aumenta.
 #
 # Historia del techo:
@@ -27,6 +27,10 @@
 #           -test_playback_context y run_stop_all_async- y dejando solo el contexto
 #           de reproduccion perezoso y el arreglo de stop_all, con lo que el total
 #           vuelve a 593 exacto.
+#    597 -> +2 por «Bajo la quilla», que reproduce un WAV mas: el silbido en bucle de
+#           la valvula. La escena se libera entera y su _exit_tree llama a stop_all()
+#           -que desde la observacion 29 si desconecta y detiene-, asi que los dos
+#           objetos son la retencion del servidor de audio descrita abajo.
 #
 # Sobre esos +2: son un AudioStreamPlaybackWAV y su AudioStreamWAV que el
 # servidor de audio de Godot retiene para cualquier WAV que se haya reproducido.
