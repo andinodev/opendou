@@ -94,3 +94,18 @@ func _build_ui() -> void:
 	
 	# Slot 0: Input logic, Output signal
 	set_slot(0, true, 0, COLOR_LOGIC_BRANCH, true, 0, COLOR_AUDIO_SIGNAL)
+
+## Fija la posicion normalizada [0,1] del cursor de RTPC en vivo sobre la mini
+## curva de crossfade. Lo llama el editor cuando el servidor de Live Update
+## reporta un cambio de parametro.
+func set_live_rtpc_progress(progress: float) -> void:
+	if curve_canvas == null:
+		return
+	curve_canvas.progress = clampf(progress, 0.0, 1.0)
+	curve_canvas.queue_redraw()
+
+## Posicion actual del cursor de RTPC en vivo.
+func get_live_rtpc_progress() -> float:
+	if curve_canvas == null:
+		return 0.0
+	return curve_canvas.progress

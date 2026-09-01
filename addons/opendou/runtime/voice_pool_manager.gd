@@ -120,7 +120,12 @@ func get_active_physical_count() -> int:
 	return count
 
 ## Returns the number of active virtual voices.
-func get_active_virtual_count(active_instances: Array[EventInstance]) -> int:
+##
+## El parametro va SIN tipar a proposito: AudioTelemetryCollector.collect_snapshot()
+## reenvia aqui un Array generico mediante call(), y exigir un array tipado
+## provocaba un error que abortaba la recoleccion entera y la hacia devolver null,
+## de donde salia en cascada el acceso a physical_voices sobre Nil.
+func get_active_virtual_count(active_instances: Array) -> int:
 	var count: int = 0
 	for inst in active_instances:
 		if inst and inst.voice_state == EventInstanceClass.VoiceState.STATE_VIRTUAL:
