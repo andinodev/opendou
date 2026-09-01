@@ -14,7 +14,6 @@ const TestVirtualTrackingClass = preload("res://tests/test_virtual_tracking.gd")
 const TestGameSyncsClass = preload("res://tests/test_game_syncs.gd")
 const TestModulatorsClass = preload("res://tests/test_modulators.gd")
 const TestSoundBanksClass = preload("res://tests/test_soundbanks.gd")
-const TestRingBufferClass = preload("res://tests/test_ringbuffer.gd")
 const TestSpatialAcousticsClass = preload("res://tests/test_spatial_acoustics.gd")
 const TestMicroAcousticsClass = preload("res://tests/test_micro_acoustics.gd")
 const TestLiveUpdateClass = preload("res://tests/test_live_update.gd")
@@ -122,10 +121,6 @@ static func run_suite() -> Dictionary:
 	var r13 = TestSoundBanksClass.run_all()
 	total_tests += 4
 	all_failures.append_array(r13)
-	
-	var r14 = TestRingBufferClass.run_all()
-	total_tests += 3
-	all_failures.append_array(r14)
 	
 	var r15 = TestSpatialAcousticsClass.run_all()
 	total_tests += 3

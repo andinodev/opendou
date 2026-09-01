@@ -51,4 +51,18 @@ static func run_all() -> OpenDouAssert:
 		rm.close()
 		a.ok(not mtext.contains("lock-free"), "el roadmap no afirma lock-free")
 
+	# El streaming asincrono desde disco se retiro: GDScript no puede sostenerlo.
+	# Los bancos se precargan como AudioStreamWAV.
+	var readme := FileAccess.open("res://README.md", FileAccess.READ)
+	if readme != null:
+		var rtext: String = readme.get_as_text().to_lower()
+		readme.close()
+		a.ok(not rtext.contains("asynchronous background disk streaming"),
+			"el README no promete streaming asincrono desde disco")
+
+	# Y las clases que lo implementaban no deben volver.
+	for path in ["res://addons/opendou/runtime/audio_ring_buffer.gd",
+			"res://addons/opendou/runtime/bank_stream_playback.gd"]:
+		a.ok(not FileAccess.file_exists(path), "%s no existe" % path)
+
 	return a

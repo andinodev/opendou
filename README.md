@@ -22,7 +22,7 @@ It provides an open, royalty-free alternative to proprietary audio solutions suc
    * Deterministic voice-stealing algorithms based on dynamic priority (`Base Priority - (Distance * Factor)`).
 3. **SoundBank Pipeline & Zero-Latency Prefetching:**
    * Binary `.bank` packaging with metadata tables and high-efficiency audio compression.
-   * Fixed-memory RAM prefetch buffers (64–128 KB) for instantaneous audio triggering paired with asynchronous background disk streaming.
+   * Monolithic `.bank` packaging with a contiguous RAM prefetch block, preloaded on demand as playable `AudioStreamWAV` resources (one file, deterministic packaging, per-stream lazy load).
 4. **Spatial Audio, Rooms & Portals:**
    * Acoustic propagation modeling through rooms, portals, and geometric obstruction/occlusion.
    * Raycast-assisted environmental filtering leveraging Godot's `PhysicsServer3D`.

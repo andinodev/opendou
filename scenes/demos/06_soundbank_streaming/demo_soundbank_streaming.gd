@@ -4,12 +4,11 @@ extends Control
 ## Demo 06: Monolithic SoundBank Prefetch & Lock-Free Ring-Buffer Disk Streaming
 
 const SoundBankCompilerClass = preload("res://addons/opendou/tools/soundbank_compiler.gd")
-const BankStreamPlaybackClass = preload("res://addons/opendou/runtime/bank_stream_playback.gd")
 const SoundBankClass = preload("res://addons/opendou/runtime/soundbank.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 var test_bank_path: String = "user://demo_stream.bank"
-var playback: BankStreamPlayback
+var preloaded_stream: AudioStreamWAV = null
 var is_stream_ready: bool = false
 var total_streamed_frames: int = 0
 var audible_stream: AudioStreamWAV
@@ -57,10 +56,12 @@ func setup_streaming_demo(bank_path: String = "user://demo_stream.bank") -> void
 	
 	SoundBankCompilerClass.compile_bank(test_bank_path, stream_inputs)
 	
-	# Instantiate streaming playback
+	# El banco se precarga como AudioStreamWAV en lugar de reproducirse por
+	# streaming: GDScript no puede sostener un mezclador en el hilo de audio.
 	var bank = SoundBankClass.new(test_bank_path)
-	playback = BankStreamPlaybackClass.new(bank, 1)
-	is_stream_ready = (playback != null)
+	bank.load_from_file(test_bank_path)
+	preloaded_stream = bank.build_stream(1)
+	is_stream_ready = (preloaded_stream != null)
 	total_streamed_frames = 0
 
 func _connect_ui() -> void:
@@ -88,15 +89,23 @@ func _on_stop_pressed() -> void:
 		audio_player.stop()
 	_update_ui()
 
-## Mixes an audio chunk from the SoundBank stream.
+## Devuelve un trozo de los bytes PCM del stream precargado del banco.
+##
+## Antes esto mezclaba desde un BankStreamPlayback que no llegaba a ninguna salida
+## de audio. Ahora el banco se precarga entero y esto solo asoma sus bytes para el
+## indicador en pantalla.
 func mix_audio_chunk(bytes_to_mix: int = 512) -> PackedByteArray:
-	if not playback:
+	if preloaded_stream == null:
 		return PackedByteArray()
-		
-	var mixed = playback.mix(bytes_to_mix)
-	total_streamed_frames += mixed.size()
-	return mixed
+
+	var data: PackedByteArray = preloaded_stream.data
+	var start: int = mini(total_streamed_frames, data.size())
+	var count: int = mini(bytes_to_mix, data.size() - start)
+	if count <= 0:
+		return PackedByteArray()
+	total_streamed_frames += count
+	return data.slice(start, start + count)
 
 func _update_ui() -> void:
 	if lbl_chunks:
-		lbl_chunks.text = "Mixed Chunks: %d frames (%.1f KB streamed)" % [total_streamed_frames, float(total_streamed_frames * 4) / 1024.0]
+		lbl_chunks.text = "Precargado: %d / %d bytes PCM del banco" % [total_streamed_frames, preloaded_stream.data.size() if preloaded_stream != null else 0]
