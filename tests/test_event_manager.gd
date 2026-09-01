@@ -37,4 +37,8 @@ static func run_all() -> Array[String]:
 	if not manager.active_instances.is_empty():
 		failures.append("Test 3 Failed: Active instances should be empty after stop_all()")
 		
+	# AudioEventManager es un Node y arrastra su pool de reproductores y su
+	# resolutor de oyente: no liberarlo filtra todo el conjunto.
+	if manager != null and is_instance_valid(manager):
+		manager.free()
 	return failures

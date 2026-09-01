@@ -580,6 +580,10 @@ static func run_all() -> Array[String]:
 		failures.append("Test 22 Failed: runtime_room.floor_surface should be &\"Foliage\", got %s" % str(room_floor.runtime_room.floor_surface))
 	room_floor.free()
 
+	# AudioEventManager es un Node y arrastra su pool de reproductores y su
+	# resolutor de oyente: no liberarlo filtra todo el conjunto.
+	if manager != null and is_instance_valid(manager):
+		manager.free()
 	return failures
 
 

@@ -13,6 +13,7 @@ const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spati
 const LiveUpdateServerClass = preload("res://addons/opendou/runtime/network/live_update_server.gd")
 const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_playback_context.gd")
 const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
+const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
 
 # Central Game Syncs Manager (States, Switches, Global RTPCs, Triggers)
 var sync_manager: GameSyncManager
@@ -45,6 +46,9 @@ var active_listener_position: Vector3 = Vector3.ZERO
 ## reproducir, asi que sin ese paso las voces cambiarian de estado sin sonar.
 var player_pool: OpenDouNativePlayerPool = null
 
+## Resolutor del oyente activo.
+var listener_resolver: OpenDouListenerResolver = null
+
 func _init() -> void:
 	sync_manager = GameSyncManagerClass.new()
 	bank_manager = SoundBankManagerClass.new()
@@ -53,6 +57,7 @@ func _init() -> void:
 	voice_pool = VoicePoolManagerClass.new(64)
 	player_pool = NativePlayerPoolClass.new(64)
 	voice_pool.set_player_pool(player_pool)
+	listener_resolver = ListenerResolverClass.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -154,9 +159,22 @@ func get_global_parameter(param_name: StringName) -> float:
 func set_max_physical_voices(count: int) -> void:
 	voice_pool = VoicePoolManagerClass.new(count)
 
-## Sets the current active listener 3D position.
+## Fija una posicion fija de oyente, con prioridad sobre la regla automatica.
 func set_listener_position(pos: Vector3) -> void:
 	active_listener_position = pos
+	if listener_resolver != null:
+		listener_resolver.set_listener_position(pos)
+
+## Fija un nodo como oyente explicito, para juegos con el oyente desacoplado de
+## la camara. Pasar null vuelve a la regla automatica de Godot.
+func set_listener_node(node: Node3D) -> void:
+	if listener_resolver != null:
+		listener_resolver.set_listener_node(node)
+
+## Vuelve a la regla automatica: AudioListener3D activo y, en su defecto, camara.
+func clear_listener_override() -> void:
+	if listener_resolver != null:
+		listener_resolver.clear_override()
 
 ## Registers an event definition into the global registry.
 func register_event_definition(event_def: AudioEventDef) -> void:
@@ -214,10 +232,12 @@ func _apply_voices() -> void:
 			instance.emitter_position
 		)
 
-## Actualiza la posicion del oyente.
-## La Tarea 10 lo sustituye por la resolucion completa via OpenDouListenerResolver.
+## Resuelve el oyente del frame y actualiza la posicion cacheada.
 func _update_listener() -> void:
-	pass
+	if listener_resolver == null or not is_inside_tree():
+		return
+	if listener_resolver.resolve(get_viewport()):
+		active_listener_position = listener_resolver.position
 
 ## Main frame update loop.
 func _process(delta: float) -> void:
