@@ -51,6 +51,7 @@ const TestSurfaceDetectionClass = preload("res://tests/test_surface_detection.gd
 const TestPlaybackContextClass = preload("res://tests/test_playback_context.gd")
 const TestCharacterRigClass = preload("res://tests/test_character_rig.gd")
 const TestDemoScenesClass = preload("res://tests/test_demo_scenes.gd")
+const TestSceneGuardsClass = preload("res://tests/test_scene_guards.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -260,6 +261,10 @@ static func run_suite() -> Dictionary:
 	var anim_sync_res = TestAnimationSyncClass.run_all()
 	total_tests += anim_sync_res.assertions_run
 	all_failures.append_array(anim_sync_res.failures)
+
+	var guards_res = TestSceneGuardsClass.run_all()
+	total_tests += guards_res.assertions_run
+	all_failures.append_array(guards_res.failures)
 	
 	# Suites nuevas de la Fase 1: cuentan aserciones reales en lugar de un total
 	# escrito a mano.
@@ -340,6 +345,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestCharacterRigClass.run_all_async(tree))
 	acc.absorb(await TestCharacterRigClass.run_bench_async(tree))
 	acc.absorb(await TestDemoScenesClass.run_all_async(tree))
+	acc.absorb(await TestSceneGuardsClass.run_coverage_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,
