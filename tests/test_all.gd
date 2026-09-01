@@ -269,9 +269,10 @@ static func run_suite() -> Dictionary:
 	total_tests += 10
 	all_failures.append_array(r49)
 	
-	var r50 = TestAnimationSyncClass.run_all()
-	total_tests += 10
-	all_failures.append_array(r50)
+	# Reescrita para afirmar sustancia: cuenta aserciones reales, no un 10 a mano.
+	var anim_sync_res = TestAnimationSyncClass.run_all()
+	total_tests += anim_sync_res.assertions_run
+	all_failures.append_array(anim_sync_res.failures)
 	
 	var r51 = TestTacticalInfiltrationDemoClass.run_all()
 	total_tests += 10
@@ -351,6 +352,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestEarlyReflectionsClass.run_all_async(tree))
 	acc.absorb(await TestSplineAnchorClass.run_all_async(tree))
 	acc.absorb(await TestSurfaceDetectionClass.run_all_async(tree))
+	acc.absorb(await TestAnimationSyncClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,
