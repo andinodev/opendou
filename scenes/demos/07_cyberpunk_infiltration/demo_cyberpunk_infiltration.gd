@@ -17,6 +17,7 @@ const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_d
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 
 const OpenDouRadarViewClass = preload("res://addons/opendou/editor/opendou_radar_view.gd")
+const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 
 # Core Audio Managers
 var voice_pool: VoicePoolManager
@@ -139,6 +140,10 @@ func _setup_runtime_systems() -> void:
 	# 1. Voice Pool Manager
 	voice_pool = VoicePoolManagerClass.new(16)
 	
+	# Sin pool de reproductores ninguna voz puede volverse fisica.
+	var _np := NativePlayerPoolClass.new(16)
+	voice_pool.set_player_pool(_np)
+	add_child(_np)
 	# 2. Spatial Acoustics Manager with 4 Rooms & Airlock Portal
 	spatial_acoustics = SpatialAcousticsManagerClass.new()
 	

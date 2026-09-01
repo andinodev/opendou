@@ -4,14 +4,19 @@ extends RefCounted
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const RTPCBindingClass = preload("res://addons/opendou/resources/rtpc_binding.gd")
+const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 static func run_all() -> Array[String]:
+	# Un AudioEventDef sin stream ya no obtiene canal fisico: conceder hardware
+	# para emitir silencio no tiene sentido. Los tests que afirman que una voz es
+	# fisica necesitan por tanto una voz que pueda sonar de verdad.
+	var _test_tone := AudioSynthesizerClass.create_tone(440.0, 0.1, 0.5, false)
 	var failures: Array[String] = []
 	
 	var manager = AudioEventManagerClass.new()
 	
 	# Register an EventDef
-	var event_def = AudioEventDefClass.new(&"Footstep")
+	var event_def = AudioEventDefClass.new(&"Footstep", _test_tone)
 	event_def.base_volume_db = -3.0
 	manager.register_event_definition(event_def)
 	

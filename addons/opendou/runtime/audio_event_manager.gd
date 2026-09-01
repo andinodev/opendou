@@ -12,6 +12,7 @@ const SoundBankManagerClass = preload("res://addons/opendou/runtime/soundbank_ma
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
 const LiveUpdateServerClass = preload("res://addons/opendou/runtime/network/live_update_server.gd")
 const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_playback_context.gd")
+const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 
 # Central Game Syncs Manager (States, Switches, Global RTPCs, Triggers)
 var sync_manager: GameSyncManager
@@ -37,15 +38,40 @@ var voice_pool: VoicePoolManager
 # Listener position cache
 var active_listener_position: Vector3 = Vector3.ZERO
 
+## Pool de reproductores nativos para las voces anonimas.
+##
+## Se crea en _init() para que el manager sea coherente desde el primer momento,
+## y se mete en el arbol en _ready(): un reproductor fuera del arbol no puede
+## reproducir, asi que sin ese paso las voces cambiarian de estado sin sonar.
+var player_pool: OpenDouNativePlayerPool = null
+
 func _init() -> void:
 	sync_manager = GameSyncManagerClass.new()
 	bank_manager = SoundBankManagerClass.new()
 	spatial_acoustics = SpatialAcousticsManagerClass.new()
 	live_update_server = LiveUpdateServerClass.new()
 	voice_pool = VoicePoolManagerClass.new(64)
+	player_pool = NativePlayerPoolClass.new(64)
+	voice_pool.set_player_pool(player_pool)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Los reproductores solo pueden reproducir dentro del arbol.
+	if player_pool != null and player_pool.get_parent() == null:
+		add_child(player_pool)
+
+## Sustituye el pool de reproductores nativos.
+func set_player_pool(pool: OpenDouNativePlayerPool) -> void:
+	if pool == null:
+		return
+	if player_pool != null and player_pool != pool and player_pool.get_parent() == self:
+		remove_child(player_pool)
+		player_pool.queue_free()
+	player_pool = pool
+	if voice_pool != null:
+		voice_pool.set_player_pool(pool)
+	if is_inside_tree() and pool.get_parent() == null:
+		add_child(pool)
 
 # ==============================================================================
 # LIVE UPDATE & PROFILING API

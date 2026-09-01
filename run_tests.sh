@@ -40,6 +40,22 @@ GODOT_BIN="$(find_godot)" || {
 
 echo "[OpenDou] Godot: $GODOT_BIN"
 echo "[OpenDou] Script: $TEST_SCRIPT"
+
+# Un class_name recien anadido no existe como tipo global hasta que Godot
+# regenera su cache de clases, y sin editor eso solo pasa al importar. Sin este
+# paso, anotar un tipo nuevo produce "Could not find type ... in the current
+# scope" y toda la suite deja de compilar.
+CLASS_CACHE=".godot/global_script_class_cache.cfg"
+NEEDS_IMPORT=0
+if [[ ! -f "$CLASS_CACHE" ]]; then
+	NEEDS_IMPORT=1
+elif [[ -n "$(find addons tests -name '*.gd' -newer "$CLASS_CACHE" -print -quit 2>/dev/null)" ]]; then
+	NEEDS_IMPORT=1
+fi
+if [[ "$NEEDS_IMPORT" -eq 1 ]]; then
+	echo "[OpenDou] regenerando cache de clases (hay scripts mas nuevos)"
+	"$GODOT_BIN" --headless --path . --import > /dev/null 2>&1
+fi
 START_TS=$(date +%s)
 "$GODOT_BIN" --headless --path . --script "$TEST_SCRIPT" > "$CONSOLE_LOG" 2>&1
 GODOT_EXIT=$?

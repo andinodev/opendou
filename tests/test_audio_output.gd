@@ -12,6 +12,9 @@ const OpenDouAudioProbeClass = preload("res://tests/support/audio_probe.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 const PhysicalVoiceChannelClass = preload("res://addons/opendou/runtime/physical_voice_channel.gd")
+const VoicePoolManagerClass = preload("res://addons/opendou/runtime/voice_pool_manager.gd")
+const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
+const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 
 ## Punto de entrada de la suite asincrona de audio.
 ##
@@ -22,6 +25,7 @@ func run_all_async(tree: SceneTree):
 	var a := OpenDouAssertClass.new()
 	a.absorb(await run_probe_selftest_async(tree))
 	a.absorb(await run_channel_audio_async(tree))
+	a.absorb(await run_budget_async(tree))
 	return a
 
 ## La sonda debe medir una senal conocida. Si esto falla, ninguna otra asercion
@@ -116,3 +120,78 @@ func run_channel_audio_async(tree: SceneTree):
 	probe.teardown()
 	pool.free()
 	return a
+
+## Superado el presupuesto, las voces de menor prioridad se virtualizan y
+## liberan su canal; las de mayor prioridad se quedan con el permiso.
+func run_budget_async(tree: SceneTree):
+	var a := OpenDouAssertClass.new("budget")
+
+	var pool = NativePlayerPoolClass.new(4)
+	tree.root.add_child(pool)
+	await tree.process_frame
+
+	# Presupuesto de UNA sola voz fisica.
+	var vpool = VoicePoolManagerClass.new(1)
+	vpool.set_player_pool(pool)
+
+	var tone := AudioSynthesizerClass.create_tone(440.0, 3.0, 0.8, false)
+
+	var near_def = AudioEventDefClass.new(&"Near", tone)
+	near_def.base_priority = 90.0
+	var far_def = AudioEventDefClass.new(&"Far", tone)
+	far_def.base_priority = 10.0
+
+	var near = EventInstanceClass.new(near_def)
+	near.set_position(Vector3(1.0, 0.0, 0.0))
+	near.max_distance = 100.0
+	near.play()
+	var far = EventInstanceClass.new(far_def)
+	far.set_position(Vector3(80.0, 0.0, 0.0))
+	far.max_distance = 100.0
+	far.play()
+
+	var instances: Array[EventInstance] = [near, far]
+	vpool.resolve_voice_stealing(instances, Vector3.ZERO, 0.016)
+
+	a.eq(near.voice_state, EventInstanceClass.VoiceState.STATE_PHYSICAL, "la voz cercana gana el permiso")
+	a.eq(far.voice_state, EventInstanceClass.VoiceState.STATE_VIRTUAL, "la voz lejana queda virtual")
+	a.eq(far.assigned_channel_id, -1, "la voz virtual no retiene canal")
+	a.gt(float(pool.busy_count(NativePlayerPoolClass.PlayerKind.SPATIAL_3D)), 0.0,
+		"la voz fisica consumio un reproductor del pool")
+
+	# Reanudacion de loops: sin fmod, un ambiente virtualizado mucho tiempo
+	# intentaria arrancar mas alla del final del loop y no sonaria.
+	var loop_def = AudioEventDefClass.new(&"Looped", tone)
+	loop_def.is_looping = true
+	loop_def.stream_length = float(tone.get_length())
+	var looped = EventInstanceClass.new(loop_def)
+	looped.set_position(Vector3.ZERO)
+	looped.play()
+	looped.logical_playback_position = 180.0
+	var vpool2 = VoicePoolManagerClass.new(4)
+	vpool2.set_player_pool(pool)
+	vpool2.devirtualize(looped)
+	var ch = vpool2.get_channel(looped.assigned_channel_id)
+	a.ok(ch != null, "la voz en bucle recibio un canal")
+	if ch != null:
+		a.lt(ch.playback_start_offset, float(tone.get_length()),
+			"el offset de reanudacion queda dentro del loop")
+
+	# Virtualizar devuelve el reproductor al pool.
+	var busy_before: int = pool.busy_count(NativePlayerPoolClass.PlayerKind.SPATIAL_3D)
+	vpool2.virtualize(looped)
+	a.lt(float(pool.busy_count(NativePlayerPoolClass.PlayerKind.SPATIAL_3D)), float(busy_before),
+		"virtualizar devuelve el reproductor al pool")
+
+	vpool.virtualize(near)
+	probe_free_all(pool)
+	await tree.process_frame
+	pool.free()
+	return a
+
+## Detiene todos los reproductores del pool antes de liberarlo.
+func probe_free_all(pool) -> void:
+	for child in pool.get_children():
+		if child.has_method("stop"):
+			child.stop()
+		child.stream = null

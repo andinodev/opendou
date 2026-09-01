@@ -1,10 +1,12 @@
-989
+776
 # Techo de instancias ObjectDB filtradas al salir. El runner falla si aumenta.
 #
 # Historia del techo:
 #   1015 -> baseline al empezar la Fase 1
 #    987 -> al liberar el panel en test_bank_panel y redirigir las escrituras
 #    989 -> +2 por el primer test que reproduce audio a traves de un canal
+#    776 -> al liberar en test_demo_suite los 7 objetos demo que creaba y nunca
+#           liberaba: 213 objetos que llevaban filtrandose desde siempre
 #
 # Sobre esos +2: son un AudioStreamPlaybackWAV y su AudioStreamWAV que el
 # servidor de audio de Godot retiene para cualquier WAV que se haya reproducido.

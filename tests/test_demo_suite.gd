@@ -93,5 +93,12 @@ static func run_all() -> Array[String]:
 				failures.append("Test 8 Failed: Could not instantiate PackedScene: %s" % p)
 			else:
 				node.free()
-				
+
+	# Los siete objetos demo son Nodes y hasta ahora no se liberaba ninguno: cada
+	# ejecucion de la suite dejaba sus arboles enteros colgando, y con ellos sus
+	# pools de reproductores.
+	for demo_node in [d1, d2, d3, d4, d5, d6, d7]:
+		if demo_node != null and is_instance_valid(demo_node):
+			demo_node.free()
+
 	return failures

@@ -5,8 +5,13 @@ const LiveUpdateProtocolClass = preload("res://addons/opendou/runtime/network/li
 const LiveUpdateServerClass = preload("res://addons/opendou/runtime/network/live_update_server.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const GameSyncManagerClass = preload("res://addons/opendou/runtime/game_sync_manager.gd")
+const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 static func run_all() -> Array[String]:
+	# Un AudioEventDef sin stream ya no obtiene canal fisico: conceder hardware
+	# para emitir silencio no tiene sentido. Los tests que afirman que una voz es
+	# fisica necesitan por tanto una voz que pueda sonar de verdad.
+	var _test_tone := AudioSynthesizerClass.create_tone(440.0, 0.1, 0.5, false)
 	var failures: Array[String] = []
 	
 	# Test 1: TLV Packet Encoding & Decoding
@@ -44,7 +49,7 @@ static func run_all() -> Array[String]:
 		
 	# Test 4: Live Server Command Dispatching in RAM
 	var server = LiveUpdateServerClass.new()
-	var def = AudioEventDefClass.new(&"Explosion")
+	var def = AudioEventDefClass.new(&"Explosion", _test_tone)
 	def.base_volume_db = 0.0
 	
 	var registry: Dictionary = {&"Explosion": def}

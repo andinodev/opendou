@@ -7,6 +7,7 @@ const VoicePoolManagerClass = preload("res://addons/opendou/runtime/voice_pool_m
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
+const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 
 var pool: VoicePoolManager
 var instances: Array[EventInstance] = []
@@ -50,13 +51,18 @@ func setup_stress_test(emitter_count: int = 250, hardware_channels: int = 16) ->
 	physical_capacity = hardware_channels
 	
 	pool = VoicePoolManagerClass.new(physical_capacity)
+	# Sin pool de reproductores ninguna voz puede volverse fisica: un canal solo
+	# se concede si hay algo real que reproduzca.
+	var np := NativePlayerPoolClass.new(physical_capacity)
+	pool.set_player_pool(np)
+	add_child(np)
 	instances.clear()
 	
 	if emitters_parent:
 		for child in emitters_parent.get_children():
 			child.queue_free()
 			
-	var def = AudioEventDefClass.new(&"Battlefield_Gunfire")
+	var def = AudioEventDefClass.new(&"Battlefield_Gunfire", AudioSynthesizerClass.create_tone(220.0, 0.2, 0.5, false))
 	def.base_priority = 50.0
 	def.base_volume_db = 0.0
 	def.stream_length = 4.0
