@@ -18,9 +18,11 @@ static func run_all() -> Array[String]:
 		return failures
 
 	# Test 3: Load presets from default JSON path
-	var loaded = registry.load_presets("res://opendou_synth_presets.json")
+	# Sin argumento: el registro resuelve por su cuenta. La ruta res:// que habia aqui
+	# dejo de existir al mudar los presets al addon, que es donde son contenido.
+	var loaded = registry.load_presets()
 	if not loaded:
-		failures.append("Test 3 Failed: load_presets() returned false for res://opendou_synth_presets.json")
+		failures.append("Test 3 Failed: load_presets() devolvio false resolviendo por su cuenta")
 
 	var preset_names = registry.get_preset_names()
 	var expected_builtins = [

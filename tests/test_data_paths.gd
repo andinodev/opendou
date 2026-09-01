@@ -51,4 +51,56 @@ static func run_all() -> OpenDouAssert:
 		var r: String = DataPathsClass.resolve(data_name)
 		a.ok(r.is_empty() or r.begins_with("res://"), "resolve('%s') devuelve ruta valida o vacia" % data_name)
 
+	# Los presets de sintesis son contenido del ADDON, no datos del usuario: copiar
+	# solo addons/opendou/ a otro proyecto tiene que dejarte con presets.
+	a.ok(FileAccess.file_exists(DataPathsClass.addon_default_path(DataPathsClass.SYNTH_PRESETS)),
+		"el addon envia sus presets de sintesis")
+
+	# Y una instalacion limpia resuelve a un archivo valido para syncs y suites.
+	for dn in [DataPathsClass.GAME_SYNCS, DataPathsClass.MUSIC_SUITES]:
+		a.ok(FileAccess.file_exists(DataPathsClass.addon_default_path(dn)),
+			"el addon envia un default para '%s'" % dn)
+
+	# El registro carga presets sin que nadie le diga de donde.
+	var RegistryClass = load("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
+	var reg = RegistryClass.get_singleton()
+	a.ok(reg != null, "el registro de presets existe")
+	if reg != null:
+		a.gt(float(reg.get_preset_names().size()), 0.0, "el registro tiene presets tras resolver solo")
+
+	# Ninguna ruta hardcodeada queda en el codigo del addon.
+	var offenders: Array[String] = []
+	for path in ["res://addons/opendou/runtime/synth/synth_preset_registry.gd",
+			"res://addons/opendou/runtime/spatial/acoustic_material_registry.gd",
+			"res://addons/opendou/nodes/opendou_music_player.gd",
+			"res://addons/opendou/editor/opendou_game_syncs_panel.gd",
+			"res://addons/opendou/editor/opendou_music_timeline.gd"]:
+		var f2 = FileAccess.open(path, FileAccess.READ)
+		if f2 == null:
+			continue
+		var text: String = f2.get_as_text()
+		f2.close()
+		if text.contains('"res://opendou_'):
+			offenders.append(path)
+	a.eq(offenders.size(), 0, "sin rutas res://opendou_ hardcodeadas, sobran: %s" % str(offenders))
+
+	# El aviso al faltar el archivo. push_warning() no es capturable desde GDScript,
+	# asi que se comprueba por las dos vias disponibles: que la funcion devuelve
+	# false ante un archivo inexistente, y que el codigo contiene un aviso que
+	# nombra la consecuencia.
+	if reg != null:
+		a.eq(reg.load_presets("res://__archivo_que_no_existe__.json"), false,
+			"load_presets devuelve false ante un archivo inexistente")
+	var rf = FileAccess.open("res://addons/opendou/runtime/synth/synth_preset_registry.gd", FileAccess.READ)
+	if rf != null:
+		var rsrc: String = rf.get_as_text()
+		rf.close()
+		a.ok(rsrc.contains("push_warning"), "load_presets avisa en lugar de callar")
+		a.ok(rsrc.contains("desplegable"), "el aviso nombra la consecuencia, no solo el fallo")
+
+	# Recargar los presets de verdad para no dejar el registro vacio para otras
+	# suites: load_presets() los ha sobreescrito con nada.
+	if reg != null:
+		reg.load_presets()
+
 	return a

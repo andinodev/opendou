@@ -4,13 +4,16 @@ extends PanelContainer
 
 ## Sidebar manager for Game Syncs (RTPCs, States, Switches, and Synth Presets) in OpenDou Studio with persistent JSON storage.
 
+const DataPathsClass = preload("res://addons/opendou/runtime/data_paths.gd")
+
 signal rtpc_selected(param_name: StringName, min_val: float, max_val: float, def_val: float)
 signal rtpc_value_changed(rtpc_name: StringName, value: float)
 signal state_changed(group: StringName, state: StringName)
 signal switch_changed(group: StringName, sw: StringName)
 signal syncs_updated()
 
-const SYNCS_FILE_PATH: String = "res://opendou_syncs.json"
+## Ruta del override del proyecto para los Game Syncs.
+const SYNCS_FILE_PATH: String = "%s%s.json" % [OpenDouDataPaths.PROJECT_PREFIX, OpenDouDataPaths.GAME_SYNCS]
 
 ## Ruta de persistencia de los Game Syncs. Inyectable para que los tests no
 ## escriban en res:// y contaminen el repositorio: ejecutar la suite llegaba a
@@ -18,7 +21,8 @@ const SYNCS_FILE_PATH: String = "res://opendou_syncs.json"
 ## La migracion general de res:// a user:// es la observacion 17 (Fase 4).
 var syncs_file_path: String = SYNCS_FILE_PATH
 
-const DEFAULT_PRESETS_PATH: String = "res://opendou_synth_presets.json"
+## Ruta del override del proyecto para los presets de sintesis.
+const DEFAULT_PRESETS_PATH: String = "%s%s.json" % [OpenDouDataPaths.PROJECT_PREFIX, OpenDouDataPaths.SYNTH_PRESETS]
 
 ## Ruta de persistencia de los presets de sintesis. Misma razon.
 var presets_file_path: String = DEFAULT_PRESETS_PATH
@@ -644,8 +648,12 @@ func _create_rack_section(parent: Node, section_title: String) -> VBoxContainer:
 
 ## Loads persistent game syncs registry from project disk file.
 func load_syncs_from_disk() -> void:
-	if FileAccess.file_exists(syncs_file_path):
-		var file = FileAccess.open(syncs_file_path, FileAccess.READ)
+	# Si el override del proyecto no existe, se cae al default del addon.
+	var read_path: String = syncs_file_path
+	if not FileAccess.file_exists(read_path):
+		read_path = DataPathsClass.resolve(DataPathsClass.GAME_SYNCS)
+	if not read_path.is_empty() and FileAccess.file_exists(read_path):
+		var file = FileAccess.open(read_path, FileAccess.READ)
 		if file:
 			var json_str = file.get_as_text()
 			file.close()

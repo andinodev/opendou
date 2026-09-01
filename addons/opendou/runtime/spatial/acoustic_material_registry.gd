@@ -2,6 +2,8 @@
 class_name AcousticMaterialRegistry
 extends RefCounted
 
+const DataPathsClass = preload("res://addons/opendou/runtime/data_paths.gd")
+
 ## Centralized physical acoustic material matrix and mass-law transmission loss engine.
 ## Provides physically grounded density, structural resonance LPF cutoff, and absorption coefficients.
 
@@ -124,7 +126,16 @@ func calculate_transmission_loss(mat_name: StringName, thickness_meters: float, 
 	}
 
 ## Loads optional custom material overrides from project JSON.
-func load_from_json(path: String = "res://opendou_acoustic_materials.json") -> void:
+## Carga materiales acusticos desde JSON, si hay archivo.
+##
+## No hay default en el addon a proposito: los coeficientes ya estan en codigo, y un
+## JSON duplicado seria dos fuentes de verdad para lo mismo. Este archivo es un
+## override opcional del proyecto.
+func load_from_json(path: String = "") -> void:
+	if path.is_empty():
+		path = DataPathsClass.resolve(DataPathsClass.ACOUSTIC_MATERIALS)
+	if path.is_empty():
+		return
 	if not FileAccess.file_exists(path):
 		return
 	var file = FileAccess.open(path, FileAccess.READ)
