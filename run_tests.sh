@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Runner de tests de OpenDou. Multiplataforma (macOS / Linux).
+# Falla si el log del motor contiene errores de script o de parseo, o si el
+# numero de fugas de ObjectDB aumenta respecto al techo registrado.
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$REPO_ROOT"
+
+TEST_SCRIPT="${1:-tests/test_runner_cli.gd}"
+CONSOLE_LOG="test_console.log"
+LEAK_BUDGET_FILE="tests/leak_budget.txt"
+
+find_godot() {
+	if [[ -n "${GODOT_PATH:-}" && -x "${GODOT_PATH}" ]]; then
+		echo "${GODOT_PATH}"; return 0
+	fi
+	local candidates=(
+		"/Applications/Godot.app/Contents/MacOS/Godot"
+		"$HOME/Applications/Godot.app/Contents/MacOS/Godot"
+		"$HOME/Downloads/Godot.app/Contents/MacOS/Godot"
+		"/opt/homebrew/bin/godot"
+		"/usr/local/bin/godot"
+		"/usr/bin/godot"
+	)
+	local c
+	for c in "${candidates[@]}"; do
+		[[ -x "$c" ]] && { echo "$c"; return 0; }
+	done
+	if command -v godot >/dev/null 2>&1; then
+		command -v godot; return 0
+	fi
+	return 1
+}
+
+GODOT_BIN="$(find_godot)" || {
+	echo "[ERROR] No se encontro Godot. Define GODOT_PATH apuntando al ejecutable." >&2
+	exit 1
+}
+
+echo "[OpenDou] Godot: $GODOT_BIN"
+echo "[OpenDou] Script: $TEST_SCRIPT"
+START_TS=$(date +%s)
+"$GODOT_BIN" --headless --path . --script "$TEST_SCRIPT" > "$CONSOLE_LOG" 2>&1
+GODOT_EXIT=$?
+echo "[OpenDou] duracion: $(( $(date +%s) - START_TS ))s"
+
+grep -E "^STATUS:" "$CONSOLE_LOG" || echo "[WARN] la suite no reporto STATUS"
+
+FATAL=0
+
+# 1) Errores de script y de parseo: fatales sin excepcion.
+#    Un error de script aborta la funcion que lo contiene y devuelve null, asi
+#    que un test puede "pasar" mientras el motor grita. Por eso son fatales.
+SCRIPT_ERRORS=$(grep -c "SCRIPT ERROR" "$CONSOLE_LOG" || true)
+PARSE_ERRORS=$(grep -c "Parse Error" "$CONSOLE_LOG" || true)
+if [[ "$SCRIPT_ERRORS" -gt 0 ]]; then
+	echo "[FALLO] $SCRIPT_ERRORS SCRIPT ERROR en el log:" >&2
+	grep -n "SCRIPT ERROR" "$CONSOLE_LOG" | head -20 >&2
+	FATAL=1
+fi
+if [[ "$PARSE_ERRORS" -gt 0 ]]; then
+	echo "[FALLO] $PARSE_ERRORS Parse Error en el log:" >&2
+	grep -n "Parse Error" "$CONSOLE_LOG" | head -20 >&2
+	FATAL=1
+fi
+
+# 2) Trinquete de fugas de ObjectDB: no pueden aumentar.
+LEAKED=$(grep -oE "[0-9]+ ObjectDB instances were leaked" "$CONSOLE_LOG" | grep -oE "^[0-9]+" | tail -1)
+LEAKED="${LEAKED:-0}"
+BUDGET=$(tr -d '[:space:]' < "$LEAK_BUDGET_FILE" 2>/dev/null || echo "0")
+BUDGET="${BUDGET:-0}"
+echo "[OpenDou] fugas ObjectDB: $LEAKED (techo: $BUDGET)"
+if [[ "$LEAKED" -gt "$BUDGET" ]]; then
+	echo "[FALLO] las fugas de ObjectDB aumentaron de $BUDGET a $LEAKED." >&2
+	echo "         Libera lo que creaste, o justifica y actualiza $LEAK_BUDGET_FILE." >&2
+	FATAL=1
+fi
+
+# 3) La suite debe haber reportado exito.
+if ! grep -q "^STATUS: PASSED" "$CONSOLE_LOG"; then
+	echo "[FALLO] la suite no reporto STATUS: PASSED" >&2
+	grep -E "^- " "$CONSOLE_LOG" | head -30 >&2
+	FATAL=1
+fi
+
+if [[ "$FATAL" -ne 0 ]]; then
+	echo "[OpenDou] RESULTADO: FALLO"
+	exit 1
+fi
+if [[ "$GODOT_EXIT" -ne 0 ]]; then
+	echo "[FALLO] Godot salio con codigo $GODOT_EXIT" >&2
+	echo "[OpenDou] RESULTADO: FALLO"
+	exit 1
+fi
+echo "[OpenDou] RESULTADO: OK"
+exit 0
