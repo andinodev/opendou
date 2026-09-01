@@ -52,6 +52,7 @@ const TestPlaybackContextClass = preload("res://tests/test_playback_context.gd")
 const TestCharacterRigClass = preload("res://tests/test_character_rig.gd")
 const TestDemoScenesClass = preload("res://tests/test_demo_scenes.gd")
 const TestSceneGuardsClass = preload("res://tests/test_scene_guards.gd")
+const TestRoomPathDispatcherClass = preload("res://tests/test_room_path_dispatcher.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -265,6 +266,10 @@ static func run_suite() -> Dictionary:
 	var guards_res = TestSceneGuardsClass.run_all()
 	total_tests += guards_res.assertions_run
 	all_failures.append_array(guards_res.failures)
+
+	var room_path_res = TestRoomPathDispatcherClass.run_all()
+	total_tests += room_path_res.assertions_run
+	all_failures.append_array(room_path_res.failures)
 	
 	# Suites nuevas de la Fase 1: cuentan aserciones reales en lugar de un total
 	# escrito a mano.

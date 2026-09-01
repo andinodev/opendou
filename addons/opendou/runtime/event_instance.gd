@@ -52,6 +52,28 @@ var max_distance: float = 100.0
 var emitter_position: Vector3 = Vector3.ZERO
 var has_spatial_position: bool = false
 
+## True mientras el grafo de salas y portales gobierne esta voz.
+##
+## Cuando lo esta, la oclusion por raycast NO la toca: el grafo ya sabe que hay un
+## mamparo y por donde se rodea, y sumar los dos cobraria dos veces por la misma pared.
+var room_path_active: bool = false
+
+## Posicion hacia la que se interpola la posicion aparente.
+var target_apparent_position: Vector3 = Vector3.ZERO
+
+## Posicion que se pasa al canal fisico.
+##
+## Es la del emisor casi siempre. Cuando el grafo gobierna la voz es la del portal por el
+## que sale el sonido, que es lo que hace que se oiga VINIENDO de la escotilla en lugar
+## de atravesando el mamparo.
+var current_apparent_position: Vector3 = Vector3.ZERO
+
+## Velocidad de convergencia de la posicion aparente, en unidades de 1/s.
+##
+## Existe porque al cruzar el portal la posicion aparente pasa del portal al emisor: si
+## saltara, se oiria el chasquido del paneo.
+var apparent_smoothing_speed: float = 8.0
+
 var is_paused_state: bool = false
 var is_key_on: bool = true
 var elapsed_time: float = 0.0
@@ -85,6 +107,11 @@ func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 			emitter_position = Vector3(p2d.x, p2d.y, 0.0)
 			has_spatial_position = true
 	
+	# La posicion aparente arranca donde el emisor. Sin esto cada voz nueva barreria
+	# desde el origen del mundo hasta su sitio, y eso se oye.
+	target_apparent_position = emitter_position
+	current_apparent_position = emitter_position
+
 	if definition:
 		calculated_volume_db = definition.base_volume_db
 		calculated_pitch_scale = definition.base_pitch_scale
@@ -168,6 +195,9 @@ func get_bound_player() -> Node:
 func set_position(pos: Vector3) -> void:
 	emitter_position = pos
 	has_spatial_position = true
+	if not room_path_active:
+		target_apparent_position = pos
+		current_apparent_position = pos
 
 ## Sets the target spatial low-pass filter cutoff in Hz.
 func set_target_lpf(lpf_hz: float, atten_db: float = 0.0) -> void:
@@ -252,6 +282,16 @@ func update_parameters(delta: float, global_rtpcs: Dictionary = {}) -> void:
 			emitter_position = Vector3(p2d.x, p2d.y, 0.0)
 			has_spatial_position = true
 	
+	# El destino se fija aqui para las voces que el grafo NO gobierna: el dispatcher solo
+	# mira las fisicas, asi que sin esto una voz que deja de estar gobernada se quedaria
+	# con la posicion del portal para siempre.
+	if not room_path_active:
+		target_apparent_position = emitter_position
+	current_apparent_position = current_apparent_position.lerp(
+		target_apparent_position,
+		clampf(apparent_smoothing_speed * delta, 0.0, 1.0)
+	)
+
 	# 1. Start from base definition values and apply occlusion volume attenuation
 	var vol: float = definition.base_volume_db + occlusion_attenuation_db
 	var pitch: float = definition.base_pitch_scale
