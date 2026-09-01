@@ -106,8 +106,12 @@ func calculate_sabine_reverb(dimensions: Vector3) -> float:
 		runtime_room.damping = alpha
 		runtime_room.floor_surface = floor_surface
 		runtime_room.material_preset = material_preset
-		var center_pos: Vector3 = global_position if is_inside_tree() else position
-		runtime_room.set_bounds(AABB(center_pos - _dimensions * 0.5, _dimensions))
+		# El AABB envuelve las ocho esquinas transformadas, asi que respeta rotacion
+		# y escala. Antes se construia como centro +- tamano/2, que solo es correcto
+		# si la sala no esta rotada ni escalada.
+		runtime_room.set_bounds(
+			TransformUtilsClass.enclosing_aabb(TransformUtilsClass.world_transform_of(self), _dimensions)
+		)
 		
 	return calculated_rt60
 
@@ -175,8 +179,9 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 					break
 
 	if _dimensions != Vector3.ZERO:
-		var center_pos: Vector3 = TransformUtilsClass.world_position_of(self)
-		runtime_room.set_bounds(AABB(center_pos - _dimensions * 0.5, _dimensions))
+		runtime_room.set_bounds(
+			TransformUtilsClass.enclosing_aabb(TransformUtilsClass.world_transform_of(self), _dimensions)
+		)
 
 	if mgr != null:
 		mgr.register_room(runtime_room)

@@ -52,6 +52,28 @@ static func run_all() -> OpenDouAssert:
 	a.approx(TransformUtilsClass.enclosing_aabb(moved, Vector3.ONE).get_center().x, 10.0,
 		"el AABB sigue la traslacion", 0.001)
 
+	# Una sala rotada 45 grados debe reportar un AABB que la envuelva. Con el
+	# calculo axis-aligned anterior, una sala de 10x4x10 rotada seguia diciendo
+	# que medía 10 en X, cuando su envolvente real es 10*sqrt(2) = 14.14.
+	var RoomClass = load("res://addons/opendou/nodes/opendou_room_3d.gd")
+	var room = RoomClass.new()
+	room.room_name = &"SalaRotada"
+	room.rotation = Vector3(0.0, PI * 0.25, 0.0)
+	var shape := CollisionShape3D.new()
+	var rbox := BoxShape3D.new()
+	rbox.size = Vector3(10.0, 4.0, 10.0)
+	shape.shape = rbox
+	room.add_child(shape)
+
+	var runtime = room.register_in_manager()
+	a.ok(runtime != null, "la sala rotada se registra")
+	if runtime != null and runtime.has_bounds:
+		a.gt(runtime.bounds.size.x, 10.5, "el AABB de la sala rotada envuelve mas de 10 en X")
+		a.approx(runtime.bounds.size.y, 4.0, "el eje sin rotar mantiene su tamano", 0.1)
+	else:
+		a.ok(false, "la sala rotada no publico limites")
+	room.free()
+
 	kid.free(); scaler.free()
 	child.free(); parent.free()
 	lonely.free()
