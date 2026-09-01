@@ -10,6 +10,7 @@ const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_d
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
+const SynthPresetRegistryClass = preload("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
 
 # ==============================================================================
 # EXPORT GROUPS
@@ -27,23 +28,20 @@ var synth_preset: String = "None"
 @export var synth_frequency: float = 440.0
 
 func _get_property_list() -> Array[Dictionary]:
-	var properties: Array[Dictionary] = []
-	var presets: Array[String] = ["None"]
-	var reg = load("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
-	if reg != null:
-		var singleton = reg.get_singleton()
-		if singleton != null:
-			for p_name in singleton.get_preset_names():
-				presets.append(str(p_name))
-	var hint_str = ",".join(presets)
-	properties.append({
+	# El inspector invoca este metodo en CADA refresco. Antes hacia aqui un load()
+	# desde disco y enumeraba el registro de presets entero cada vez; el hint viene
+	# ahora de una cache que el propio registro invalida al cambiar.
+	var hint_str: String = "None"
+	var singleton = SynthPresetRegistryClass.get_singleton()
+	if singleton != null:
+		hint_str = singleton.get_preset_hint_string()
+	return [{
 		"name": "synth_preset",
 		"type": TYPE_STRING,
 		"hint": PROPERTY_HINT_ENUM,
 		"hint_string": hint_str,
 		"usage": PROPERTY_USAGE_DEFAULT
-	})
-	return properties
+	}]
 
 @export_group("Game Syncs")
 @export var rtpc_bindings: Dictionary = {}
