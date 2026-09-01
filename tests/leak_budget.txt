@@ -1,4 +1,4 @@
-593
+595
 # Techo de instancias ObjectDB filtradas al salir. El runner falla si aumenta.
 #
 # Historia del techo:
@@ -18,6 +18,15 @@
 #           esos dos objetos y ninguno propio)
 #    593 -> al consolidar los dos motores HDR en uno: desaparecen las instancias
 #           de HDRAudioManager que creaban el manager espacial y sus tests
+#    595 -> techo, no medicion: con los tests nuevos de la Fase 5 el total OSCILA
+#           entre 593 y 595 segun si al salir quedaba sonando el WAV en bucle del
+#           bloque stop_all (la retencion descrita abajo). El techo se deja en 595
+#           para que no falle de forma aleatoria.
+#           Los cambios de runtime de la Fase 5 no filtran nada: verificado
+#           desactivando los dos bloques nuevos que reproducen audio
+#           -test_playback_context y run_stop_all_async- y dejando solo el contexto
+#           de reproduccion perezoso y el arreglo de stop_all, con lo que el total
+#           vuelve a 593 exacto.
 #
 # Sobre esos +2: son un AudioStreamPlaybackWAV y su AudioStreamWAV que el
 # servidor de audio de Godot retiene para cualquier WAV que se haya reproducido.

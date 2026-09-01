@@ -233,6 +233,10 @@ func post_event(event: Variant, caller: Node = null) -> EventInstance:
 		return null
 		
 	var instance: EventInstance = EventInstanceClass.new(def, caller)
+	# El contexto se refresca ANTES de play(): la primera resolucion tiene que ver el
+	# estado vivo, no un contexto vacio.
+	var initial_rtpcs = sync_manager.global_rtpcs if sync_manager else {}
+	instance.refresh_playback_context(initial_rtpcs, sync_manager)
 	active_instances.append(instance)
 	instance.play()
 	return instance
@@ -240,6 +244,12 @@ func post_event(event: Variant, caller: Node = null) -> EventInstance:
 ## Stops all currently playing event instances.
 func stop_all() -> void:
 	for instance in active_instances:
+		# virtualize() desconecta la senal finished, detiene el canal y devuelve el
+		# reproductor al pool. Sin esto, stop_all() solo marcaba la instancia como
+		# parada: el canal seguia ocupado, el reproductor seguia sonando -para siempre
+		# si el evento era un bucle- y el Callable de finished retenia la instancia.
+		if voice_pool != null and instance != null and instance.assigned_channel_id >= 0:
+			voice_pool.virtualize(instance)
 		instance.stop()
 	active_instances.clear()
 
@@ -334,6 +344,7 @@ func _process(delta: float) -> void:
 		instance.interpolate_locals(delta)
 		var global_rtpcs = sync_manager.global_rtpcs if sync_manager else {}
 		instance.update_parameters(delta, global_rtpcs)
+		instance.refresh_playback_context(global_rtpcs, sync_manager)
 		if instance.is_finished():
 			if voice_pool and instance.assigned_channel_id >= 0:
 				voice_pool.virtualize(instance)

@@ -60,6 +60,18 @@ var elapsed_time: float = 0.0
 ## nodo OpenDouEventPlayer*. Null en las voces anonimas, que reciben uno del pool.
 var bound_player_ref: WeakRef = null
 
+## Contexto de resolucion de esta instancia: RTPC y switches vivos.
+##
+## Sin el, AudioSwitchContainer resolvia siempre a su default_state y
+## AudioBlendContainer veia siempre RTPC = 0.0, porque devirtualize() invocaba
+## resolve_voices() sin argumento y se creaba uno vacio.
+##
+## Se crea PEREZOSAMENTE y solo si la definicion tiene un arbol de contenedores:
+## resolve_voices() no lo mira cuando el evento es un base_stream a secas, asi que
+## crearlo para toda instancia era un objeto por instancia que nadie leia -y en la
+## demo del monzon serian 200-.
+var playback_context: AudioPlaybackContext = null
+
 func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 	definition = p_definition
 	if p_caller:
@@ -85,6 +97,37 @@ func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 				var state = mod.create_runtime_state()
 				if state:
 					modulator_states.append({"def": mod, "state": state})
+
+## Refresca el contexto con los valores vivos: globales primero, locales encima.
+##
+## Los locales ganan porque un RTPC de instancia es mas especifico que el global, y un
+## switch de entidad mas que el de grupo.
+func refresh_playback_context(global_rtpcs: Dictionary, sync_manager) -> void:
+	# Sin arbol de contenedores nadie lee el contexto: resolve_voices() solo lo usa si
+	# hay root_container. No crearlo aqui evita un objeto por instancia.
+	if definition == null or definition.root_container == null:
+		return
+	if playback_context == null:
+		playback_context = AudioPlaybackContextClass.new()
+
+	for param_name in global_rtpcs:
+		var rtpc = global_rtpcs[param_name]
+		playback_context.set_rtpc(param_name, rtpc.current_value)
+	for param_name in local_rtpcs:
+		var local: RTPCValue = local_rtpcs[param_name]
+		playback_context.set_rtpc(param_name, local.current_value)
+
+	if sync_manager == null:
+		return
+	for group in sync_manager.global_switches:
+		playback_context.set_switch(group, sync_manager.global_switches[group])
+	# Switches de la entidad que disparo el evento, si sigue viva.
+	var caller = caller_node_ref.get_ref() if caller_node_ref != null else null
+	if caller != null and is_instance_valid(caller):
+		var entity_map: Dictionary = sync_manager.entity_switches.get(caller.get_instance_id(), {})
+		for group in entity_map:
+			playback_context.set_switch(group, entity_map[group])
+
 
 ## Vincula esta instancia al reproductor de su nodo emisor.
 ##

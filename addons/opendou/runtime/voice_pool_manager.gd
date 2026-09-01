@@ -128,7 +128,9 @@ func devirtualize(instance: EventInstance) -> void:
 		if player == null:
 			return
 
-	var voices = instance.definition.resolve_voices() if instance.definition else []
+	# El contexto es obligatorio: sin el, AudioSwitchContainer resuelve a su rama por
+	# defecto y AudioBlendContainer ve RTPC = 0.0.
+	var voices = instance.definition.resolve_voices(instance.playback_context) if instance.definition else []
 	var stream = voices[0].stream if not voices.is_empty() else (instance.definition.base_stream if instance.definition else null)
 	if stream == null:
 		if not owned_by_node and player_pool != null:

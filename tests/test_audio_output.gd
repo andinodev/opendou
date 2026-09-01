@@ -33,6 +33,54 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_room_reverb_async(tree))
 	a.absorb(await run_bank_event_audio_async(tree))
 	a.absorb(await run_hdr_ducking_async(tree))
+	a.absorb(await run_stop_all_async(tree))
+	return a
+
+
+## stop_all() tiene que PARAR de verdad, incluido un bucle infinito.
+##
+## Observacion 29: EventInstance.stop() pone assigned_channel_id = -1 sin pasar por
+## virtualize(), y stop_all() solo llamaba a stop() y limpiaba la lista. El canal
+## seguia ocupado, el reproductor seguia sonando -para siempre si el evento era un
+## loop- y el Callable de la senal finished retenia la instancia.
+##
+## Importa para las demos: cambiar de escena desde el hub llama a stop_all() sobre
+## cientos de ambientes en bucle.
+static func run_stop_all_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("stop_all")
+
+	var probe = OpenDouAudioProbeClass.new()
+	probe.setup(2.0)
+
+	var manager = AudioEventManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	# Un evento en BUCLE: es el caso que no se paraba nunca.
+	var loop_stream := AudioSynthesizerClass.create_tone(440.0, 0.4, 0.8, false)
+	var def = AudioEventDefClass.new(&"EndlessTone", loop_stream)
+	def.is_looping = true
+	def.stream_length = 0.4
+	def.target_bus = probe.bus_name()
+	manager.register_event_definition(def)
+
+	manager.post_event(&"EndlessTone", null)
+	probe.drain()
+	var peak_playing: float = await probe.measure_peak_over_frames(tree, 30)
+	a.gt(peak_playing, 0.001, "el evento en bucle suena")
+	a.eq(manager.voice_pool.get_active_physical_count(), 1, "y ocupa una voz fisica")
+
+	manager.stop_all()
+	a.eq(manager.active_instances.size(), 0, "stop_all vacia la lista de instancias")
+	a.eq(manager.voice_pool.get_active_physical_count(), 0,
+		"y libera el canal fisico, que antes se quedaba ocupado")
+	# La asercion que importa: el bus se calla. Contar frames no serviria, porque en
+	# headless el bucle corre a maxima velocidad.
+	a.ok(await probe.await_silence(tree), "tras stop_all el bus queda en silencio")
+
+	probe.teardown()
+	tree.root.remove_child(manager)
+	manager.free()
 	return a
 
 ## La sonda debe medir una senal conocida. Si esto falla, ninguna otra asercion
