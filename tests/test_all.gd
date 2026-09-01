@@ -45,7 +45,7 @@ const TestSpatialAcousticsPhase1Class = preload("res://tests/test_spatial_acoust
 const TestSpatialAcousticsPhase2Class = preload("res://tests/test_spatial_acoustics_phase2.gd")
 const TestTacticalCanyonDemoClass = preload("res://tests/test_tactical_canyon_demo.gd")
 const TestGranularEmitter3DClass = preload("res://tests/test_granular_emitter_3d.gd")
-const TestRoomConvolutionClass = preload("res://tests/test_room_convolution.gd")
+const TestRoomReverbModesClass = preload("res://tests/test_room_reverb_modes.gd")
 const TestSoundBankPackagingAndStreamingClass = preload("res://tests/test_soundbank_packaging_and_streaming.gd")
 const TestParameterArea3DClass = preload("res://tests/test_parameter_area_3d.gd")
 const TestMultiPositionEmitter3DClass = preload("res://tests/test_multi_position_emitter_3d.gd")
@@ -64,6 +64,7 @@ const TestWavDecoderClass = preload("res://tests/test_wav_decoder.gd")
 const TestSplineAnchorClass = preload("res://tests/test_spline_anchor.gd")
 const TestPortalDiffractionClass = preload("res://tests/test_portal_diffraction.gd")
 const TestReverbBusPoolClass = preload("res://tests/test_reverb_bus_pool.gd")
+const TestIRRT60Class = preload("res://tests/test_ir_rt60.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -245,7 +246,7 @@ static func run_suite() -> Dictionary:
 	total_tests += 5
 	all_failures.append_array(r44)
 	
-	var r45 = TestRoomConvolutionClass.run_all()
+	var r45 = TestRoomReverbModesClass.run_all()
 	total_tests += 5
 	all_failures.append_array(r45)
 	
@@ -298,6 +299,10 @@ static func run_suite() -> Dictionary:
 	var reverb_pool_res = TestReverbBusPoolClass.run_all()
 	total_tests += reverb_pool_res.assertions_run
 	all_failures.append_array(reverb_pool_res.failures)
+
+	var ir_res = TestIRRT60Class.run_all()
+	total_tests += ir_res.assertions_run
+	all_failures.append_array(ir_res.failures)
 
 	return {
 		"total": total_tests,

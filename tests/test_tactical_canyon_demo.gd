@@ -142,12 +142,12 @@ static func run_all() -> Array[String]:
 	# Test 10: Bunker Room Reverb Mode & Convolution Toggle
 	if demo.is_convolution_active != true:
 		failures.append("Test 10 Failed: Bunker convolution should initially be active")
-	demo.toggle_reverb_convolution() # switches to ALGORITHMIC
+	demo.toggle_reverb_convolution() # pasa a SABINE_RT60
 	if demo.is_convolution_active != false or demo.room_bunker.reverb_mode != 0:
-		failures.append("Test 10 Failed: Reverb toggle failed to switch to ALGORITHMIC")
-	demo.toggle_reverb_convolution() # switches back to CONVOLUTION_IR
+		failures.append("Test 10 Failed: Reverb toggle failed to switch to SABINE_RT60")
+	demo.toggle_reverb_convolution() # vuelve a IR_DERIVED_RT60
 	if demo.is_convolution_active != true or demo.room_bunker.reverb_mode != 1:
-		failures.append("Test 10 Failed: Reverb toggle failed to switch back to CONVOLUTION_IR")
+		failures.append("Test 10 Failed: Reverb toggle failed to switch back to IR_DERIVED_RT60")
 
 	# Test 11: Monolithic SoundBank Loading & Telemetry
 	if demo.soundbank_manager == null:

@@ -131,7 +131,7 @@ func _setup_runtime_systems() -> void:
 	# Registrar salas físicas en el motor acústico
 	room_canyon = AudioRoomClass.new(&"Canyon_Exterior", 2.2, 0.15, &"Stone")
 	room_bunker = AudioRoomClass.new(&"Bunker_Interior", 0.8, 0.85, &"Concrete")
-	room_bunker.reverb_mode = 1 # CONVOLUTION_IR por defecto
+	room_bunker.reverb_mode = OpenDouRoom3DClass.ReverbMode.IR_DERIVED_RT60
 	room_matlab = AudioRoomClass.new(&"Material_Lab", 1.1, 0.60, &"Metal")
 
 	spatial_acoustics.register_room(room_canyon)
@@ -245,7 +245,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func toggle_reverb_convolution() -> void:
 	is_convolution_active = not is_convolution_active
-	var target_mode = OpenDouRoom3DClass.ReverbMode.CONVOLUTION_IR if is_convolution_active else OpenDouRoom3DClass.ReverbMode.ALGORITHMIC
+	var target_mode = OpenDouRoom3DClass.ReverbMode.IR_DERIVED_RT60 if is_convolution_active else OpenDouRoom3DClass.ReverbMode.SABINE_RT60
 	var b_room = bunker_room_node if bunker_room_node != null else get_node_or_null("LevelGeometry/Sector2_Bunker/BunkerRoomArea")
 	if b_room:
 		b_room.reverb_mode = target_mode
