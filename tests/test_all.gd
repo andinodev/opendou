@@ -69,6 +69,7 @@ const TestPresetHintCacheClass = preload("res://tests/test_preset_hint_cache.gd"
 const TestHDRVoiceGainClass = preload("res://tests/test_hdr_voice_gain.gd")
 const TestDataPathsClass = preload("res://tests/test_data_paths.gd")
 const TestRuntimeNoResWritesClass = preload("res://tests/test_runtime_no_res_writes.gd")
+const TestPluginRegistrationClass = preload("res://tests/test_plugin_registration.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -324,6 +325,10 @@ static func run_suite() -> Dictionary:
 	var writes_res = TestRuntimeNoResWritesClass.run_all()
 	total_tests += writes_res.assertions_run
 	all_failures.append_array(writes_res.failures)
+
+	var plugin_res = TestPluginRegistrationClass.run_all()
+	total_tests += plugin_res.assertions_run
+	all_failures.append_array(plugin_res.failures)
 
 	return {
 		"total": total_tests,

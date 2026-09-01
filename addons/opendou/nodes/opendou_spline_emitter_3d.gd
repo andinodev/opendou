@@ -1,3 +1,4 @@
+@icon("res://addons/opendou/icons/icon_spline_emitter_3d.svg")
 @tool
 class_name OpenDouSplineEmitter3D
 extends AudioStreamPlayer3D

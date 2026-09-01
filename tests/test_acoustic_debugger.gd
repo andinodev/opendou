@@ -122,10 +122,17 @@ static func run_all() -> Array[String]:
 	if plugin_code.is_empty():
 		failures.append("Test 7c Failed: Could not read addons/opendou/plugin.gd")
 	else:
-		if not plugin_code.contains('add_custom_type("OpenDouAcousticDebugger3D"') and not plugin_code.contains("add_custom_type('OpenDouAcousticDebugger3D'"):
-			failures.append("Test 7d Failed: plugin.gd missing add_custom_type for OpenDouAcousticDebugger3D")
-		if not plugin_code.contains('remove_custom_type("OpenDouAcousticDebugger3D"') and not plugin_code.contains("remove_custom_type('OpenDouAcousticDebugger3D'"):
-			failures.append("Test 7e Failed: plugin.gd missing remove_custom_type for OpenDouAcousticDebugger3D")
+		# El registro por add_custom_type se retiro: duplicaba las entradas del
+		# dialogo "Crear nodo", y los nodos anadidos asi pierden su tipo al
+		# guardar la escena. Lo que importa es estar en el registro global con
+		# icono, que es de donde el dialogo los toma.
+		var _reg_ok := false
+		for _e in ProjectSettings.get_global_class_list():
+			if str(_e.get("class", "")) == "OpenDouAcousticDebugger3D":
+				_reg_ok = not str(_e.get("icon", "")).is_empty()
+				break
+		if not _reg_ok:
+			failures.append("Test 7d Failed: %s no esta en el registro global con icono" % "OpenDouAcousticDebugger3D")
 			
 	# Test 8: show_in_editor default (false), display_mode enum, sphere parameters
 	if debugger.get("show_in_editor") != false:

@@ -229,9 +229,26 @@ static func run_all() -> Array[String]:
 	if plugin_code.is_empty():
 		failures.append("Test 7c Failed: Could not read addons/opendou/plugin.gd")
 	else:
-		if not plugin_code.contains('add_custom_type("OpenDouAudibleMonitor"') and not plugin_code.contains("add_custom_type('OpenDouAudibleMonitor'"):
-			failures.append("Test 7d Failed: plugin.gd missing add_custom_type for OpenDouAudibleMonitor")
-		if not plugin_code.contains('remove_custom_type("OpenDouAudibleMonitor"') and not plugin_code.contains("remove_custom_type('OpenDouAudibleMonitor'"):
-			failures.append("Test 7e Failed: plugin.gd missing remove_custom_type for OpenDouAudibleMonitor")
+		# El registro por add_custom_type se retiro: duplicaba las entradas del
+		# dialogo "Crear nodo", y los nodos anadidos asi pierden su tipo al
+		# guardar la escena. Lo que importa es estar en el registro global con
+		# icono, que es de donde el dialogo los toma.
+		var _reg_ok := false
+		for _e in ProjectSettings.get_global_class_list():
+			if str(_e.get("class", "")) == "OpenDouAudibleMonitor":
+				_reg_ok = not str(_e.get("icon", "")).is_empty()
+				break
+		if not _reg_ok:
+			failures.append("Test 7d Failed: %s no esta en el registro global con icono" % "OpenDouAudibleMonitor")
+		# El registro por add_custom_type se retiro: duplicaba las entradas del
+		# dialogo "Crear nodo". Lo que importa ahora es que la clase este en el
+		# registro global CON su icono, que es de donde el dialogo las toma.
+		var monitor_registered := false
+		for entry in ProjectSettings.get_global_class_list():
+			if str(entry.get("class", "")) == "OpenDouAudibleMonitor":
+				monitor_registered = not str(entry.get("icon", "")).is_empty()
+				break
+		if not monitor_registered:
+			failures.append("Test 7e Failed: OpenDouAudibleMonitor no esta en el registro global con icono")
 			
 	return failures

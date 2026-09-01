@@ -413,10 +413,17 @@ static func run_all() -> Array[String]:
 		failures.append("Test 16 Failed: Could not read addons/opendou/plugin.gd")
 	else:
 		for type_name in required_nodes.keys():
-			if not plugin_code.contains('add_custom_type("%s"' % type_name) and not plugin_code.contains("add_custom_type('%s'" % type_name):
-				failures.append("Test 16 Failed: plugin.gd missing add_custom_type for %s" % type_name)
-			if not plugin_code.contains('remove_custom_type("%s"' % type_name) and not plugin_code.contains("remove_custom_type('%s'" % type_name):
-				failures.append("Test 16 Failed: plugin.gd missing remove_custom_type for %s" % type_name)
+			# El registro por add_custom_type se retiro: duplicaba las entradas del
+			# dialogo "Crear nodo", y los nodos anadidos asi pierden su tipo al
+			# guardar la escena. Lo que importa es estar en el registro global con
+			# icono, que es de donde el dialogo los toma.
+			var _reg_ok := false
+			for _e in ProjectSettings.get_global_class_list():
+				if str(_e.get("class", "")) == type_name:
+					_reg_ok = not str(_e.get("icon", "")).is_empty()
+					break
+			if not _reg_ok:
+				failures.append("Test 16 Failed: %s no esta en el registro global con icono" % type_name)
 
 	# Test 17: Dynamic property list enum hinting for synth_preset
 	var p3d_dyn = OpenDouEventPlayer3DClass.new()
