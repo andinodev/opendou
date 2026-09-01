@@ -57,6 +57,7 @@ const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
 const TestListenerResolverClass = preload("res://tests/test_listener_resolver.gd")
 const TestOcclusionSchedulerClass = preload("res://tests/test_occlusion_scheduler.gd")
+const TestEarlyReflectionsClass = preload("res://tests/test_early_reflections.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -289,6 +290,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestAudioOutputClass.new().run_all_async(tree))
 	acc.absorb(await TestListenerResolverClass.new().run_all_async(tree))
 	acc.absorb(await TestOcclusionSchedulerClass.new().run_all_async(tree))
+	acc.absorb(await TestEarlyReflectionsClass.new().run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

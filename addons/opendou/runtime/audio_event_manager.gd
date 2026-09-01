@@ -15,6 +15,7 @@ const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_pl
 const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
 const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/occlusion_scheduler.gd")
+const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
 
 # Central Game Syncs Manager (States, Switches, Global RTPCs, Triggers)
 var sync_manager: GameSyncManager
@@ -53,6 +54,9 @@ var listener_resolver: OpenDouListenerResolver = null
 ## Programador unico de raycasts de oclusion, con presupuesto por frame.
 var occlusion_scheduler: OpenDouOcclusionScheduler = null
 
+## Despachador de reflexiones tempranas como voces del pool.
+var reflection_dispatcher: OpenDouReflectionDispatcher = null
+
 func _init() -> void:
 	sync_manager = GameSyncManagerClass.new()
 	bank_manager = SoundBankManagerClass.new()
@@ -63,6 +67,7 @@ func _init() -> void:
 	voice_pool.set_player_pool(player_pool)
 	listener_resolver = ListenerResolverClass.new()
 	occlusion_scheduler = OcclusionSchedulerClass.new()
+	reflection_dispatcher = ReflectionDispatcherClass.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -237,6 +242,22 @@ func _apply_voices() -> void:
 			instance.emitter_position
 		)
 
+## Emite las reflexiones tempranas de las voces cuyo emisor las tenga activadas.
+func _dispatch_reflections() -> void:
+	if reflection_dispatcher == null or not is_inside_tree():
+		return
+	reflection_dispatcher.collect_finished()
+	var vp := get_viewport()
+	var w3d: World3D = vp.find_world_3d() if vp != null else null
+	if w3d == null:
+		return
+	for instance in active_instances:
+		if instance == null or instance.assigned_channel_id < 0:
+			continue
+		var node = instance.get_bound_player()
+		if node != null and "enable_early_reflections" in node and node.enable_early_reflections:
+			reflection_dispatcher.dispatch(instance, active_listener_position, w3d)
+
 ## Resuelve el oyente del frame y actualiza la posicion cacheada.
 func _update_listener() -> void:
 	if listener_resolver == null or not is_inside_tree():
@@ -281,6 +302,9 @@ func _process(delta: float) -> void:
 
 	# 7. Aplicar los valores calculados a los reproductores reales.
 	_apply_voices()
+
+	# 7b. Reflexiones tempranas de las voces que las tengan activadas.
+	_dispatch_reflections()
 
 	# 8. Telemetria.
 	if live_update_server and live_update_server.is_server_running:
