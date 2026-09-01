@@ -11,29 +11,7 @@
 [ext_resource type="Script" uid="uid://ctbxqaxaxju70" path="res://addons/opendou/nodes/opendou_music_player.gd" id="9_music"]
 [ext_resource type="Script" uid="uid://bjggbw8iy7l6s" path="res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd" id="10_debugger"]
 [ext_resource type="Script" uid="uid://da047uvlnsfhn" path="res://addons/opendou/nodes/opendou_audible_monitor.gd" id="11_monitor"]
-[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_granular_emitter_3d.gd" id="12_granular"]
-
-[sub_resource type="StandardMaterial3D" id="Mat_CanyonRock"]
-albedo_color = Color(0.48, 0.38, 0.28, 1)
-roughness = 0.95
-
-[sub_resource type="StandardMaterial3D" id="Mat_Gravel"]
-albedo_color = Color(0.32, 0.30, 0.28, 1)
-roughness = 0.85
-
-[sub_resource type="StandardMaterial3D" id="Mat_BunkerConcrete"]
-albedo_color = Color(0.38, 0.40, 0.42, 1)
-roughness = 0.88
-
-[sub_resource type="StandardMaterial3D" id="Mat_BunkerSteel"]
-albedo_color = Color(0.22, 0.24, 0.26, 1)
-metallic = 0.88
-roughness = 0.25
-
-[sub_resource type="StandardMaterial3D" id="Mat_TacticalGrid"]
-albedo_color = Color(0.25, 0.27, 0.30, 1)
-metallic = 0.5
-roughness = 0.5
+[ext_resource type="Script" uid="uid://cji7xxbjli8ay" path="res://addons/opendou/nodes/opendou_granular_emitter_3d.gd" id="12_granular"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.25, 0.45, 0.75, 1)
@@ -53,6 +31,10 @@ ambient_light_color = Color(0.6, 0.65, 0.7, 1)
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1eshc"]
 height = 1.8
 
+[sub_resource type="StandardMaterial3D" id="Mat_CanyonRock"]
+albedo_color = Color(0.48, 0.38, 0.28, 1)
+roughness = 0.95
+
 [sub_resource type="Curve3D" id="Curve3D_river"]
 _data = {
 "points": PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 0.5, -20, 0, 0, 0, 0, 0, 0, 6, 0.5, -10, 0, 0, 0, 0, 0, 0, 8, 0.5, 0, 0, 0, 0, 0, 0, 0, 4, 0.5, 10, 0, 0, 0, 0, 0, 0, 0, 0.5, 20),
@@ -64,8 +46,26 @@ point_count = 5
 _data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
 point_count = 2
 
+[sub_resource type="StandardMaterial3D" id="Mat_BunkerConcrete"]
+albedo_color = Color(0.38, 0.4, 0.42, 1)
+roughness = 0.88
+
+[sub_resource type="StandardMaterial3D" id="Mat_BunkerSteel"]
+albedo_color = Color(0.22, 0.24, 0.26, 1)
+metallic = 0.88
+roughness = 0.25
+
 [sub_resource type="BoxShape3D" id="BoxShape3D_bunker_room"]
 size = Vector3(14, 6, 14)
+
+[sub_resource type="StandardMaterial3D" id="Mat_TacticalGrid"]
+albedo_color = Color(0.25, 0.27, 0.3, 1)
+metallic = 0.5
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_Gravel"]
+albedo_color = Color(0.32, 0.3, 0.28, 1)
+roughness = 0.85
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_lab_room"]
 size = Vector3(18, 5, 18)
@@ -159,15 +159,9 @@ unit_size = 3.0
 autoplay = true
 max_distance = 35.0
 script = ExtResource("12_granular")
-grain_size_ms = 40.0
-grain_rate_hz = 45.0
-position_jitter_ms = 15.0
-pitch_jitter_semitones = 2.0
-max_concurrent_grains = 32
-auto_play_emitter = true
 
 [node name="Sector2_Bunker" type="Node3D" parent="LevelGeometry" unique_id=283981031]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 0)
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 22, 0, 0)
 
 [node name="BunkerFloor" type="CSGBox3D" parent="LevelGeometry/Sector2_Bunker" unique_id=1581811720]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
@@ -247,10 +241,8 @@ synth_preset = "Server_Hum"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 script = ExtResource("6_room")
 room_name = &"Bunker_Interior"
-reverb_mode = 1
-convolution_wet_db = -6.0
-convolution_dry_db = 0.0
 calculated_rt60 = 5.201538461538462
+reverb_mode = 1
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="LevelGeometry/Sector2_Bunker/BunkerRoomArea" unique_id=342413984]
 shape = SubResource("BoxShape3D_bunker_room")
@@ -263,7 +255,7 @@ room_a_name = &"Canyon_Exterior"
 room_b_name = &"Bunker_Interior"
 
 [node name="Sector3_MaterialLab" type="Node3D" parent="LevelGeometry" unique_id=312201559]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 0)
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 42, 0, 0)
 
 [node name="LabFloor" type="CSGBox3D" parent="LevelGeometry/Sector3_MaterialLab" unique_id=1762929880]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
@@ -315,7 +307,7 @@ calculated_rt60 = 5.174999999999999
 shape = SubResource("BoxShape3D_lab_room")
 
 [node name="Sector4_DroneRange" type="Node3D" parent="LevelGeometry" unique_id=273329800]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 0)
 
 [node name="DroneFloor" type="CSGBox3D" parent="LevelGeometry/Sector4_DroneRange" unique_id=1189757405]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
@@ -341,7 +333,7 @@ cull_distance = 80.0
 synth_preset = "EV_Electric_Engine"
 
 [node name="Sector5_HDRFiringRange" type="Node3D" parent="LevelGeometry" unique_id=1862237420]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 0, 0)
 
 [node name="RangeFloor" type="CSGBox3D" parent="LevelGeometry/Sector5_HDRFiringRange" unique_id=1321878677]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)

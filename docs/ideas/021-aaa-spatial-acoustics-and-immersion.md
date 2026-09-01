@@ -133,3 +133,4 @@ A continuación se detallan las tecnologías y módulos inteligentes que llevar�
 │  • Spline Emitters    │  • Acoustic LOD (0-3)     │  • HDR Loudness Window  │
 └───────────────────────┴───────────────────────────┴─────────────────────────┘
 ```
+Este pipeline completo garantiza que cada sala, pasillo, muro o exterior reaccione con inteligencia física en tiempo real, ofreciendo una experiencia auditiva indistinguible de los motores de middleware más avanzados del mercado.

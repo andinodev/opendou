@@ -33,7 +33,7 @@ Toda tarea debe seguir este ciclo estricto a través de `docs/tasks/`:
 ### Protocolo:
 * **Al iniciar:** Mover la tarea de `backlog.md` a `current.md`, asegurando que cuente con *Criterios de Aceptación (Definition of Done)* claros.
 * **Durante el desarrollo:** Marcar pasos con checklists `[ ]` / `[x]`.
-* **Al finalizar:** **OBLIGATORIO:** Ejecutar `godot --headless -s tests/test_runner_cli.gd` y confirmar que todos los tests pasen al 100% (código de salida 0, sin errores ni advertencias de compilación/parseo). Solo entonces actualizar la documentación relevante y mover la tarea a `completed.md`. Si algún test o parseo falla, se debe corregir y verificar antes de continuar.
+* **Al finalizar:** **OBLIGATORIO:** Ejecutar `powershell -ExecutionPolicy Bypass -File .\run_tests.ps1` (o `.\godot.cmd --headless --path . -s tests/test_runner_cli.gd`) y confirmar que todos los tests pasen al 100% (código de salida 0, sin errores ni advertencias de compilación/parseo). Solo entonces actualizar la documentación relevante y mover la tarea a `completed.md`. Si algún test o parseo falla, se debe corregir y verificar antes de continuar.
 
 ---
 
