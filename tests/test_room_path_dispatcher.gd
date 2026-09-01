@@ -177,3 +177,90 @@ static func run_all() -> OpenDouAssert:
 		"al dejar de gobernarla, la posicion aparente vuelve a la del emisor", 0.05)
 
 	return a
+
+
+## El paso dentro del bucle, y que la oclusion se aparta de las voces gobernadas.
+static func run_wiring_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("room_path_wiring")
+
+	var ManagerClass = load("res://addons/opendou/runtime/audio_event_manager.gd")
+	var manager = ManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	a.ok(manager.room_path_dispatcher != null, "el manager trae dispatcher de caminos")
+	if manager.room_path_dispatcher != null:
+		a.ok(manager.room_path_dispatcher.acoustics == manager.spatial_acoustics,
+			"y comparte el manager espacial, no una copia")
+
+	# Sin salas registradas, cero recorridos: es el caso de «El monzon».
+	# El tipo va explicito: load() devuelve Variant y := no puede inferir.
+	var tone: AudioStreamWAV = load("res://addons/opendou/runtime/audio_synthesizer.gd").create_tone(300.0, 1.0, 0.6, false)
+	var def = AudioEventDefClass.new(&"WiringProbe", tone)
+	def.is_looping = true
+	def.stream_length = 1.0
+	manager.register_event_definition(def)
+
+	for i in range(20):
+		var inst = manager.post_event(def, null)
+		if inst != null:
+			inst.set_position(Vector3(float(i) * 3.0, 1.0, 0.0))
+	for i in range(6):
+		await tree.process_frame
+	a.eq(manager.room_path_dispatcher.traversals_this_frame, 0,
+		"sin salas registradas el grafo no se recorre ni una vez")
+
+	# Ahora con salas: las voces de otra sala quedan gobernadas y la oclusion las salta.
+	var ac = manager.spatial_acoustics
+	var room_specs := [
+		{"name": &"RoomA", "center": Vector3(0, 2, 0), "size": Vector3(12, 5, 12)},
+		{"name": &"RoomB", "center": Vector3(14, 2, 0), "size": Vector3(12, 5, 12)},
+	]
+	for spec in room_specs:
+		var room = AudioRoomClass.new()
+		room.room_name = spec["name"]
+		room.set_bounds(AABB(spec["center"] - spec["size"] * 0.5, spec["size"]))
+		ac.register_room(room)
+	ac.register_portal(AudioPortalClass.new(&"Gap", &"RoomA", &"RoomB", Vector3(7.0, 1.5, 0), 1.0))
+
+	manager.stop_all()
+	var inside = manager.post_event(def, null)
+	inside.set_position(Vector3(-3.0, 1.0, 0.0))          # RoomA
+	manager.set_listener_position(Vector3(14.0, 1.6, 0.0)) # RoomB
+	for i in range(6):
+		await tree.process_frame
+
+	a.ok(inside.room_path_active, "una voz de otra sala queda gobernada por el grafo")
+	a.approx(inside.target_apparent_position.x, 7.0,
+		"su posicion aparente es la del portal", 0.01)
+
+	# En regimen la CACHE sirve el camino y el contador de recorridos de ESTE frame es
+	# cero: leerlo tras varios frames y esperar un recorrido seria afirmar que la cache
+	# no funciona.
+	a.gt(float(manager.room_path_dispatcher.cache_hits_this_frame), 0.0,
+		"en regimen la cache sirve el camino sin recorrer el grafo")
+
+	# Y que el grafo se recorre de verdad se comprueba forzandolo: cache limpia, un
+	# frame, un recorrido.
+	manager.room_path_dispatcher.clear_cache()
+	await tree.process_frame
+	a.gt(float(manager.room_path_dispatcher.traversals_this_frame), 0.0,
+		"con la cache limpia el grafo si se recorre")
+
+	# La oclusion no la cuenta entre sus candidatas: sin esto, el mismo mamparo se
+	# cobraria dos veces y el presupuesto de raycasts se gastaria en voces ya resueltas.
+	var scheduler = manager.occlusion_scheduler
+	var vp: Viewport = manager.get_viewport()
+	var w3d: World3D = vp.find_world_3d() if vp != null else null
+	var raycasts: int = scheduler.process([inside], Vector3(14.0, 1.6, 0.0), w3d)
+	a.eq(raycasts, 0, "la oclusion no gasta raycasts en una voz que gobierna el grafo")
+
+	# Y en cuanto deja de estar gobernada, la oclusion vuelve a atenderla.
+	inside.room_path_active = false
+	var raycasts_again: int = scheduler.process([inside], Vector3(14.0, 1.6, 0.0), w3d)
+	a.gt(float(raycasts_again), 0.0, "sin gobierno del grafo, la oclusion la atiende")
+
+	manager.stop_all()
+	tree.root.remove_child(manager)
+	manager.free()
+	return a

@@ -351,6 +351,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestCharacterRigClass.run_bench_async(tree))
 	acc.absorb(await TestDemoScenesClass.run_all_async(tree))
 	acc.absorb(await TestSceneGuardsClass.run_coverage_async(tree))
+	acc.absorb(await TestRoomPathDispatcherClass.run_wiring_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

@@ -55,6 +55,11 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D) -> int:
 	for inst in instances:
 		if inst == null or not inst.has_spatial_position:
 			continue
+		# Las voces que gobierna el grafo de salas ya tienen su filtro y su atenuacion:
+		# volver a calcularlas cobraria dos veces por el mismo mamparo, y gastaria
+		# raycasts que otras voces si necesitan.
+		if inst.room_path_active:
+			continue
 		var lod: int = lod_controller.get_lod_level(inst.emitter_position.distance_to(listener_pos))
 		if bool(lod_controller.get_lod_features(lod).get("enable_physics_occlusion", false)):
 			eligible.append(inst)

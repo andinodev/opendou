@@ -15,6 +15,7 @@ const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_pl
 const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
 const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/occlusion_scheduler.gd")
+const RoomPathDispatcherClass = preload("res://addons/opendou/runtime/spatial/room_path_dispatcher.gd")
 const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
 const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
@@ -55,6 +56,11 @@ var listener_resolver: OpenDouListenerResolver = null
 ## Programador unico de raycasts de oclusion, con presupuesto por frame.
 var occlusion_scheduler: OpenDouOcclusionScheduler = null
 
+## Aplica el grafo de salas y portales a las voces fisicas.
+##
+## Antes de esto, salas y portales se calculaban y no llegaban a ninguna voz.
+var room_path_dispatcher: OpenDouRoomPathDispatcher = null
+
 ## Despachador de reflexiones tempranas como voces del pool.
 var reflection_dispatcher: OpenDouReflectionDispatcher = null
 
@@ -83,6 +89,8 @@ func _init() -> void:
 	voice_pool.set_player_pool(player_pool)
 	listener_resolver = ListenerResolverClass.new()
 	occlusion_scheduler = OcclusionSchedulerClass.new()
+	room_path_dispatcher = RoomPathDispatcherClass.new()
+	room_path_dispatcher.acoustics = spatial_acoustics
 	reflection_dispatcher = ReflectionDispatcherClass.new()
 	hdr_engine = AudioHDREngineClass.new()
 
@@ -306,11 +314,13 @@ func _apply_voices() -> void:
 		if hdr_enabled and hdr_engine != null and instance.definition != null:
 			volume_db += hdr_engine.calculate_voice_gain_db(instance.definition.hdr_loudness_db)
 		var cutoff: float = float(instance.calculated_properties.get(&"cutoff_hz", 20000.0))
+		# La posicion aparente es igual a la del emisor salvo cuando el grafo de salas
+		# gobierna la voz, asi que aqui no hace falta ninguna rama.
 		ch.apply(
 			volume_db,
 			instance.calculated_pitch_scale,
 			cutoff,
-			instance.emitter_position
+			instance.current_apparent_position
 		)
 
 ## Emite las reflexiones tempranas de las voces cuyo emisor las tenga activadas.
@@ -349,6 +359,12 @@ func _process(delta: float) -> void:
 	# 3. Game Syncs (RTPCs y transiciones de estado).
 	if sync_manager:
 		sync_manager.process(delta)
+
+	# 3b. Camino por salas y portales. Va ANTES de la oclusion para que la oclusion pueda
+	# saltarse las voces que el grafo gobierna: sin eso, el mismo mamparo se cobraria dos
+	# veces y el presupuesto de raycasts se gastaria en voces ya resueltas.
+	if room_path_dispatcher != null:
+		room_path_dispatcher.process(active_instances, active_listener_position)
 
 	# 4. Oclusion presupuestada: un unico manager y un techo de raycasts.
 	if occlusion_scheduler != null and is_inside_tree():
