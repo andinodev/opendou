@@ -52,6 +52,7 @@ const TestAcousticGeometryBakeClass = preload("res://tests/test_acoustic_geometr
 const TestAnimationSyncClass = preload("res://tests/test_animation_sync.gd")
 const TestSurfaceDetectionClass = preload("res://tests/test_surface_detection.gd")
 const TestPlaybackContextClass = preload("res://tests/test_playback_context.gd")
+const TestCharacterRigClass = preload("res://tests/test_character_rig.gd")
 const TestTacticalInfiltrationDemoClass = preload("res://tests/test_tactical_infiltration_demo.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
@@ -355,6 +356,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestSurfaceDetectionClass.run_all_async(tree))
 	acc.absorb(await TestAnimationSyncClass.run_all_async(tree))
 	acc.absorb(await TestPlaybackContextClass.run_all_async(tree))
+	acc.absorb(await TestCharacterRigClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,
