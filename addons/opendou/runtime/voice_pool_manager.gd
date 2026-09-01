@@ -121,6 +121,22 @@ func devirtualize(instance: EventInstance) -> void:
 
 	var player: Node = instance.get_bound_player()
 	var owned_by_node: bool = player != null
+
+	# Un reproductor de nodo solo puede hospedar UNA voz: es un unico
+	# AudioStreamPlayer. Si ya hay un canal ocupado con este mismo reproductor, esa voz
+	# queda superada y hay que virtualizarla ANTES.
+	#
+	# Sin esto quedaban dos canales apuntando al mismo reproductor, y cuando el primero
+	# terminaba su stop_immediate() paraba el audio por debajo del segundo: la segunda
+	# pisada del mismo emisor se quedaba muda.
+	if owned_by_node:
+		for ch_existing in channels:
+			if not ch_existing.is_busy or ch_existing.get_player() != player:
+				continue
+			var previous = ch_existing.assigned_instance_ref.get_ref() if ch_existing.assigned_instance_ref != null else null
+			if previous != null and previous != instance:
+				virtualize(previous)
+
 	if player == null:
 		if player_pool == null:
 			return

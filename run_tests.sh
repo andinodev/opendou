@@ -49,6 +49,11 @@ echo "[OpenDou] Script: $TEST_SCRIPT"
 # La comprobacion es exacta en lugar de basarse en fechas: se compara la lista de
 # class_name declarados con los que la cache conoce. Asi se importa solo cuando
 # de verdad falta alguno, y no en cada edicion de un cuerpo de funcion.
+#
+# scenes/ entra en el scan desde la Fase 5, que es la primera que declara clases ahi.
+# Sin ella, una clase nueva de scenes/ usada como ANOTACION DE TIPO -y no solo por
+# preload- daba un Parse Error hasta que algo de addons/ o tests/ forzaba la
+# regeneracion por su cuenta.
 CLASS_CACHE=".godot/global_script_class_cache.cfg"
 NEEDS_IMPORT=0
 MISSING_CLASSES=""
@@ -62,7 +67,7 @@ else
 			MISSING_CLASSES="$MISSING_CLASSES $cls"
 			NEEDS_IMPORT=1
 		fi
-	done < <(grep -rhoE '^class_name[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' addons tests --include='*.gd' 2>/dev/null | awk '{print $2}' | sort -u)
+	done < <(grep -rhoE '^class_name[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' addons tests scenes --include='*.gd' 2>/dev/null | awk '{print $2}' | sort -u)
 	if [[ -n "$MISSING_CLASSES" ]]; then
 		echo "[OpenDou] class_name sin registrar:$MISSING_CLASSES"
 	fi

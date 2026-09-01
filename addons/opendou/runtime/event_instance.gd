@@ -145,7 +145,11 @@ func bind_player(player: Node) -> void:
 func notify_stream_finished() -> void:
 	if not is_key_on or modulator_states.is_empty():
 		voice_state = VoiceState.STATE_STOPPED
-		assigned_channel_id = -1
+		# El canal NO se suelta aqui. Antes se ponia assigned_channel_id = -1, y
+		# entonces la limpieza del manager -que virtualiza solo si el id es >= 0- no
+		# podia soltarlo: el canal se quedaba is_busy para siempre y el reproductor
+		# seguia vinculado. Tras suficientes one-shots el pool quedaba lleno de
+		# canales ocupados por voces que ya no existian.
 		return
 	# Con moduladores activos se entra en fase de release, y update_parameters()
 	# concluira cuando el AHDSR llegue a IDLE.
@@ -223,6 +227,19 @@ func update_parameters(delta: float, global_rtpcs: Dictionary = {}) -> void:
 		return
 		
 	elapsed_time += delta
+
+	# El reloj logico avanza tambien mientras la voz es FISICA, y un evento no-loop
+	# termina al llegar a stream_length.
+	#
+	# Sin esto, is_looping = false era una mentira en cuanto el AudioStreamWAV traia
+	# loop_mode = LOOP_FORWARD -y varios de los sintetizados lo traen, el trueno entre
+	# ellos-: el reproductor no emite `finished` jamas, asi que la instancia se quedaba
+	# en active_instances para siempre. En un juego que dispare ese evento a menudo es
+	# crecimiento sin techo.
+	if voice_state == VoiceState.STATE_PHYSICAL and definition.stream_length > 0.0:
+		logical_playback_position += delta * maxf(0.01, calculated_pitch_scale)
+		if not definition.is_looping and logical_playback_position >= definition.stream_length:
+			notify_stream_finished()
 	
 	# Update spatial position if caller node is valid
 	if caller_node_ref:
@@ -328,7 +345,10 @@ func stop(_fade_time: float = 0.0) -> void:
 	is_key_on = false
 	if modulator_states.is_empty():
 		voice_state = VoiceState.STATE_STOPPED
-		assigned_channel_id = -1
+		# El canal NO se suelta aqui, por lo mismo que en notify_stream_finished(): la
+		# limpieza del manager virtualiza a las instancias terminadas y eso es lo que
+		# detiene el canal y devuelve el reproductor. Poner el id a -1 aqui dejaba el
+		# canal is_busy para siempre.
 
 ## Pauses playback of the event instance.
 func pause() -> void:

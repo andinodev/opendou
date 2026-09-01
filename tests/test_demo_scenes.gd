@@ -10,6 +10,143 @@ const OpenDouAudioProbeClass = preload("res://tests/support/audio_probe.gd")
 static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new()
 	a.absorb(await run_keel_async(tree))
+	a.absorb(await run_monsoon_async(tree))
+	return a
+
+
+## «El monzon»: 200 emisores contra 32 voces fisicas.
+static func run_monsoon_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("monsoon_demo")
+
+	# La demo usa el autoload, asi que este test toca estado global: el presupuesto de
+	# voces se restaura al liberarla, y eso mismo se comprueba al final.
+	var autoload_manager = tree.root.get_node_or_null("OpenDou")
+	a.ok(autoload_manager != null, "el autoload OpenDou existe")
+	var budget_before: int = autoload_manager.voice_pool.max_physical_voices
+
+	var MonsoonClass = load("res://scenes/demos/monsoon/monsoon_demo.gd")
+	var demo = MonsoonClass.new()
+	# Menos emisores que en la escena real: 200 instancias por suite multiplican el
+	# tiempo del runner sin cambiar lo que se afirma. El presupuesto es el mismo.
+	demo.emitter_count = 120
+	demo.physical_voice_budget = 16
+	# En headless el bucle corre a maxima velocidad, asi que el tiempo logico avanza
+	# muy poco por frame: un trueno de cuatro segundos no llega a terminar en ninguna
+	# cantidad razonable de frames. Se acorta para poder afirmar que TERMINA.
+	demo.thunder_seconds = 0.25
+	tree.root.add_child(demo)
+	await tree.process_frame
+	await tree.physics_frame
+	await tree.process_frame
+
+	var manager = demo.event_manager
+	a.ok(manager == autoload_manager, "la demo usa el manager autoload, no una copia")
+	a.eq(manager.voice_pool.max_physical_voices, 16, "el presupuesto se aplico al pool")
+
+	# Se posteo el campo completo.
+	a.gt(float(manager.active_instances.size()), 100.0,
+		"hay mas de cien instancias activas")
+
+	# LA TESIS: el conteo fisico NUNCA supera el presupuesto, en ningun frame.
+	var max_physical: int = 0
+	var saw_virtual := false
+	for i in range(40):
+		await tree.process_frame
+		var phys: int = manager.voice_pool.get_active_physical_count()
+		max_physical = maxi(max_physical, phys)
+		if manager.voice_pool.get_active_virtual_count(manager.active_instances) > 0:
+			saw_virtual = true
+	a.lt(float(max_physical), 17.0, "el conteo fisico nunca supero el presupuesto de 16")
+	a.gt(float(max_physical), 0.0, "y no es cero: hay voces suenando de verdad")
+	a.ok(saw_virtual, "hay instancias virtualizadas, no solo las fisicas")
+
+	# El presupuesto de raycasts de oclusion aguanta con 120 instancias.
+	var scheduler = manager.occlusion_scheduler
+	a.ok(scheduler != null, "hay planificador de oclusion")
+	a.lt(float(scheduler.raycasts_this_frame), float(scheduler.raycasts_per_frame) + 0.5,
+		"los raycasts de un frame no superan su presupuesto")
+
+	# El LOD excluye lo lejano de la oclusion fisica: sin esto, 120 emisores competirian
+	# por el presupuesto de raycasts aunque esten a 200 m.
+	var lod = scheduler.lod_controller
+	var near_lod: int = lod.get_lod_level(5.0)
+	var far_lod: int = lod.get_lod_level(200.0)
+	a.ok(bool(lod.get_lod_features(near_lod).get("enable_physics_occlusion", false)),
+		"lo cercano si entra en oclusion fisica")
+	a.ok(not bool(lod.get_lod_features(far_lod).get("enable_physics_occlusion", false)),
+		"lo lejano no entra en oclusion fisica")
+
+	# active_instances no crece de forma monotona: el trueno entra y sale.
+	var baseline: int = manager.active_instances.size()
+	for i in range(4):
+		demo.strike_thunder()
+	a.gt(float(manager.active_instances.size()), float(baseline),
+		"los truenos anaden instancias")
+	for i in range(2000):
+		await tree.process_frame
+		if manager.active_instances.size() <= baseline:
+			break
+	a.lt(float(manager.active_instances.size()), float(baseline) + 1.0,
+		"las instancias terminadas se retiran: el conteo vuelve a su linea base")
+
+	# El ambiente SUENA de verdad en su bus.
+	var probe = OpenDouAudioProbeClass.new()
+	a.ok(probe.attach_to_existing_bus(demo.ambience_bus, 2.0),
+		"la sonda se engancha al bus de ambiente")
+	probe.drain()
+	var peak_ambience: float = await probe.measure_peak_over_frames(tree, 30)
+	a.gt(peak_ambience, 0.0005, "el campo de emisores suena en su bus")
+	probe.teardown()
+
+	# EL DUCKING HDR, medido en la ATENUACION que el motor aplica y no en el pico del
+	# bus.
+	#
+	# El pico del bus no sirve aqui: con 120 instancias y 16 voces, el voice stealing
+	# rota cada frame que 16 suenan, asi que el pico fluctua por si solo y una
+	# comparacion antes/despues no distingue el ducking del ruido de esa rotacion. Lo
+	# que se afirma es el valor exacto que _apply_voices() suma al volumen de cada voz.
+	# El ducking AUDIBLE con audio real esta probado en run_hdr_ducking_async, con dos
+	# voces controladas donde no hay rotacion que lo enmascare.
+	var hdr = manager.hdr_engine
+	a.ok(hdr != null, "el motor HDR existe")
+	var gain_quiet: float = hdr.calculate_voice_gain_db(-14.0)
+	var top_quiet: float = hdr.hdr_window_top_db
+
+	demo.strike_thunder()
+	# El trueno declara +18 dB de sonoridad y la ventana sube a 200 dB/s, asi que unos
+	# pocos frames bastan.
+	for i in range(6):
+		await tree.process_frame
+	var gain_thunder: float = hdr.calculate_voice_gain_db(-14.0)
+	var top_thunder: float = hdr.hdr_window_top_db
+
+	a.gt(top_thunder, top_quiet + 1.0, "el trueno sube el techo de la ventana HDR")
+	a.lt(gain_thunder, gain_quiet - 1.0,
+		"y con la ventana arriba el ambiente recibe menos ganancia: se hunde")
+
+	# La telemetria informa de lo mismo que el test acaba de medir.
+	var telemetry: Dictionary = demo.get_telemetry()
+	for key in ["instances", "physical", "virtual", "raycasts"]:
+		a.ok(telemetry.has(key), "la telemetria informa de '%s'" % key)
+	a.eq(int(telemetry["instances"]), manager.active_instances.size(),
+		"el conteo de la telemetria coincide con el real")
+
+	# build() idempotente.
+	var before: int = demo.get_child_count()
+	demo.build()
+	a.eq(demo.get_child_count(), before, "build() es idempotente")
+
+	_release_current(demo)
+	tree.root.remove_child(demo)
+	demo.free()
+	await tree.process_frame
+
+	# Y el estado global vuelve a como estaba: sin esto, la suite siguiente correria con
+	# 16 voces y sus mediciones dependerian del orden de ejecucion.
+	a.eq(autoload_manager.voice_pool.max_physical_voices, budget_before,
+		"liberar la demo restaura el presupuesto de voces")
+	a.eq(autoload_manager.active_instances.size(), 0,
+		"y no deja instancias huerfanas de una escena que ya no existe")
 	return a
 
 

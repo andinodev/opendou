@@ -34,6 +34,57 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_bank_event_audio_async(tree))
 	a.absorb(await run_hdr_ducking_async(tree))
 	a.absorb(await run_stop_all_async(tree))
+	a.absorb(await run_voice_budget_change_async(tree))
+	return a
+
+
+## Cambiar el presupuesto de voces no puede dejar el motor mudo.
+##
+## Observacion 30: set_max_physical_voices() sustituia el VoicePoolManager entero y no
+## le pasaba el pool de reproductores, asi que el pool nuevo nacia con player_pool en
+## null, devirtualize() salia temprano y NADA volvia a sonar. Es la llamada mas obvia
+## que haria un juego al arrancar.
+static func run_voice_budget_change_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("voice_budget_change")
+
+	var probe = OpenDouAudioProbeClass.new()
+	probe.setup(2.0)
+
+	var manager = AudioEventManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	var tone := AudioSynthesizerClass.create_tone(520.0, 0.4, 0.8, false)
+	var def = AudioEventDefClass.new(&"BudgetTone", tone)
+	def.is_looping = true
+	def.stream_length = 0.4
+	def.target_bus = probe.bus_name()
+	manager.register_event_definition(def)
+
+	# El presupuesto se cambia ANTES de postear, que es lo que haria un juego al
+	# arrancar.
+	manager.set_max_physical_voices(4)
+	a.eq(manager.voice_pool.max_physical_voices, 4, "el presupuesto quedo en 4")
+	a.ok(manager.voice_pool.player_pool != null,
+		"y el pool nuevo tiene reproductores: sin esto el motor se queda mudo")
+
+	manager.post_event(&"BudgetTone", null)
+	probe.drain()
+	var peak: float = await probe.measure_peak_over_frames(tree, 30)
+	a.gt(peak, 0.001, "tras cambiar el presupuesto el evento SUENA")
+	a.eq(manager.voice_pool.get_active_physical_count(), 1, "y ocupa una voz")
+
+	# Y cambiarlo mientras algo suena no deja el reproductor viejo sonando.
+	manager.set_max_physical_voices(8)
+	a.eq(manager.voice_pool.get_active_physical_count(), 0,
+		"el pool nuevo empieza sin voces ocupadas")
+	a.ok(await probe.await_silence(tree),
+		"y las voces del pool viejo no siguen sonando huerfanas")
+
+	manager.stop_all()
+	probe.teardown()
+	tree.root.remove_child(manager)
+	manager.free()
 	return a
 
 

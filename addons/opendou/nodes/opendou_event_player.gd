@@ -94,6 +94,13 @@ func set_event_manager(manager: AudioEventManager) -> void:
 func play_event(p_event_name: StringName = &"") -> void:
 	var target_name: StringName = p_event_name if not p_event_name.is_empty() else event_name
 	var manager: AudioEventManager = _get_manager()
+	# El reproductor de este nodo puede hospedar UNA voz. Si ya habia una activa hay
+	# que detenerla: si no, la vieja se queda ocupando el emisor y, con el bonus de
+	# histeresis del pool, le gana a la nueva. Dos disparos seguidos del mismo emisor
+	# -dos pisadas, dos disparos de arma- dejaban muda la segunda.
+	if active_instance != null:
+		stop_event()
+
 	
 	if manager != null:
 		if event_def != null and p_event_name.is_empty():

@@ -190,8 +190,26 @@ func get_global_parameter(param_name: StringName) -> float:
 # ==============================================================================
 
 ## Configures the maximum physical voice pool size.
+## Cambia el presupuesto de voces fisicas.
+##
+## Antes esto era `voice_pool = VoicePoolManagerClass.new(count)` a secas, y el pool
+## nuevo nacia SIN reproductores: devirtualize() salia temprano por player_pool == null
+## y el motor entero se quedaba MUDO. Es la llamada mas obvia que haria un juego al
+## arrancar -"quiero 32 voces"-, asi que el defecto dejaba sin audio a cualquiera que la
+## usara.
 func set_max_physical_voices(count: int) -> void:
-	voice_pool = VoicePoolManagerClass.new(count)
+	var target: int = maxi(1, count)
+	if voice_pool != null and voice_pool.max_physical_voices == target:
+		return
+	# Las voces que estaban sonando hay que detenerlas por el camino bueno. Descartar
+	# el pool sin mas dejaba sus reproductores sonando y las instancias apuntando a
+	# canales de un pool que ya no existe.
+	if voice_pool != null:
+		for instance in active_instances:
+			if instance != null and instance.assigned_channel_id >= 0:
+				voice_pool.virtualize(instance)
+	voice_pool = VoicePoolManagerClass.new(target)
+	voice_pool.set_player_pool(player_pool)
 
 ## Fija una posicion fija de oyente, con prioridad sobre la regla automatica.
 func set_listener_position(pos: Vector3) -> void:
