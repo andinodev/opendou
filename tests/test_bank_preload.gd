@@ -68,6 +68,17 @@ static func run_all() -> OpenDouAssert:
 	a.eq(bank.build_stream(201), null, "un codec no soportado devuelve null")
 	meta.codec = original_codec
 
+	# La cache devuelve el MISMO objeto: reconstruir el AudioStreamWAV en cada
+	# peticion recomponeria los mismos bytes una y otra vez.
+	var cached_a = mgr.get_stream(&"preload_bank", 201)
+	var cached_b = mgr.get_stream(&"preload_bank", 201)
+	a.ok(cached_a != null, "get_stream devuelve un stream")
+	a.eq(cached_a, cached_b, "dos llamadas devuelven el mismo objeto cacheado")
+	a.eq(mgr.get_stream(&"banco_que_no_existe", 1), null, "un banco inexistente devuelve null")
+
 	mgr.unload_bank(&"preload_bank")
+	# Tras descargar, la cache de ese banco tiene que estar purgada: si no,
+	# get_stream() seguiria devolviendo streams de un banco ya cerrado.
+	a.eq(mgr.get_stream(&"preload_bank", 201), null, "descargar el banco purga su cache")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(BANK_PATH))
 	return a

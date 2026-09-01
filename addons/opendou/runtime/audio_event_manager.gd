@@ -112,6 +112,13 @@ func load_bank(file_path: String, bank_name: StringName = &"") -> RefCounted:
 func unload_bank(bank_name: StringName) -> void:
 	bank_manager.unload_bank(bank_name)
 
+## AudioStreamWAV de un stream de un banco cargado, listo para usar como
+## base_stream de un AudioEventDef.
+func get_bank_stream(bank_name: StringName, stream_id: int) -> AudioStreamWAV:
+	if bank_manager == null:
+		return null
+	return bank_manager.get_stream(bank_name, stream_id)
+
 # ==============================================================================
 # CONVENIENCE GAME SYNCS API
 # ==============================================================================

@@ -18,6 +18,7 @@ const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_d
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
 const OpenDouEventPlayer3DClass = preload("res://addons/opendou/nodes/opendou_event_player_3d.gd")
 const OpenDouRoom3DClass = preload("res://addons/opendou/nodes/opendou_room_3d.gd")
+const SoundBankBuilderClass = preload("res://addons/opendou/runtime/soundbank_builder.gd")
 
 ## Punto de entrada de la suite asincrona de audio.
 static func run_all_async(tree: SceneTree) -> OpenDouAssert:
@@ -30,6 +31,7 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_single_voice_async(tree))
 	a.absorb(await run_listener_drives_priority_async(tree))
 	a.absorb(await run_room_reverb_async(tree))
+	a.absorb(await run_bank_event_audio_async(tree))
 	return a
 
 ## La sonda debe medir una senal conocida. Si esto falla, ninguna otra asercion
@@ -481,4 +483,51 @@ static func run_room_reverb_async(tree: SceneTree) -> OpenDouAssert:
 	tree.root.remove_child(cam)
 	cam.free()
 	manager.free()
+	return a
+
+## Un evento cuyo stream viene de un banco debe sonar.
+##
+## Es la asercion que demuestra que el pipeline ODBK produce audio: antes el banco
+## se leia bien y sus bytes no llegaban a ninguna salida.
+static func run_bank_event_audio_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("bank_event_audio")
+
+	# Un banco con un tono sostenido, empaquetado desde sus bytes PCM16.
+	var tone := AudioSynthesizerClass.create_tone(440.0, 2.0, 0.8, false)
+	var bank_path := "user://test_event_bank.bnk"
+	var entries: Dictionary = {
+		301: {
+			"name": &"TonoDeBanco", "is_prefetch": true,
+			"sample_rate": 44100, "channels": 1, "data": tone.data
+		},
+	}
+	a.ok(SoundBankBuilderClass.build_bank(bank_path, entries), "el banco del evento se compila")
+
+	var probe = OpenDouAudioProbeClass.new()
+	probe.setup(2.0)
+
+	var manager = AudioEventManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	a.ok(manager.load_bank(bank_path, &"event_bank") != null, "el manager carga el banco")
+	var bank_stream = manager.get_bank_stream(&"event_bank", 301)
+	a.ok(bank_stream is AudioStreamWAV, "get_bank_stream devuelve un AudioStreamWAV")
+
+	var def = AudioEventDefClass.new(&"DesdeBanco", bank_stream)
+	def.target_bus = probe.bus_name()
+	def.stream_length = float(bank_stream.get_length()) if bank_stream != null else 0.0
+	def.is_looping = true
+	manager.register_event_definition(def)
+	manager.post_event(&"DesdeBanco", null)
+
+	probe.drain()
+	var peak: float = await probe.measure_peak_over_frames(tree, 40)
+	a.gt(peak, 0.01, "un evento cuyo stream viene de un banco suena")
+
+	manager.stop_all()
+	manager.unload_bank(&"event_bank")
+	probe.teardown()
+	manager.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(bank_path))
 	return a
