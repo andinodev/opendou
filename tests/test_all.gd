@@ -60,6 +60,7 @@ const TestOcclusionSchedulerClass = preload("res://tests/test_occlusion_schedule
 const TestEarlyReflectionsClass = preload("res://tests/test_early_reflections.gd")
 const TestNoUnfulfilledClaimsClass = preload("res://tests/test_no_unfulfilled_claims.gd")
 const TestTransformUtilsClass = preload("res://tests/test_transform_utils.gd")
+const TestWavDecoderClass = preload("res://tests/test_wav_decoder.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -282,6 +283,10 @@ static func run_suite() -> Dictionary:
 	var xform_res = TestTransformUtilsClass.run_all()
 	total_tests += xform_res.assertions_run
 	all_failures.append_array(xform_res.failures)
+
+	var wav_res = TestWavDecoderClass.run_all()
+	total_tests += wav_res.assertions_run
+	all_failures.append_array(wav_res.failures)
 
 	return {
 		"total": total_tests,
