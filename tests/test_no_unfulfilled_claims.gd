@@ -92,4 +92,17 @@ static func run_all() -> OpenDouAssert:
 		icons.list_dir_end()
 	a.eq(missing.size(), 0, "todos los iconos SVG tienen su .import, faltan: %s" % str(missing))
 
+	# Los documentos VIVOS no deben apuntar al disco de otra persona. Los historicos
+	# (completed.md, plans/*.md) se dejan a proposito: son registro de lo que se hizo.
+	for doc in ["res://README.md", "res://GEMINI.md", "res://docs/README.md",
+			"res://docs/tasks/current.md", "res://docs/tasks/backlog.md",
+			"res://docs/tasks/roadmap.md"]:
+		var df = FileAccess.open(doc, FileAccess.READ)
+		if df == null:
+			a.ok(false, "no se pudo leer %s" % doc)
+			continue
+		var dtext: String = df.get_as_text()
+		df.close()
+		a.ok(not dtext.contains("file:///c:/"), "%s no tiene enlaces file:///c:/" % doc)
+
 	return a

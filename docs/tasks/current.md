@@ -1,7 +1,7 @@
 # ⚡ Tarea Activa: TASK-058 — Demo 09: Nivel de Infiltración Táctica AAA
 
-* **Documento de Especificación:** [`docs/specs/spec_tactical_infiltration_demo.md`](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/specs/spec_tactical_infiltration_demo.md)
-* **Plan de Implementación:** [`docs/plans/2026-08-31-tactical-infiltration-demo.md`](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/plans/2026-08-31-tactical-infiltration-demo.md)
+* **Documento de Especificación:** [`docs/specs/spec_tactical_infiltration_demo.md`](../specs/spec_tactical_infiltration_demo.md)
+* **Plan de Implementación:** [`docs/plans/2026-08-31-tactical-infiltration-demo.md`](../plans/2026-08-31-tactical-infiltration-demo.md)
 * **Estado:** ✅ Completado y Verificado
 * **Checklist de Tareas:**
   * [x] **Task 1:** Construir escena declarativa `scenes/demos/09_tactical_infiltration/demo_tactical_infiltration.tscn` integrando los 13 tipos de nodos OpenDou, geometrías de nivel, mallas, rigs de personajes y HUD.
