@@ -67,10 +67,17 @@ static func build_bank(target_path: String, entries: Dictionary) -> bool:
 		})
 
 	# Calculate offsets:
-	# Header size: 4 (magic) + 4 (ver) + 4 (num) + 4 (pref_size) + 8 (stream_off) = 24 bytes
-	# TOC size: num_streams * 36 bytes (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 4)
+	# Cabecera: 4 (magic) + 4 (version) + 4 (num) + 4 (pref_size) + 8 (stream_off) = 24 bytes
+	# TOC: 40 bytes por entrada = 4 (id) + 2 (codec) + 2 (channels) + 4 (rate)
+	#      + 4 (pref_off) + 4 (pref_len) + 8 (disk_off) + 8 (disk_len) + 4 (relleno)
+	#
+	# Aqui decia 36 mientras el comentario de al lado enumeraba campos que suman
+	# 40: stream_block_offset y cada disk_offset salian 4 bytes por stream
+	# desplazados, y read_stream_chunk() leia del sitio equivocado.
+	# soundbank_compiler.gd ya usaba 40.
+	const TOC_ENTRY_SIZE: int = 40
 	var header_size: int = 24
-	var toc_size: int = num_streams * 36
+	var toc_size: int = num_streams * TOC_ENTRY_SIZE
 	var prefetch_block_size: int = prefetch_block.size()
 	var stream_block_offset: int = header_size + toc_size + prefetch_block_size
 
