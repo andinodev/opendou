@@ -56,6 +56,10 @@ var is_paused_state: bool = false
 var is_key_on: bool = true
 var elapsed_time: float = 0.0
 
+## Reproductor nativo que esta instancia usa como voz fisica, si su emisor es un
+## nodo OpenDouEventPlayer*. Null en las voces anonimas, que reciben uno del pool.
+var bound_player_ref: WeakRef = null
+
 func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 	definition = p_definition
 	if p_caller:
@@ -81,6 +85,22 @@ func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 				var state = mod.create_runtime_state()
 				if state:
 					modulator_states.append({"def": mod, "state": state})
+
+## Vincula esta instancia al reproductor de su nodo emisor.
+##
+## Existe para que el pool no le asigne ademas una voz anonima: el reproductor
+## del nodo ES la voz fisica, y crear otra era la doble reproduccion.
+func bind_player(player: Node) -> void:
+	bound_player_ref = weakref(player) if player != null else null
+
+## Reproductor vinculado, o null si no hay o el nodo ya no existe.
+func get_bound_player() -> Node:
+	if bound_player_ref == null:
+		return null
+	var p = bound_player_ref.get_ref()
+	if p != null and is_instance_valid(p):
+		return p
+	return null
 
 ## Sets a 3D emitter position directly.
 func set_position(pos: Vector3) -> void:

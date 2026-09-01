@@ -71,6 +71,27 @@ func measure_peak_db_over_frames(tree: SceneTree, frames: int = 12) -> float:
 		return -INF
 	return linear_to_db(peak)
 
+## Espera a que el bus quede en silencio. Devuelve true si lo consiguio dentro
+## del limite de iteraciones.
+##
+## Contar frames fijos NO sirve para afirmar silencio: en headless el bucle
+## principal corre a maxima velocidad, asi que el numero de frames no es
+## proporcional al tiempo de audio y la cola del bus tarda un numero
+## impredecible de frames en vaciarse. Un test que cuente frames pasa o falla
+## por suerte. Aqui se drena hasta ver varias lecturas consecutivas por debajo
+## del umbral, que es la condicion que de verdad se quiere afirmar.
+func await_silence(tree: SceneTree, threshold: float = 0.01, consecutive: int = 4, max_iterations: int = 2000) -> bool:
+	var quiet_streak: int = 0
+	for _i in range(maxi(1, max_iterations)):
+		await tree.process_frame
+		if drain_peak() < threshold:
+			quiet_streak += 1
+			if quiet_streak >= consecutive:
+				return true
+		else:
+			quiet_streak = 0
+	return false
+
 ## Elimina el bus de sonda y su captura.
 func teardown() -> void:
 	if bus_index >= 0 and bus_index < AudioServer.bus_count:

@@ -68,7 +68,9 @@ fi
 # 2) Trinquete de fugas de ObjectDB: no pueden aumentar.
 LEAKED=$(grep -oE "[0-9]+ ObjectDB instances were leaked" "$CONSOLE_LOG" | grep -oE "^[0-9]+" | tail -1)
 LEAKED="${LEAKED:-0}"
-BUDGET=$(tr -d '[:space:]' < "$LEAK_BUDGET_FILE" 2>/dev/null || echo "0")
+# El archivo admite comentarios con # para justificar el techo: se toma el primer
+# numero que aparezca en una linea no comentada.
+BUDGET=$(grep -vE '^[[:space:]]*#' "$LEAK_BUDGET_FILE" 2>/dev/null | grep -oE '[0-9]+' | head -1)
 BUDGET="${BUDGET:-0}"
 echo "[OpenDou] fugas ObjectDB: $LEAKED (techo: $BUDGET)"
 if [[ "$LEAKED" -gt "$BUDGET" ]]; then
