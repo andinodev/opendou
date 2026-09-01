@@ -61,6 +61,7 @@ const TestEarlyReflectionsClass = preload("res://tests/test_early_reflections.gd
 const TestNoUnfulfilledClaimsClass = preload("res://tests/test_no_unfulfilled_claims.gd")
 const TestTransformUtilsClass = preload("res://tests/test_transform_utils.gd")
 const TestWavDecoderClass = preload("res://tests/test_wav_decoder.gd")
+const TestSplineAnchorClass = preload("res://tests/test_spline_anchor.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -306,6 +307,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestListenerResolverClass.run_all_async(tree))
 	acc.absorb(await TestOcclusionSchedulerClass.run_all_async(tree))
 	acc.absorb(await TestEarlyReflectionsClass.run_all_async(tree))
+	acc.absorb(await TestSplineAnchorClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,
