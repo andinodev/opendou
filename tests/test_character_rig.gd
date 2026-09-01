@@ -118,6 +118,67 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	return a
 
 
+## El banco arranca, sus tres parches declaran su superficie, y build() no duplica.
+static func run_bench_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("rig_bench")
+
+	var BenchClass = load("res://scenes/rig_bench/rig_bench.gd")
+	a.ok(BenchClass != null, "el script del banco existe")
+	var bench = BenchClass.new()
+	tree.root.add_child(bench)
+	await tree.process_frame
+	await tree.physics_frame
+
+	a.eq(bench.patch_surfaces.size(), 3, "el banco tiene tres parches")
+	for surface in bench.patch_surfaces:
+		a.ok(surface in SurfacePatchClass.SURFACES,
+			"'%s' pertenece al vocabulario de ocho" % str(surface))
+
+	# Cada parche declara su superficie en la metadata que los dos sistemas leen.
+	var declared: Array = []
+	for child in bench.get_children():
+		if child is StaticBody3D and child.has_meta("surface_type"):
+			declared.append(child.get_meta("surface_type"))
+	for surface in bench.patch_surfaces:
+		a.ok(surface in declared, "el parche '%s' declara surface_type" % str(surface))
+
+	# El banco trae un jugador con oyente y un NPC sin el.
+	var player: PlayerController = null
+	var npc: NpcController = null
+	for child in bench.get_children():
+		if child is PlayerController:
+			player = child
+		elif child is NpcController:
+			npc = child
+	a.ok(player != null, "el banco trae jugador")
+	a.ok(npc != null, "el banco trae NPC")
+	if player != null:
+		a.ok(player.listener != null, "el jugador del banco lleva oyente")
+
+	# build() es idempotente: llamarlo dos veces no duplica los parches.
+	var children_before: int = bench.get_child_count()
+	bench.build()
+	a.eq(bench.get_child_count(), children_before, "build() es idempotente")
+
+	# El autoload sobrevive a la escena: si el banco dejara instancias, la suite
+	# siguiente mediria las pisadas de un banco que ya no existe.
+	var autoload_manager = tree.root.get_node_or_null("OpenDou")
+	if autoload_manager != null:
+		autoload_manager.stop_all()
+	if player != null:
+		if player.camera != null:
+			player.camera.clear_current()
+		if player.listener != null:
+			player.listener.clear_current()
+	tree.root.remove_child(bench)
+	bench.free()
+	await tree.process_frame
+	if autoload_manager != null:
+		a.eq(autoload_manager.active_instances.size(), 0,
+			"el banco no deja instancias en el autoload")
+	return a
+
+
 ## Streams de cada rama del switch container, por nombre de superficie.
 static func _branch_streams(switch_container) -> Dictionary:
 	var out: Dictionary = {}
