@@ -9,7 +9,6 @@ extends AudioStreamPlayer2D
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
-const OcclusionManagerClass = preload("res://addons/opendou/runtime/spatial/occlusion_manager.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 # ==============================================================================
@@ -54,6 +53,7 @@ func _get_property_list() -> Array[Dictionary]:
 @export var active_state: StringName = &""
 
 @export_group("Spatial Acoustics & Occlusion")
+## Informa al programador central de oclusion; ya no dispara raycasts propios.
 @export var enable_dynamic_occlusion: bool = false
 @export_flags_2d_physics var occlusion_collision_mask: int = 1
 @export var occlusion_refresh_interval: float = 0.05
@@ -72,12 +72,7 @@ func _get_property_list() -> Array[Dictionary]:
 
 var active_instance: EventInstance = null
 var _event_manager: AudioEventManager = null
-var _occlusion_manager: OcclusionManager = null
-var _calculated_occlusion: float = 0.0
-var _occlusion_timer: float = 0.0
 
-func _init() -> void:
-	_occlusion_manager = OcclusionManagerClass.new()
 
 func _ready() -> void:
 	if not Engine.is_editor_hint():
@@ -97,15 +92,6 @@ func _notification(what: int) -> void:
 		if stop_on_tree_exit and active_instance != null:
 			active_instance.stop()
 
-func _process(delta: float) -> void:
-	if Engine.is_editor_hint():
-		return
-		
-	if enable_dynamic_occlusion and is_inside_tree():
-		_occlusion_timer += delta
-		if _occlusion_timer >= occlusion_refresh_interval:
-			_occlusion_timer = 0.0
-			_update_occlusion()
 
 # ==============================================================================
 # PUBLIC API
@@ -200,7 +186,13 @@ func set_state(group: StringName, state_value: StringName) -> void:
 
 ## Returns the latest calculated physical occlusion factor (0.0 = clear, 1.0 = fully occluded).
 func get_calculated_occlusion() -> float:
-	return _calculated_occlusion
+	if active_instance == null:
+		return 0.0
+	# El programador central escribe el LPF objetivo en la instancia y de ahi se
+	# deriva el factor. El rango va del LPF sin ocluir al de oclusion total, que
+	# son los limites que usa OcclusionManager.
+	var span: float = 20000.0 - 1500.0
+	return clampf((20000.0 - active_instance.target_spatial_lpf) / span, 0.0, 1.0)
 
 # ==============================================================================
 # INTERNAL HELPERS
@@ -221,36 +213,6 @@ func _get_manager() -> AudioEventManager:
 			return s
 	return null
 
-func _update_occlusion() -> void:
-	var listener_pos: Vector2 = Vector2.ZERO
-	var manager = _get_manager()
-	if manager != null:
-		listener_pos = Vector2(manager.active_listener_position.x, manager.active_listener_position.y)
-	elif get_viewport() != null:
-		var cam: Camera2D = get_viewport().get_camera_2d()
-		if cam != null:
-			listener_pos = cam.global_position
-			
-	if not is_inside_tree() or get_world_2d() == null:
-		return
-		
-	var space_state = get_world_2d().direct_space_state
-	if space_state == null:
-		return
-		
-	var query = PhysicsRayQueryParameters2D.create(global_position, listener_pos, occlusion_collision_mask)
-	var hit = space_state.intersect_ray(query)
-	var ray_hits: Array[bool] = [not hit.is_empty()]
-	
-	if _occlusion_manager != null:
-		var occ_result = _occlusion_manager.evaluate_occlusion(
-			Vector3(global_position.x, global_position.y, 0.0),
-			Vector3(listener_pos.x, listener_pos.y, 0.0),
-			ray_hits
-		)
-		_calculated_occlusion = occ_result.occlusion_factor
-		if active_instance != null:
-			active_instance.set_target_lpf(occ_result.target_lpf, occ_result.volume_attenuation_db)
 
 func _apply_synth_preset() -> void:
 	if synth_preset == "None" or synth_preset.is_empty():

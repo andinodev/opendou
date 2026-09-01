@@ -14,6 +14,7 @@ const LiveUpdateServerClass = preload("res://addons/opendou/runtime/network/live
 const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_playback_context.gd")
 const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
+const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/occlusion_scheduler.gd")
 
 # Central Game Syncs Manager (States, Switches, Global RTPCs, Triggers)
 var sync_manager: GameSyncManager
@@ -49,6 +50,9 @@ var player_pool: OpenDouNativePlayerPool = null
 ## Resolutor del oyente activo.
 var listener_resolver: OpenDouListenerResolver = null
 
+## Programador unico de raycasts de oclusion, con presupuesto por frame.
+var occlusion_scheduler: OpenDouOcclusionScheduler = null
+
 func _init() -> void:
 	sync_manager = GameSyncManagerClass.new()
 	bank_manager = SoundBankManagerClass.new()
@@ -58,6 +62,7 @@ func _init() -> void:
 	player_pool = NativePlayerPoolClass.new(64)
 	voice_pool.set_player_pool(player_pool)
 	listener_resolver = ListenerResolverClass.new()
+	occlusion_scheduler = OcclusionSchedulerClass.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -253,7 +258,13 @@ func _process(delta: float) -> void:
 	if sync_manager:
 		sync_manager.process(delta)
 
-	# 4. Parametros de instancia y limpieza de las terminadas.
+	# 4. Oclusion presupuestada: un unico manager y un techo de raycasts.
+	if occlusion_scheduler != null and is_inside_tree():
+		var vp := get_viewport()
+		var w3d: World3D = vp.find_world_3d() if vp != null else null
+		occlusion_scheduler.process(active_instances, active_listener_position, w3d)
+
+	# 5. Parametros de instancia y limpieza de las terminadas.
 	for i in range(active_instances.size() - 1, -1, -1):
 		var instance: EventInstance = active_instances[i]
 		instance.interpolate_locals(delta)
@@ -264,14 +275,14 @@ func _process(delta: float) -> void:
 				voice_pool.virtualize(instance)
 			active_instances.remove_at(i)
 
-	# 5. Asignar permiso: quien es audible dentro del presupuesto.
+	# 6. Asignar permiso: quien es audible dentro del presupuesto.
 	if voice_pool:
 		voice_pool.resolve_voice_stealing(active_instances, active_listener_position, delta)
 
-	# 6. Aplicar los valores calculados a los reproductores reales.
+	# 7. Aplicar los valores calculados a los reproductores reales.
 	_apply_voices()
 
-	# 7. Telemetria.
+	# 8. Telemetria.
 	if live_update_server and live_update_server.is_server_running:
 		var phys_count = voice_pool.get_active_physical_count() if voice_pool else 0
 		var virt_count = voice_pool.get_active_virtual_count(active_instances) if voice_pool else 0

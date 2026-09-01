@@ -56,6 +56,7 @@ const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
 const TestListenerResolverClass = preload("res://tests/test_listener_resolver.gd")
+const TestOcclusionSchedulerClass = preload("res://tests/test_occlusion_scheduler.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -287,6 +288,7 @@ static func run_async_suite(tree: SceneTree):
 	var acc := OpenDouAssertClass.new()
 	acc.absorb(await TestAudioOutputClass.new().run_all_async(tree))
 	acc.absorb(await TestListenerResolverClass.new().run_all_async(tree))
+	acc.absorb(await TestOcclusionSchedulerClass.new().run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

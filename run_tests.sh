@@ -57,8 +57,28 @@ if [[ "$NEEDS_IMPORT" -eq 1 ]]; then
 	"$GODOT_BIN" --headless --path . --import > /dev/null 2>&1
 fi
 START_TS=$(date +%s)
-"$GODOT_BIN" --headless --path . --script "$TEST_SCRIPT" > "$CONSOLE_LOG" 2>&1
-GODOT_EXIT=$?
+# Godot se queda vivo si el script de entrada no compila, asi que hace falta un
+# watchdog: sin el, un error de parseo cuelga el runner en lugar de fallar.
+# macOS no trae coreutils, o sea que no hay `timeout` y se implementa a mano.
+TIMEOUT_SECS="${OPENDOU_TEST_TIMEOUT:-180}"
+"$GODOT_BIN" --headless --path . --script "$TEST_SCRIPT" > "$CONSOLE_LOG" 2>&1 &
+GODOT_PID=$!
+ELAPSED=0
+while kill -0 "$GODOT_PID" 2>/dev/null; do
+	if [[ "$ELAPSED" -ge "$TIMEOUT_SECS" ]]; then
+		echo "[FALLO] Godot excedio ${TIMEOUT_SECS}s y fue terminado." >&2
+		kill -9 "$GODOT_PID" 2>/dev/null
+		wait "$GODOT_PID" 2>/dev/null
+		GODOT_EXIT=124
+		break
+	fi
+	sleep 1
+	ELAPSED=$((ELAPSED + 1))
+done
+if [[ -z "${GODOT_EXIT:-}" ]]; then
+	wait "$GODOT_PID"
+	GODOT_EXIT=$?
+fi
 echo "[OpenDou] duracion: $(( $(date +%s) - START_TS ))s"
 
 grep -E "^STATUS:" "$CONSOLE_LOG" || echo "[WARN] la suite no reporto STATUS"

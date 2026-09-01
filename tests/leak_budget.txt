@@ -1,4 +1,4 @@
-595
+593
 # Techo de instancias ObjectDB filtradas al salir. El runner falla si aumenta.
 #
 # Historia del techo:
@@ -11,6 +11,8 @@
 #           WAV descrita abajo, no evitable desde GDScript)
 #    595 -> al liberar los AudioEventManager que test_event_manager y
 #           test_declarative_nodes creaban sin liberar: otros 186 objetos
+#    593 -> al centralizar la oclusion: los emisores ya no crean un
+#           OcclusionManager propio cada uno
 #
 # Sobre esos +2: son un AudioStreamPlaybackWAV y su AudioStreamWAV que el
 # servidor de audio de Godot retiene para cualquier WAV que se haya reproducido.
