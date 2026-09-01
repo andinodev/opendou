@@ -183,12 +183,19 @@ static func run_all() -> Array[String]:
 	bin_node.free()
 	
 	# Test 5: Game Syncs Persistence (Disk serialization & deserialization)
-	var syncs_panel = OpenDouGameSyncsPanelClass.new()
+	# La ruta va a user://: escribir en res:// inyectaba entradas RTPC en el JSON
+	# versionado del proyecto y ensuciaba el arbol de git en cada ejecucion.
+	const TEST_SYNCS_PATH := "user://opendou_syncs_test.json"
+	if FileAccess.file_exists(TEST_SYNCS_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SYNCS_PATH))
+	var syncs_panel = OpenDouGameSyncsPanelClass.new(TEST_SYNCS_PATH)
+	if syncs_panel.syncs_file_path != TEST_SYNCS_PATH:
+		failures.append("Test 5-0 Failed: la ruta de syncs no es inyectable")
 	syncs_panel._on_add_rtpc_pressed()
 	if not syncs_panel.rtpcs.has(&"RTPC_5"):
 		failures.append("Test 5a Failed: New RTPC not added to registry")
 	syncs_panel.save_syncs_to_disk()
-	var reload_syncs = OpenDouGameSyncsPanelClass.new()
+	var reload_syncs = OpenDouGameSyncsPanelClass.new(TEST_SYNCS_PATH)
 	if not reload_syncs.rtpcs.has(&"RTPC_5"):
 		failures.append("Test 5b Failed: Persistent syncs not reloaded from disk")
 	syncs_panel.free()
@@ -537,6 +544,8 @@ static func run_all() -> Array[String]:
 	if is_zero_approx(updated_dict.get("base_freq", 0.0) - 550.0) == false:
 		failures.append("Test 9s Failed: Changing rack control did not update SynthPresetRegistry")
 	
+	# Los presets se guardan en user:// por la misma razon que los syncs.
+	syncs_p.presets_file_path = "user://opendou_synth_presets_test.json"
 	syncs_p._on_save_presets_pressed()
 	syncs_p._on_delete_preset_pressed()
 	var after_delete_count = syncs_p.preset_tree.get_root().get_child_count() if syncs_p.preset_tree and syncs_p.preset_tree.get_root() else 0
