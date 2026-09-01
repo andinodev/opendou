@@ -21,7 +21,7 @@ prueba.
 Las 10 demos actuales se borran. Su test más profundo afirmaba `chunk.size() != 12`, y
 seis de ellas ni siquiera podían sonar antes de la Fase 1.
 
-### Un defecto que esta fase tiene que arreglar primero
+### Dos defectos que esta fase tiene que arreglar primero
 
 Al revisar cómo se construyen las pisadas apareció un defecto que no estaba entre las
 24 observaciones. `OpenDouAnimationSync.trigger_footstep()` invoca:
@@ -41,6 +41,38 @@ distinto dentro de la misma sala produce tres pisadas idénticas.
 
 Es la **observación 25** del proyecto, y va como primer trabajo de la fase: el rig de
 personaje y el banco dependen de que la detección funcione.
+
+#### Observación 26: el contexto de reproducción no se construye nunca
+
+Más grave que la anterior. `AudioSwitchContainer` lee `context.get_switch()` y
+`AudioBlendContainer` lee `context.get_rtpc()`, pero **nadie en el runtime construye un
+`AudioPlaybackContext` poblado**: `VoicePoolManager.devirtualize()` invoca
+`instance.definition.resolve_voices()` sin argumento, así que se crea uno vacío.
+
+| Contenedor | Lee del contexto | Estado real en runtime |
+|---|---|---|
+| `AudioSwitchContainer` | `get_switch()` | Resuelve **siempre** a `default_state` |
+| `AudioBlendContainer` | `get_rtpc()` | Ve **siempre** RTPC = 0.0 |
+| `AudioRandomContainer` | nada | Funciona |
+| `AudioSequenceContainer` | nada | Funciona |
+
+Una pisada con switch container sonaría siempre a la misma superficie, y un motor con
+blend container se quedaría siempre en ralentí.
+
+**Los tests pasan** porque construyen el contexto a mano
+(`AudioPlaybackContext.new({&"RPM": 4000.0})`): correcto en aislamiento, desconectado
+en el camino real. Es **exactamente la misma forma que la observación 1** — la
+maquinaria calcula bien y nadie la alimenta.
+
+**Dirección del arreglo.** El contexto es **por instancia**, no global: `EventInstance`
+ya tiene `local_rtpcs` y `GameSyncManager` tiene switches por entidad, así que el
+contexto correcto compone globales con locales en el momento de resolver.
+`AudioEventManager` ya pasa `global_rtpcs` a `update_parameters()` cada frame; falta
+hacer lo propio con los switches y que `devirtualize()` pase el contexto a
+`resolve_voices()`.
+
+Va como segundo trabajo de la fase, porque el evento de pisada del apartado 3.3
+depende de él.
 
 ### Marco elegido: una tesis por demo
 
@@ -285,6 +317,13 @@ liberarla.
    observación 25.
 6c. Existe **un solo** `AudioEventDef` de pisada, con un `AudioSwitchContainer` sobre
    `SurfaceType`; no hay eventos `Footstep_<Superficie>` registrados.
+6d. Un evento con `AudioSwitchContainer` resuelve a la rama del switch **activo**, no a
+   `default_state`, cuando se dispara por el camino real de `post_event()`. Y un evento
+   con `AudioBlendContainer` responde al valor **vivo** del RTPC. Cierra la
+   observación 26.
+6e. La aserción de audio correspondiente: dos pisadas sobre superficies distintas
+   producen **timbres medibles distintos** en el bus de sonda, no el mismo stream dos
+   veces.
 7. Todas las aserciones de la tabla del apartado 6 pasan: son nueve en total,
    repartidas entre las cuatro escenas.
 8. Los diez directorios de demos viejas y sus cuatro suites no existen.
@@ -317,4 +356,5 @@ liberarla.
 | Tres escenas complejas son mucho trabajo y la fase se alarga | El rig compartido y el banco reducen la parte no-audio. Si hay que recortar, se recorta **geometría y visuales**, nunca aserciones. |
 | Los NPC como emisores masivos disparan las fugas de ObjectDB | Cada demo libera lo que instancia, y el trinquete lo detecta. Ya delató 399 objetos en fases anteriores. |
 | La convención de metadata falla y tres escenas dependen de ella | Por eso el banco del rig existe y se construye **antes** de las tres demos, y por eso el arreglo de la observación 25 va primero: sin el raycast, la detección de superficie no funciona en absoluto. |
+| Arreglar el contexto de reproducción cambia el comportamiento de eventos existentes | Hoy todos los switch y blend containers resuelven a su rama por defecto. Al alimentarlos, un evento mal autorado puede pasar a resolver a una rama vacía. Los tests de contenedores existentes cubren la resolución; los de audio real cubren el resultado. |
 | Una demo pasa sus aserciones pero suena mal | Las aserciones prueban que el mecanismo funciona, no que el diseño sonoro sea bueno. Eso solo se juzga escuchándolo, y es trabajo del autor tras la fase. |
