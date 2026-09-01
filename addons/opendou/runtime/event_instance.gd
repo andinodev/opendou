@@ -93,6 +93,21 @@ func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 func bind_player(player: Node) -> void:
 	bound_player_ref = weakref(player) if player != null else null
 
+## Notifica que el reproductor nativo emitio `finished`.
+##
+## Es la fuente de verdad del fin de reproduccion. advance_virtual_time() vuelve
+## temprano si el estado no es VIRTUAL, asi que una voz fisica no avanza su
+## posicion logica y por si sola nunca sabria que su stream acabo: sin esta senal,
+## is_finished() era siempre falso y active_instances crecia sin limite.
+func notify_stream_finished() -> void:
+	if not is_key_on or modulator_states.is_empty():
+		voice_state = VoiceState.STATE_STOPPED
+		assigned_channel_id = -1
+		return
+	# Con moduladores activos se entra en fase de release, y update_parameters()
+	# concluira cuando el AHDSR llegue a IDLE.
+	is_key_on = false
+
 ## Reproductor vinculado, o null si no hay o el nodo ya no existe.
 func get_bound_player() -> Node:
 	if bound_player_ref == null:

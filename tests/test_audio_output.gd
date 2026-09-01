@@ -15,6 +15,7 @@ const PhysicalVoiceChannelClass = preload("res://addons/opendou/runtime/physical
 const VoicePoolManagerClass = preload("res://addons/opendou/runtime/voice_pool_manager.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
+const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
 
 ## Punto de entrada de la suite asincrona de audio.
 ##
@@ -26,6 +27,7 @@ func run_all_async(tree: SceneTree):
 	a.absorb(await run_probe_selftest_async(tree))
 	a.absorb(await run_channel_audio_async(tree))
 	a.absorb(await run_budget_async(tree))
+	a.absorb(await run_lifecycle_async(tree))
 	return a
 
 ## La sonda debe medir una senal conocida. Si esto falla, ninguna otra asercion
@@ -195,3 +197,44 @@ func probe_free_all(pool) -> void:
 		if child.has_method("stop"):
 			child.stop()
 		child.stream = null
+
+## Una voz cuyo stream termina debe salir de active_instances.
+##
+## Antes no salia nunca: advance_virtual_time() vuelve temprano si el estado no es
+## VIRTUAL, asi que una voz fisica no avanzaba su posicion logica y jamas detectaba
+## el fin del stream. is_finished() era siempre falso, active_instances crecia sin
+## limite, y con 64 voces el pool quedaba ocupado de forma permanente.
+func run_lifecycle_async(tree: SceneTree):
+	var a := OpenDouAssertClass.new("lifecycle")
+
+	var manager = AudioEventManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	# Tono corto para que termine dentro del test.
+	var tone := AudioSynthesizerClass.create_tone(660.0, 0.12, 0.6, false)
+	var def = AudioEventDefClass.new(&"Blip", tone)
+	def.stream_length = float(tone.get_length())
+	def.is_looping = false
+	manager.register_event_definition(def)
+
+	const EVENT_COUNT := 20
+	for _i in range(EVENT_COUNT):
+		manager.post_event(&"Blip", null)
+
+	a.eq(manager.active_instances.size(), EVENT_COUNT, "las 20 instancias entran en la lista")
+
+	# Esperar a la condicion, no a un numero de frames: en headless el bucle corre
+	# a maxima velocidad y los frames no son proporcionales al tiempo de audio.
+	var emptied := false
+	for _f in range(6000):
+		await tree.process_frame
+		if manager.active_instances.is_empty():
+			emptied = true
+			break
+
+	a.ok(emptied, "la lista se vacia al terminar los streams")
+	a.eq(manager.active_instances.size(), 0, "no queda ninguna instancia colgada")
+
+	manager.free()
+	return a

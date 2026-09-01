@@ -87,6 +87,12 @@ func virtualize(instance: EventInstance) -> void:
 		var ch: PhysicalVoiceChannel = channels[instance.assigned_channel_id]
 		var player: Node = ch.get_player()
 		var was_owned: bool = ch.owned_by_node
+		# Desconectar antes de detener: un stop() provocado por nosotros no es un
+		# fin natural de stream y no debe cerrar la instancia.
+		if player != null and player.has_signal("finished"):
+			var cb := Callable(instance, "notify_stream_finished")
+			if player.is_connected("finished", cb):
+				player.disconnect("finished", cb)
 		ch.stop_immediate()
 		ch.bind(null, false)
 		# Los reproductores anonimos vuelven al pool; los de un nodo se quedan
@@ -148,6 +154,14 @@ func devirtualize(instance: EventInstance) -> void:
 	var ch: PhysicalVoiceChannel = channels[free_ch_id]
 	ch.assigned_instance_ref = weakref(instance)
 	ch.bind(player, owned_by_node)
+
+	# La senal `finished` es la unica fuente fiable del fin de reproduccion. Va en
+	# ONE_SHOT para que no se acumulen conexiones al virtualizar y desvirtualizar
+	# la misma instancia repetidamente.
+	if player.has_signal("finished"):
+		var cb := Callable(instance, "notify_stream_finished")
+		if not player.is_connected("finished", cb):
+			player.connect("finished", cb, CONNECT_ONE_SHOT)
 
 	var bus_name: StringName = instance.definition.target_bus if instance.definition else &"Master"
 	ch.play_stream(stream, start_offset, instance.calculated_volume_db, instance.calculated_pitch_scale, bus_name)
