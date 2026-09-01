@@ -11,7 +11,6 @@ const AcousticReflectorEngineClass = preload("res://addons/opendou/runtime/spati
 const EdgeDiffractionEngineClass = preload("res://addons/opendou/runtime/spatial/edge_diffraction_engine.gd")
 const RoomCouplingEngineClass = preload("res://addons/opendou/runtime/spatial/room_coupling_engine.gd")
 const AcousticLODControllerClass = preload("res://addons/opendou/runtime/spatial/acoustic_lod_controller.gd")
-const HDRAudioManagerClass = preload("res://addons/opendou/runtime/spatial/hdr_audio_manager.gd")
 const ReverbBusPoolClass = preload("res://addons/opendou/runtime/spatial/reverb_bus_pool.gd")
 
 var rooms: Dictionary = {}   # StringName -> AudioRoom
@@ -24,7 +23,6 @@ var reflector_engine: RefCounted
 var diffraction_engine: RefCounted
 var coupling_engine: RefCounted
 var lod_controller: RefCounted
-var hdr_manager: RefCounted
 
 ## Pool compartido de buses de reverb, agrupados por RT60.
 ##
@@ -38,7 +36,6 @@ func _init() -> void:
 	diffraction_engine = EdgeDiffractionEngineClass.new()
 	coupling_engine = RoomCouplingEngineClass.new()
 	lod_controller = AcousticLODControllerClass.new()
-	hdr_manager = HDRAudioManagerClass.new()
 	reverb_bus_pool = ReverbBusPoolClass.new()
 
 ## Registers a room in the acoustics manager.

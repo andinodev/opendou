@@ -1,4 +1,4 @@
-595
+593
 # Techo de instancias ObjectDB filtradas al salir. El runner falla si aumenta.
 #
 # Historia del techo:
@@ -16,6 +16,8 @@
 #    595 -> +2 por el test del reverb por sala, que reproduce un WAV mas (misma
 #           retencion descrita abajo; verificado aislando el test: filtra solo
 #           esos dos objetos y ninguno propio)
+#    593 -> al consolidar los dos motores HDR en uno: desaparecen las instancias
+#           de HDRAudioManager que creaban el manager espacial y sus tests
 #
 # Sobre esos +2: son un AudioStreamPlaybackWAV y su AudioStreamWAV que el
 # servidor de audio de Godot retiene para cualquier WAV que se haya reproducido.

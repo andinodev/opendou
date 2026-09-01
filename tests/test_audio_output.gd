@@ -32,6 +32,7 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_listener_drives_priority_async(tree))
 	a.absorb(await run_room_reverb_async(tree))
 	a.absorb(await run_bank_event_audio_async(tree))
+	a.absorb(await run_hdr_ducking_async(tree))
 	return a
 
 ## La sonda debe medir una senal conocida. Si esto falla, ninguna otra asercion
@@ -530,4 +531,70 @@ static func run_bank_event_audio_async(tree: SceneTree) -> OpenDouAssert:
 	probe.teardown()
 	manager.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(bank_path))
+	return a
+
+## HDR debe atenuar de verdad una voz debil cuando suena una fuerte.
+static func run_hdr_ducking_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("hdr_ducking")
+
+	var probe = OpenDouAudioProbeClass.new()
+	probe.setup(2.0)
+	var manager = AudioEventManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	var tone := AudioSynthesizerClass.create_tone(440.0, 4.0, 0.6, false)
+
+	# Control: una voz debil sola, con HDR activo.
+	var quiet_def = AudioEventDefClass.new(&"VozDebil", tone)
+	quiet_def.target_bus = probe.bus_name()
+	quiet_def.stream_length = float(tone.get_length())
+	quiet_def.is_looping = true
+	# -30 dB esta DENTRO de la ventana por defecto, que va de 0 a -40: la voz suena
+	# atenuada pero audible. Elegir -50 la habria dejado por debajo del suelo y
+	# ducked incluso estando sola, que es comportamiento HDR correcto pero no
+	# prueba nada sobre el ducking.
+	quiet_def.hdr_loudness_db = -30.0
+	manager.register_event_definition(quiet_def)
+
+	manager.post_event(&"VozDebil", null)
+	probe.drain()
+	var alone: float = await probe.measure_peak_over_frames(tree, 30)
+	a.gt(alone, 0.001, "la voz debil suena cuando esta sola")
+
+	# Ahora entra una voz fuerte, enrutada a Master y NO al bus de sonda.
+	#
+	# Ese enrutado es lo que hace valida la medida: la voz fuerte sube la ventana
+	# HDR pero no aporta senal al bus que se mide, asi que el pico del bus sigue
+	# siendo el de la voz debil y solo. Si las dos fueran al mismo bus, la senal de
+	# la fuerte enmascararia la atenuacion de la debil y la asercion no probaria
+	# nada.
+	var loud_def = AudioEventDefClass.new(&"VozFuerte", tone)
+	loud_def.target_bus = &"Master"
+	loud_def.stream_length = float(tone.get_length())
+	loud_def.is_looping = true
+	loud_def.hdr_loudness_db = 18.0
+	manager.register_event_definition(loud_def)
+	manager.post_event(&"VozFuerte", null)
+
+	# Con la fuerte en +18 el suelo de la ventana pasa a -22, asi que la voz de -30
+	# cae por debajo y se atenua al minimo.
+	# La ventana sube con el ataque del motor; se le dan frames para llegar.
+	for _f in range(40):
+		await tree.process_frame
+	probe.drain()
+	var with_loud: float = await probe.measure_peak_over_frames(tree, 30)
+	a.lt(with_loud, alone * 0.5, "la voz debil se atenua cuando suena la fuerte")
+
+	# Con HDR desactivado la contribucion desaparece.
+	manager.hdr_enabled = false
+	for _f in range(40):
+		await tree.process_frame
+	probe.drain()
+	var disabled: float = await probe.measure_peak_over_frames(tree, 30)
+	a.gt(disabled, with_loud, "al desactivar HDR la voz debil recupera nivel")
+
+	manager.stop_all()
+	probe.teardown()
+	manager.free()
 	return a

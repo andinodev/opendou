@@ -106,15 +106,19 @@ static func run_all() -> Array[String]:
 		])
 		
 	# Test 7: HDR Explosive Detonation & Decay Recovery
+	# El motor HDR se consolido en AudioHDREngine, cuya ventana va en dB HDR
+	# (fuerte por encima de 0) en lugar de dBFS con techo en -6.
 	demo.trigger_hdr_explosion()
-	var top_hdr = demo.spatial_acoustics.hdr_manager.current_window_top_db
-	var floor_hdr = demo.spatial_acoustics.hdr_manager.current_floor_db
-	if top_hdr != 3.0 or floor_hdr != -37.0:
-		failures.append("Test 7 Failed: HDR explosion top/floor invalid: Top %.1f dB, Floor %.1f dB" % [top_hdr, floor_hdr])
-		
-	var ducked_voice_gain = demo.spatial_acoustics.hdr_manager.calculate_voice_gain(-45.0)
+	var bounds: Vector2 = demo.hdr_engine.get_window_bounds()
+	if bounds.x <= 0.0:
+		failures.append("Test 7 Failed: la ventana HDR deberia haber subido, techo %.1f dB" % bounds.x)
+	if not is_equal_approx(bounds.y, bounds.x - 40.0):
+		failures.append("Test 7 Failed: el suelo deberia estar 40 dB bajo el techo, techo %.1f suelo %.1f" % [bounds.x, bounds.y])
+
+	# Una voz muy por debajo del suelo queda atenuada al minimo.
+	var ducked_voice_gain = demo.hdr_engine.calculate_voice_gain(bounds.y - 20.0)
 	if ducked_voice_gain >= 0.8:
-		failures.append("Test 7 Failed: Sound at -45 dB FS should be ducked by HDR window, got gain %.2f" % ducked_voice_gain)
+		failures.append("Test 7 Failed: una voz bajo el suelo deberia estar ducked, ganancia %.2f" % ducked_voice_gain)
 		
 	# Test 8: DemoHub Registration
 	var hub = DemoHubClass.new()

@@ -16,6 +16,7 @@ const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_playe
 const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
 const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/occlusion_scheduler.gd")
 const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
+const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
 # Central Game Syncs Manager (States, Switches, Global RTPCs, Triggers)
 var sync_manager: GameSyncManager
@@ -57,6 +58,21 @@ var occlusion_scheduler: OpenDouOcclusionScheduler = null
 ## Despachador de reflexiones tempranas como voces del pool.
 var reflection_dispatcher: OpenDouReflectionDispatcher = null
 
+## Motor de ventana de sonoridad HDR.
+##
+## Estaba huerfano: solo lo usaba el mixer del editor. Existia ademas un segundo
+## motor duplicado, HDRAudioManager, que solo accionaba una demo. Se consolido en
+## este, que tiene ataque y liberacion separados, limites de ventana y senal de
+## cambio.
+var hdr_engine: AudioHDREngine = null
+
+## Si el HDR contribuye a la mezcla.
+##
+## Va activado porque con la sonoridad por defecto de los eventos su contribucion
+## es exactamente 0 dB: dejarlo apagado habria movido el huerfano del editor al
+## runtime en lugar de arreglarlo.
+var hdr_enabled: bool = true
+
 func _init() -> void:
 	sync_manager = GameSyncManagerClass.new()
 	bank_manager = SoundBankManagerClass.new()
@@ -68,6 +84,7 @@ func _init() -> void:
 	listener_resolver = ListenerResolverClass.new()
 	occlusion_scheduler = OcclusionSchedulerClass.new()
 	reflection_dispatcher = ReflectionDispatcherClass.new()
+	hdr_engine = AudioHDREngineClass.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -226,6 +243,19 @@ func stop_all() -> void:
 		instance.stop()
 	active_instances.clear()
 
+## Alimenta la ventana HDR con la sonoridad de las voces activas y la avanza.
+##
+## Tiene que ocurrir ANTES de aplicar, porque la ganancia de cada voz depende de
+## donde quede la ventana este frame.
+func _update_hdr(delta: float) -> void:
+	if hdr_engine == null or not hdr_enabled:
+		return
+	for instance in active_instances:
+		if instance == null or instance.definition == null:
+			continue
+		hdr_engine.push_event_loudness(instance.definition.hdr_loudness_db)
+	hdr_engine.update(delta)
+
 ## Empuja los valores calculados de cada voz fisica a su reproductor nativo.
 ##
 ## Este paso es el que faltaba: sin el, calculated_volume_db,
@@ -241,9 +271,15 @@ func _apply_voices() -> void:
 		var ch = voice_pool.get_channel(instance.assigned_channel_id)
 		if ch == null or not ch.is_busy:
 			continue
+		var volume_db: float = instance.calculated_volume_db
+		# calculate_voice_gain_db() devuelve el nivel de salida relativo a la
+		# ventana, siempre <= 0, asi que funciona como atenuacion. Su entrada es la
+		# sonoridad de DISENO del evento, no el nivel de mezcla.
+		if hdr_enabled and hdr_engine != null and instance.definition != null:
+			volume_db += hdr_engine.calculate_voice_gain_db(instance.definition.hdr_loudness_db)
 		var cutoff: float = float(instance.calculated_properties.get(&"cutoff_hz", 20000.0))
 		ch.apply(
-			instance.calculated_volume_db,
+			volume_db,
 			instance.calculated_pitch_scale,
 			cutoff,
 			instance.emitter_position
@@ -302,6 +338,10 @@ func _process(delta: float) -> void:
 			if voice_pool and instance.assigned_channel_id >= 0:
 				voice_pool.virtualize(instance)
 			active_instances.remove_at(i)
+
+	# 5b. Ventana HDR: se alimenta con la sonoridad de las voces activas y avanza
+	# antes de aplicar, porque la ganancia de cada voz depende de donde quede.
+	_update_hdr(delta)
 
 	# 6. Asignar permiso: quien es audible dentro del presupuesto.
 	if voice_pool:

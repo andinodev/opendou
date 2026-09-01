@@ -62,7 +62,8 @@ static func run_all() -> OpenDouAssert:
 
 	# Y las clases que lo implementaban no deben volver.
 	for path in ["res://addons/opendou/runtime/audio_ring_buffer.gd",
-			"res://addons/opendou/runtime/bank_stream_playback.gd"]:
+			"res://addons/opendou/runtime/bank_stream_playback.gd",
+			"res://addons/opendou/runtime/spatial/hdr_audio_manager.gd"]:
 		a.ok(not FileAccess.file_exists(path), "%s no existe" % path)
 
 	return a

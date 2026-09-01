@@ -66,6 +66,7 @@ const TestReverbBusPoolClass = preload("res://tests/test_reverb_bus_pool.gd")
 const TestIRRT60Class = preload("res://tests/test_ir_rt60.gd")
 const TestBankPreloadClass = preload("res://tests/test_bank_preload.gd")
 const TestPresetHintCacheClass = preload("res://tests/test_preset_hint_cache.gd")
+const TestHDRVoiceGainClass = preload("res://tests/test_hdr_voice_gain.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -232,7 +233,8 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r41)
 	
 	var r42 = TestSpatialAcousticsPhase2Class.run_all()
-	total_tests += 10
+	# 8 y no 10: los Tests 9 y 10 cubrian el motor HDR duplicado que se elimino.
+	total_tests += 8
 	all_failures.append_array(r42)
 	
 	var r43 = TestTacticalCanyonDemoClass.run_all()
@@ -308,6 +310,10 @@ static func run_suite() -> Dictionary:
 	var hint_res = TestPresetHintCacheClass.run_all()
 	total_tests += hint_res.assertions_run
 	all_failures.append_array(hint_res.failures)
+
+	var hdr_res = TestHDRVoiceGainClass.run_all()
+	total_tests += hdr_res.assertions_run
+	all_failures.append_array(hdr_res.failures)
 
 	return {
 		"total": total_tests,

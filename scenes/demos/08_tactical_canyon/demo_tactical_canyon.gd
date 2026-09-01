@@ -30,6 +30,10 @@ var bunker_portal: AudioPortal
 # Runtime State
 var active_sector_idx: int = 1
 var is_bunker_door_open: bool = true
+## Motor HDR consolidado. Se instancia aqui para que la demo funcione tambien
+## fuera del arbol, como la instancian sus tests.
+var hdr_engine := preload("res://addons/opendou/core/audio_hdr_engine.gd").new()
+
 var active_test_material: StringName = &"Concrete"
 var drone_orbit_angle: float = 0.0
 var is_debugger_active: bool = false
@@ -303,9 +307,10 @@ func trigger_hdr_explosion() -> void:
 	if explosion_audio and explosion_audio.has_method("play_event"):
 		explosion_audio.call("play_event")
 
-	# Registrar el transitorio masivo (+3 dB FS) en el gestor HDR
-	if spatial_acoustics and spatial_acoustics.hdr_manager:
-		spatial_acoustics.hdr_manager.register_loudness_event(3.0)
+	# Registrar el transitorio masivo en el motor HDR consolidado.
+	if hdr_engine:
+		hdr_engine.push_event_loudness(3.0)
+		hdr_engine.update(0.016)
 	_update_hud()
 
 func set_test_material(mat_name: StringName) -> void:
@@ -387,13 +392,11 @@ func _process(delta: float) -> void:
 			if lbl_drone_doppler:
 				lbl_drone_doppler.text = "🚁 Drone Doppler: x%.2f (LOD %d)" % [pitch, lod["lod_level"]]
 
-	# 2. Decaimiento del pico HDR
-	if spatial_acoustics and spatial_acoustics.hdr_manager:
-		spatial_acoustics.hdr_manager.process_decay(delta)
-		if lbl_hdr_window:
-			var top_db = spatial_acoustics.hdr_manager.current_window_top_db
-			var floor_db = spatial_acoustics.hdr_manager.current_floor_db
-			lbl_hdr_window.text = "🎚️ HDR Window: Top %.1f dB | Floor %.1f dB" % [top_db, floor_db]
+	# 2. Ventana HDR. El decaimiento ya lo avanza el manager cada frame en
+	# _update_hdr(); avanzarlo aqui tambien la haria caer al doble de velocidad.
+	if hdr_engine and lbl_hdr_window:
+		var bounds: Vector2 = hdr_engine.get_window_bounds()
+		lbl_hdr_window.text = "🎚️ HDR Window: Top %.1f dB | Floor %.1f dB" % [bounds.x, bounds.y]
 
 	# 3. Proyección continua del spline del río al punto más cercano al oyente
 	if river_spline_emitter and player and river_spline_emitter.has_method("update_spline_acoustics"):
