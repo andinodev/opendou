@@ -5,6 +5,11 @@ extends RefCounted
 
 const SoundBankMetadataClass = preload("res://addons/opendou/resources/soundbank_metadata.gd")
 
+## Codecs que el TOC puede declarar.
+const CODEC_PCM16: int = 0
+const CODEC_ADPCM: int = 1
+const CODEC_VORBIS: int = 2
+
 var bank_path: String = ""
 var bank_name: StringName = &""
 var version: int = 1
@@ -87,6 +92,46 @@ func get_prefetch_slice(stream_id: int) -> PackedByteArray:
 		return PackedByteArray()
 		
 	return prefetch_memory.slice(meta.prefetch_offset, meta.prefetch_offset + meta.prefetch_length)
+
+## Reconstruye un stream del banco como AudioStreamWAV reproducible.
+##
+## Es lo que convierte el pipeline ODBK en algo que suena: antes el banco se leia
+## correctamente y sus bytes no llegaban a ninguna salida de audio.
+##
+## El banco guarda los bytes PCM16 sin transformarlos, asi que la reconstruccion
+## es byte-exacta: lo que entro al compilador es lo que sale.
+##
+## Devuelve null para los codecs que GDScript no puede decodificar, avisando de
+## cual era, en lugar de producir ruido.
+func build_stream(stream_id: int) -> AudioStreamWAV:
+	if not stream_registry.has(stream_id):
+		return null
+	var meta: SoundBankMetadata = stream_registry[stream_id]
+
+	if meta.codec != CODEC_PCM16:
+		push_warning("[OpenDou] el stream %d del banco '%s' declara el codec %d, que GDScript no puede decodificar. Solo PCM16 (codec 0) es reproducible; recompila el banco sin comprimir." % [
+			stream_id, str(bank_name), meta.codec])
+		return null
+
+	# En los bancos que produce el compilador, prefetch y disco son exclusivos por
+	# stream. Se concatenan de todas formas para que un banco que usara ambos
+	# bloques siguiera reconstruyendose entero.
+	var data := PackedByteArray()
+	var pref: PackedByteArray = get_prefetch_slice(stream_id)
+	if pref.size() > 0:
+		data.append_array(pref)
+	if meta.disk_length > 0:
+		data.append_array(read_stream_chunk(stream_id, 0, meta.disk_length))
+
+	if data.is_empty():
+		return null
+
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.stereo = meta.channels >= 2
+	wav.mix_rate = maxi(1, meta.sample_rate)
+	wav.data = data
+	return wav
 
 ## Reads a chunk of audio directly from the streaming body on disk.
 func read_stream_chunk(stream_id: int, relative_offset: int, chunk_length: int) -> PackedByteArray:

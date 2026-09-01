@@ -65,6 +65,7 @@ const TestSplineAnchorClass = preload("res://tests/test_spline_anchor.gd")
 const TestPortalDiffractionClass = preload("res://tests/test_portal_diffraction.gd")
 const TestReverbBusPoolClass = preload("res://tests/test_reverb_bus_pool.gd")
 const TestIRRT60Class = preload("res://tests/test_ir_rt60.gd")
+const TestBankPreloadClass = preload("res://tests/test_bank_preload.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -303,6 +304,10 @@ static func run_suite() -> Dictionary:
 	var ir_res = TestIRRT60Class.run_all()
 	total_tests += ir_res.assertions_run
 	all_failures.append_array(ir_res.failures)
+
+	var bank_res = TestBankPreloadClass.run_all()
+	total_tests += bank_res.assertions_run
+	all_failures.append_array(bank_res.failures)
 
 	return {
 		"total": total_tests,
