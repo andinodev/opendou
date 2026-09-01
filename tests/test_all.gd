@@ -54,6 +54,7 @@ const TestAnimationSyncClass = preload("res://tests/test_animation_sync.gd")
 const TestTacticalInfiltrationDemoClass = preload("res://tests/test_tactical_infiltration_demo.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
+const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -263,6 +264,12 @@ static func run_suite() -> Dictionary:
 	total_tests += 10
 	all_failures.append_array(r51)
 	
+	# Suites nuevas de la Fase 1: cuentan aserciones reales en lugar de un total
+	# escrito a mano.
+	var pool_res = TestNativePlayerPoolClass.new().run_all()
+	total_tests += pool_res.assertions_run
+	all_failures.append_array(pool_res.failures)
+
 	return {
 		"total": total_tests,
 		"failures": all_failures,
