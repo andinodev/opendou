@@ -11,6 +11,169 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new()
 	a.absorb(await run_keel_async(tree))
 	a.absorb(await run_monsoon_async(tree))
+	a.absorb(await run_cabin_async(tree))
+	return a
+
+
+## «La cabina»: un RTPC conduce tres cosas, y los estados cruzan.
+static func run_cabin_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("cabin_demo")
+
+	var CabinClass = load("res://scenes/demos/cabin/cabin_demo.gd")
+	var RadioEventsClass = load("res://scenes/demos/cabin/radio_events.gd")
+	var demo = CabinClass.new()
+	tree.root.add_child(demo)
+	await tree.process_frame
+	await tree.physics_frame
+	await tree.process_frame
+
+	var manager = demo.event_manager
+	a.ok(manager == tree.root.get_node_or_null("OpenDou"),
+		"la demo usa el manager autoload, no una copia")
+
+	# La suite REAL, no la de reserva. Contar cuatro stems no distinguiria: la de
+	# reserva tambien da cuatro. Lo que la distingue es que cada stem esta en SU bus,
+	# que es de donde viene la posibilidad de medir el desplazamiento de energia.
+	a.eq(demo.music.get_stem_count(), 4, "la suite cargo sus cuatro stems")
+	for bus in ["MusicPads", "MusicBass", "MusicDrums", "MusicBrass", "Music", "Radio"]:
+		a.gt(float(AudioServer.get_bus_index(bus)), -0.5, "el bus '%s' existe" % bus)
+	var stem_buses: Array = []
+	for stem in demo.music.stem_players:
+		stem_buses.append(String(stem.bus))
+	for bus in ["MusicPads", "MusicBass", "MusicDrums", "MusicBrass"]:
+		a.ok(bus in stem_buses, "hay un stem en el bus '%s'" % bus)
+	a.ok(not ("Music" in stem_buses),
+		"ningun stem quedo en el bus de stingers: si lo estuviera, la suite es la de reserva")
+
+	# ---- COSA 1: la tension desplaza la energia entre stems, medida por stem.
+	demo.set_tension(0.0)
+	await tree.process_frame
+	var probe_brass = OpenDouAudioProbeClass.new()
+	a.ok(probe_brass.attach_to_existing_bus(&"MusicBrass", 2.0), "sonda en MusicBrass")
+	probe_brass.drain()
+	var brass_calm: float = await probe_brass.measure_peak_over_frames(tree, 30)
+	demo.set_tension(1.0)
+	await tree.process_frame
+	probe_brass.drain()
+	var brass_tense: float = await probe_brass.measure_peak_over_frames(tree, 30)
+	a.gt(brass_tense, maxf(brass_calm, 0.0001) * 4.0,
+		"con tension alta el stem de metales entra")
+	probe_brass.teardown()
+
+	# Y en el sentido contrario, que es lo que descarta un fallo trivial de nivel.
+	var probe_pads = OpenDouAudioProbeClass.new()
+	a.ok(probe_pads.attach_to_existing_bus(&"MusicPads", 2.0), "sonda en MusicPads")
+	demo.set_tension(1.0)
+	await tree.process_frame
+	probe_pads.drain()
+	var pads_tense: float = await probe_pads.measure_peak_over_frames(tree, 30)
+	demo.set_tension(0.0)
+	await tree.process_frame
+	probe_pads.drain()
+	var pads_calm: float = await probe_pads.measure_peak_over_frames(tree, 30)
+	a.gt(pads_calm, maxf(pads_tense, 0.0001) * 4.0,
+		"con tension baja el stem de pads es el que suena")
+	probe_pads.teardown()
+
+	# ---- COSA 2: el MISMO RTPC cierra el filtro de la radio.
+	demo.tune_radio(&"Tower")
+	demo.set_tension(0.0)
+	for i in range(6):
+		await tree.process_frame
+	var cutoff_calm: float = demo.get_radio_cutoff()
+	demo.set_tension(1.0)
+	for i in range(30):
+		await tree.process_frame
+	var cutoff_tense: float = demo.get_radio_cutoff()
+	a.gt(cutoff_calm, 1.0, "la radio tiene un corte medible")
+	a.lt(cutoff_tense, cutoff_calm * 0.5, "con tension alta la radio se cierra")
+
+	# ---- COSA 3: y mueve el envio de reverb de la cabina.
+	demo.set_tension(0.0)
+	await tree.process_frame
+	var send_calm: float = demo.cabin_room.reverb_send_amount
+	demo.set_tension(1.0)
+	await tree.process_frame
+	var send_tense: float = demo.cabin_room.reverb_send_amount
+	a.ok(absf(send_tense - send_calm) > 0.05, "el envio de reverb tambien se mueve")
+
+	# ---- Los estados CRUZAN en lugar de cortar.
+	demo.escalate(&"Routine")
+	await tree.process_frame
+	demo.escalate(&"Emergency")
+	await tree.process_frame
+	await tree.process_frame
+	var weight_mid: float = manager.get_state_transition_weight(&"Situation")
+	a.gt(weight_mid, 0.0, "la transicion de estado ha empezado")
+	a.lt(weight_mid, 1.0, "y no ha terminado: cruza, no corta")
+	a.eq(str(manager.get_state(&"Situation")), "Emergency", "el estado destino es el pedido")
+
+	# ---- Un trigger produce un stinger MEDIBLE en el bus de stingers.
+	var probe_music = OpenDouAudioProbeClass.new()
+	a.ok(probe_music.attach_to_existing_bus(&"Music", 2.0), "sonda en el bus de stingers")
+	# Los escalate() de arriba ya dispararon stingers y siguen sonando. Hay que esperar
+	# SILENCIO y no contar frames: medir el "antes" mientras suena el stinger anterior
+	# fue el primer intento y la comparacion no significaba nada.
+	# 60 frames consecutivos por debajo de 0.005, no los 4 por defecto: un stinger con
+	# un bache momentaneo de amplitud cumple cuatro frames sin haber terminado, y el
+	# primer intento midio el "antes" con el stinger anterior sonando.
+	a.ok(await probe_music.await_silence(tree, 0.005, 60),
+		"el bus de stingers se queda en silencio")
+	probe_music.drain()
+	var quiet: float = await probe_music.measure_peak_over_frames(tree, 15)
+	a.lt(quiet, 0.01, "y sigue callado justo antes del trigger")
+	manager.post_trigger(&"AlertRaised")
+	await tree.process_frame
+	probe_music.drain()
+	var stung: float = await probe_music.measure_peak_over_frames(tree, 40)
+	a.gt(stung, maxf(quiet, 0.001) * 3.0, "el trigger produjo un stinger audible")
+	probe_music.teardown()
+
+	# ---- Un switch cambia QUE linea de radio suena.
+	var streams: Array = []
+	for station in RadioEventsClass.STATIONS:
+		demo.tune_radio(station)
+		await tree.process_frame
+		var voices: Array = demo.radio_def.resolve_voices(demo.radio_context())
+		a.gt(float(voices.size()), 0.0, "la estacion '%s' resuelve voz" % str(station))
+		if voices.size() > 0:
+			streams.append(voices[0].stream)
+	a.eq(streams.size(), 3, "tres estaciones resueltas")
+	if streams.size() == 3:
+		a.ok(streams[0] != streams[1] and streams[1] != streams[2] and streams[0] != streams[2],
+			"las tres estaciones resuelven streams distintos")
+
+	# ---- El SoundBank precargado sirve las locuciones, y la tabla de dialogo localiza.
+	a.ok(demo.bank_loaded, "el banco de locuciones se cargo")
+	var announcement = manager.get_bank_stream(demo.BANK_NAME, 0)
+	a.ok(announcement is AudioStreamWAV, "el banco devuelve un AudioStreamWAV")
+	if announcement is AudioStreamWAV:
+		a.gt(float(announcement.data.size()), 0.0, "con datos dentro")
+	var es_stream = demo.dialogue.get_localized_stream(&"ClearedToLand")
+	demo.dialogue.set_language("en")
+	var en_stream = demo.dialogue.get_localized_stream(&"ClearedToLand")
+	a.ok(es_stream != null and en_stream != null, "la tabla sirve las dos lenguas")
+	a.ok(es_stream != en_stream, "y no devuelve el mismo stream para las dos")
+
+	# ---- Las pisadas del operador: tarima de madera y rejilla metalica.
+	var declared: Array = []
+	for child in demo.get_children():
+		if child is StaticBody3D and child.has_meta("surface_type"):
+			declared.append(str(child.get_meta("surface_type")))
+	a.ok("Wood" in declared, "la cabina tiene tarima de madera")
+	a.ok("Metal" in declared, "y rejilla metalica")
+	a.ok(not ("Carpet" in declared), "no hay 'Carpet': no esta en el vocabulario")
+
+	# build() idempotente.
+	var before: int = demo.get_child_count()
+	demo.build()
+	a.eq(demo.get_child_count(), before, "build() es idempotente")
+
+	_release_current(demo)
+	tree.root.remove_child(demo)
+	demo.free()
+	await tree.process_frame
+	a.eq(manager.active_instances.size(), 0, "la cabina no deja instancias en el autoload")
 	return a
 
 
