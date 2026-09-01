@@ -24,7 +24,6 @@ const TestTransportBarClass = preload("res://tests/test_transport_bar.gd")
 const TestRadarViewClass = preload("res://tests/test_radar_view.gd")
 const TestBankPanelClass = preload("res://tests/test_bank_panel.gd")
 const TestStudioMainClass = preload("res://tests/test_studio_main.gd")
-const TestDemoSuiteClass = preload("res://tests/test_demo_suite.gd")
 const TestHDRSnapshotsClass = preload("res://tests/test_hdr_snapshots.gd")
 const TestInteractiveMusicClass = preload("res://tests/test_interactive_music.gd")
 const TestDialogueLocalizationClass = preload("res://tests/test_dialogue_localization.gd")
@@ -32,7 +31,6 @@ const TestEarlyReflectionsHRTFClass = preload("res://tests/test_early_reflection
 const TestDSPAdvancedClass = preload("res://tests/test_dsp_advanced.gd")
 const TestProfilerRewindClass = preload("res://tests/test_profiler_rewind.gd")
 const TestStudioAdvancedUIClass = preload("res://tests/test_studio_advanced_ui.gd")
-const TestCyberpunkDemoClass = preload("res://tests/test_cyberpunk_demo.gd")
 const TestDeclarativeNodesClass = preload("res://tests/test_declarative_nodes.gd")
 const TestAudibleMonitorClass = preload("res://tests/test_audible_monitor.gd")
 const TestSynthNatureClass = preload("res://tests/test_synth_nature.gd")
@@ -42,7 +40,6 @@ const TestSynthVstWorkspaceClass = preload("res://tests/test_synth_vst_workspace
 const TestAcousticDebuggerClass = preload("res://tests/test_acoustic_debugger.gd")
 const TestSpatialAcousticsPhase1Class = preload("res://tests/test_spatial_acoustics_phase1.gd")
 const TestSpatialAcousticsPhase2Class = preload("res://tests/test_spatial_acoustics_phase2.gd")
-const TestTacticalCanyonDemoClass = preload("res://tests/test_tactical_canyon_demo.gd")
 const TestGranularEmitter3DClass = preload("res://tests/test_granular_emitter_3d.gd")
 const TestRoomReverbModesClass = preload("res://tests/test_room_reverb_modes.gd")
 const TestSoundBankPackagingAndStreamingClass = preload("res://tests/test_soundbank_packaging_and_streaming.gd")
@@ -54,7 +51,6 @@ const TestSurfaceDetectionClass = preload("res://tests/test_surface_detection.gd
 const TestPlaybackContextClass = preload("res://tests/test_playback_context.gd")
 const TestCharacterRigClass = preload("res://tests/test_character_rig.gd")
 const TestDemoScenesClass = preload("res://tests/test_demo_scenes.gd")
-const TestTacticalInfiltrationDemoClass = preload("res://tests/test_tactical_infiltration_demo.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -171,10 +167,6 @@ static func run_suite() -> Dictionary:
 	total_tests += 3
 	all_failures.append_array(r24)
 	
-	var r25 = TestDemoSuiteClass.run_all()
-	total_tests += 7
-	all_failures.append_array(r25)
-	
 	var r26 = TestHDRSnapshotsClass.run_all()
 	total_tests += 9
 	all_failures.append_array(r26)
@@ -202,10 +194,6 @@ static func run_suite() -> Dictionary:
 	var r32 = TestStudioAdvancedUIClass.run_all()
 	total_tests += 12
 	all_failures.append_array(r32)
-	
-	var r33 = TestCyberpunkDemoClass.run_all()
-	total_tests += 25
-	all_failures.append_array(r33)
 	
 	var r34 = TestDeclarativeNodesClass.run_all()
 	total_tests += 20
@@ -244,10 +232,6 @@ static func run_suite() -> Dictionary:
 	total_tests += 8
 	all_failures.append_array(r42)
 	
-	var r43 = TestTacticalCanyonDemoClass.run_all()
-	total_tests += 11
-	all_failures.append_array(r43)
-	
 	var r44 = TestGranularEmitter3DClass.run_all()
 	total_tests += 5
 	all_failures.append_array(r44)
@@ -276,10 +260,6 @@ static func run_suite() -> Dictionary:
 	var anim_sync_res = TestAnimationSyncClass.run_all()
 	total_tests += anim_sync_res.assertions_run
 	all_failures.append_array(anim_sync_res.failures)
-	
-	var r51 = TestTacticalInfiltrationDemoClass.run_all()
-	total_tests += 10
-	all_failures.append_array(r51)
 	
 	# Suites nuevas de la Fase 1: cuentan aserciones reales en lugar de un total
 	# escrito a mano.

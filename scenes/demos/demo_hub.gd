@@ -1,74 +1,102 @@
 class_name DemoHub
 extends Control
 
-## Master Demo Launcher and Interactive Feature Showcase for OpenDou
+## Lanzador de las demos de OpenDou.
+##
+## La UI se construye desde ENTRIES en lugar de vivir en el .tscn con un @onready por
+## boton. La version anterior tenia diez NodePath hardcodeados y dos de ellos con
+## fallback ternario porque las tarjetas se habian movido de sitio: anadir una demo
+## costaba editar el .tscn, el script y los dos.
 
-const DEMO_SCENES = {
-	1: "res://scenes/demos/01_spatial_rooms_portals/demo_rooms_portals.tscn",
-	2: "res://scenes/demos/02_massive_voice_stress/demo_voice_stress.tscn",
-	3: "res://scenes/demos/03_surface_switches_3d/demo_surface_switches.tscn",
-	4: "res://scenes/demos/04_vehicle_blend_rpm/demo_vehicle_rpm.tscn",
-	5: "res://scenes/demos/05_dynamic_occlusion_ray/demo_dynamic_occlusion.tscn",
-	6: "res://scenes/demos/06_soundbank_streaming/demo_soundbank_streaming.tscn",
-	7: "res://scenes/demos/07_cyberpunk_infiltration/demo_cyberpunk_infiltration.tscn",
-	8: "res://scenes/demos/08_tactical_canyon/demo_tactical_canyon.tscn",
-	9: "res://scenes/demos/09_tactical_infiltration/demo_tactical_infiltration.tscn"
-}
-
-const MASTER_SANDBOX_SCENE = "res://scenes/demos/master_sandbox/master_vertical_slice.tscn"
-
-var active_demo_node: Node = null
-
-@onready var btn_master: Button = get_node_or_null("MainContainer/HeaderPanel/Margin/HBox/BtnMasterSandbox")
-@onready var btn_launch1: Button = get_node_or_null("MainContainer/GridContainer/Card1/Margin/VBox/BtnLaunch1")
-@onready var btn_launch2: Button = get_node_or_null("MainContainer/GridContainer/Card2/Margin/VBox/BtnLaunch2")
-@onready var btn_launch3: Button = get_node_or_null("MainContainer/GridContainer/Card3/Margin/VBox/BtnLaunch3")
-@onready var btn_launch4: Button = get_node_or_null("MainContainer/GridContainer/Card4/Margin/VBox/BtnLaunch4")
-@onready var btn_launch5: Button = get_node_or_null("MainContainer/GridContainer/Card5/Margin/VBox/BtnLaunch5")
-@onready var btn_launch6: Button = get_node_or_null("MainContainer/GridContainer/Card6/Margin/VBox/BtnLaunch6")
-@onready var btn_launch7: Button = get_node_or_null("MainContainer/HeroCard/Margin/HBox/BtnLaunch7")
-@onready var btn_launch8: Button = get_node_or_null("MainContainer/HeroCard2/Margin/HBox/BtnLaunch8") if get_node_or_null("MainContainer/HeroCard2/Margin/HBox/BtnLaunch8") else get_node_or_null("MainContainer/HeaderPanel/Margin/HBox/BtnLaunch8")
-@onready var btn_launch9: Button = get_node_or_null("MainContainer/HeroCard3/Margin/HBox/BtnLaunch9") if get_node_or_null("MainContainer/HeroCard3/Margin/HBox/BtnLaunch9") else get_node_or_null("MainContainer/HeaderPanel/Margin/HBox/BtnLaunch9")
-@onready var btn_tests: Button = get_node_or_null("MainContainer/HeaderPanel/Margin/HBox/BtnRunTests")
+## Las cuatro entradas. Cada demo declara SU tesis: es lo que hay que poder demostrar.
+const ENTRIES: Array[Dictionary] = [
+	{
+		"title": "Bajo la quilla",
+		"thesis": "El mismo emisor suena de cuatro maneras distintas solo por geometria.",
+		"scene": "res://scenes/demos/keel/keel_demo.tscn",
+	},
+	{
+		"title": "El monzon",
+		"thesis": "200 emisores contra 32 voces fisicas, y el trueno hunde el ambiente.",
+		"scene": "res://scenes/demos/monsoon/monsoon_demo.tscn",
+	},
+	{
+		"title": "La cabina",
+		"thesis": "Un RTPC conduce tres cosas a la vez, y los estados cruzan.",
+		"scene": "res://scenes/demos/cabin/cabin_demo.tscn",
+	},
+	{
+		"title": "Banco del rig",
+		"thesis": "Tres materiales, un jugador con oyente y un NPC sin el.",
+		"scene": "res://scenes/rig_bench/rig_bench.tscn",
+	},
+]
 
 func _ready() -> void:
-	_connect_ui()
+	_build_ui()
 
-func _connect_ui() -> void:
-	if btn_master:
-		btn_master.pressed.connect(func(): get_tree().change_scene_to_file(MASTER_SANDBOX_SCENE))
-	if btn_launch1:
-		btn_launch1.pressed.connect(func(): switch_to_demo(1))
-	if btn_launch2:
-		btn_launch2.pressed.connect(func(): switch_to_demo(2))
-	if btn_launch3:
-		btn_launch3.pressed.connect(func(): switch_to_demo(3))
-	if btn_launch4:
-		btn_launch4.pressed.connect(func(): switch_to_demo(4))
-	if btn_launch5:
-		btn_launch5.pressed.connect(func(): switch_to_demo(5))
-	if btn_launch6:
-		btn_launch6.pressed.connect(func(): switch_to_demo(6))
-	if btn_launch7:
-		btn_launch7.pressed.connect(func(): switch_to_demo(7))
-	if btn_launch8:
-		btn_launch8.pressed.connect(func(): switch_to_demo(8))
-	if btn_launch9:
-		btn_launch9.pressed.connect(func(): switch_to_demo(9))
-	if btn_tests:
-		btn_tests.pressed.connect(_on_run_tests_pressed)
+## Lanza la demo por indice.
+func launch(index: int) -> void:
+	if index < 0 or index >= ENTRIES.size():
+		return
+	var path: String = str(ENTRIES[index].get("scene", ""))
+	if not path.is_empty():
+		get_tree().change_scene_to_file(path)
 
-func switch_to_demo(id: int) -> void:
-	if DEMO_SCENES.has(id):
-		get_tree().change_scene_to_file(DEMO_SCENES[id])
+## Rutas declaradas, para comprobar que ninguna esta muerta.
+func get_entry_paths() -> PackedStringArray:
+	var paths := PackedStringArray()
+	for entry in ENTRIES:
+		paths.append(str(entry.get("scene", "")))
+	return paths
 
-## Headless / test programmatic launcher
-func launch_demo(id: int, _desc: String = "") -> void:
-	if DEMO_SCENES.has(id):
-		var scene_res = load(DEMO_SCENES[id])
-		if scene_res:
-			active_demo_node = scene_res.instantiate()
+func _build_ui() -> void:
+	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-func _on_run_tests_pressed() -> void:
-	# Run tests in-editor or print status
-	print("Running OpenDou Test Suite...")
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 32)
+	margin.add_theme_constant_override("margin_top", 32)
+	margin.add_theme_constant_override("margin_right", 32)
+	margin.add_theme_constant_override("margin_bottom", 32)
+	add_child(margin)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 12)
+	margin.add_child(column)
+
+	var heading := Label.new()
+	heading.text = "OpenDou — demos"
+	column.add_child(heading)
+
+	var subheading := Label.new()
+	subheading.text = "Cada demo demuestra una cosa. Si no se oye, esta roto."
+	subheading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(subheading)
+
+	for i in range(ENTRIES.size()):
+		column.add_child(_build_card(i))
+
+func _build_card(index: int) -> Control:
+	var entry: Dictionary = ENTRIES[index]
+
+	var panel := PanelContainer.new()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = "%d. %s" % [index + 1, str(entry.get("title", ""))]
+	box.add_child(title)
+
+	var thesis := Label.new()
+	thesis.text = str(entry.get("thesis", ""))
+	thesis.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(thesis)
+
+	var button := Button.new()
+	button.text = "Abrir"
+	button.pressed.connect(func(): launch(index))
+	box.add_child(button)
+
+	return panel

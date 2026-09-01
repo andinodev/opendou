@@ -12,6 +12,36 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_keel_async(tree))
 	a.absorb(await run_monsoon_async(tree))
 	a.absorb(await run_cabin_async(tree))
+	a.absorb(run_hub())
+	return a
+
+
+## El hub: cuatro entradas y ni una ruta muerta.
+static func run_hub() -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("demo_hub")
+
+	var HubClass = load("res://scenes/demos/demo_hub.gd")
+	a.ok(HubClass != null, "el script del hub existe")
+	a.eq(HubClass.ENTRIES.size(), 4, "el hub tiene cuatro entradas")
+
+	# Ninguna ruta muerta. Es la asercion que impide que el hub sobreviva al borrado
+	# apuntando a escenas que ya no existen.
+	for entry in HubClass.ENTRIES:
+		var path: String = str(entry.get("scene", ""))
+		a.ok(ResourceLoader.exists(path), "la escena '%s' existe" % path)
+		a.ok(not str(entry.get("title", "")).is_empty(), "la entrada '%s' tiene titulo" % path)
+		a.ok(not str(entry.get("thesis", "")).is_empty(), "la entrada '%s' declara su tesis" % path)
+
+	# Y las viejas ya no estan. Sin esto, borrar los directorios y olvidar una
+	# referencia pasaria inadvertido.
+	for stale in [
+		"res://scenes/demos/01_spatial_rooms_portals/demo_rooms_portals.tscn",
+		"res://scenes/demos/07_cyberpunk_infiltration/demo_cyberpunk_infiltration.tscn",
+		"res://scenes/demos/09_tactical_infiltration/demo_tactical_infiltration.tscn",
+		"res://scenes/demos/master_sandbox/master_vertical_slice.tscn",
+	]:
+		a.ok(not ResourceLoader.exists(stale), "la escena vieja '%s' se borro" % stale)
+
 	return a
 
 
