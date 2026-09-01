@@ -191,39 +191,67 @@ func stop_all() -> void:
 		instance.stop()
 	active_instances.clear()
 
+## Empuja los valores calculados de cada voz fisica a su reproductor nativo.
+##
+## Este paso es el que faltaba: sin el, calculated_volume_db,
+## calculated_pitch_scale y el cutoff de oclusion se recalculan cada frame y no
+## afectan a ningun sonido. Una voz arrancaba en el suelo de -80 dB que pone
+## play_stream() y se quedaba ahi para siempre.
+func _apply_voices() -> void:
+	if voice_pool == null:
+		return
+	for instance in active_instances:
+		if instance == null or instance.assigned_channel_id < 0:
+			continue
+		var ch = voice_pool.get_channel(instance.assigned_channel_id)
+		if ch == null or not ch.is_busy:
+			continue
+		var cutoff: float = float(instance.calculated_properties.get(&"cutoff_hz", 20000.0))
+		ch.apply(
+			instance.calculated_volume_db,
+			instance.calculated_pitch_scale,
+			cutoff,
+			instance.emitter_position
+		)
+
+## Actualiza la posicion del oyente.
+## La Tarea 10 lo sustituye por la resolucion completa via OpenDouListenerResolver.
+func _update_listener() -> void:
+	pass
+
 ## Main frame update loop.
 func _process(delta: float) -> void:
-	# 1. Poll Live Update server & dispatch remote authoring changes
+	# 1. Resolver el oyente. Todo lo que dependa de distancia va DESPUES.
+	_update_listener()
+
+	# 2. Live Update remoto.
 	if live_update_server and live_update_server.is_server_running:
 		live_update_server.poll()
 		live_update_server.dispatch_commands(event_registry, sync_manager)
-		
-	# 2. Update Game Syncs (RTPCs & States transitions)
+
+	# 3. Game Syncs (RTPCs y transiciones de estado).
 	if sync_manager:
 		sync_manager.process(delta)
-		
-	# 3. Update active instances
+
+	# 4. Parametros de instancia y limpieza de las terminadas.
 	for i in range(active_instances.size() - 1, -1, -1):
 		var instance: EventInstance = active_instances[i]
-		
-		# 3a. Interpolate local instance parameters
 		instance.interpolate_locals(delta)
-		
-		# 3b. Evaluate curves, modulators and calculate output values
 		var global_rtpcs = sync_manager.global_rtpcs if sync_manager else {}
 		instance.update_parameters(delta, global_rtpcs)
-		
-		# 3c. Clean up finished instances
 		if instance.is_finished():
 			if voice_pool and instance.assigned_channel_id >= 0:
 				voice_pool.virtualize(instance)
 			active_instances.remove_at(i)
-			
-	# 4. Resolve Voice Stealing and Virtual Voice allocation
+
+	# 5. Asignar permiso: quien es audible dentro del presupuesto.
 	if voice_pool:
 		voice_pool.resolve_voice_stealing(active_instances, active_listener_position, delta)
-		
-	# 5. Broadcast Profiler Telemetry
+
+	# 6. Aplicar los valores calculados a los reproductores reales.
+	_apply_voices()
+
+	# 7. Telemetria.
 	if live_update_server and live_update_server.is_server_running:
 		var phys_count = voice_pool.get_active_physical_count() if voice_pool else 0
 		var virt_count = voice_pool.get_active_virtual_count(active_instances) if voice_pool else 0

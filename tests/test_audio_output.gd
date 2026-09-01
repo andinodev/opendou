@@ -28,6 +28,7 @@ func run_all_async(tree: SceneTree):
 	a.absorb(await run_channel_audio_async(tree))
 	a.absorb(await run_budget_async(tree))
 	a.absorb(await run_lifecycle_async(tree))
+	a.absorb(await run_rtpc_affects_output_async(tree))
 	return a
 
 ## La sonda debe medir una senal conocida. Si esto falla, ninguna otra asercion
@@ -236,5 +237,57 @@ func run_lifecycle_async(tree: SceneTree):
 	a.ok(emptied, "la lista se vacia al terminar los streams")
 	a.eq(manager.active_instances.size(), 0, "no queda ninguna instancia colgada")
 
+	manager.free()
+	return a
+
+## Un cambio de volumen debe mover el pico medido en el bus.
+##
+## Sin el paso «aplicar» del ciclo por frame, calculated_volume_db se recalcula
+## cada frame y la salida no se entera: el volumen, el pitch y el cutoff de
+## oclusion eran numeros que no afectaban a ningun sonido.
+func run_rtpc_affects_output_async(tree: SceneTree):
+	var a := OpenDouAssertClass.new("rtpc_output")
+
+	var probe = OpenDouAudioProbeClass.new()
+	probe.setup(2.0)
+
+	var manager = AudioEventManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	var tone := AudioSynthesizerClass.create_tone(440.0, 4.0, 0.8, false)
+	var def = AudioEventDefClass.new(&"Sustained", tone)
+	def.target_bus = probe.bus_name()
+	def.stream_length = float(tone.get_length())
+	def.is_looping = true
+	def.base_volume_db = 0.0
+	manager.register_event_definition(def)
+
+	var inst = manager.post_event(&"Sustained", null)
+	a.ok(inst != null, "post_event devuelve una instancia")
+
+	probe.drain()
+	var loud: float = await probe.measure_peak_over_frames(tree, 40)
+	a.gt(loud, 0.05, "a volumen base el evento suena")
+
+	# Bajar 40 dB debe reflejarse en la salida medida.
+	def.base_volume_db = -40.0
+	for _f in range(30):
+		await tree.process_frame
+	probe.drain()
+	var quiet: float = await probe.measure_peak_over_frames(tree, 40)
+	a.lt(quiet, loud * 0.5, "al bajar 40 dB el pico medido cae")
+
+	# Y volver a subirlo debe recuperarlo: descarta que el pico caiga por otra
+	# razon, como que el loop hubiera terminado.
+	def.base_volume_db = 0.0
+	for _f in range(30):
+		await tree.process_frame
+	probe.drain()
+	var loud_again: float = await probe.measure_peak_over_frames(tree, 40)
+	a.gt(loud_again, quiet * 2.0, "al subirlo de nuevo el pico se recupera")
+
+	manager.stop_all()
+	probe.teardown()
 	manager.free()
 	return a
