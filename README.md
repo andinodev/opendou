@@ -8,6 +8,12 @@ It provides an open, royalty-free alternative to proprietary audio solutions suc
 
 ## 🚀 Key Pillars
 
+> **Estado de implementacion.** OpenDou es hoy **100% GDScript**: no hay ni una
+> linea de C++ ni de Rust en el repositorio. La capa GDExtension descrita en
+> `docs/architecture/gdextension_api.md` esta **planificada**, no implementada.
+> El motor orquesta reproductores nativos de Godot, que es quien hace la mezcla
+> en C++ y quien aporta la atenuacion 3D, el paneo y el filtro por voz.
+
 1. **Decoupled Event & Action Dispatcher:**
    * Trigger complex sound behaviors via events (`OpenDou.post_event("Play_Footstep", self)`) without coupling sounds to scene nodes.
    * Full **Game Syncs** support: Continuous/Discrete **RTPCs**, Entity **Switches**, Global **States**, and Musical **Triggers**.
@@ -38,7 +44,7 @@ opendou/
 │   ├── README.md                 # Documentation navigation index
 │   ├── architecture/             # Audio engine design, GDExtension specs & engine comparisons
 │   │   ├── overview.md           # System architecture & audio pipeline
-│   │   ├── gdextension_api.md    # Low-level C++/Rust GDExtension bindings
+│   │   ├── gdextension_api.md    # Bindings GDExtension C++/Rust (PLANIFICADO, no implementado)
 │   │   ├── audio-engine_godot.md # Native Godot audio engine analysis
 │   │   ├── audio-engine_wwise.md # Wwise architecture & feature breakdown
 │   │   ├── audio-engine_fmod.md  # FMOD architecture & feature breakdown
@@ -58,12 +64,12 @@ opendou/
 
 ## 📖 Documentation Quick Links
 
-* [Documentation Hub (docs/README.md)](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/README.md)
-* [Audio Engine Architecture Overview](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/architecture/overview.md)
-* [Engine Comparison Matrix](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/architecture/audio-engine-comparison.md)
-* [Active Tasks (docs/tasks/current.md)](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/tasks/current.md)
-* [Backlog (docs/tasks/backlog.md)](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/tasks/backlog.md)
-* [Project Roadmap (docs/tasks/roadmap.md)](file:///c:/Users/Danielillo/projects/godot%20plugins/opendou/docs/tasks/roadmap.md)
+* [Documentation Hub (docs/README.md)](docs/README.md)
+* [Audio Engine Architecture Overview](docs/architecture/overview.md)
+* [Engine Comparison Matrix](docs/architecture/audio-engine-comparison.md)
+* [Active Tasks (docs/tasks/current.md)](docs/tasks/current.md)
+* [Backlog (docs/tasks/backlog.md)](docs/tasks/backlog.md)
+* [Project Roadmap (docs/tasks/roadmap.md)](docs/tasks/roadmap.md)
 
 ---
 

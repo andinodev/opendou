@@ -58,6 +58,7 @@ const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.g
 const TestListenerResolverClass = preload("res://tests/test_listener_resolver.gd")
 const TestOcclusionSchedulerClass = preload("res://tests/test_occlusion_scheduler.gd")
 const TestEarlyReflectionsClass = preload("res://tests/test_early_reflections.gd")
+const TestNoUnfulfilledClaimsClass = preload("res://tests/test_no_unfulfilled_claims.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -272,6 +273,10 @@ static func run_suite() -> Dictionary:
 	var pool_res = TestNativePlayerPoolClass.new().run_all()
 	total_tests += pool_res.assertions_run
 	all_failures.append_array(pool_res.failures)
+
+	var claims_res = TestNoUnfulfilledClaimsClass.new().run_all()
+	total_tests += claims_res.assertions_run
+	all_failures.append_array(claims_res.failures)
 
 	return {
 		"total": total_tests,

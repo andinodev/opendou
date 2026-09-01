@@ -31,6 +31,7 @@ func run_all_async(tree: SceneTree):
 	a.absorb(await run_lifecycle_async(tree))
 	a.absorb(await run_rtpc_affects_output_async(tree))
 	a.absorb(await run_single_voice_async(tree))
+	a.absorb(await run_listener_drives_priority_async(tree))
 	return a
 
 ## La sonda debe medir una senal conocida. Si esto falla, ninguna otra asercion
@@ -345,4 +346,61 @@ func run_single_voice_async(tree: SceneTree):
 	tree.root.remove_child(emitter)
 	emitter.free()
 	manager.free()
+	return a
+
+## Mover el oyente debe cambiar a que voz se le concede el permiso.
+##
+## Es el criterio que cierra la observacion 5 por el lado del gameplay: con el
+## oyente clavado en Vector3.ZERO, dos voces equidistantes del origen pero a
+## distancias muy distintas del jugador competian con el peso equivocado.
+func run_listener_drives_priority_async(tree: SceneTree):
+	var a := OpenDouAssertClass.new("listener_priority")
+
+	var pool = NativePlayerPoolClass.new(4)
+	tree.root.add_child(pool)
+	await tree.process_frame
+
+	var tone := AudioSynthesizerClass.create_tone(440.0, 3.0, 0.6, false)
+
+	# Misma prioridad base en las dos: asi decide la distancia, no el ajuste.
+	var def_a = AudioEventDefClass.new(&"VoiceA", tone)
+	def_a.base_priority = 50.0
+	var def_b = AudioEventDefClass.new(&"VoiceB", tone)
+	def_b.base_priority = 50.0
+
+	var voice_a = EventInstanceClass.new(def_a)
+	voice_a.set_position(Vector3.ZERO)
+	voice_a.max_distance = 200.0
+	voice_a.play()
+	var voice_b = EventInstanceClass.new(def_b)
+	voice_b.set_position(Vector3(100.0, 0.0, 0.0))
+	voice_b.max_distance = 200.0
+	voice_b.play()
+
+	var instances: Array[EventInstance] = [voice_a, voice_b]
+
+	# Presupuesto de una sola voz: con el oyente en el origen gana la voz A.
+	var vpool = VoicePoolManagerClass.new(1)
+	vpool.set_player_pool(pool)
+	vpool.resolve_voice_stealing(instances, Vector3.ZERO, 0.016)
+	a.eq(voice_a.voice_state, EventInstanceClass.VoiceState.STATE_PHYSICAL,
+		"con el oyente en el origen gana la voz cercana al origen")
+	a.eq(voice_b.voice_state, EventInstanceClass.VoiceState.STATE_VIRTUAL,
+		"la voz lejana al oyente queda virtual")
+
+	# Mover el oyente junto a la voz B debe invertir el reparto.
+	var vpool2 = VoicePoolManagerClass.new(1)
+	vpool2.set_player_pool(pool)
+	vpool2.virtualize(voice_a)
+	voice_a.play()
+	voice_b.play()
+	vpool2.resolve_voice_stealing(instances, Vector3(100.0, 0.0, 0.0), 0.016)
+	a.eq(voice_b.voice_state, EventInstanceClass.VoiceState.STATE_PHYSICAL,
+		"al mover el oyente gana la voz que ahora esta cerca")
+	a.eq(voice_a.voice_state, EventInstanceClass.VoiceState.STATE_VIRTUAL,
+		"la que antes ganaba pasa a virtual")
+
+	vpool2.virtualize(voice_b)
+	tree.root.remove_child(pool)
+	pool.free()
 	return a
