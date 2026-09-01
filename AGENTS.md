@@ -97,7 +97,72 @@ falla al compilar, la causa es el punto 3, no la corrutina.
 
 Aserciones de audio: no cuentes frames fijos para afirmar silencio. En headless
 el bucle corre a maxima velocidad, asi que los frames no son proporcionales al
-tiempo de audio. Usa `OpenDouAudioProbe.await_silence()`.
+tiempo de audio. Usa `OpenDouAudioProbe.await_silence()`. Y ojo con sus valores
+por defecto: cuatro frames seguidos bajo umbral los cumple un stinger con un
+bache momentaneo de amplitud sin haber terminado. Sube `consecutive` cuando midas
+contra una cola musical.
+
+Una asercion de audio puede pasar sin probar lo que dice. Dos casos reales de
+esta fase: comparar los **picos** de dos pisadas no prueba que cambiara el
+material, porque el `AudioRandomContainer` aplica jitter de tono y volumen y dos
+pisadas cualesquiera dan picos distintos; y comparar el pico de un bus antes y
+despues de un trueno no prueba el ducking cuando 120 instancias rotan por 16
+voces, porque el pico fluctua solo. **Muta el codigo y comprueba que la asercion
+falla.** Si no falla, no afirma lo que crees.
+
+---
+
+## 5b. Trampas del motor descubiertas en la Fase 5
+
+Diez defectos que no estaban entre las 24 observaciones iniciales. Estan
+arreglados, con aserciones; se listan porque el patron se repite.
+
+**Cosas que parecian funcionar y no sonaban:**
+
+* `set_max_physical_voices()` sustituia el pool entero sin pasarle los
+  reproductores: el motor se quedaba **mudo**. Era la llamada mas obvia al
+  arrancar un juego.
+* `play_event()` no detenia la voz anterior del mismo nodo, y la vieja le ganaba
+  a la nueva por el bonus de histeresis: **dos disparos seguidos del mismo emisor
+  dejaban muda la segunda**.
+* Dos canales podian apuntar al mismo reproductor de nodo, y el primero al
+  terminar paraba el audio del segundo.
+* `OpenDouAnimationSync` creaba su **propio** `AudioEventManager` huerfano en
+  `_ready()`: no estaba conectado al autoload, asi que sus `set_switch` no
+  llegaban a nadie.
+
+**Cosas que no paraban ni terminaban:**
+
+* `stop_all()` no paraba nada: `EventInstance.stop()` ponia
+  `assigned_channel_id = -1` sin pasar por `virtualize()`, asi que el canal
+  seguia ocupado y el reproductor sonando -para siempre si el evento era un
+  bucle-.
+* `AudioEventDef.is_looping = false` **es una mentira si el `AudioStreamWAV` trae
+  `loop_mode = LOOP_FORWARD`**, y varios de los sintetizados lo traen. El
+  reproductor no emite `finished` jamas. Hoy el reloj logico del motor lo corta a
+  `stream_length`, pero al autorar conviene mirar el `loop_mode` del stream.
+
+**Trampas de API que hay que conocer antes de escribir una escena:**
+
+* `post_event(def, caller)` hace que el transform del `caller` sea **autoritativo
+  cada frame**: no se puede postear con caller y luego colocar el sonido en otro
+  sitio con `set_position()`. Para posicion propia, `caller = null`.
+* `OpenDouAcousticGeometryBake` recolecta `MeshInstance3D`, **no cuerpos**. Un
+  `StaticBody3D` en el grupo produce un bake de **cero triangulos sin un solo
+  aviso**.
+* El HDR solo alcanza a las voces que pasan por el pool. Los nodos emisores
+  nativos con `autoplay` suenan por su cuenta y **no se duckean**.
+* `AudioEventDef.max_instances` no lo hace cumplir nadie: es un boton de autoria
+  que no hace nada.
+* Un literal de array sin tipar asignado a un `Array[Vector3]` -`waypoints`,
+  `emission_points`- **aborta con error de tipo en tiempo de ejecucion**. Usa un
+  local tipado.
+* Los datos JSON del addon tienen **override de proyecto**:
+  `res://opendou_<nombre>.json` gana a `addons/opendou/data/<nombre>.json`.
+  Editar el default del addon no tiene efecto si existe el override.
+* El proyecto **solo tiene el bus `Master`**: no hay `default_bus_layout.tres`.
+  Crea los buses que necesites con `DemoAudio.ensure_bus()` y **no los destruyas
+  nunca**, porque `AudioServer.remove_bus(i)` desplaza los indices siguientes.
 
 ---
 
