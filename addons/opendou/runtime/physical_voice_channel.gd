@@ -79,6 +79,19 @@ func get_player() -> Node:
 		return _player
 	return null
 
+## El playback de la FUENTE de la voz: en godot el del reproductor; en steam_audio el interno
+## del stream nativo. Sirve para empujar muestras a un AudioStreamGenerator (Fase 11).
+func get_source_playback() -> AudioStreamPlayback:
+	var player := get_player()
+	if player == null:
+		return null
+	var pb = player.get_stream_playback()
+	if pb == null:
+		return null
+	if _has_spatial_stream(player):
+		return pb.get_source_playback()
+	return pb
+
 ## Fija el bus de mezcla destino.
 func set_bus(p_bus: StringName) -> void:
 	target_bus = p_bus if not p_bus.is_empty() else &"Master"

@@ -22,6 +22,13 @@ const SynthPresetRegistryClass = preload("res://addons/opendou/runtime/synth/syn
 @export var auto_play_event: bool = false
 @export var stop_on_tree_exit: bool = true
 
+enum Source { EVENT, BUS_CAPTURE }
+@export_group("World Bus")
+## BUS_CAPTURE (Fase 11): la voz es lo que suena en `capture_bus` (radio, megafonia). La salida
+## directa del bus se calla a -80 dB: la captura es anterior al volumen del bus.
+@export var source: Source = Source.EVENT
+@export var capture_bus: StringName = &""
+
 @export_group("Procedural Synthesis")
 var synth_preset: String = "None"
 @export var synth_duration: float = 2.0
@@ -86,6 +93,11 @@ func _get_property_list() -> Array[Dictionary]:
 # ==============================================================================
 
 var active_instance: EventInstance = null
+const MARK_CAPTURE: String = "OpenDou_WorldBus_Capture"
+var _capture: AudioEffectCapture = null
+var _generator: AudioStreamGenerator = null
+var _capture_bus_prev_db: float = 0.0
+var _primed: bool = false
 var _event_manager: AudioEventManager = null
 
 
@@ -106,6 +118,89 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_EXIT_TREE:
 		if stop_on_tree_exit and active_instance != null:
 			active_instance.stop()
+		_stop_bus_capture()
+
+func _process(_delta: float) -> void:
+	if source == Source.BUS_CAPTURE and not Engine.is_editor_hint():
+		_pump_bus_capture()
+
+## Altavoz de mundo: captura marcada en el bus origen, bus a -80 dB, y un generador como
+## stream de un evento propio que el pool reproduce como cualquier voz.
+func _start_bus_capture(manager: AudioEventManager) -> void:
+	var idx: int = AudioServer.get_bus_index(String(capture_bus))
+	if idx < 0 or manager == null:
+		push_warning("[OpenDou] %s: capture_bus '%s' no existe o no hay manager" % [name, capture_bus])
+		return
+	_capture = null
+	for i in range(AudioServer.get_bus_effect_count(idx)):
+		var e := AudioServer.get_bus_effect(idx, i)
+		if e is AudioEffectCapture and e.resource_name == MARK_CAPTURE:
+			_capture = e
+	if _capture == null:
+		_capture = AudioEffectCapture.new()
+		_capture.resource_name = MARK_CAPTURE
+		_capture.buffer_length = 0.5
+		AudioServer.add_bus_effect(idx, _capture)
+	_capture_bus_prev_db = AudioServer.get_bus_volume_db(idx)
+	AudioServer.set_bus_volume_db(idx, -80.0)
+	_generator = AudioStreamGenerator.new()
+	_generator.mix_rate = AudioServer.get_mix_rate()
+	_generator.buffer_length = 0.2
+	var def = AudioEventDefClass.new(StringName("WorldBus_%s" % capture_bus), _generator)
+	def.target_bus = StringName(bus_category)
+	def.is_looping = true
+	def.stream_length = 0.0
+	active_instance = manager.post_event(def, self)
+	if active_instance != null:
+		active_instance.bind_player(self)
+		active_instance.copy_attenuation_from_player(self)
+		active_instance.copy_emitter_settings_from_player(self)
+		active_instance.virtualization_mode = virtualization_mode
+		active_instance.max_distance = cull_distance
+		active_instance.set_position(global_position if is_inside_tree() else position)
+	_primed = false
+	if AudioServer.get_bus_index(bus_category) != -1:
+		bus = bus_category
+
+func _pump_bus_capture() -> void:
+	if _capture == null or active_instance == null or not active_instance.is_playing():
+		return
+	var manager: AudioEventManager = _get_manager()
+	if manager == null or manager.voice_pool == null or active_instance.assigned_channel_id < 0:
+		return
+	var ch = manager.voice_pool.get_channel(active_instance.assigned_channel_id)
+	if ch == null:
+		return
+	var pb = ch.get_source_playback() as AudioStreamGeneratorPlayback
+	if pb == null:
+		return
+	if not _primed:
+		# Colchon inicial de silencio para no quedarse sin muestras entre cuadros.
+		var silence := PackedVector2Array()
+		silence.resize(int(_generator.mix_rate * 0.1))
+		pb.push_buffer(silence)
+		_primed = true
+	var avail: int = _capture.get_frames_available()
+	if avail <= 0:
+		return
+	var frames: PackedVector2Array = _capture.get_buffer(avail)
+	var room: int = pb.get_frames_available()
+	if frames.size() > room:
+		frames = frames.slice(frames.size() - room)
+	if not frames.is_empty():
+		pb.push_buffer(frames)
+
+func _stop_bus_capture() -> void:
+	if _capture != null:
+		var idx: int = AudioServer.get_bus_index(String(capture_bus))
+		if idx >= 0:
+			AudioServer.set_bus_volume_db(idx, _capture_bus_prev_db)
+			for i in range(AudioServer.get_bus_effect_count(idx)):
+				if AudioServer.get_bus_effect(idx, i) == _capture:
+					AudioServer.remove_bus_effect(idx, i)
+					break
+	_capture = null
+	_generator = null
 
 
 # ==============================================================================
@@ -120,6 +215,11 @@ func set_event_manager(manager: AudioEventManager) -> void:
 func play_event(p_event_name: StringName = &"") -> void:
 	var target_name: StringName = p_event_name if not p_event_name.is_empty() else event_name
 	var manager: AudioEventManager = _get_manager()
+	if source == Source.BUS_CAPTURE:
+		if active_instance != null:
+			stop_event()
+		_start_bus_capture(manager)
+		return
 	# El reproductor de este nodo puede hospedar UNA voz. Si ya habia una activa hay
 	# que detenerla: si no, la vieja se queda ocupando el emisor y, con el bonus de
 	# histeresis del pool, le gana a la nueva. Dos disparos seguidos del mismo emisor
@@ -180,6 +280,8 @@ func play_event(p_event_name: StringName = &"") -> void:
 func stop_event(fade_time: float = 0.0) -> void:
 	if active_instance != null:
 		active_instance.stop(fade_time)
+	if source == Source.BUS_CAPTURE:
+		_stop_bus_capture()
 	if is_inside_tree() and playing:
 		stop()
 

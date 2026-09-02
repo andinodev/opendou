@@ -166,7 +166,11 @@ public:
 	int32_t _mix(godot::AudioFrame *p_buffer, float p_rate_scale, int32_t p_frames) override;
 
 protected:
-	static void _bind_methods() {}
+	static void _bind_methods() {
+		godot::ClassDB::bind_method(godot::D_METHOD("get_source_playback"), &OpenDouSpatialStreamPlayback::get_source_playback);
+	}
+	// El playback del stream fuente (Fase 11): para empujar muestras a un AudioStreamGenerator.
+	godot::Ref<godot::AudioStreamPlayback> get_source_playback() const { return inner_; }
 
 private:
 	bool create_effect();
