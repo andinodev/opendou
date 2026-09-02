@@ -266,6 +266,35 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
 * **El cajón de mezcla del editor no puede leer el runtime**: vive en otro proceso. Lo que se
   quiera ver en vivo va al HUD del juego (`OpenDouAudibleMonitor`) o por Live Update.
 
+**Observaciones y trampas de la Fase 9 (el emisor completo):**
+
+* **Observación 47.** `OpenDouSplineEmitter3D` no pasa por el sistema de voces: reproduce por
+  su cuenta, con su propio `SpatialAcousticsManager`, y no lo alcanzan el pool, el robo de
+  voces, el grafo de salas ni el backend binaural. En la Fase 9 solo gana el flujo
+  (`flow_speed_mps`) dentro de su doppler propio. Integrarlo es tarea de otra fase.
+* **Godot: `Curve.sample()` interpola con Hermite.** A mitad de camino entre dos puntos da lo
+  que dicen las tangentes, no la recta; un test que espera interpolacion lineal falla.
+* **Godot: `Curve3D.sample_baked_with_rotation` entrega la tangente como `-basis.z`.**
+* **Godot: los reproductores anonimos del pool nacen con la atenuacion por defecto**
+  (inversa, `unit_size` 10, `max_distance` 0). Hasta la Fase 9 una instancia con otro modelo
+  sonaba con el de Godot en el backend `godot`; ahora el canal le copia modelo, `unit_size`,
+  `max_distance` y filtro de la instancia en cada `apply_spatial`.
+* **El robo de voces descarta por `max_distance` (100 m por defecto) antes de que suene
+  nada.** Un test que pone una fuente a 343 m no oye silencio por el retardo: no oye nada
+  porque la voz nunca se devirtualizo. Hay que subir `max_distance` en la instancia.
+* **El multiplicador de la curva alimenta tambien el shelf por distancia** en ambos backends:
+  una curva a -20 dB mide unos -30 dB sobre ruido de banda ancha. Coherente entre backends
+  (paridad < 1.5 dB), pero no es igual a la curva.
+* **La mezcla HRTF del jugador es un factor, no un valor.** El canal escribe
+  `default_spatial_blend x (1 - spread)` en cada voz ocupada; el menu solo toca los flujos libres.
+* **Los tests sincronos corren desde `_init` del runner, sin arbol.** Un test que anade nodos
+  va a `run_async_suite(tree)` aunque no espere nada; `Engine.get_main_loop()` ahi es nulo.
+* **La suite ya pasa de 90 s** (unos 88 s en frio, con picos por encima): el vigilante de
+  `run_tests.sh` esta en 180 s (`OPENDOU_TEST_TIMEOUT`).
+* **Un `python`/`sed` que edita en memoria no edita nada**: la primera pasada de la senal
+  `marker_reached` se perdio por no escribir el archivo, y el error salio como
+  `Identifier not declared`. Comprobar con `grep` antes de correr la suite.
+
 ---
 
 ## 6. Reglas Modulares de Referencia

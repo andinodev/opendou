@@ -77,13 +77,13 @@ Todos resuelven el autoload `/root/OpenDou` y admiten un manager inyectado para 
 
 | Nodo | Hereda de | Qué hace | Estado |
 |---|---|---|---|
-| `OpenDouEventPlayer3D` | `AudioStreamPlayer3D` | Emisor 3D de un evento: por nombre o por `AudioEventDef`, con RTPC locales, switch y estado propios, prioridad, virtualización, distancia de descarte, categoría de bus, oclusión dinámica y reflexiones. En el backend Steam Audio **deja de sonar por sí mismo**: aporta posición y atenuación y la voz sale por el pool binaural, de modo que el origen aparente del grafo de salas lo relocaliza | ✅ |
+| `OpenDouEventPlayer3D` | `AudioStreamPlayer3D` | Emisor 3D de un evento: por nombre o por `AudioEventDef`, con RTPC locales, switch y estado propios, prioridad, virtualización, distancia de descarte, categoría de bus, oclusión dinámica y reflexiones. Desde la Fase 9 lleva también la física del emisor, en el nodo o en la definición: doppler (con la velocidad del oyente), retardo por distancia (343 m/s), `spread_radius_m` (una fuente ancha deja de ser un punto), campo cercano (graves y ILD dentro de `near_field_distance_m`), directividad por dipolo (`directivity_dipole_weight`, `directivity_power`) y curva de atenuación propia (`attenuation_curve`); la definición puede llevar `markers` que la instancia anuncia con `marker_reached`. En el backend Steam Audio **deja de sonar por sí mismo**: aporta posición y atenuación y la voz sale por el pool binaural, de modo que el origen aparente del grafo de salas lo relocaliza | ✅ |
 | `OpenDouEventPlayer2D` | `AudioStreamPlayer2D` | Lo mismo en 2D | ✅ |
 | `OpenDouEventPlayer` | `AudioStreamPlayer` | Evento sin posición: interfaz, música, narración | ✅ |
 | `OpenDouMusicPlayer` | `Node` | Música interactiva multipista: segmentos, playlists no lineales, matriz de transiciones cuantizadas, cola de stingers con ducking, reloj musical por BPM y compás | ✅ |
 | `OpenDouGranularEmitter3D` | `Node3D` | Sintetizador granular espacializado (enjambres, lluvia, texturas) | ✅ |
 | `OpenDouMultiPositionEmitter3D` | `Node3D` | Objeto sonoro grande con varios puntos de emisión (una cascada, una multitud) | ✅ |
-| `OpenDouSplineEmitter3D` | `Path3D` | Emisor continuo a lo largo de una curva (ríos, tendidos eléctricos, carreteras): el punto que suena es el más cercano al oyente | ✅ |
+| `OpenDouSplineEmitter3D` | `Path3D` | Emisor continuo a lo largo de una curva (ríos, tendidos eléctricos, carreteras): el punto que suena es el más cercano al oyente; `flow_speed_mps` mete la corriente en su doppler (Fase 9). Sigue **fuera del sistema de voces** (observación 47): no pasa por el pool, el robo ni el grafo de salas | 🟡 |
 | `OpenDouAnimationSync` | `Node` | Puente animación–audio: detecta la superficie bajo el pie (`SurfaceType`), dispara el evento de pisada con la posición real y sincroniza con `AnimationPlayer` | ✅ |
 
 ### 2.2 Acústica del espacio
@@ -108,7 +108,7 @@ Todos resuelven el autoload `/root/OpenDou` y admiten un manager inyectado para 
 - **Difracción por aristas** (`EdgeDiffractionEngine`) y **acoplamiento entre salas** (`RoomCouplingEngine`): ⚪ presentes, sin consumidor en el runtime; los sustituye la propagación de Steam Audio en una fase posterior.
 - **Analizador RT60 de respuestas al impulso** (`OpenDouIRRT60Analyzer`, Schroeder + T20): ✅ el análisis; ⚪ nadie produce todavía las IR que analizaría.
 
-**Ideas de nodos nuevos** (doppler, retardo por distancia, campo cercano, materiales en tres bandas, camas ambisónicas, altavoz de mundo…): [`docs/ideas/nodos-de-escena.md`](ideas/nodos-de-escena.md).
+**Ideas de nodos nuevos** (materiales en tres bandas, camas ambisónicas, altavoz de mundo…; doppler, retardo por distancia y campo cercano ya viven en el emisor desde la Fase 9): [`docs/ideas/nodos-de-escena.md`](ideas/nodos-de-escena.md).
 
 ---
 
@@ -164,8 +164,9 @@ licencia en `addons/opendou/THIRD_PARTY_NOTICES.md` (Apache 2.0 y MIT).
 
 Efecto directo de Steam Audio (oclusión volumétrica, transmisión por material en tres bandas,
 absorción del aire), geometría del bake hacia `IPLStaticMesh`, reflexiones y reverb por
-convolución, camas ambisónicas, propagación por sondas, directividad, geometría dinámica, doppler
-(pospuesto), salida surround del backend nativo, CI y otras plataformas.
+convolución, camas ambisónicas, propagación por sondas, directividad de Steam Audio (la nuestra es
+un dipolo en GDScript desde la Fase 9), geometría dinámica, salida surround del backend nativo, CI y
+otras plataformas. El doppler y el retardo por distancia los hace el plugin, no la extensión.
 
 ---
 

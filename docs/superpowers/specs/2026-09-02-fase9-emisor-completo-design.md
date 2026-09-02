@@ -292,3 +292,35 @@ importador de cues en el inspector.
    se afirma como «al menos la curva» más paridad (< 1.5 dB) entre backends, no como igualdad
    con la curva. Y `Curve.sample()` interpola con Hermite: a mitad de camino entre dos puntos
    da lo que la curva dice, no la interpolación lineal que el spec suponía.
+2. **Spread (§6).** Con `spatial_blend` 0.1 quedan unos 3 dB de ILD, no cero: se afirma que la
+   fuente ancha deja menos de un cuarto del ILD de la fuente puntual, no la ausencia de ILD.
+3. **Campo cercano (§7).** El realce es `6 dB x near_field` y el test pedia 6 dB con un factor
+   de 0.6; se afirma `6 x nf +/- 1 dB` en los graves y el ILD adicional proporcional a `|dir.x|`.
+4. **Retardo por distancia (§5).** A 343 m ninguno de los dos backends sonaba, y no por el
+   retardo: el robo de voces descarta por `max_distance` (100 m). El test sube `max_distance`
+   a 1000 m. Medido: el primer transitorio llega a 1.004 s (steam_audio) y 0.930 s (godot) a
+   343 m, ~0.1 s a 34 m y < 5 ms con el retardo apagado.
+5. **Atenuacion en el backend `godot` (§9).** Los reproductores anonimos del pool se quedaban
+   con la atenuacion por defecto de Godot; ahora el canal les copia modelo, `unit_size`,
+   `max_distance` y filtro de la instancia. Con `CURVE`, el reproductor queda en
+   `ATTENUATION_DISABLED` y la curva va por `volume_db`.
+6. **Ajustes en vivo (§6).** Aplicar la mezcla HRTF del menu solo a los flujos libres rompia
+   el test de ajustes en vivo; se aplica a todos y el canal sobrescribe a los ocupados en su
+   siguiente `apply_spatial` con `blend x (1 - spread)`.
+7. **Marcadores (§11).** Mientras la voz es fisica el reloj logico no envolvia con el bucle
+   (solo terminaba las no cicladas); ahora envuelve con `fmod` y los marcadores suenan en cada
+   vuelta tambien en fisico. El test de marcadores escribe su propio WAV con `cue` y `LIST/adtl`.
+8. **Flujo del spline (§10).** El doppler del spline suaviza con alfa 0.15 por llamada, asi
+   que el test lo actualiza doce veces por caso. Medido con 20 m/s: 1.160 hacia el oyente,
+   0.947 alejandose, 1.000 sin flujo. El spline sigue fuera del sistema de voces (obs 47).
+9. **Suite.** Pasa de 90 s; el vigilante sube a 180 s. Los tests con nodos van a la suite
+   asincrona porque los sincronos corren sin arbol. Total al cierre: 1224 aserciones, 529
+   objetos vivos de 540.
+10. **Coste del bucle de control (§14), por encima del techo.** El plan fijaba <= +5 % sobre
+    4.09 / 4.25 us por voz (godot / steam_audio, 200 voces). Tres corridas al cierre de la
+    fase: godot 4.31, 4.44 y 4.45 us; steam_audio 4.74, 4.77 y 4.83 us. Es decir, entre +5 y
+    +9 % en godot y entre +12 y +14 % en steam_audio; tambien por encima del techo historico
+    de +10 % sobre los 3.9 us de la Fase 6. El emisor hace mas por voz cada cuadro (movimiento
+    y velocidad, doppler suavizado, directividad, curva, copia de la atenuacion al reproductor
+    del pool). No se oculta: queda como deuda medida para la siguiente fase, con el camino
+    obvio de saltar el calculo de cada rasgo cuando su export esta apagado.

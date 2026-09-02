@@ -1,4 +1,4 @@
-# ⚡ Tarea Activa: Fase 8 implementada — siguiente, Fase 9 (el emisor completo)
+# ⚡ Tarea Activa: Fase 9 implementada — siguiente, Fase 10
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
 * **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
@@ -49,5 +49,22 @@ correcciones del spec en su §13.
 **Pendiente que sale de la Fase 8:** aceleración nativa del medidor LUFS (91 ms por segundo
 de audio en GDScript) y llevar su lectura al cajón del editor por Live Update.
 
-**Siguiente:** spec de la Fase 9, el emisor completo (doppler, retardo por distancia, spread,
-campo cercano, directividad, flujo del spline, curva de atenuación, marcadores).
+**Fase 9, spec y plan (2026-09-02):** [spec](../superpowers/specs/2026-09-02-fase9-emisor-completo-design.md) ·
+[plan](../superpowers/plans/2026-09-02-fase9-emisor-completo.md), ocho tareas.
+
+**Fase 9, implementada (2026-09-02):** ocho tareas, 1224 aserciones. El emisor completo, como
+exports del nodo y de la definición: doppler con velocidad del oyente (apagado en steam_audio
+cuando el retardo por distancia está activo, que ya lo produce), retardo por distancia (línea de
+retardo nativa; arranque aplazado en `godot`), spread, campo cercano, directividad por dipolo,
+curva de atenuación propia (`MODEL_CURVE`), marcadores (`marker_reached`, leídos del chunk `cue`
+del WAV con `OpenDouWavMarkers`) y flujo del spline en su doppler. Observación 47 y trampas en
+`AGENTS.md`; correcciones del spec en su §17.
+
+**Pendiente que sale de la Fase 9:** integrar `OpenDouSplineEmitter3D` al sistema de voces
+(obs 47); una corrida de la suite dio un pico muestral espurio de −4.6 dBFS en el test del
+medidor LUFS (no reproducido en la siguiente): vigilarlo.
+El coste del bucle de control por voz quedó **por encima del techo**: 4.31–4.45 µs (godot) y
+4.74–4.83 µs (steam_audio) a 200 voces, frente a 4.09 / 4.25 al inicio de la fase; el camino es
+saltar cada cálculo cuando su export está apagado (spec §17.10).
+
+**Siguiente:** spec de la Fase 10 según la hoja de ruta.
