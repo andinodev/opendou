@@ -10,6 +10,8 @@ const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_playe
 
 var max_physical_voices: int = 64
 var channels: Array[PhysicalVoiceChannel] = []
+## Velocidad del sonido del medio (Fase 10); el manager la fija y llega a cada canal.
+var speed_of_sound: float = 343.0
 
 # Anti-thrashing hysteresis bonus for currently physical voices
 var hysteresis_bonus: float = 1.05
@@ -27,6 +29,11 @@ var spatial_backend: StringName = &"godot"
 var _last_listener_pos: Vector3 = Vector3.ZERO
 
 ## Inyecta el pool de reproductores nativos.
+func set_speed_of_sound(c: float) -> void:
+	speed_of_sound = c
+	for ch in channels:
+		ch.speed_of_sound = c
+
 func set_player_pool(pool: OpenDouNativePlayerPool) -> void:
 	player_pool = pool
 	for ch in channels:
@@ -217,7 +224,7 @@ func devirtualize(instance: EventInstance) -> void:
 	# solo se puede aplazar el arranque.
 	var start_delay: float = 0.0
 	if instance.propagation_delay_enabled and instance.has_spatial_position:
-		var delay_sec: float = instance.emitter_position.distance_to(_last_listener_pos) / 343.0
+		var delay_sec: float = instance.emitter_position.distance_to(_last_listener_pos) / speed_of_sound
 		if player.stream != null and player.stream.get_class() == "OpenDouSpatialStream":
 			player.stream.propagation_delay_sec = delay_sec
 		else:

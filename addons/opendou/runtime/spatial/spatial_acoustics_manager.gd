@@ -29,6 +29,10 @@ var lod_controller: RefCounted
 ## Sustituye a la convolucion en GDScript: el reverb lo aplica Godot en C++ sobre
 ## un bus compartido en lugar de calcularse como 512 taps por muestra.
 var reverb_bus_pool: OpenDouReverbBusPool = null
+## Velocidad del sonido del medio (Fase 10): la usa el doppler.
+var speed_of_sound: float = 343.0
+## Volumenes de entorno con superficie pintada (Fase 10); los asigna el AudioEventManager.
+var surface_volumes: Array = []
 
 func _init() -> void:
 	material_registry = AcousticMaterialRegistryClass.new()
@@ -277,7 +281,6 @@ func calculate_air_absorption(distance: float) -> float:
 func calculate_doppler_pitch(emitter_vel: Vector3, listener_vel: Vector3, rel_pos: Vector3, smoothing_alpha: float = 0.15) -> float:
 	if rel_pos.length_squared() < 0.001:
 		return 1.0
-	var speed_of_sound: float = 343.0
 	var unit_dir: Vector3 = rel_pos.normalized() # Vector from emitter to listener
 	var v_l: float = listener_vel.dot(unit_dir)
 	var v_e: float = emitter_vel.dot(unit_dir)

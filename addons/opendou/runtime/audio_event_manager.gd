@@ -14,6 +14,8 @@ const LiveUpdateServerClass = preload("res://addons/opendou/runtime/network/live
 const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_playback_context.gd")
 const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
+const EnvironmentStateClass = preload("res://addons/opendou/runtime/spatial/environment_state.gd")
+const MediumFilterInstallerClass = preload("res://addons/opendou/runtime/spatial/medium_filter_installer.gd")
 const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/occlusion_scheduler.gd")
 const RoomPathDispatcherClass = preload("res://addons/opendou/runtime/spatial/room_path_dispatcher.gd")
 const SpatialBackendClass = preload("res://addons/opendou/runtime/spatial/spatial_backend.gd")
@@ -91,8 +93,10 @@ var player_pool: OpenDouNativePlayerPool = null
 var listener_resolver: OpenDouListenerResolver = null
 ## El OpenDouListener3D registrado (Fase 10), si hay uno.
 var _listener_node_ref: WeakRef = null
-## Estado del entorno (Fase 10, Task 3); hasta entonces nulo.
-var environment = null
+## Entorno (Fase 10): volumenes registrados y estado efectivo del oyente.
+var acoustic_volumes: Array = []
+var environment: OpenDouEnvironmentState = EnvironmentStateClass.new()
+var _active_medium_snapshot: StringName = &""
 var _warned_hrtf_override: String = ""
 
 ## Programador unico de raycasts de oclusion, con presupuesto por frame.
@@ -193,6 +197,45 @@ func _apply_spatial_settings() -> void:
 		push_warning("[OpenDou] el HRTF %s no se pudo cargar: se vuelve al incorporado" % spatial_settings.hrtf)
 		spatial_settings.hrtf = "default"
 	spatial_settings.save_to_disk()
+
+## Registra un OpenDouAcousticVolume3D (Fase 10).
+func register_acoustic_volume(volume: Node3D) -> void:
+	if not acoustic_volumes.has(volume):
+		acoustic_volumes.append(volume)
+	if spatial_acoustics != null:
+		spatial_acoustics.surface_volumes = acoustic_volumes
+
+func unregister_acoustic_volume(volume: Node3D) -> void:
+	acoustic_volumes.erase(volume)
+
+## Resuelve el entorno del oyente y empuja el medio a quien lo necesita, solo si cambio.
+func _update_environment(delta: float) -> void:
+	if acoustic_volumes.is_empty() and environment.inside.is_empty() and is_equal_approx(environment.speed_of_sound, 343.0):
+		return
+	environment.update(acoustic_volumes, active_listener_position, delta)
+	if not environment.medium_changed:
+		return
+	var c: float = environment.speed_of_sound
+	if voice_pool != null:
+		voice_pool.set_speed_of_sound(c)
+	if spatial_acoustics != null:
+		spatial_acoustics.speed_of_sound = c
+	if ClassDB.class_exists("OpenDouSpatialStream"):
+		var node: Node3D = get_listener_node()
+		ClassDB.class_call_static("OpenDouSpatialStream", "configure_listener", node.head_radius_m if node != null else 0.0875, c)
+	MediumFilterInstallerClass.apply(environment.medium_lowpass_hz)
+	if environment.medium_snapshot != _active_medium_snapshot:
+		if _active_medium_snapshot != &"":
+			pop_snapshot(_active_medium_snapshot)
+		if environment.medium_snapshot != &"":
+			push_snapshot(environment.medium_snapshot)
+		_active_medium_snapshot = environment.medium_snapshot
+
+func _exit_tree() -> void:
+	# No dejar el filtro del medio en Master cuando el manager se va (tests, cambio de escena).
+	MediumFilterInstallerClass.apply(20000.0)
+	if ClassDB.class_exists("OpenDouSpatialStream"):
+		ClassDB.class_call_static("OpenDouSpatialStream", "configure_listener", 0.0875, 343.0)
 
 ## Registra el OpenDouListener3D (Fase 10). Si hay dos, manda el ultimo y se avisa una vez.
 func register_listener(node: Node3D) -> void:
@@ -536,6 +579,8 @@ func _apply_voices(delta: float) -> void:
 		if instance.has_spatial_position and instance.directivity_dipole_weight > 0.0:
 			volume_db += DistanceModelClass.directivity_db(instance.emitter_forward, to_listener, instance.directivity_dipole_weight, instance.directivity_power)
 		var pitch: float = instance.calculated_pitch_scale * instance.doppler_pitch
+		if environment.medium_pitch_scale != 1.0:
+			pitch *= environment.medium_pitch_scale
 		var cutoff: float = float(instance.calculated_properties.get(&"cutoff_hz", 20000.0))
 		# La posicion aparente es igual a la del emisor salvo cuando el grafo de salas
 		# gobierna la voz, asi que aqui no hace falta ninguna rama.
@@ -576,6 +621,8 @@ func _update_listener() -> void:
 func _process(delta: float) -> void:
 	# 1. Resolver el oyente. Todo lo que dependa de distancia va DESPUES.
 	_update_listener()
+	# 1b. Entorno del oyente (Fase 10): medio, viento, descarte.
+	_update_environment(delta)
 
 	# 2. Live Update remoto.
 	if live_update_server and live_update_server.is_server_running:

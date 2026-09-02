@@ -17,6 +17,8 @@ extends RefCounted
 const DistanceModelClass = preload("res://addons/opendou/runtime/spatial/distance_model.gd")
 
 var channel_id: int = -1
+## Velocidad del sonido del medio (Fase 10); la fija el pool.
+var speed_of_sound: float = 343.0
 var is_busy: bool = false
 var assigned_instance_ref: WeakRef = null
 
@@ -187,7 +189,7 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		s.near_field_bass_db = 6.0 * nf
 		s.near_field_ild_db = 6.0 * nf * absf(s.direction.x)
 		# Retardo por distancia: el sonido tarda distancia / 343 s en llegar.
-		s.propagation_delay_sec = distance / 343.0 if instance.propagation_delay_enabled else 0.0
+		s.propagation_delay_sec = distance / speed_of_sound if instance.propagation_delay_enabled else 0.0
 		# El multiplicador se calcula UNA vez: sirve para la ganancia del stream (sin el
 		# volumen, que ya va en el reproductor) y para la profundidad del shelf.
 		var mult: float = DistanceModelClass.multiplier(distance, instance.attenuation_model, instance.unit_size, v_total, DistanceModelClass.MAX_DB, instance.attenuation_max_distance, instance.attenuation_curve, instance.attenuation_curve_distance_m)
