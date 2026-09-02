@@ -30,3 +30,7 @@ Doppler fuera por decisión. **Siguiente:** el plan de 7B. La Fase 4B (prefijado
 queda pendiente detrás.
 
 **Plan de 7B (2026-09-02):** [`2026-09-02-fase7b-binaural-todas-las-voces.md`](../superpowers/plans/2026-09-02-fase7b-binaural-todas-las-voces.md), quince tareas con su ciclo de test y commit. Las quince ejecutadas y confirmadas. Lo que toca es probarla con audífonos en las demos. Correcciones que la ejecución obligó a hacer: §15 del spec.
+
+**Hoja de ruta del sprint (2026-09-02):** [`docs/roadmap/2026-09-02-sprint-aaa.md`](../roadmap/2026-09-02-sprint-aaa.md).
+Ocho fases ordenadas por dependencias, de la 8 (higiene y deuda: obs 43, límites de instancias,
+cadena de masterización, LUFS) a la 15 (cierre y prefijado). La siguiente es la **Fase 8**.
