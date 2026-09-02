@@ -34,3 +34,7 @@ queda pendiente detrás.
 **Hoja de ruta del sprint (2026-09-02):** [`docs/roadmap/2026-09-02-sprint-aaa.md`](../roadmap/2026-09-02-sprint-aaa.md).
 Ocho fases ordenadas por dependencias, de la 8 (higiene y deuda: obs 43, límites de instancias,
 cadena de masterización, LUFS) a la 15 (cierre y prefijado). La siguiente es la **Fase 8**.
+
+**Fase 8, spec y plan (2026-09-02):** [spec](../superpowers/specs/2026-09-02-fase8-higiene-y-deuda-design.md) ·
+[plan](../superpowers/plans/2026-09-02-fase8-higiene-y-deuda.md), ocho tareas. Hallazgo del spec: instantáneas
+de mezcla, ducking y el área de parámetros nunca escribían en el `AudioServer`; `max_instances` nunca se aplicó.
