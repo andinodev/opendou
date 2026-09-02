@@ -17,6 +17,7 @@ extends RefCounted
 
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const OpenDouAudioProbeClass = preload("res://tests/support/audio_probe.gd")
+const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const ModularSynthEngineClass = preload("res://addons/opendou/runtime/synth/modular_synth_engine.gd")
 
 const BUS: StringName = &"BinauralProbe"
@@ -302,6 +303,60 @@ static func _periodic_noise(mix_rate: int) -> AudioStreamWAV:
 	wav.loop_begin = 0
 	wav.loop_end = PERIOD
 	return wav
+
+## Una voz posteada por el manager con backend steam_audio sale por el stream nativo y se
+## lateraliza: ILD con el signo de su lado. Es la primera asercion de la cadena completa
+## (manager -> canal -> stream) y no del stream aislado.
+static func run_pool_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("binaural_pool")
+	if not ClassDB.class_exists("OpenDouSpatialStream"):
+		print("[OpenDou] extension nativa AUSENTE: suite binaural_pool omitida")
+		return a
+	var ParityClass = load("res://tests/test_backend_parity.gd")
+	var BackendClass = load("res://addons/opendou/runtime/spatial/spatial_backend.gd")
+	var previous: String = str(ProjectSettings.get_setting(BackendClass.SETTING, "auto"))
+	ParityClass.ensure_bus()
+	var probe = OpenDouAudioProbeClass.new()
+	probe.attach_to_existing_bus(ParityClass.BUS, 2.0)
+	var manager = ParityClass.make_manager(tree, "steam_audio")
+	await tree.process_frame
+	a.eq(manager.spatial_backend, &"steam_audio", "el manager quedo en steam_audio")
+
+	var noise := _periodic_noise(int(AudioServer.get_mix_rate()))
+	var def = AudioEventDefClass.new(&"PoolVoice", noise)
+	def.is_looping = true
+	def.stream_length = 1.0
+	def.target_bus = ParityClass.BUS
+	manager.register_event_definition(def)
+	manager.set_listener_position(Vector3.ZERO)
+
+	var inst = manager.post_event(def, null)
+	inst.set_position(Vector3(10, 0, 0))
+	var right := await _capture(tree, probe)
+	var ch = manager.voice_pool.get_channel(inst.assigned_channel_id)
+	a.ok(ch != null and ch.get_player() is AudioStreamPlayer and not (ch.get_player() is AudioStreamPlayer3D), "la voz salio por un AudioStreamPlayer estereo del pool")
+	a.gt(_ild_db(right.left, right.right), 3.0, "a la derecha del oyente: ILD positivo")
+	var lag_r: int = _itd_lag(right.left, right.right)
+	a.gt(float(lag_r), 10.0, "y el oido izquierdo va por detras")
+	inst.set_position(Vector3(-10, 0, 0))
+	var left := await _capture(tree, probe)
+	a.lt(_ild_db(left.left, left.right), -3.0, "a la izquierda: ILD negativo")
+	# La distancia entra en el stream: a 40 m suena mas bajo que a 10 m.
+	inst.set_position(Vector3(0, 0, -10))
+	var near := await _capture(tree, probe)
+	inst.set_position(Vector3(0, 0, -40))
+	var far := await _capture(tree, probe)
+	print("[OpenDou] pool binaural: ILD derecha %.1f dB lag %d | 10 m %.1f dB, 40 m %.1f dB" % [_ild_db(right.left, right.right), lag_r, _rms_db(near), _rms_db(far)])
+	a.lt(_rms_db(far) - _rms_db(near), -9.0, "a 40 m el nivel cae al menos 9 dB (inversa: -12 dB)")
+
+	inst.stop()
+	await probe.await_silence(tree, 0.002, 30)
+	manager.stop_all()
+	tree.root.remove_child(manager)
+	manager.free()
+	probe.teardown()
+	ProjectSettings.set_setting(BackendClass.SETTING, previous)
+	return a
 
 ## Muestras que se dejan pasar tras cambiar un parametro antes de medir: cubre la latencia
 ## del anillo (512) mas la del servidor de audio, con margen.

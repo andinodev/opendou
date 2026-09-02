@@ -81,7 +81,11 @@ func play_stream(stream: AudioStream, start_offset: float = 0.0, volume_db: floa
 	if not player.is_inside_tree():
 		return
 
-	player.stream = stream
+	if player is AudioStreamPlayer and player.stream != null and player.stream.get_class() == "OpenDouSpatialStream":
+		# Backend steam_audio: el stream del reproductor es el envoltorio nativo permanente.
+		player.stream.source = stream
+	else:
+		player.stream = stream
 	if AudioServer.get_bus_index(String(target_bus)) != -1:
 		player.bus = String(target_bus)
 	# Se arranca con el fade en 0 y apply() sube la ganancia, asi que el volumen
@@ -138,9 +142,22 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
 		if not owned_by_node:
 			player.global_position = Vector2(instance.current_apparent_position.x, instance.current_apparent_position.y)
+	elif player is AudioStreamPlayer and player.stream != null and player.stream.get_class() == "OpenDouSpatialStream":
+		# Backend steam_audio: OpenDou calcula lo que Godot calculaba por su cuenta, con las
+		# mismas formulas (OpenDouDistanceModel), y lo empuja al stream nativo.
+		var s = player.stream
+		var p: Vector3 = instance.current_apparent_position
+		var distance: float = p.distance_to(listener_position)
+		var v_total: float = volume_db + instance.emitter_volume_db
+		player.volume_db = clampf(v_total + gain_db, -80.0, 24.0)
+		s.direction = DistanceModelClass.listener_direction(p, listener_position, listener_basis)
+		s.distance_gain = db_to_linear(DistanceModelClass.gain_db_for_stream(distance, instance.attenuation_model, instance.unit_size, v_total, instance.attenuation_max_distance))
+		var mult: float = DistanceModelClass.multiplier(distance, instance.attenuation_model, instance.unit_size, v_total, DistanceModelClass.MAX_DB, instance.attenuation_max_distance)
+		s.shelf_db = DistanceModelClass.shelf_db(mult, instance.attenuation_filter_db)
+		s.shelf_cutoff_hz = instance.attenuation_filter_cutoff_hz
+		s.cutoff_hz = clampf(cutoff_hz, 20.0, 20000.0)
 	else:
-		# Reproductor estereo plano: sin stream nativo suena centrado y sin atenuacion. La
-		# rama del OpenDouSpatialStream (backend steam_audio) se anade con el pool binaural.
+		# Reproductor estereo plano sin stream nativo: suena centrado y sin atenuacion.
 		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
 
 ## Inicia un micro-fade de salida antes de liberar el canal.

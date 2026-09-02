@@ -42,5 +42,25 @@ static func run_all() -> OpenDouAssert:
 	pool.release(n1)
 	a.eq(n1.stream, null, "al liberar se suelta el stream")
 
+	# Fase 7B: el tipo binaural existe siempre (el enum), pero solo produce reproductores
+	# si la extension esta cargada. Sin ella devuelve null y lo dice, y el resto del pool
+	# no se entera.
+	var b1 = pool.acquire(K.BINAURAL_3D)
+	if ClassDB.class_exists("OpenDouSpatialStream"):
+		a.ok(b1 is AudioStreamPlayer and b1.stream != null and b1.stream.get_class() == "OpenDouSpatialStream", "acquire binaural devuelve un AudioStreamPlayer con OpenDouSpatialStream")
+		var pool_stream = b1.stream
+		var fake := AudioStreamWAV.new()
+		b1.stream.source = fake
+		pool.release(b1)
+		a.eq(b1.stream, pool_stream, "al liberar, el stream nativo se conserva")
+		a.eq(b1.stream.source, null, "y se suelta solo la fuente")
+		a.eq(pool.busy_count(K.BINAURAL_3D), 0, "el tipo binaural lleva su propia cuenta")
+		var visited: Array[int] = [0]
+		pool.for_each_spatial_stream(func(_s): visited[0] += 1)
+		a.eq(visited[0], 1, "for_each_spatial_stream recorre los streams del pool")
+	else:
+		a.eq(b1, null, "sin extension, acquire binaural devuelve null")
+		print("[OpenDou] extension nativa AUSENTE: parte binaural de native_player_pool omitida")
+
 	pool.free()
 	return a

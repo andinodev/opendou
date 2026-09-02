@@ -14,7 +14,8 @@ extends Node
 enum PlayerKind {
 	NON_SPATIAL, ## AudioStreamPlayer: UI, musica, narracion
 	SPATIAL_2D,  ## AudioStreamPlayer2D
-	SPATIAL_3D,  ## AudioStreamPlayer3D
+	SPATIAL_3D,  ## AudioStreamPlayer3D (backend godot)
+	BINAURAL_3D, ## AudioStreamPlayer estereo con OpenDouSpatialStream (backend steam_audio)
 }
 
 ## Cupo maximo de reproductores por tipo.
@@ -26,7 +27,7 @@ var _busy: Dictionary = {}
 func _init(p_max_per_kind: int = 64) -> void:
 	name = "OpenDouNativePlayerPool"
 	max_players_per_kind = maxi(1, p_max_per_kind)
-	for kind in [PlayerKind.NON_SPATIAL, PlayerKind.SPATIAL_2D, PlayerKind.SPATIAL_3D]:
+	for kind in [PlayerKind.NON_SPATIAL, PlayerKind.SPATIAL_2D, PlayerKind.SPATIAL_3D, PlayerKind.BINAURAL_3D]:
 		_free[kind] = []
 		_busy[kind] = []
 
@@ -48,6 +49,8 @@ func acquire(kind: int) -> Node:
 		if busy_list.size() >= max_players_per_kind:
 			return null
 		player = _instantiate(kind)
+		if player == null:
+			return null
 		add_child(player)
 
 	busy_list.append(player)
@@ -66,7 +69,11 @@ func release(player: Node) -> void:
 		busy_list.remove_at(idx)
 	if player.has_method("stop"):
 		player.stop()
-	player.stream = null
+	if _is_binaural(player):
+		# El stream nativo es permanente: se suelta solo la fuente.
+		player.stream.source = null
+	else:
+		player.stream = null
 	(_free[kind] as Array).append(player)
 
 ## Numero de reproductores actualmente asignados de un tipo.
@@ -91,14 +98,35 @@ func _instantiate(kind: int) -> Node:
 			return p3
 		PlayerKind.SPATIAL_2D:
 			return AudioStreamPlayer2D.new()
+		PlayerKind.BINAURAL_3D:
+			if not ClassDB.class_exists("OpenDouSpatialStream"):
+				push_error("[OpenDou] se pidio un reproductor binaural sin la extension nativa cargada")
+				return null
+			var p := AudioStreamPlayer.new()
+			# El stream nativo es PERMANENTE: por voz solo cambia su fuente. Crear uno por voz
+			# seria crear y destruir efectos de Steam Audio a cada disparo.
+			p.stream = ClassDB.instantiate("OpenDouSpatialStream")
+			return p
 		_:
 			return AudioStreamPlayer.new()
+
+static func _is_binaural(player: Node) -> bool:
+	return player is AudioStreamPlayer and player.stream != null and player.stream.get_class() == "OpenDouSpatialStream"
 
 func _kind_of(player: Node) -> int:
 	if player is AudioStreamPlayer3D:
 		return PlayerKind.SPATIAL_3D
 	if player is AudioStreamPlayer2D:
 		return PlayerKind.SPATIAL_2D
+	if _is_binaural(player):
+		return PlayerKind.BINAURAL_3D
 	if player is AudioStreamPlayer:
 		return PlayerKind.NON_SPATIAL
 	return -1
+
+## Recorre los streams nativos de todos los reproductores binaurales, libres y ocupados.
+## Es lo que aplica en vivo la mezcla, la salida y el HRTF (ajustes del jugador).
+func for_each_spatial_stream(callable: Callable) -> void:
+	for p in (_free[PlayerKind.BINAURAL_3D] as Array) + (_busy[PlayerKind.BINAURAL_3D] as Array):
+		if is_instance_valid(p) and p.stream != null:
+			callable.call(p.stream)

@@ -95,6 +95,7 @@ func _init() -> void:
 	voice_pool = VoicePoolManagerClass.new(64)
 	player_pool = NativePlayerPoolClass.new(64)
 	voice_pool.set_player_pool(player_pool)
+	voice_pool.spatial_backend = spatial_backend
 	listener_resolver = ListenerResolverClass.new()
 	occlusion_scheduler = OcclusionSchedulerClass.new()
 	room_path_dispatcher = RoomPathDispatcherClass.new()
@@ -229,6 +230,7 @@ func set_max_physical_voices(count: int) -> void:
 				voice_pool.virtualize(instance)
 	voice_pool = VoicePoolManagerClass.new(target)
 	voice_pool.set_player_pool(player_pool)
+	voice_pool.spatial_backend = spatial_backend
 
 ## Fija una posicion fija de oyente, con prioridad sobre la regla automatica.
 func set_listener_position(pos: Vector3) -> void:

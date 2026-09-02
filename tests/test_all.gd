@@ -378,6 +378,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestPortalAudioClass.run_all_async(tree))
 	acc.absorb(await TestRoomPathDispatcherClass.run_budget_async(tree))
 	acc.absorb(await TestBinauralClass.run_all_async(tree))
+	acc.absorb(await TestBinauralClass.run_pool_async(tree))
 	acc.absorb(await TestBackendParityClass.run_godot_async(tree))
 	return {
 		"total": acc.assertions_run,

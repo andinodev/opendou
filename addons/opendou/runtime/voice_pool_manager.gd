@@ -19,6 +19,10 @@ var min_audibility_threshold: float = 0.001
 ## sonar las voces cuyo emisor es un nodo OpenDouEventPlayer*.
 var player_pool: OpenDouNativePlayerPool = null
 
+## Backend espacial del manager. Decide que tipo de reproductor piden las voces con
+## posicion: SPATIAL_3D con godot, BINAURAL_3D con steam_audio.
+var spatial_backend: StringName = &"godot"
+
 ## Inyecta el pool de reproductores nativos.
 func set_player_pool(pool: OpenDouNativePlayerPool) -> void:
 	player_pool = pool
@@ -225,5 +229,7 @@ func get_channel(channel_id: int) -> PhysicalVoiceChannel:
 ## 3D, sin ella no espacial.
 func _kind_for_instance(instance: EventInstance) -> int:
 	if instance.has_spatial_position:
+		if spatial_backend == &"steam_audio":
+			return NativePlayerPoolClass.PlayerKind.BINAURAL_3D
 		return NativePlayerPoolClass.PlayerKind.SPATIAL_3D
 	return NativePlayerPoolClass.PlayerKind.NON_SPATIAL
