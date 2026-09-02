@@ -140,9 +140,9 @@ struct FractionalDelay {
 // Woodworth: ITD de una cabeza esferica de radio r para una direccion unitaria en el
 // espacio del oyente (+X derecha, +Y arriba, -Z delante). Devuelve segundos, siempre >= 0;
 // el signo (que oido se retrasa) lo decide dir_x.
-inline float woodworth_itd_seconds(float dir_x, float dir_y, float dir_z) {
-	constexpr float r = 0.0875f;
-	constexpr float c = 343.0f;
+// r y c son parametros desde la Fase 10 (oyente y medio); los defectos son la cabeza media
+// en aire.
+inline float woodworth_itd_seconds(float dir_x, float dir_y, float dir_z, float r = 0.0875f, float c = 343.0f) {
 	float theta = std::fabs(std::atan2(dir_x, -dir_z)); // azimut en [0, pi]
 	if (theta > kPi * 0.5f) {
 		theta = kPi - theta; // detras se refleja a su espejo delantero

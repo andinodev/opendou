@@ -69,6 +69,9 @@ void OpenDouSpatialStream::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_propagation_delay_sec"), &OpenDouSpatialStream::get_propagation_delay_sec);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "propagation_delay_sec", PROPERTY_HINT_RANGE, "0,10,0.001"), "set_propagation_delay_sec", "get_propagation_delay_sec");
 	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("configure_max_propagation_delay", "sec"), &OpenDouSpatialStream::configure_max_propagation_delay);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("configure_listener", "head_radius_m", "speed_of_sound_mps"), &OpenDouSpatialStream::configure_listener);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("get_head_radius_m"), &OpenDouSpatialStream::get_head_radius_m);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("get_speed_of_sound_mps"), &OpenDouSpatialStream::get_speed_of_sound_mps);
 	BIND_ENUM_CONSTANT(OUTPUT_HEADPHONES);
 	BIND_ENUM_CONSTANT(OUTPUT_SPEAKERS);
 
@@ -125,6 +128,23 @@ void OpenDouSpatialStream::set_near_field_ild_db(float p_db) { near_field_ild_db
 float OpenDouSpatialStream::get_near_field_ild_db() const { return near_field_ild_db_.load(); }
 void OpenDouSpatialStream::set_propagation_delay_sec(float p_sec) { propagation_delay_.store(std::clamp(p_sec, 0.0f, max_propagation_delay_sec_)); }
 float OpenDouSpatialStream::get_propagation_delay_sec() const { return propagation_delay_.load(); }
+std::atomic<float> OpenDouSpatialStream::head_radius_m_{ 0.0875f };
+std::atomic<float> OpenDouSpatialStream::speed_of_sound_mps_{ 343.0f };
+
+bool OpenDouSpatialStream::configure_listener(float p_head_radius_m, float p_speed_of_sound_mps) {
+	// La linea de retardo del ITD es de 2 ms. Se acotan radio y velocidad y se rechaza lo
+	// que no cabe (r/c * (pi/2 + 1) es el ITD maximo de Woodworth).
+	if (p_head_radius_m < 0.02f || p_head_radius_m > 0.2f || p_speed_of_sound_mps < 100.0f || p_speed_of_sound_mps > 6000.0f) {
+		return false;
+	}
+	if ((p_head_radius_m / p_speed_of_sound_mps) * (dsp::kPi * 0.5f + 1.0f) > 0.0019f) {
+		return false;
+	}
+	head_radius_m_.store(p_head_radius_m);
+	speed_of_sound_mps_.store(p_speed_of_sound_mps);
+	return true;
+}
+
 bool OpenDouSpatialStream::configure_max_propagation_delay(float p_sec) {
 	max_propagation_delay_sec_ = std::clamp(p_sec, 0.1f, 10.0f);
 	return true;
@@ -468,7 +488,7 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 		// resta de 0.136 ms; 12 a la izquierda con resta de 0.386 ms). Restarlo solo hacia el
 		// ITD asimetrico. peak_delays_ se sigue exponiendo como informacion.
 		const float blend = params.spatialBlend;
-		const float itd = dsp::woodworth_itd_seconds(dx, dy, dz) * blend;
+		const float itd = dsp::woodworth_itd_seconds(dx, dy, dz, OpenDouSpatialStream::head_radius_m_.load(), OpenDouSpatialStream::speed_of_sound_mps_.load()) * blend;
 		const float itd_samples = itd * fs;
 		// dx > 0: fuente a la derecha, se retrasa el oido IZQUIERDO.
 		if (dx >= 0.0f) {

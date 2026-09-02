@@ -83,6 +83,13 @@ public:
 	float get_propagation_delay_sec() const;
 	// Tope de memoria por voz. Solo antes de crear playbacks con retardo.
 	static bool configure_max_propagation_delay(float p_sec);
+	// Oyente (Fase 10): radio de la cabeza esferica y velocidad del sonido del medio. Son
+	// estaticos porque hay un oyente y escribirlos por voz costaria en el bucle de control.
+	static bool configure_listener(float p_head_radius_m, float p_speed_of_sound_mps);
+	static float get_head_radius_m() { return head_radius_m_.load(); }
+	static float get_speed_of_sound_mps() { return speed_of_sound_mps_.load(); }
+	static std::atomic<float> head_radius_m_;
+	static std::atomic<float> speed_of_sound_mps_;
 	static float max_propagation_delay_sec_;
 
 	// Ultimos retardos de pico (izquierdo, derecho) en segundos que Steam Audio escribio al
