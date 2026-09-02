@@ -19,6 +19,7 @@ const RoomPathDispatcherClass = preload("res://addons/opendou/runtime/spatial/ro
 const SpatialBackendClass = preload("res://addons/opendou/runtime/spatial/spatial_backend.gd")
 const SpatialSettingsClass = preload("res://addons/opendou/runtime/spatial/spatial_settings.gd")
 const InstanceLimiterClass = preload("res://addons/opendou/runtime/instance_limiter.gd")
+const MixChainInstallerClass = preload("res://addons/opendou/runtime/mix_chain_installer.gd")
 const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
 const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
@@ -125,6 +126,8 @@ func _ready() -> void:
 		add_child(player_pool)
 	spatial_settings.load_from_disk()
 	_apply_spatial_settings()
+	# Cadena de masterizacion en Master segun el ajuste de proyecto (vacio = nada). Idempotente.
+	MixChainInstallerClass.install_from_setting()
 
 ## Aplica los ajustes del jugador a todos los streams nativos, en vivo. Con backend godot
 ## no hay streams y no hace nada; el menu lo muestra deshabilitado.

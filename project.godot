@@ -33,3 +33,7 @@ window/size/resizable=false
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/opendou/plugin.cfg")
+
+[opendou]
+
+mix/master_chain="GAME"
