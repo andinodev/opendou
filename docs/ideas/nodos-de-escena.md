@@ -420,3 +420,78 @@ las ideas de arriba cubren. Con los hechos comprobados en el código.
 G4 pasa al primer puesto porque además de calidad de mezcla repara una promesa vacía. G1 entra
 en el tercero porque la mitad del trabajo ya está hecha en el stream. G3 y G2 entran detrás del
 oyente y de la oclusión parcial: valen, pero no cambian lo que se oye en las demos actuales.
+
+---
+
+## H. Segunda revisión: cuatro propuestas más, lo que aún falta, y qué más se puede fusionar
+
+### H1. Las cuatro propuestas de la segunda revisión, contrastadas con el código
+
+| Propuesta | Qué existe ya | Forma correcta | Veredicto |
+|---|---|---|---|
+| **Disparador de estados de mezcla global** («Baja salud», «Pausa») | `AudioMixSnapshotManager.transition_to()` y `apply_snapshot_instant()` existen; `OpenDouParameterArea3D` ya activa una instantánea por volumen | **Recurso, no nodo.** Un evento no espacial no tiene posición ni ciclo de vida en la escena: es una vinculación `estado → instantánea` en `GameSyncManager` (recurso `MixStateBinding`: estado, instantánea, tiempo de fundido, prioridad). «Baja salud» es un estado del juego que ya existe como concepto; solo falta que un estado pueda arrastrar una instantánea. Cero nodos | Sí, como recurso |
+| **Controlador avanzado de vehículos** (RPM, carga, marcha → síntesis granular cruzada) | `AudioBlendContainer` por RTPC, `AudioGranularSynthesizer`, RTPC locales por instancia | **Ejemplo, no nodo del plugin.** Un motor es un `BlendContainer` de capas granulares gobernado por dos RTPC (`RPM`, `Load`) y un switch de marcha, que ya se puede autorar; lo que falta es una **demo** que lo muestre y un preset del grafo. Un nodo `VehicleAudio` metería en el plugin física de un género concreto | Como demo y plantilla del grafo |
+| **Splines direccionales de flujo** (río arriba / río abajo) | `OpenDouSplineEmitter3D` proyecta al punto más cercano con `Curve3D.get_closest_point`; no calcula la tangente | **Export del nodo existente**: `flow_directivity` que evalúa la tangente en el punto más cercano (`Curve3D.sample_baked_with_rotation`) y la usa como eje de directividad (A2) y como signo del doppler (B2, un río que corre hacia ti). Sin nodo nuevo | Sí, como export |
+| **Emisor de diálogo narrativo** (subtítulos, ducking absoluto, visemas) | `AudioDialogueManager` con `play_dialogue()`, señales `dialogue_started/finished` y ducking; `AudioDialogueTable` por idioma; la cuadrícula del editor. **Ningún nodo de escena** | **Nodo nuevo justificado**: `OpenDouDialogueEmitter3D`. Ciclo de vida propio (una línea, sus subtítulos, su fin), señales distintas (`subtitle_changed`, `mouth_amplitude`) y la prioridad absoluta del ducking. Sobre los visemas, honestidad: Godot no trae fonemas; lo que se puede dar hoy es la **envolvente de amplitud** de la voz por frame (la sonoridad ya se mide en `AudibleVoiceMonitor`) como un valor de boca abierta, y una pista de marcadores de tiempo del propio WAV para visemas autorados. Fonemas automáticos, no | Sí, como nodo, con los visemas acotados |
+
+### H2. Lo que a mi juicio todavía falta para AAA o más
+
+Puntos que ninguna de las dos revisiones ha nombrado, ordenados por lo que distinguen.
+
+1. **La IA oye: consulta de sonoridad en una posición.** Un juego de sigilo necesita preguntar
+   «¿cuánto de este disparo llega a la posición del guardia?». El plugin ya sabe la sonoridad
+   de cada voz, la oclusión y el camino por portales **hacia el oyente**; falta el mismo cálculo
+   **hacia un punto cualquiera**: `manager.get_loudness_at(position, since_sec)` y una señal
+   `sound_heard_at(listener_node, event, loudness)` para nodos `OpenDouAIHearing3D` (un
+   `Node3D` con umbral). Es reutilizar el grafo de salas y la oclusión con otro destino, y es
+   algo que ni Wwise ni FMOD hacen: el sonido como sistema de percepción, no solo de salida.
+   Coste medio; se afirma con un emisor tras una pared: la sonoridad en el punto del guardia
+   es menor que sin pared, y con la puerta abierta sube.
+2. **Medición de sonoridad por norma (LUFS, EBU R128).** Los estudios mezclan a un objetivo
+   de sonoridad integrada (−23 o −16 LUFS según plataforma) con tope de pico verdadero. Hoy el
+   perfilador enseña picos y la ventana HDR, pero **no hay medidor LUFS** ni guarda. Un medidor
+   en la consola de mezcla y una aserción en la suite («la demo X, medida 30 s, queda entre −25
+   y −20 LUFS») convierten la mezcla en algo verificable. Es aritmética sobre el bus (filtro K y
+   ventanas de 400 ms), cabe en GDScript o en el nativo.
+3. **Marcadores en el audio (cue points) → señales.** Un WAV lleva puntos de cue; un evento
+   puede llevar marcadores autorados en el grafo. Que al cruzarlos la voz emita una señal
+   (`marker_reached(nombre)`) sincroniza destello con disparo, subtítulo con sílaba, visema
+   autorado con voz, y golpe de música con corte de cámara. `OpenDouWavDecoder` ya lee el WAV;
+   falta leer el chunk `cue` y comparar la posición de reproducción por frame.
+4. **Accesibilidad.** Requisito de certificación en las grandes plataformas: mezcla mono,
+   compresión de rango dinámico («modo noche»), indicadores visuales de sonidos importantes
+   (el radar ya existe, pero en el editor; en el juego sería un HUD de direcciones), subtítulos
+   con hablante y dirección. Casi todo son ajustes del jugador junto a los de espacialización
+   que ya persisten en `user://`, más un nodo HUD opcional. Barato y con enorme peso en la
+   percepción de calidad.
+5. **Voz de red espacializada.** El chat de voz de un multijugador como fuente de una voz 3D
+   con oclusión, portales y HRTF: es el altavoz de mundo (B6) con un `AudioStreamGenerator`
+   alimentado por la red. Si B6 se hace bien, esto es una demo.
+6. **Dos oyentes (pantalla partida).** Godot tiene un solo `AudioListener3D` por viewport y
+   una salida. El backend nativo podría renderizar dos oyentes en dos pares de canales
+   (izquierda y derecha de un 4.0), pero no hay solución limpia para audífonos. Se anota como
+   límite conocido, no como tarea: es una decisión del juego, no del plugin.
+7. **Bloqueo de la salida surround del backend nativo.** Ya escrito en el spec 7B: el binaural
+   es estéreo. Para 5.1/7.1 de verdad con Steam Audio haría falta decodificar ambisonics a
+   altavoces (`IPLAmbisonicsPanningEffect`), que es la misma pieza que A3. Al hacer A3, esto
+   sale casi gratis y cierra el hueco.
+
+### H3. ¿Sobra algún nodo? Fusiones que aún caben
+
+Aplicando la misma vara que llevó el reverb por convolución a `OpenDouRoom3D`:
+
+| Nodos propuestos | Fusión | Cómo queda |
+|---|---|---|
+| B3 medio, B4 viento, C2 oclusión parcial, C4 descarte, C5 superficie pintada | **Un solo `OpenDouAcousticVolume3D` (`Area3D`) con un recurso `AcousticEnvironment`** | Igual que `WorldEnvironment` + `Environment` en Godot: el volumen es el nodo, el comportamiento es dato. El recurso tiene secciones opcionales: medio (velocidad del sonido, paso-bajo, tono), viento (vector, ráfagas), oclusión parcial (dB/m, Hz/m), descarte (categorías), superficie (`SurfaceType` con prioridad). Cinco nodos pasan a uno más un recurso reutilizable entre niveles. Es la fusión más rentable de todo el documento |
+| A4 sondas, A5 ocluidor dinámico | **Dentro de `OpenDouAcousticGeometryBake`** | El bake ya recorre el grupo `AcousticObstacle`. Gana un volumen de sondas con su botón (un solo nodo de bake para geometría y propagación, como `VoxelGI`), y un grupo `AcousticObstacleDynamic` cuyas mallas registra como `IPLInstancedMesh` y sigue por transform. Cero nodos nuevos |
+| G2 emisor de malla | **Modo de `OpenDouMultiPositionEmitter3D`**: `source_mode = {POINTS, MESH}` | Ambos son «una fuente con muchos orígenes posibles»; el de malla solo añade la BVH. El de spline no se fusiona porque hereda de `Path3D` |
+| C1 cadena de masterización | **Ajuste de proyecto + recurso `MixChain`, no nodo** | Master es global, no de una escena: el autoload la instala al arrancar y la guarda comprueba el bus, no el árbol. Un nodo «uno por escena» era una torpeza de la primera versión |
+| C7 planificador de ambiente, disparador de estados de mezcla | **Recursos de `GameSyncManager`** (`MixStateBinding`, y la hora del día como un RTPC más) | Ninguno tiene posición; son vinculaciones de estado |
+| B6 altavoz de mundo | **Modo de `OpenDouEventPlayer3D`**: `source = BUS_CAPTURE` con `capture_bus` | Un emisor 3D cuya fuente es un bus capturado sigue siendo un emisor 3D: misma posición, oclusión, reverb y directividad. Se ahorra un nodo |
+| A7 oyente, A3 cama ambisónica, G3 impactos, diálogo | **Se quedan como nodos** | Ciclo de vida, canales o padre distintos: no hay dónde fusionarlos sin forzar |
+
+Con estas fusiones, las ideas de este documento añaden al plugin **cinco nodos nuevos**
+(`OpenDouAcousticVolume3D`, `OpenDouListener3D`, `OpenDouAmbisonicBed3D`,
+`OpenDouPhysicsImpact3D`, `OpenDouDialogueEmitter3D`), **cuatro recursos**
+(`AcousticMaterial`, `AcousticEnvironment`, `MixStateBinding`, `MixChain`) y una docena de
+exports en nodos que ya existen. Quince nodos hoy, veinte al final, y el árbol sigue legible.
