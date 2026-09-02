@@ -5,7 +5,8 @@ extends RefCounted
 ## Nacio como el spike 7A (puede una voz salir por Steam Audio, y hace algo el HRTF).
 ##
 ## Aserciones de audio REAL sobre el estereo capturado del bus de la voz:
-##  - ITD: una fuente a la derecha llega antes al oido derecho (correlacion cruzada L/R).
+##  - ITD: una fuente a la derecha llega antes al oido derecho (correlacion cruzada L/R). Lo
+##    aplica OpenDou con Woodworth, porque la API C de Steam Audio no lo hace (spec 7B, S1).
 ##  - ILD: el oido lejano recibe menos nivel.
 ##  - Delante / detras: distinto centroide espectral, que el paneo por amplitud no puede dar.
 ##  - CONTROL: con el HRTF apagado, ITD = 0 e ILD = 0. Si estas no fallan al apagarlo, las
@@ -92,17 +93,16 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var pd: Vector2 = stream.get_last_peak_delays()
 	print("[OpenDou] derecha: lag medido=%d muestras (%.2f ms)  ILD=%.1f dB (R-L)  | peakDelays de Steam Audio: L=%.3f ms R=%.3f ms" % [
 		lag_right, 1000.0 * lag_right / mix_rate, ild_right, pd.x * 1000.0, pd.y * 1000.0])
-	# HALLAZGO DEL SPIKE, afirmado para que 7B no lo suponga al reves: el audio que sale del
-	# efecto binaural NO lleva ITD -los picos de las HRIR vienen alineados-, y Steam Audio
-	# reporta los retardos de pico por oido en peakDelays para que los aplique quien llama.
-	# El estimador SI recupera retardos (autochequeo de arriba), asi que el cero es real.
-	# Si una version futura de Steam Audio empieza a hornear el ITD, esta asercion cae y
-	# la linea de retardo de 7B pasaria a aplicarlo dos veces.
-	a.ok(absf(lag_right) <= 3,
-		"el audio binaural sale SIN ITD: los picos vienen alineados (lag medido %d)" % lag_right)
-	a.gt(absf(pd.x - pd.y) * 1000.0, 0.05,
-		"pero Steam Audio reporta retardos de pico distintos por oido: el ITD hay que aplicarlo aparte")
-	a.gt(pd.x, pd.y, "con la fuente a la derecha el pico IZQUIERDO llega mas tarde")
+	# La Fase 7B aplica el ITD que Steam Audio no renderiza: Woodworth completo, 0.656 ms a
+	# 90 grados = ~29 muestras. El spec preveia restar el residuo de peakDelays; medido, ese
+	# residuo NO esta en la salida (el retardo medido coincidia con el aplicado en ambos
+	# lados) y restarlo dejaba el ITD asimetrico: 0.52 ms a la derecha, 0.27 a la izquierda.
+	var expected_lo: int = int(0.55e-3 * mix_rate)
+	var expected_hi: int = int(0.75e-3 * mix_rate)
+	a.ok(lag_right >= expected_lo and lag_right <= expected_hi,
+		"ITD: con la fuente a la derecha, el oido izquierdo va %d-%d muestras por detras (medido %d)" % [expected_lo, expected_hi, lag_right])
+	a.gt(pd.x, pd.y, "y Steam Audio sigue reportando el pico izquierdo mas tarde (residuo)")
+	a.approx(stream.get_last_applied_itd_ms(), 1000.0 * lag_right / mix_rate, "el retardo aplicado coincide con el medido", 0.08)
 	a.gt(ild_right, 3.0, "ILD: con la fuente a la derecha, el oido derecho recibe al menos 3 dB mas")
 
 	# ---- IZQUIERDA: simetrico, y el signo se invierte.
@@ -113,7 +113,7 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var pd_left: Vector2 = stream.get_last_peak_delays()
 	print("[OpenDou] izquierda: lag=%d muestras  ILD=%.1f dB (R-L) | peakDelays: L=%.3f ms R=%.3f ms" % [
 		lag_left, ild_left, pd_left.x * 1000.0, pd_left.y * 1000.0])
-	a.ok(absf(lag_left) <= 3, "a la izquierda tampoco hay ITD en la salida")
+	a.ok(lag_left <= -expected_lo and lag_left >= -expected_hi, "ITD: a la izquierda el signo se invierte (medido %d)" % lag_left)
 	a.gt(pd_left.y, pd_left.x, "y los retardos de pico se invierten: el DERECHO llega mas tarde")
 	a.lt(ild_left, -3.0, "ILD: a la izquierda el oido izquierdo recibe al menos 3 dB mas")
 
@@ -214,6 +214,13 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.lt(spk_fb_pct, 5.0, "altavoces: delante y detras suenan igual (sin HRTF)")
 	a.lt(absf(_ild_db(spk_front.left, spk_front.right)), 1.0, "altavoces: de frente, centrado")
 	stream.output_mode = 0
+
+	# ---- Control del ITD: con la mezcla a 0 no hay retardo aunque la fuente este a la derecha.
+	stream.direction = Vector3(1, 0, 0)
+	stream.spatial_blend = 0.0
+	var blend0_right := await _capture(tree, probe)
+	a.ok(absf(_itd_lag(blend0_right.left, blend0_right.right)) <= 2, "spatial_blend = 0 tampoco produce ITD")
+	stream.spatial_blend = 1.0
 
 	player.stop()
 	tree.root.remove_child(player)

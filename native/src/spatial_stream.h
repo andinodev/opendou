@@ -74,6 +74,9 @@ public:
 	// aplica aparte; este valor es el residuo que se resta.
 	godot::Vector2 get_last_peak_delays() const;
 
+	// ITD aplicado en el ultimo bloque, en milisegundos: Woodworth menos el residuo.
+	float get_last_applied_itd_ms() const { return applied_itd_.load() * 1000.0f; }
+
 	static bool is_native_available();
 	static int get_frame_size();
 	static godot::String get_steam_audio_version();
@@ -101,6 +104,7 @@ private:
 	std::atomic<int> output_mode_{ OUTPUT_HEADPHONES };
 	std::atomic<float> peak_left_{ 0.0f };
 	std::atomic<float> peak_right_{ 0.0f };
+	std::atomic<float> applied_itd_{ 0.0f };
 };
 
 class OpenDouSpatialStreamPlayback : public godot::AudioStreamPlayback {
@@ -144,6 +148,10 @@ private:
 	float lpf_applied_hz_ = -1.0f;
 	float shelf_applied_db_ = 1.0f; // imposible a proposito: fuerza el primer calculo
 	float shelf_applied_hz_ = -1.0f;
+
+	// ITD esferico: una linea de retardo por oido; se retrasa el oido LEJANO.
+	dsp::FractionalDelay delay_l_;
+	dsp::FractionalDelay delay_r_;
 
 	// Anillo de salida: Godot pide un numero variable de frames y Steam Audio produce
 	// exactamente frameSize. El anillo desacopla los dos. Es la latencia del sistema.

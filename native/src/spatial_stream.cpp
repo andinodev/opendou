@@ -58,6 +58,7 @@ void OpenDouSpatialStream::_bind_methods() {
 	BIND_ENUM_CONSTANT(OUTPUT_SPEAKERS);
 
 	ClassDB::bind_method(D_METHOD("get_last_peak_delays"), &OpenDouSpatialStream::get_last_peak_delays);
+	ClassDB::bind_method(D_METHOD("get_last_applied_itd_ms"), &OpenDouSpatialStream::get_last_applied_itd_ms);
 
 	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("is_native_available"), &OpenDouSpatialStream::is_native_available);
 	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("get_frame_size"), &OpenDouSpatialStream::get_frame_size);
@@ -159,6 +160,9 @@ bool OpenDouSpatialStreamPlayback::create_effect() {
 	ring_available_ = 0;
 	lpf_.reset();
 	shelf_.reset();
+	const int max_delay = static_cast<int>(0.002f * audio.samplingRate) + 2;
+	delay_l_.init(max_delay);
+	delay_r_.init(max_delay);
 	lpf_applied_hz_ = -1.0f;
 	shelf_applied_db_ = 1.0f;
 	shelf_applied_hz_ = -1.0f;
@@ -204,6 +208,8 @@ void OpenDouSpatialStreamPlayback::_stop() {
 	}
 	lpf_.reset();
 	shelf_.reset();
+	delay_l_.reset();
+	delay_r_.reset();
 	ring_read_ = 0;
 	ring_available_ = 0;
 }
@@ -287,6 +293,29 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 		stream_->peak_left_.store(peak_delays_[0]);
 		stream_->peak_right_.store(peak_delays_[1]);
 		iplAudioBufferInterleave(SteamAudioContext::context(), &out_buffer_, interleaved_.data());
+
+		// ITD esferico. La API C de Steam Audio renderiza con fase plana: la salida no lleva
+		// retardo interaural, asi que se aplica Woodworth COMPLETO. El spec preveia restar el
+		// residuo de peakDelays por si el dataset lo aportaba; medido, no lo aporta: el retardo
+		// que sale coincide con el que se aplica, en los dos lados (23 muestras a la derecha con
+		// resta de 0.136 ms; 12 a la izquierda con resta de 0.386 ms). Restarlo solo hacia el
+		// ITD asimetrico. peak_delays_ se sigue exponiendo como informacion.
+		const float blend = params.spatialBlend;
+		const float itd = dsp::woodworth_itd_seconds(dx, dy, dz) * blend;
+		const float itd_samples = itd * fs;
+		// dx > 0: fuente a la derecha, se retrasa el oido IZQUIERDO.
+		if (dx >= 0.0f) {
+			delay_l_.set_target(itd_samples, frame_size);
+			delay_r_.set_target(0.0f, frame_size);
+		} else {
+			delay_l_.set_target(0.0f, frame_size);
+			delay_r_.set_target(itd_samples, frame_size);
+		}
+		for (int i = 0; i < frame_size; i++) {
+			interleaved_[2 * i] = delay_l_.process(interleaved_[2 * i]);
+			interleaved_[2 * i + 1] = delay_r_.process(interleaved_[2 * i + 1]);
+		}
+		stream_->applied_itd_.store(itd);
 	}
 
 	// 4. Al anillo.

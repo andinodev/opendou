@@ -430,3 +430,25 @@ Por escrito, con su destino:
 | ¿`frameSize` 512 o 1024? | 512 por defecto, medido: 11.6 ms; ajuste con 256/512/1024 |
 | ¿Qué plataformas compila el CI? | Sin CI en esta fase; solo macOS arm64 verificado |
 | ¿El pool de reverb de Godot como fallback permanente? | Permanente: la exportación web nunca tendrá la biblioteca. Se ratifica; lo ejecuta 7D |
+
+---
+
+## 15. Correcciones que la ejecución obligó a hacer a este spec
+
+1. **El residuo de `peakDelays` no se resta (§3).** El spec preveía aplicar
+   `max(0, ITD_esfera − residuo)` por si el dataset aportaba parte del retardo. Medido en la
+   Task 7: el retardo que sale coincide con el que se aplica en los dos lados (23 muestras a
+   la derecha restando 0.136 ms; 12 a la izquierda restando 0.386 ms), luego la salida de
+   Steam Audio con fase plana **no lleva ningún** retardo interaural y restar el residuo solo
+   hacía el ITD asimétrico. Se aplica Woodworth completo: 0.656 ms a 90°, y el test exige
+   0.55–0.75 ms con el signo de cada lado. `get_last_peak_delays()` se conserva como dato.
+2. **La captura de los tests binaurales asienta y mide por muestras, no por frames (§10).**
+   En headless un frame dura ~2 ms y seis frames no cubrían la latencia del anillo: la
+   medida del paso-bajo oscilaba entre −17 y −44 dB según lo que quedara en vuelo. Con 6144
+   muestras de asentamiento y 8192 de captura las medidas son idénticas entre corridas.
+3. **El panner de Godot atenúa respecto a su propio oyente (§10, paridad).** La cámara o el
+   `AudioListener3D` del viewport, no el oyente de OpenDou. Los tests de paridad ponen una
+   `Camera3D` en el origen mirando a −Z, donde OpenDou también coloca su oyente.
+4. **El estimador de ITD devuelve 0 con un canal mudo.** Con paneo duro a 90° la ganancia
+   del canal lejano es exactamente cero y la correlación es cero en todo el barrido; el
+   máximo caía en el primer retardo. Los altavoces se miden a 45°.
