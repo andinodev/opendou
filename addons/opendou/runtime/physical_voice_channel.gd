@@ -14,6 +14,8 @@ extends RefCounted
 ##  - anonimo del OpenDouNativePlayerPool (owned_by_node = false), reposicionado
 ##    cada frame desde la posicion del emisor.
 
+const DistanceModelClass = preload("res://addons/opendou/runtime/spatial/distance_model.gd")
+
 var channel_id: int = -1
 var is_busy: bool = false
 var assigned_instance_ref: WeakRef = null
@@ -111,6 +113,35 @@ func apply(volume_db: float, pitch: float, cutoff_hz: float, position: Vector3) 
 		# volumen dentro de volume_db.
 		if not owned_by_node:
 			player.global_position = Vector2(position.x, position.y)
+
+## Version espacial de apply(): recibe la instancia y el oyente, y decide por tipo de
+## reproductor. Con AudioStreamPlayer3D (backend godot) Godot atenua y filtra por su
+## cuenta; lo unico que OpenDou fija es el corte del filtro.
+##
+## Observacion 42: antes se escribia el corte de oclusion tal cual, y sin oclusion vale
+## 20 000 Hz, lo que dejaba el shelf de distancia de Godot por encima del oido. Ahora se
+## escribe el MINIMO entre el corte de oclusion y el de la instancia (5 kHz por defecto),
+## asi que Godot vuelve a oscurecer con la distancia y la oclusion baja desde ahi.
+func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cutoff_hz: float, listener_position: Vector3, listener_basis: Basis) -> void:
+	var player := get_player()
+	if player == null or not is_busy or instance == null:
+		return
+	var gain_db: float = linear_to_db(maxf(current_fade_gain, 0.0001))
+	player.pitch_scale = clampf(pitch, 0.01, 4.0)
+
+	if player is AudioStreamPlayer3D:
+		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
+		player.attenuation_filter_cutoff_hz = clampf(minf(cutoff_hz, instance.attenuation_filter_cutoff_hz), 20.0, 20000.0)
+		if not owned_by_node:
+			player.global_position = instance.current_apparent_position
+	elif player is AudioStreamPlayer2D:
+		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
+		if not owned_by_node:
+			player.global_position = Vector2(instance.current_apparent_position.x, instance.current_apparent_position.y)
+	else:
+		# Reproductor estereo plano: sin stream nativo suena centrado y sin atenuacion. La
+		# rama del OpenDouSpatialStream (backend steam_audio) se anade con el pool binaural.
+		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
 
 ## Inicia un micro-fade de salida antes de liberar el canal.
 func stop_with_fade(fade_time_sec: float = 0.015) -> void:

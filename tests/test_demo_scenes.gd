@@ -664,7 +664,11 @@ static func run_keel_async(tree: SceneTree) -> OpenDouAssert:
 	a.approx(valve_instance.target_apparent_position.x, 6.5,
 		"y su origen aparente es la escotilla, no el fondo de la sala de maquinas", 0.01)
 	var cutoff_open: float = demo.valve_emitter.attenuation_filter_cutoff_hz
-	a.gt(cutoff_open, 15000.0, "con la escotilla abierta el corte que Godot aplica es alto")
+	# Observacion 42 (Fase 7B): sin oclusion, el corte que se escribe ya no es 20 kHz sino el
+	# filtro de distancia de Godot que el propio emisor declara (5 kHz por defecto). Antes
+	# OpenDou lo pisaba con 20 kHz y anulaba el oscurecimiento por distancia.
+	a.approx(cutoff_open, demo.valve_emitter.attenuation_filter_cutoff_hz, "con la escotilla abierta el corte es el filtro de distancia del emisor", 1.0)
+	a.gt(cutoff_open, 4900.0, "que vale 5 kHz por defecto, no 20 kHz")
 
 	demo.hatch_open_factor = 0.0
 	for i in range(60):

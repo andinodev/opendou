@@ -43,6 +43,8 @@ var voice_pool: VoicePoolManager
 
 # Listener position cache
 var active_listener_position: Vector3 = Vector3.ZERO
+## Orientacion del oyente del frame. El backend steam_audio la necesita para la direccion.
+var active_listener_basis: Basis = Basis.IDENTITY
 
 ## Quien convierte las voces 3D en estereo: &"godot" o &"steam_audio". Se decide una vez
 ## en _init y no cambia en caliente. Lo leen el pool de voces, el menu, el HUD y la suite.
@@ -325,12 +327,10 @@ func _apply_voices() -> void:
 		var cutoff: float = float(instance.calculated_properties.get(&"cutoff_hz", 20000.0))
 		# La posicion aparente es igual a la del emisor salvo cuando el grafo de salas
 		# gobierna la voz, asi que aqui no hace falta ninguna rama.
-		ch.apply(
-			volume_db,
-			instance.calculated_pitch_scale,
-			cutoff,
-			instance.current_apparent_position
-		)
+		if instance.has_spatial_position:
+			ch.apply_spatial(instance, volume_db, instance.calculated_pitch_scale, cutoff, active_listener_position, active_listener_basis)
+		else:
+			ch.apply(volume_db, instance.calculated_pitch_scale, cutoff, instance.current_apparent_position)
 
 ## Emite las reflexiones tempranas de las voces cuyo emisor las tenga activadas.
 func _dispatch_reflections() -> void:
@@ -354,6 +354,7 @@ func _update_listener() -> void:
 		return
 	if listener_resolver.resolve(get_viewport()):
 		active_listener_position = listener_resolver.position
+		active_listener_basis = listener_resolver.basis
 
 ## Main frame update loop.
 func _process(delta: float) -> void:
