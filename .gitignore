@@ -53,3 +53,13 @@ desktop.ini
 *.log
 *.tmp
 *.bak
+
+# Dependencias nativas de la Fase 7: cientos de megas de binarios de terceros. Se rellenan
+# a mano segun native/thirdparty/README.md. El volcado de la API de Godot SI se versiona.
+native/thirdparty/*
+!native/thirdparty/README.md
+native/build/
+# El volcado de la API de Godot se REGENERA con native/dump_godot_api.sh: son 7 MB que
+# godot-cpp master ya trae como extension_api-4-7.json. Sirve para verificar, no para
+# versionar.
+native/godot-api/
