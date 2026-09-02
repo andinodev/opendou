@@ -55,6 +55,7 @@ const TestSceneGuardsClass = preload("res://tests/test_scene_guards.gd")
 const TestRoomPathDispatcherClass = preload("res://tests/test_room_path_dispatcher.gd")
 const TestPortalAudioClass = preload("res://tests/test_portal_audio.gd")
 const TestBinauralSpikeClass = preload("res://tests/test_binaural_spike.gd")
+const TestSpatialBackendClass = preload("res://tests/test_spatial_backend.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -330,6 +331,11 @@ static func run_suite() -> Dictionary:
 	var plugin_res = TestPluginRegistrationClass.run_all()
 	total_tests += plugin_res.assertions_run
 	all_failures.append_array(plugin_res.failures)
+
+	# Fase 7B.
+	var backend_res = TestSpatialBackendClass.run_all()
+	total_tests += backend_res.assertions_run
+	all_failures.append_array(backend_res.failures)
 
 	return {
 		"total": total_tests,

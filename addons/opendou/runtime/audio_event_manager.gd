@@ -16,6 +16,7 @@ const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_playe
 const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
 const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/occlusion_scheduler.gd")
 const RoomPathDispatcherClass = preload("res://addons/opendou/runtime/spatial/room_path_dispatcher.gd")
+const SpatialBackendClass = preload("res://addons/opendou/runtime/spatial/spatial_backend.gd")
 const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
 const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
@@ -42,6 +43,10 @@ var voice_pool: VoicePoolManager
 
 # Listener position cache
 var active_listener_position: Vector3 = Vector3.ZERO
+
+## Quien convierte las voces 3D en estereo: &"godot" o &"steam_audio". Se decide una vez
+## en _init y no cambia en caliente. Lo leen el pool de voces, el menu, el HUD y la suite.
+var spatial_backend: StringName = &"godot"
 
 ## Pool de reproductores nativos para las voces anonimas.
 ##
@@ -80,6 +85,7 @@ var hdr_engine: AudioHDREngine = null
 var hdr_enabled: bool = true
 
 func _init() -> void:
+	spatial_backend = SpatialBackendClass.resolve(SpatialBackendClass.read_setting(), SpatialBackendClass.native_available())
 	sync_manager = GameSyncManagerClass.new()
 	bank_manager = SoundBankManagerClass.new()
 	spatial_acoustics = SpatialAcousticsManagerClass.new()
@@ -93,6 +99,9 @@ func _init() -> void:
 	room_path_dispatcher.acoustics = spatial_acoustics
 	reflection_dispatcher = ReflectionDispatcherClass.new()
 	hdr_engine = AudioHDREngineClass.new()
+
+func is_steam_audio_backend() -> bool:
+	return spatial_backend == SpatialBackendClass.STEAM_AUDIO
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
