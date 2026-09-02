@@ -69,6 +69,15 @@ var attenuation_curve_distance_m: float = 50.0
 ## Hacia donde mira el emisor (eje de la directividad). Los nodos lo actualizan cada frame.
 var emitter_forward: Vector3 = Vector3(0, 0, -1)
 
+## Velocidad del emisor (m/s) estimada por diferencia de posicion entre frames; y una
+## velocidad de flujo que quien quiera (el spline) puede sumar.
+var emitter_velocity: Vector3 = Vector3.ZERO
+var flow_velocity: Vector3 = Vector3.ZERO
+## Factor de tono por doppler, suavizado. 1.0 sin doppler.
+var doppler_pitch: float = 1.0
+var _prev_motion_position: Vector3 = Vector3.ZERO
+var _has_prev_motion: bool = false
+
 # 3D / Spatial Positioning
 var emitter_position: Vector3 = Vector3.ZERO
 var has_spatial_position: bool = false
@@ -258,6 +267,18 @@ func copy_emitter_settings_from_player(player: Node3D) -> void:
 	for field in ["doppler_enabled", "propagation_delay_enabled", "spread_radius_m", "near_field_distance_m", "directivity_dipole_weight", "directivity_power", "attenuation_curve", "attenuation_curve_distance_m"]:
 		if field in player:
 			set(field, player.get(field))
+
+## Actualiza la velocidad del emisor desde su posicion actual. Un salto mayor de 50 m en un
+## frame es un teletransporte, no una velocidad: ese frame vale 0.
+func update_motion(delta: float) -> void:
+	if not _has_prev_motion or delta <= 0.0:
+		_prev_motion_position = emitter_position
+		_has_prev_motion = true
+		emitter_velocity = Vector3.ZERO
+		return
+	var step: Vector3 = emitter_position - _prev_motion_position
+	_prev_motion_position = emitter_position
+	emitter_velocity = Vector3.ZERO if step.length() > 50.0 else step / delta
 
 ## Eje de la directividad para voces anonimas; los nodos lo fijan cada frame desde su base.
 func set_orientation(forward: Vector3) -> void:

@@ -22,6 +22,7 @@ const InstanceLimiterClass = preload("res://addons/opendou/runtime/instance_limi
 const MixChainInstallerClass = preload("res://addons/opendou/runtime/mix_chain_installer.gd")
 const LoudnessMeterClass = preload("res://addons/opendou/runtime/loudness_meter.gd")
 const MixBusApplierClass = preload("res://addons/opendou/runtime/mix_bus_applier.gd")
+const DistanceModelClass = preload("res://addons/opendou/runtime/spatial/distance_model.gd")
 const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
 const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
@@ -50,6 +51,9 @@ var voice_pool: VoicePoolManager
 var active_listener_position: Vector3 = Vector3.ZERO
 ## Orientacion del oyente del frame. El backend steam_audio la necesita para la direccion.
 var active_listener_basis: Basis = Basis.IDENTITY
+## Velocidad del oyente (m/s), por diferencia de posicion entre frames. Para el doppler.
+var listener_velocity: Vector3 = Vector3.ZERO
+var _listener_seen: bool = false
 
 ## Quien convierte las voces 3D en estereo: &"godot" o &"steam_audio". Se decide una vez
 ## en _init y no cambia en caliente. Lo leen el pool de voces, el menu, el HUD y la suite.
@@ -448,7 +452,7 @@ func _update_hdr(delta: float) -> void:
 ## calculated_pitch_scale y el cutoff de oclusion se recalculan cada frame y no
 ## afectan a ningun sonido. Una voz arrancaba en el suelo de -80 dB que pone
 ## play_stream() y se quedaba ahi para siempre.
-func _apply_voices() -> void:
+func _apply_voices(delta: float) -> void:
 	if voice_pool == null:
 		return
 	for instance in active_instances:
@@ -461,6 +465,16 @@ func _apply_voices() -> void:
 		var pos_node: Node3D = ch.get_position_node()
 		if pos_node != null:
 			instance.set_position(pos_node.global_position)
+			instance.set_orientation(-pos_node.global_transform.basis.z)
+		# Movimiento y doppler (Fase 9). En steam_audio con retardo por distancia lo produce la
+		# linea de retardo y aqui se fuerza a 1: aplicarlo dos veces doblaria el efecto.
+		instance.update_motion(delta)
+		var to_listener: Vector3 = active_listener_position - instance.emitter_position
+		if instance.doppler_enabled and instance.has_spatial_position and not (is_steam_audio_backend() and instance.propagation_delay_enabled):
+			var factor: float = spatial_acoustics.calculate_doppler_pitch(instance.emitter_velocity + instance.flow_velocity, listener_velocity, to_listener)
+			instance.doppler_pitch = lerpf(instance.doppler_pitch, factor, clampf(10.0 * delta, 0.0, 1.0))
+		else:
+			instance.doppler_pitch = 1.0
 		var volume_db: float = instance.calculated_volume_db
 		# calculate_voice_gain_db() devuelve el nivel de salida relativo a la
 		# ventana, siempre <= 0, asi que funciona como atenuacion. Su entrada es la
@@ -469,13 +483,17 @@ func _apply_voices() -> void:
 			volume_db += hdr_engine.calculate_voice_gain_db(instance.definition.hdr_loudness_db)
 		# Fundido de stop(fade): multiplica la ganancia hasta que la instancia termine sola.
 		volume_db += linear_to_db(maxf(instance.stop_fade_gain(), 0.0001))
+		# Directividad (GDScript en ambos backends; la nativa llega en la Fase 12).
+		if instance.has_spatial_position and instance.directivity_dipole_weight > 0.0:
+			volume_db += DistanceModelClass.directivity_db(instance.emitter_forward, to_listener, instance.directivity_dipole_weight, instance.directivity_power)
+		var pitch: float = instance.calculated_pitch_scale * instance.doppler_pitch
 		var cutoff: float = float(instance.calculated_properties.get(&"cutoff_hz", 20000.0))
 		# La posicion aparente es igual a la del emisor salvo cuando el grafo de salas
 		# gobierna la voz, asi que aqui no hace falta ninguna rama.
 		if instance.has_spatial_position:
-			ch.apply_spatial(instance, volume_db, instance.calculated_pitch_scale, cutoff, active_listener_position, active_listener_basis)
+			ch.apply_spatial(instance, volume_db, pitch, cutoff, active_listener_position, active_listener_basis)
 		else:
-			ch.apply(volume_db, instance.calculated_pitch_scale, cutoff, instance.current_apparent_position)
+			ch.apply(volume_db, pitch, cutoff, instance.current_apparent_position)
 
 ## Emite las reflexiones tempranas de las voces cuyo emisor las tenga activadas.
 func _dispatch_reflections() -> void:
@@ -498,8 +516,12 @@ func _update_listener() -> void:
 	if listener_resolver == null or not is_inside_tree():
 		return
 	if listener_resolver.resolve(get_viewport()):
+		var previous_pos: Vector3 = active_listener_position
 		active_listener_position = listener_resolver.position
 		active_listener_basis = listener_resolver.basis
+		var dt: float = get_process_delta_time()
+		listener_velocity = (active_listener_position - previous_pos) / dt if dt > 0.0 and _listener_seen else Vector3.ZERO
+		_listener_seen = true
 
 ## Main frame update loop.
 func _process(delta: float) -> void:
@@ -561,7 +583,7 @@ func _process(delta: float) -> void:
 		voice_pool.resolve_voice_stealing(active_instances, active_listener_position, delta)
 
 	# 7. Aplicar los valores calculados a los reproductores reales.
-	_apply_voices()
+	_apply_voices(delta)
 
 	# 7b. Reflexiones tempranas de las voces que las tengan activadas.
 	_dispatch_reflections()

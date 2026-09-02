@@ -57,3 +57,15 @@ static func listener_direction(source: Vector3, listener_position: Vector3, list
 	if rel.length_squared() < 0.000001:
 		return Vector3(0, 0, -1)
 	return (listener_basis.transposed() * rel).normalized()
+
+## Directividad tipo dipolo con la formula del efecto directo de Steam Audio, para que la
+## version nativa (Fase 12) la sustituya sin cambiar la autoria:
+##   g = |(1 - w) + w * cos(theta)| ^ p ;  dB = 20 log10(max(g, 0.001))
+## w = 0: omnidireccional (0 dB). w = 1: dipolo (0 dB delante y detras, suelo de lado).
+## w = 0.5: cardioide (0 dB delante, suelo detras).
+static func directivity_db(forward: Vector3, to_listener: Vector3, dipole_weight: float, power: float) -> float:
+	if dipole_weight <= 0.0 or forward.length_squared() < 0.000001 or to_listener.length_squared() < 0.000001:
+		return 0.0
+	var cos_theta: float = forward.normalized().dot(to_listener.normalized())
+	var g: float = pow(absf((1.0 - dipole_weight) + dipole_weight * cos_theta), maxf(power, 0.01))
+	return 20.0 * log(maxf(g, 0.001)) / log(10.0)

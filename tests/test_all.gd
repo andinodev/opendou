@@ -63,6 +63,7 @@ const TestInstanceLimiterClass = preload("res://tests/test_instance_limiter.gd")
 const TestMixChainClass = preload("res://tests/test_mix_chain.gd")
 const TestLoudnessMeterClass = preload("res://tests/test_loudness_meter.gd")
 const TestMixBusApplierClass = preload("res://tests/test_mix_bus_applier.gd")
+const TestEmitterPhysicsClass = preload("res://tests/test_emitter_physics.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -397,6 +398,8 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestLoudnessMeterClass.run_all_async(tree))
 	acc.absorb(await TestMixBusApplierClass.run_all_async(tree))
 	acc.absorb(await TestMixBusApplierClass.run_state_binding_async(tree))
+	acc.absorb(await TestEmitterPhysicsClass.run_doppler_async(tree))
+	acc.absorb(await TestEmitterPhysicsClass.run_directivity_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,
