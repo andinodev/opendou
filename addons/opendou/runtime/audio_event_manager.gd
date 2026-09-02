@@ -582,6 +582,15 @@ func _apply_voices(delta: float) -> void:
 		if environment.medium_pitch_scale != 1.0:
 			pitch *= environment.medium_pitch_scale
 		var cutoff: float = float(instance.calculated_properties.get(&"cutoff_hz", 20000.0))
+		# Viento (Fase 10): aproximacion perceptual, no fisica. En contra: menos nivel y menos
+		# agudos, solo para las voces lejanas. Sin viento no cuesta nada.
+		if instance.has_spatial_position and environment.has_wind():
+			var dist: float = to_listener.length()
+			if dist > environment.wind_min_distance_m and dist > 0.001:
+				var headwind: float = maxf(0.0, -environment.wind_velocity.dot(to_listener / dist))
+				if headwind > 0.0:
+					volume_db -= minf(12.0, 0.3 * headwind)
+					cutoff *= 1.0 - 0.5 * clampf(headwind / 20.0, 0.0, 1.0)
 		# La posicion aparente es igual a la del emisor salvo cuando el grafo de salas
 		# gobierna la voz, asi que aqui no hace falta ninguna rama.
 		if instance.has_spatial_position:
@@ -643,7 +652,7 @@ func _process(delta: float) -> void:
 	if occlusion_scheduler != null and is_inside_tree():
 		var vp := get_viewport()
 		var w3d: World3D = vp.find_world_3d() if vp != null else null
-		occlusion_scheduler.process(active_instances, active_listener_position, w3d)
+		occlusion_scheduler.process(active_instances, active_listener_position, w3d, acoustic_volumes)
 
 	# 5. Parametros de instancia y limpieza de las terminadas.
 	for i in range(active_instances.size() - 1, -1, -1):

@@ -40,7 +40,7 @@ func _init() -> void:
 
 ## Atiende un lote de instancias dentro del presupuesto.
 ## Devuelve el numero de raycasts realmente lanzados.
-func process(instances: Array, listener_pos: Vector3, world_3d: World3D) -> int:
+func process(instances: Array, listener_pos: Vector3, world_3d: World3D, occluder_volumes: Array = []) -> int:
 	raycasts_this_frame = 0
 	last_processed_ids = []
 
@@ -58,7 +58,7 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D) -> int:
 		# Las voces que gobierna el grafo de salas ya tienen su filtro y su atenuacion:
 		# volver a calcularlas cobraria dos veces por el mismo mamparo, y gastaria
 		# raycasts que otras voces si necesitan.
-		if inst.room_path_active:
+		if inst.room_path_active or inst.culled:
 			continue
 		var lod: int = lod_controller.get_lod_level(inst.emitter_position.distance_to(listener_pos))
 		if bool(lod_controller.get_lod_features(lod).get("enable_physics_occlusion", false)):
@@ -85,7 +85,19 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D) -> int:
 		var hit: Dictionary = space_state.intersect_ray(query)
 		var ray_hits: Array[bool] = [not hit.is_empty()]
 		var result = occlusion_manager.evaluate_occlusion(inst.emitter_position, listener_pos, ray_hits)
-		inst.set_target_lpf(result.target_lpf, result.volume_attenuation_db)
+		# Oclusion parcial por volumen (Fase 10): dB/m y Hz/m por la longitud del segmento que
+		# atraviesa cada volumen. Viaja en este mismo rayo, sin gastar otro.
+		var extra_db: float = 0.0
+		var extra_cut: float = 0.0
+		for v in occluder_volumes:
+			if v == null or not is_instance_valid(v) or v.environment == null or not v.environment.occluder_enabled:
+				continue
+			var l: float = v.segment_length_inside(inst.emitter_position, listener_pos)
+			if l > 0.0:
+				extra_db -= v.environment.occluder_db_per_m * l
+				extra_cut += v.environment.occluder_cutoff_hz_per_m * l
+		var lpf: float = result.target_lpf if extra_cut <= 0.0 else maxf(500.0, minf(result.target_lpf, 20000.0 - extra_cut))
+		inst.set_target_lpf(lpf, result.volume_attenuation_db + extra_db)
 		raycasts_this_frame += 1
 		last_processed_ids.append(idx)
 

@@ -38,6 +38,8 @@ var current_spatial_lpf: float = 20000.0
 var target_spatial_lpf: float = 20000.0
 var occlusion_smoothing_speed: float = 8.0
 var occlusion_attenuation_db: float = 0.0
+## Descartada por el entorno (Fase 10): pesa 0 en el robo de voces y no gasta rayos.
+var culled: bool = false
 
 # Calculated outputs after curve evaluation, RTPCs, modulators and occlusion
 var calculated_volume_db: float = 0.0
@@ -310,6 +312,8 @@ func set_target_lpf(lpf_hz: float, atten_db: float = 0.0) -> void:
 ## Calculates the dynamic priority weight for voice stealing.
 func calculate_dynamic_weight(listener_pos: Vector3) -> float:
 	if not is_playing():
+		return 0.0
+	if culled:
 		return 0.0
 		
 	var base_priority: float = definition.base_priority if definition else 50.0
