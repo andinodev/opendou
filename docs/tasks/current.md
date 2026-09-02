@@ -1,4 +1,4 @@
-# ⚡ Tarea Activa: Fase 7B — binaural para todas las voces (implementada; a prueba)
+# ⚡ Tarea Activa: Fase 8 implementada — siguiente, Fase 9 (el emisor completo)
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
 * **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
@@ -38,3 +38,16 @@ cadena de masterización, LUFS) a la 15 (cierre y prefijado). La siguiente es la
 **Fase 8, spec y plan (2026-09-02):** [spec](../superpowers/specs/2026-09-02-fase8-higiene-y-deuda-design.md) ·
 [plan](../superpowers/plans/2026-09-02-fase8-higiene-y-deuda.md), ocho tareas. Hallazgo del spec: instantáneas
 de mezcla, ducking y el área de parámetros nunca escribían en el `AudioServer`; `max_instances` nunca se aplicó.
+
+**Fase 8, implementada (2026-09-02):** ocho tareas, 1174 aserciones. Límites de instancias
+(`max_instances` por fin se aplica; defecto 0), `stop(fade)` real, cadena de masterización
+`GAME` en Master, medidor LUFS con presupuesto por demo, y la mezcla dinámica (instantáneas,
+ducking, área de parámetros, vinculación por estado) escribiendo en el `AudioServer` por
+primera vez. Observaciones 43 (no reproducida, endurecida), 45 y 46 en `AGENTS.md`;
+correcciones del spec en su §13.
+
+**Pendiente que sale de la Fase 8:** aceleración nativa del medidor LUFS (91 ms por segundo
+de audio en GDScript) y llevar su lectura al cajón del editor por Live Update.
+
+**Siguiente:** spec de la Fase 9, el emisor completo (doppler, retardo por distancia, spread,
+campo cercano, directividad, flujo del spline, curva de atenuación, marcadores).

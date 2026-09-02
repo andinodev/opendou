@@ -1,6 +1,6 @@
 # OpenDou — Mapa de funcionalidades
 
-**Fecha:** 2026-09-02 · **Godot:** 4.7.2 · **Steam Audio:** 4.8.1 · **Suite:** 1107 aserciones (`./run_tests.sh`)
+**Fecha:** 2026-09-02 · **Godot:** 4.7.2 · **Steam Audio:** 4.8.1 · **Suite:** 1174 aserciones (`./run_tests.sh`)
 
 Este documento dice qué hace el plugin **hoy**, dividido en tres capas: lo que ve el diseñador
 en el editor (el dock), lo que se compone en las escenas (los nodos) y lo que hace la extensión
@@ -94,7 +94,7 @@ Todos resuelven el autoload `/root/OpenDou` y admiten un manager inyectado para 
 | `OpenDouPortal3D` | `Node3D` | Apertura entre dos salas (puerta, ventana) con `open_factor` de 0 a 1 que gobierna el paso-bajo y la atenuación; el BFS elige el portal más audible por coste | ✅ |
 | `OpenDouReflector3D` | `Node3D` | Plano reflectante autorado para las reflexiones tempranas (hasta 16 voces del pool reproducen copias retrasadas) | ✅ |
 | `OpenDouAcousticGeometryBake` | `Node3D` | Recoge los triángulos de las mallas del grupo `AcousticObstacle` con su material y alimenta el raycast de oclusión por CPU | ✅ |
-| `OpenDouParameterArea3D` | `Area3D` | Volumen que modula RTPC, estados o instantáneas de mezcla al entrar y salir | ✅ |
+| `OpenDouParameterArea3D` | `Area3D` | Volumen que modula RTPC, estados o instantáneas de mezcla al entrar y salir. Las instantáneas son funcionales desde la Fase 8: antes llamaba a un método que el manager no tenía | ✅ |
 | `OpenDouAcousticDebugger3D` | `Node3D` | Depurador volumétrico: dibuja emisores, rayos de oclusión y salas en la vista 3D | ✅ estructura |
 | `OpenDouAudibleMonitor` | `CanvasLayer` | Capa de depuración en juego con las voces audibles, su sonoridad y su estado | ✅ |
 
@@ -175,10 +175,13 @@ convolución, camas ambisónicas, propagación por sondas, directividad, geometr
 |---|---|---|---|
 | **Despachador de eventos** | `AudioEventManager` (autoload `/root/OpenDou`), `AudioEventDef`, `EventInstance`, `AudioPlaybackContext` | `post_event(nombre o def, emisor)` crea una instancia; la definición resuelve su árbol lógico con el contexto vivo de RTPC y switches; la instancia lleva volumen, tono, propiedades calculadas, moduladores, oclusión, virtualización y atenuación por distancia con los defectos de Godot | ✅ |
 | **Game Syncs** | `GameSyncManager`, `RTPCValue`, `RTPCBinding` | RTPC globales y locales con interpolación de pendiente y curvas con tabla O(1), estados con fundido, switches por entidad, triggers musicales | ✅ |
+| **Límites de instancias** | `OpenDouInstanceLimiter`, exports de `AudioEventDef` | Cuántas instancias de un evento **existen** (global, por emisor, por radio) con política de rechazo o robo con fundido, decidido antes de crearlas. `max_instances` estaba declarado desde el inicio y nadie lo aplicaba; su defecto pasa a 0 (Fase 8) | ✅ |
+| **Cadena de masterización** | `MixChain`, `OpenDouMixChainInstaller` | Compresor y limitador de Godot en Master, con presets `GAME`, `CINEMATIC`, `MOBILE`, instalados desde el ajuste `opendou/mix/master_chain`; dos senos a +6 dB no superan 0 dBFS | ✅ |
+| **Medidor LUFS** | `OpenDouLoudnessMeter` | BS.1770-4: filtro K, momentánea, a corto plazo, integrada con compuerta, pico muestral. −23.26 LUFS para el tono de calibración; presupuesto por demo en `tests/loudness_budget.txt`. Apagado por defecto (91 ms por segundo de audio en GDScript); lectura en el HUD de depuración del juego | ✅ |
 | **Pool de voces** | `VoicePoolManager`, `PhysicalVoiceChannel`, `OpenDouNativePlayerPool` | Canales físicos fijos con robo determinista por peso (prioridad × sonoridad × distancia, con histéresis), voces virtuales a coste cero que siguen su reloj lógico, fundidos anticlic, y un pool de reproductores nativos por tipo: no espacial, 2D, 3D y **binaural** (anfitrión 3D neutralizado con stream nativo) | ✅ |
 | **Canal físico** | `PhysicalVoiceChannel.apply_spatial()` | Cada frame: dirección en el espacio del oyente, atenuación y filtros con `OpenDouDistanceModel`, empujados al stream nativo o al reproductor 3D de Godot. Corrige la observación 42: el corte de oclusión ya no anula el oscurecimiento por distancia de Godot | ✅ |
 | **Oyente** | `OpenDouListenerResolver` | Posición y orientación desde un override, el `AudioListener3D` activo o la cámara, en ese orden | ✅ |
-| **HDR y ducking** | `AudioHDREngine`, `AudioDuckingMatrix`, `AudioMixSnapshotManager`, `AudioMixSnapshot` | Ventana dinámica de sonoridad que atenúa las voces menos importantes, ducking por prioridad entre buses, instantáneas de mezcla con interpolación y apilado ponderado | ✅ |
+| **HDR, ducking e instantáneas de mezcla** | `AudioHDREngine`, `AudioDuckingMatrix`, `AudioMixSnapshotManager`, `AudioMixSnapshot`, `OpenDouMixBusApplier`, `MixStateBinding` | Ventana dinámica de sonoridad por voz; y, desde la Fase 8, la mezcla dinámica **llega al `AudioServer`** cada frame con el modelo `base + delta de instantánea + ducking` por bus gestionado, filtros paso-bajo y paso-alto bajo demanda, pila de instantáneas (`push_snapshot` / `pop_snapshot`) y vinculación estado → instantánea. Hasta la Fase 8 estos estados se calculaban y nadie los aplicaba | ✅ |
 | **Música interactiva** | `MusicClock`, `MusicSegment`, `MusicTrack`, `MusicPlaylistManager`, `MusicTransitionMatrix`, `MusicStingerQueue` | Reloj de compases, segmentos con pistas sincrónicas, playlists no lineales, transiciones cuantizadas y stingers con ducking | ✅ |
 | **Diálogo** | `AudioDialogueManager`, `AudioDialogueTable` | Claves de diálogo por idioma con cambio en caliente y ducking automático | ✅ |
 | **Bancos** | `SoundBankManager`, `SoundBank`, `SoundBankBuilder`, `SoundBankMetadata` | Carga, precarga y streaming de `.bank` monolíticos | ✅ |

@@ -237,6 +237,35 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
   rompe el parseo del archivo entero y la suite dice «Nonexistent function» en otro sitio.
   Tipo explícito siempre que el receptor venga de `load()`.
 
+**Observaciones y trampas de la Fase 8 (higiene y deuda):**
+
+* **Observación 43, no reproducida y endurecida.** Quince corridas (diez aisladas, cinco de la
+  suite) con traza idéntica; las dos apariciones fueron durante la 7B. Se endureció el
+  despachador: la caché del grafo se invalida por **generación** (registrar o desregistrar
+  salas y portales) y con el grafo vacío. `tools/repeat_street_test.gd` y la variable
+  `OPENDOU_TRACE_OBS43` quedan para cazarla si asoma.
+* **Observación 45.** Hasta la Fase 8, `AudioMixSnapshotManager` y `AudioDuckingMatrix`
+  calculaban estados que **nadie escribía en el `AudioServer`**, `OpenDouParameterArea3D`
+  llamaba a un `push_snapshot` que el manager no tenía (silenciado por un `has_method`), y
+  `AudioEventDef.max_instances` no lo leía nadie. Regla: **un `has_method` antes de llamar a
+  algo propio es una promesa vacía en potencia**; si el método es nuestro, se llama directo.
+* **Observación 46.** `EventInstance.stop(fade)` ignoraba su parámetro; y la limpieza del
+  manager pasaba las instancias terminadas por `virtualize()`, que las dejaba en
+  `STATE_VIRTUAL`: una instancia terminada respondía `is_playing() == true`. Ambos corregidos.
+* **Godot: el volumen de un bus se aplica AL ENVIARLO** al bus siguiente, después de sus
+  efectos. Un `AudioEffectCapture` dentro del bus **no ve** el volumen del bus: para medir el
+  volumen hay que capturar en el bus destino.
+* **Godot: un bus solo puede enviar a otro de índice menor.** Un `set_bus_send` a un bus
+  creado después produce silencio, sin error.
+* **Godot: `AudioEffectLimiter` está obsoleto desde 4.3**; la cadena usa `AudioEffectHardLimiter`.
+* **Godot: `pop`/transición sin tiempo usa el fundido por defecto de la instantánea destino**
+  (`default_blend_time`, 1 s en las incorporadas). Un test que espera 0.5 s ve la transición a
+  medias.
+* **El medidor LUFS en GDScript cuesta 91 ms por segundo de audio** (~9 % de un núcleo).
+  Apagado por defecto; la aceleración nativa es una tarea pendiente.
+* **El cajón de mezcla del editor no puede leer el runtime**: vive en otro proceso. Lo que se
+  quiera ver en vivo va al HUD del juego (`OpenDouAudibleMonitor`) o por Live Update.
+
 ---
 
 ## 6. Reglas Modulares de Referencia
