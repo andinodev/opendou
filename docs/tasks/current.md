@@ -1,4 +1,4 @@
-# ⚡ Tarea Activa: Fase 10 implementada — siguiente, Fase 11
+# ⚡ Tarea Activa: Fase 11 implementada — siguiente, Fase 12
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
 * **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
@@ -87,4 +87,20 @@ voces (1.2 µs por voz) y los parámetros por instancia (0.7).
 **Pendiente que sale de la Fase 10:** el techo de fugas queda a siete objetos (533 de 540); el
 pico espurio del medidor LUFS ya apareció cinco veces y sigue sin causa.
 
-**Siguiente:** spec de la Fase 11 según la hoja de ruta (emisores nuevos y modos).
+**Fase 11, spec y plan (2026-09-02):** [spec](../superpowers/specs/2026-09-02-fase11-emisores-nuevos-y-modos-design.md) ·
+[plan](../superpowers/plans/2026-09-02-fase11-emisores-nuevos-y-modos.md), siete tareas.
+
+**Fase 11, implementada (2026-09-02):** 1394 aserciones. `OpenDouPhysicsImpact3D`,
+`OpenDouDialogueEmitter3D`, modo `MESH` (BVH) en el multiposición, `BUS_CAPTURE` en el emisor 3D,
+disparadores en el área de parámetros y la demo «El taller» con la plantilla de motor. Dos
+promesas sin cumplir arregladas por el camino: el árbol de contenedores solo reproducía la
+primera voz (observación 50; ahora capas reales con cruce en vivo) y los RTPC locales asentaban
+a 10 unidades por segundo. Un hallazgo del motor con deuda: dentro de una sala con reverb,
+Godot manda las voces 3D solo al bus de reverb (observación 49).
+
+**Pendiente que sale de la Fase 11:** envío de reverb propio para que `target_bus` y la mezcla
+gobiernen las voces 3D dentro de salas (obs 49; encaja con la fase de reverb); una demo que
+luzca los nodos de la Fase 10 (hoy no cubiertos por la guarda); el techo de fugas queda a
+trece objetos (527 de 540).
+
+**Siguiente:** spec de la Fase 12 según la hoja de ruta (materiales y efecto directo de Steam Audio).

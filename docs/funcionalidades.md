@@ -48,7 +48,7 @@ Cada nodo visual corresponde a un recurso del árbol lógico o a un módulo DSP.
 | Archivo de audio | `AudioPhysicalNode`: un `AudioStream` con vista de onda y escucha | ✅ |
 | Aleatorio | `AudioRandomContainer`: elección aleatoria o barajada con jitter de volumen y tono | ✅ |
 | Switch | `AudioSwitchContainer`: ruta por switch discreto (por ejemplo, `SurfaceType = Metal`) | ✅ |
-| Blend | `AudioBlendContainer` + `BlendLayer`: capas cruzadas por curva de un RTPC | ✅ |
+| Blend | `AudioBlendContainer` + `BlendLayer`: capas cruzadas por curva de un RTPC. **Hasta la Fase 11 el runtime reproducía solo la primera voz resuelta** (observación 50); ahora cada capa tiene su canal y los desplazamientos se re-resuelven cada frame si el árbol es determinista | ✅ |
 | Secuencia | `AudioSequenceContainer`: pasos en orden con retardos y bucle | ✅ |
 | AHDSR | `AHDSRModulator`: envolvente con visor de curva y prueba de disparo | ✅ |
 | LFO | `LFOModulator`: oscilador con visor de forma, velocidad y profundidad | ✅ |
@@ -77,12 +77,12 @@ Todos resuelven el autoload `/root/OpenDou` y admiten un manager inyectado para 
 
 | Nodo | Hereda de | Qué hace | Estado |
 |---|---|---|---|
-| `OpenDouEventPlayer3D` | `AudioStreamPlayer3D` | Emisor 3D de un evento: por nombre o por `AudioEventDef`, con RTPC locales, switch y estado propios, prioridad, virtualización, distancia de descarte, categoría de bus, oclusión dinámica y reflexiones. Desde la Fase 9 lleva también la física del emisor, en el nodo o en la definición: doppler (con la velocidad del oyente), retardo por distancia (343 m/s), `spread_radius_m` (una fuente ancha deja de ser un punto), campo cercano (graves y ILD dentro de `near_field_distance_m`), directividad por dipolo (`directivity_dipole_weight`, `directivity_power`) y curva de atenuación propia (`attenuation_curve`); la definición puede llevar `markers` que la instancia anuncia con `marker_reached`. En el backend Steam Audio **deja de sonar por sí mismo**: aporta posición y atenuación y la voz sale por el pool binaural, de modo que el origen aparente del grafo de salas lo relocaliza | ✅ |
+| `OpenDouEventPlayer3D` | `AudioStreamPlayer3D` | Emisor 3D de un evento (o, con `source = BUS_CAPTURE`, de **lo que suena en un bus**: captura → generador → voz, el altavoz del mundo de la Fase 11; el bus origen se calla a −80 dB): por nombre o por `AudioEventDef`, con RTPC locales, switch y estado propios, prioridad, virtualización, distancia de descarte, categoría de bus, oclusión dinámica y reflexiones. Desde la Fase 9 lleva también la física del emisor, en el nodo o en la definición: doppler (con la velocidad del oyente), retardo por distancia (343 m/s), `spread_radius_m` (una fuente ancha deja de ser un punto), campo cercano (graves y ILD dentro de `near_field_distance_m`), directividad por dipolo (`directivity_dipole_weight`, `directivity_power`) y curva de atenuación propia (`attenuation_curve`); la definición puede llevar `markers` que la instancia anuncia con `marker_reached`. En el backend Steam Audio **deja de sonar por sí mismo**: aporta posición y atenuación y la voz sale por el pool binaural, de modo que el origen aparente del grafo de salas lo relocaliza | ✅ |
 | `OpenDouEventPlayer2D` | `AudioStreamPlayer2D` | Lo mismo en 2D | ✅ |
 | `OpenDouEventPlayer` | `AudioStreamPlayer` | Evento sin posición: interfaz, música, narración | ✅ |
 | `OpenDouMusicPlayer` | `Node` | Música interactiva multipista: segmentos, playlists no lineales, matriz de transiciones cuantizadas, cola de stingers con ducking, reloj musical por BPM y compás | ✅ |
 | `OpenDouGranularEmitter3D` | `Node3D` | Sintetizador granular espacializado (enjambres, lluvia, texturas) | ✅ |
-| `OpenDouMultiPositionEmitter3D` | `Node3D` | Objeto sonoro grande con varios puntos de emisión (una cascada, una multitud) | ✅ |
+| `OpenDouMultiPositionEmitter3D` | `AudioStreamPlayer3D` | Objeto sonoro grande con varios puntos de emisión (una cascada, una multitud). Desde la Fase 11, `source_mode = MESH`: el punto más cercano **sobre los triángulos** de un `MeshInstance3D` con un BVH propio (`OpenDouTriangleBVH`) e histéresis; 968 triángulos, error 0 frente a la fuerza bruta, 22 µs por consulta | ✅ |
 | `OpenDouSplineEmitter3D` | `Path3D` | Emisor continuo a lo largo de una curva (ríos, tendidos eléctricos, carreteras): el punto que suena es el más cercano al oyente; `flow_speed_mps` mete la corriente en su doppler (Fase 9). Sigue **fuera del sistema de voces** (observación 47): no pasa por el pool, el robo ni el grafo de salas | 🟡 |
 | `OpenDouAnimationSync` | `Node` | Puente animación–audio: detecta la superficie bajo el pie (`SurfaceType`), dispara el evento de pisada con la posición real y sincroniza con `AnimationPlayer` | ✅ |
 
@@ -94,7 +94,9 @@ Todos resuelven el autoload `/root/OpenDou` y admiten un manager inyectado para 
 | `OpenDouPortal3D` | `Node3D` | Apertura entre dos salas (puerta, ventana) con `open_factor` de 0 a 1 que gobierna el paso-bajo y la atenuación; el BFS elige el portal más audible por coste | ✅ |
 | `OpenDouReflector3D` | `Node3D` | Plano reflectante autorado para las reflexiones tempranas (hasta 16 voces del pool reproducen copias retrasadas) | ✅ |
 | `OpenDouAcousticGeometryBake` | `Node3D` | Recoge los triángulos de las mallas del grupo `AcousticObstacle` con su material y alimenta el raycast de oclusión por CPU | ✅ |
-| `OpenDouParameterArea3D` | `Area3D` | Volumen que modula RTPC, estados o instantáneas de mezcla al entrar y salir. Las instantáneas son funcionales desde la Fase 8: antes llamaba a un método que el manager no tenía | ✅ |
+| `OpenDouParameterArea3D` | `Area3D` | Volumen que modula RTPC, estados o instantáneas de mezcla al entrar y salir. Las instantáneas son funcionales desde la Fase 8: antes llamaba a un método que el manager no tenía. Desde la Fase 11 también **dispara eventos**: `trigger_event`, probabilidad, recarga, una sola vez y filtro por grupo del cuerpo | ✅ |
+| `OpenDouPhysicsImpact3D` | `Node3D` | Hijo de un `RigidBody3D` (Fase 11): al chocar lee el material del otro cuerpo (`surface_type`), la velocidad normal relativa (guardada antes del paso de física, porque al llegar `body_entered` ya está resuelta) y la masa, y postea con el switch de material y los RTPC `ImpactForce` e `ImpactMass`. Dos caídas a 2 y 8 m/s: fuerza ×3.8 y rama `Metal` | ✅ |
+| `OpenDouDialogueEmitter3D` | `Node3D` | Línea por idioma desde una `AudioDialogueTable` (Fase 11): subtítulo, ducking absoluto sobre un bus, `mouth_amplitude` por la envolvente del WAV y visemas **autorados** por marcadores `viseme:X`. Sin fonemas automáticos, y lo dice | ✅ |
 | `OpenDouAcousticDebugger3D` | `Node3D` | Depurador volumétrico: dibuja emisores, rayos de oclusión y salas en la vista 3D | ✅ estructura |
 | `OpenDouAudibleMonitor` | `CanvasLayer` | Capa de depuración en juego con las voces audibles, su sonoridad y su estado | ✅ |
 | `OpenDouListener3D` | `Node3D` | El oyente como nodo (Fase 10): el resolver lo prefiere sobre `AudioListener3D` y la cámara. `head_radius_m` escala el ITD en el C++ (al doble, el ITD medido a 90° se dobla), `hrtf_override` (SOFA por jugador), `output_mode` y orientación externa (`set_external_orientation`, giroscopio o visor) | ✅ |
@@ -145,7 +147,7 @@ oclusión → shelf por distancia → HRTF o paneo → retardo entre oídos → 
 | **Modo altavoces** | Paneo estéreo de potencia constante sin HRTF ni ITD, conmutable **en vivo** | A 45°: ILD 12.6 dB, ITD 0, delante = detrás | ✅ |
 | **HRTF conmutable en vivo** | Contexto con generación y cuenta de referencias; `set_hrtf_default()` / `set_hrtf_sofa(ruta)`; un SOFA inválido se rechaza sin tocar el activo | Tres cambios con 16 voces sonando: ningún bloque en silencio | ✅ |
 | **Origen aparente para todo** | El emisor de nodo aporta posición; la voz sale por el pool y la dirección viene de `current_apparent_position` | Emisor dentro de una casa: 145 % de diferencia espectral entre salir por el portal de detrás o el de delante | ✅ |
-| **Reverb por sala conservado** | El anfitrión del stream es un `AudioStreamPlayer3D` **neutralizado** (paneo 0, atenuación y filtro apagados) colocado en la posición real del emisor: Godot no toca el estéreo binaural pero lo envía al bus de reverb del `Area3D` de la sala | La válvula de «Bajo la quilla» alimenta el reverb de su sala y no el de la bahía | ✅ |
+| **Reverb por sala conservado** | El anfitrión del stream es un `AudioStreamPlayer3D` **neutralizado** (paneo 0, atenuación y filtro apagados) colocado en la posición real del emisor: Godot no toca el estéreo binaural pero lo envía al bus de reverb del `Area3D` de la sala. **Ojo (observación 49):** dentro de una sala con reverb, Godot manda la salida del reproductor 3D **solo** al bus de reverb; su `target_bus` no recibe nada, así que la mezcla por buses no alcanza a las voces 3D dentro de salas | La válvula de «Bajo la quilla» alimenta el reverb de su sala y no el de la bahía; `tools/probe_area_reverb.gd` mide el desvío | 🟡 |
 | **Coste** | `benchmark_block(64)`: 18–28 µs por voz y bloque de 512 según la carga (HRTF bilineal ~15, filtros e ITD ~6). Bucle de control a 200 voces: 3.2–3.4 µs por voz en godot y 3.4–3.5 en steam_audio (tras pagar la deuda de la Fase 9; `tools/profile_control_loop.gd` lo desglosa por etapas) | Guarda gruesa en `tests/dsp_budget.txt` (techo 40) | ✅ |
 
 ### 3.3 Ajustes del jugador y menú
@@ -336,6 +338,6 @@ del `AudioServer` y en el Master.
 | Reglas del proyecto y trampas del motor (observaciones 1–44) | `AGENTS.md`, `.agents/rules/` |
 | Specs y planes por fase | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
 | Estado real de la extensión nativa | `docs/architecture/gdextension_api.md`, §7 |
-| Demos que ejercitan todo | `scenes/demos/` («Bajo la quilla», «El monzón», «La cabina», «Una casa canta», el banco del rig) |
+| Demos que ejercitan todo | `scenes/demos/` («Bajo la quilla», «El monzón», «La cabina», «Una casa canta», «El taller», el banco del rig) |
 | Suite y guardas | `tests/`, `./run_tests.sh`, `tests/leak_budget.txt`, `tests/dsp_budget.txt` |
 | Herramientas de medida | `tools/verify_portal_audio.gd`, `tools/bench_control_loop.gd` |

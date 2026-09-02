@@ -1,7 +1,7 @@
 # Fase 11 — Emisores nuevos y modos
 
 **Fecha:** 2026-09-02
-**Estado:** Aprobado en diseño (ciclo spec → plan → ejecución aprobado por adelantado), pendiente de plan.
+**Estado:** Implementado (2026-09-02); correcciones en §12.
 **Rama:** `main`
 **Godot verificado:** 4.7.2.stable.official.ed1daf0bf
 **Hoja de ruta:** [`docs/roadmap/2026-09-02-sprint-aaa.md`](../../roadmap/2026-09-02-sprint-aaa.md), Fase 11
@@ -307,6 +307,33 @@ esperar por muestras; cámara u oyente para que suene un 3D.
 
 ---
 
-## 12. Correcciones que la ejecución obligue a hacer
+## 12. Correcciones que la ejecución obligó a hacer
 
-Se anotan aquí, numeradas, como en las fases anteriores.
+1. **Velocidad de impacto (§3).** Cuando llega `body_entered` la velocidad ya está resuelta
+   a 0: el nodo guarda la velocidad en `_physics_process` (antes del paso) y usa esa. Medido:
+   2.16 y 8.15 m/s (×3.77), material `Metal`, masa 1.0, punto de contacto real. El caso «bajo
+   el umbral» usa umbral 1.0 porque la gravedad en 2 cm suma 0.66 m/s a los 0.2 iniciales.
+2. **El blend no cruzaba (§8, plantilla de motor).** El runtime reproducía solo `voices[0]` y
+   tiraba los desplazamientos (observación 50). Se implementaron capas reales: un canal por voz
+   resuelta (hasta 4 extra), desplazamientos aplicados también a la principal y re-resueltos
+   cada cuadro cuando el árbol es determinista (`AudioLogicNode.is_deterministic()`). Medido:
+   Mix 0 → grave +40 dB; Mix 1 → aguda +65 dB; Mix 0.5 → las dos presentes y reducidas.
+3. **RTPC locales lentos.** `RTPCValue` a 10 unidades/s: 900 → 5000 rpm tardaba siete
+   minutos. `EventInstance.set_parameter` escala la velocidad con el salto (asienta en 0.25 s).
+4. **El bus de la voz dentro de una sala (§8, demo).** Dentro de un `Area3D` con reverb, Godot
+   manda la salida del reproductor 3D **solo** al bus de reverb (observación 49). El motor se
+   mide en el bus de reverb del taller: a 800 rpm media/grave −25.8 dB, a 5000 rpm +9.5 dB.
+5. **Altavoz de mundo y aplicador de mezcla (§6).** El bus origen se calla también en la base
+   del aplicador (`set_bus_base_volume_db`), porque el ducking del diálogo del taller nombra
+   `Radio` y el aplicador lo reescribía cada cuadro. El test usa el autoload, como las demos.
+6. **Centroide (§8).** El estimador de la suite empieza en 229 Hz; el motor se mide por bandas
+   (20–150 frente a 150–800 Hz).
+7. **`loop_end = num_samples` pica en el bucle.** Descubierto por el pico espurio del medidor
+   LUFS (seis apariciones en tres fases); `tools/probe_loop_click.gd`. El sintetizador pasa a
+   `num_samples − 1`.
+8. **Latencia del altavoz (§6).** Medida indirecta: la voz aparece con RMS −15.5 dBFS e ILD
+   ±17 dB; el colchón inicial es 0.1 s y la captura se drena por cuadro.
+9. **Guarda de cobertura.** `EXPECTED_UNCOVERED` pasa a lista: el 2D y los cuatro nodos de
+   la Fase 10 no tienen demo todavía.
+10. **Suite.** 1394 aserciones, 527 objetos vivos de 540; sonoridad del taller −22.9 LUFS
+    (rango −30 a −18). Banco a 200 voces: 3.32–3.39 / 3.37–3.81 µs, sin regresión.

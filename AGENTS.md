@@ -334,6 +334,41 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
   argumentos.** `OpenDouSpatialStream.set_spatial_params(...)` reemplaza a las escrituras
   del canal por voz y cuadro. `tools/profile_control_loop.gd` mide el bucle por etapas.
 
+**Observaciones y trampas de la Fase 11 (emisores nuevos y modos):**
+
+* **Observación 49.** Dentro de un `Area3D` con `reverb_bus_enabled`, Godot manda la salida de
+  un `AudioStreamPlayer3D` **solo** al bus de reverb del area: el bus propio del reproductor
+  no recibe nada (`tools/probe_area_reverb.gd`: seco -200 dB con `area_mask = 1`, -19 dB con
+  `area_mask = 0`). Consecuencia: `target_bus`, instantaneas y ducking por bus **no alcanzan a
+  las voces 3D dentro de salas**; el bus de reverb del pool lleva seco y mojado a Master. Para
+  medir una voz dentro de una sala hay que capturar en el bus de reverb de la sala. El envio
+  de reverb propio (sin el mecanismo del Area3D) queda como deuda para la fase de reverb.
+* **Observación 50.** Hasta la Fase 11 `VoicePoolManager.devirtualize` reproducia solo
+  `voices[0].stream` del arbol de contenedores y tiraba `volume_offset_db` y
+  `pitch_modifier`: un `AudioBlendContainer` no cruzaba nada y el jitter del aleatorio no se
+  oia. Ahora cada voz resuelta tiene su canal (`layer_channel_ids`, hasta 4 extra) y, si el
+  arbol es determinista (`is_deterministic()`: sin aleatorios ni secuencias), los
+  desplazamientos se re-resuelven cada cuadro.
+* **`RTPCValue` interpola a 10 unidades por segundo en valor absoluto.** Un RPM de 900 a 5000
+  tardaba siete minutos. Los RTPC locales (`EventInstance.set_parameter`) escalan la
+  velocidad con el salto y asientan en 0.25 s; la API global con velocidades explicitas no
+  cambia.
+* **Godot: cuando llega `body_entered` la velocidad del cuerpo ya esta resuelta** (0 tras
+  el choque). La velocidad de impacto se guarda en `_physics_process`, antes del paso.
+* **Godot: en 2 cm de caida la gravedad suma 0.66 m/s.** Un test de «bajo el umbral» a 0.2 m/s
+  con umbral 0.5 dispara igual; el umbral del caso es 1.0.
+* **Godot: `AudioStreamWAV` con `loop_end = num_samples` pica en el punto de bucle** (el
+  interpolador lee mas alla del bufer): un tono de -23 dBFS daba picos de -5 a -7. Con
+  `num_samples - 1`, exacto. El sintetizador y los tonos de los tests ya lo hacen asi.
+* **Dos managers peleando por un bus.** El autoload gobierna todo bus que una regla de ducking
+  o una instantanea nombre (`managed_buses`), aunque el bus lo toque un test con su propio
+  manager. Los tests que tocan buses compartidos (`Radio`) usan el autoload, como las demos;
+  `BUS_CAPTURE` fija el volumen del bus tambien en la BASE del aplicador de mezcla.
+* **El centroide espectral de la suite empieza en 229 Hz.** Un motor entre 40 y 160 Hz mide
+  «0 Hz». Para graves, energia por bandas.
+* **`OpenDouMultiPositionEmitter3D` hereda de `AudioStreamPlayer3D`** y reproduce su propio
+  stream: no postea eventos ni pasa por el pool (como el spline, obs 47).
+
 ---
 
 ## 6. Reglas Modulares de Referencia
