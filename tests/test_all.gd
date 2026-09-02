@@ -410,6 +410,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestAudioMarkersClass.run_all_async(tree))
 	acc.absorb(TestSplineFlowClass.run_all(tree))
 	acc.absorb(await TestListener3DClass.run_head_radius_async(tree))
+	acc.absorb(await TestListener3DClass.run_node_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

@@ -89,6 +89,11 @@ var player_pool: OpenDouNativePlayerPool = null
 
 ## Resolutor del oyente activo.
 var listener_resolver: OpenDouListenerResolver = null
+## El OpenDouListener3D registrado (Fase 10), si hay uno.
+var _listener_node_ref: WeakRef = null
+## Estado del entorno (Fase 10, Task 3); hasta entonces nulo.
+var environment = null
+var _warned_hrtf_override: String = ""
 
 ## Programador unico de raycasts de oclusion, con presupuesto por frame.
 var occlusion_scheduler: OpenDouOcclusionScheduler = null
@@ -155,9 +160,17 @@ func _ready() -> void:
 ## Aplica los ajustes del jugador a todos los streams nativos, en vivo. Con backend godot
 ## no hay streams y no hace nada; el menu lo muestra deshabilitado.
 func _apply_spatial_settings() -> void:
+	var node: Node3D = get_listener_node()
+	# El radio de la cabeza va al C++ aunque el backend activo sea godot: es barato y asi el
+	# cambio de backend no lo pierde.
+	if ClassDB.class_exists("OpenDouSpatialStream"):
+		var c: float = environment.speed_of_sound if environment != null else 343.0
+		ClassDB.class_call_static("OpenDouSpatialStream", "configure_listener", node.head_radius_m if node != null else 0.0875, c)
 	if spatial_settings == null or not is_steam_audio_backend():
 		return
 	var mode: int = 1 if spatial_settings.output == "speakers" else 0
+	if node != null and node.output_mode != 0:
+		mode = 1 if node.output_mode == 2 else 0
 	var blend: float = spatial_settings.blend
 	if player_pool != null:
 		player_pool.default_spatial_blend = blend
@@ -166,6 +179,13 @@ func _apply_spatial_settings() -> void:
 		# como factor por voz (default_spatial_blend x (1 - spread), Fase 9), que sin spread
 		# es el mismo valor.
 		player_pool.for_each_spatial_stream(func(s): s.spatial_blend = blend; s.output_mode = mode)
+	# El SOFA del oyente manda sobre el del jugador; si no carga, se avisa una vez y se sigue.
+	if node != null and not node.hrtf_override.is_empty():
+		if bool(ClassDB.class_call_static("OpenDouSpatialStream", "set_hrtf_sofa", node.hrtf_override)):
+			return
+		if _warned_hrtf_override != node.hrtf_override:
+			_warned_hrtf_override = node.hrtf_override
+			push_warning("[OpenDou] el HRTF del oyente %s no se pudo cargar: manda el del jugador" % node.hrtf_override)
 	if spatial_settings.hrtf == "default":
 		if str(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_name")) != "default":
 			ClassDB.class_call_static("OpenDouSpatialStream", "set_hrtf_default")
@@ -173,6 +193,32 @@ func _apply_spatial_settings() -> void:
 		push_warning("[OpenDou] el HRTF %s no se pudo cargar: se vuelve al incorporado" % spatial_settings.hrtf)
 		spatial_settings.hrtf = "default"
 	spatial_settings.save_to_disk()
+
+## Registra el OpenDouListener3D (Fase 10). Si hay dos, manda el ultimo y se avisa una vez.
+func register_listener(node: Node3D) -> void:
+	var current = _listener_node_ref.get_ref() if _listener_node_ref != null else null
+	if current != null and current != node:
+		push_warning("[OpenDou] hay mas de un OpenDouListener3D: manda el ultimo registrado (%s)" % node.name)
+	_listener_node_ref = weakref(node)
+	listener_resolver.set_opendou_listener(node)
+	if not node.listener_changed.is_connected(_apply_spatial_settings):
+		node.listener_changed.connect(_apply_spatial_settings)
+	_apply_spatial_settings()
+
+func unregister_listener(node: Node3D) -> void:
+	if _listener_node_ref == null or _listener_node_ref.get_ref() != node:
+		return
+	if node.listener_changed.is_connected(_apply_spatial_settings):
+		node.listener_changed.disconnect(_apply_spatial_settings)
+	_listener_node_ref = null
+	listener_resolver.set_opendou_listener(null)
+	_apply_spatial_settings()
+
+func get_listener_node() -> Node3D:
+	if _listener_node_ref == null:
+		return null
+	var n = _listener_node_ref.get_ref()
+	return n if n != null and is_instance_valid(n) else null
 
 ## Texto para el menu y el HUD: que backend suena y con que HRTF.
 func spatial_backend_label() -> String:

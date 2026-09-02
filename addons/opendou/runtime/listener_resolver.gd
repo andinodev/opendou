@@ -15,11 +15,12 @@ extends RefCounted
 var position: Vector3 = Vector3.ZERO
 var basis: Basis = Basis.IDENTITY
 
-## De donde se resolvio: &"override_position", &"override_node",
+## De donde se resolvio: &"override_position", &"override_node", &"opendou_listener_3d",
 ## &"audio_listener_3d", &"camera_3d" o &"none".
 var source: StringName = &"none"
 
 var _override_node_ref: WeakRef = null
+var _opendou_listener_ref: WeakRef = null
 var _override_position: Vector3 = Vector3.ZERO
 var _has_override_position: bool = false
 
@@ -28,6 +29,10 @@ func set_listener_node(node: Node3D) -> void:
 	_override_node_ref = weakref(node) if node != null else null
 	if node != null:
 		_has_override_position = false
+
+## Fija el OpenDouListener3D registrado (Fase 10). Va entre los overrides y la regla de Godot.
+func set_opendou_listener(node: Node3D) -> void:
+	_opendou_listener_ref = weakref(node) if node != null else null
 
 ## Fija una posicion fija de oyente. Tiene prioridad sobre todo lo demas.
 func set_listener_position(pos: Vector3) -> void:
@@ -54,6 +59,14 @@ func resolve(viewport: Viewport) -> bool:
 			position = n.global_position
 			basis = n.global_transform.basis
 			source = &"override_node"
+			return true
+
+	if _opendou_listener_ref != null:
+		var l = _opendou_listener_ref.get_ref()
+		if l != null and is_instance_valid(l) and l is Node3D and l.is_inside_tree():
+			position = l.global_position
+			basis = l.get_effective_basis()
+			source = &"opendou_listener_3d"
 			return true
 
 	if viewport != null:

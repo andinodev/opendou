@@ -59,3 +59,50 @@ static func run_head_radius_async(tree: SceneTree) -> OpenDouAssert:
 	player.free()
 	probe.teardown()
 	return a
+
+static func run_node_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("listener_node")
+	var manager = load("res://addons/opendou/runtime/audio_event_manager.gd").new()
+	manager.hdr_enabled = false
+	tree.root.add_child(manager)
+	var cam := Camera3D.new()
+	tree.root.add_child(cam)
+	cam.global_position = Vector3(50, 0, 0)
+	cam.make_current()
+	await tree.process_frame
+	a.eq(String(manager.listener_resolver.source), "camera_3d", "sin nodo oyente manda la camara")
+	var ListenerScript = load("res://addons/opendou/nodes/opendou_listener_3d.gd")
+	var listener = ListenerScript.new()
+	tree.root.add_child(listener)
+	listener.global_position = Vector3(1, 2, 3)
+	manager.register_listener(listener)
+	await tree.process_frame
+	a.eq(String(manager.listener_resolver.source), "opendou_listener_3d", "con el nodo, manda el nodo")
+	a.ok(manager.active_listener_position.is_equal_approx(Vector3(1, 2, 3)), "y la posicion es la suya, no la de la camara")
+	# Orientacion externa: girado 90 grados a la izquierda, lo que estaba delante queda a la derecha.
+	listener.use_external_orientation = true
+	listener.set_external_orientation(Basis(Vector3.UP, PI / 2.0))
+	await tree.process_frame
+	var fwd: Vector3 = -manager.active_listener_basis.z
+	a.ok(fwd.is_equal_approx(Vector3(-1, 0, 0)), "la orientacion inyectada gira el frente del oyente (frente = %s)" % str(fwd))
+	listener.use_external_orientation = false
+	await tree.process_frame
+	a.ok((-manager.active_listener_basis.z).is_equal_approx(Vector3(0, 0, -1)), "apagada, vuelve la del nodo")
+	if _native():
+		var gen_before: int = int(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_generation"))
+		listener.hrtf_override = "user://no_existe.sofa"
+		await tree.process_frame
+		a.eq(int(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_generation")), gen_before, "un SOFA inexistente no cambia la generacion del HRTF")
+		listener.hrtf_override = ""
+		listener.head_radius_m = 0.1
+		await tree.process_frame
+		a.approx(float(ClassDB.class_call_static("OpenDouSpatialStream", "get_head_radius_m")), 0.1, "el radio del nodo llega al C++", 0.0001)
+		listener.head_radius_m = 0.0875
+		await tree.process_frame
+	manager.unregister_listener(listener)
+	await tree.process_frame
+	a.eq(String(manager.listener_resolver.source), "camera_3d", "sin el nodo, vuelve la camara")
+	tree.root.remove_child(listener); listener.free()
+	tree.root.remove_child(cam); cam.free()
+	tree.root.remove_child(manager); manager.free()
+	return a
