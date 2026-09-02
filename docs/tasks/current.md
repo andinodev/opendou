@@ -28,3 +28,5 @@ emisores de nodo como fuente de posición, ajustes del jugador y bloque de espac
 el menú. Corrige la observación 42 (OpenDou anulaba el oscurecimiento por distancia de Godot).
 Doppler fuera por decisión. **Siguiente:** el plan de 7B. La Fase 4B (prefijado `OpenDou`)
 queda pendiente detrás.
+
+**Plan de 7B (2026-09-02):** [`2026-09-02-fase7b-binaural-todas-las-voces.md`](../superpowers/plans/2026-09-02-fase7b-binaural-todas-las-voces.md), quince tareas con su ciclo de test y commit. Lo que toca es ejecutarlo.
