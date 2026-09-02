@@ -57,6 +57,12 @@ void OpenDouSpatialStream::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_output_mode", "mode"), &OpenDouSpatialStream::set_output_mode);
 	ClassDB::bind_method(D_METHOD("get_output_mode"), &OpenDouSpatialStream::get_output_mode);
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "output_mode", PROPERTY_HINT_ENUM, "Headphones,Speakers"), "set_output_mode", "get_output_mode");
+	ClassDB::bind_method(D_METHOD("set_near_field_bass_db", "db"), &OpenDouSpatialStream::set_near_field_bass_db);
+	ClassDB::bind_method(D_METHOD("get_near_field_bass_db"), &OpenDouSpatialStream::get_near_field_bass_db);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "near_field_bass_db", PROPERTY_HINT_RANGE, "0,12,0.1"), "set_near_field_bass_db", "get_near_field_bass_db");
+	ClassDB::bind_method(D_METHOD("set_near_field_ild_db", "db"), &OpenDouSpatialStream::set_near_field_ild_db);
+	ClassDB::bind_method(D_METHOD("get_near_field_ild_db"), &OpenDouSpatialStream::get_near_field_ild_db);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "near_field_ild_db", PROPERTY_HINT_RANGE, "0,12,0.1"), "set_near_field_ild_db", "get_near_field_ild_db");
 	BIND_ENUM_CONSTANT(OUTPUT_HEADPHONES);
 	BIND_ENUM_CONSTANT(OUTPUT_SPEAKERS);
 
@@ -107,6 +113,10 @@ void OpenDouSpatialStream::set_shelf_cutoff_hz(float p_hz) { shelf_cutoff_hz_.st
 float OpenDouSpatialStream::get_shelf_cutoff_hz() const { return shelf_cutoff_hz_.load(); }
 void OpenDouSpatialStream::set_output_mode(int p_mode) { output_mode_.store(p_mode == OUTPUT_SPEAKERS ? OUTPUT_SPEAKERS : OUTPUT_HEADPHONES); }
 int OpenDouSpatialStream::get_output_mode() const { return output_mode_.load(); }
+void OpenDouSpatialStream::set_near_field_bass_db(float p_db) { near_field_bass_db_.store(std::clamp(p_db, 0.0f, 12.0f)); }
+float OpenDouSpatialStream::get_near_field_bass_db() const { return near_field_bass_db_.load(); }
+void OpenDouSpatialStream::set_near_field_ild_db(float p_db) { near_field_ild_db_.store(std::clamp(p_db, 0.0f, 12.0f)); }
+float OpenDouSpatialStream::get_near_field_ild_db() const { return near_field_ild_db_.load(); }
 
 Vector2 OpenDouSpatialStream::get_last_peak_delays() const { return Vector2(peak_left_.load(), peak_right_.load()); }
 
@@ -256,6 +266,8 @@ bool OpenDouSpatialStreamPlayback::create_effect() {
 	ring_available_ = 0;
 	lpf_.reset();
 	shelf_.reset();
+	near_shelf_.reset();
+	near_applied_db_ = -1.0f;
 	const int max_delay = static_cast<int>(0.002f * audio.samplingRate) + 2;
 	delay_l_.init(max_delay);
 	delay_r_.init(max_delay);
@@ -304,6 +316,7 @@ void OpenDouSpatialStreamPlayback::_stop() {
 	}
 	lpf_.reset();
 	shelf_.reset();
+	near_shelf_.reset();
 	delay_l_.reset();
 	delay_r_.reset();
 	ring_read_ = 0;
@@ -366,6 +379,22 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 		mono[i] = x;
 	}
 
+	// Campo cercano: refuerzo de graves antes del HRTF.
+	const float nf_bass = stream_->near_field_bass_db_.load();
+	if (std::fabs(nf_bass - near_applied_db_) > 0.05f) {
+		if (nf_bass < 0.05f) {
+			near_shelf_.set_identity();
+		} else {
+			near_shelf_.set_lowshelf(fs, 250.0f, nf_bass);
+		}
+		near_applied_db_ = nf_bass;
+	}
+	if (nf_bass >= 0.05f) {
+		for (int i = 0; i < frame_size; i++) {
+			mono[i] = near_shelf_.process(mono[i]);
+		}
+	}
+
 	const float dx = stream_->dir_x_.load(), dy = stream_->dir_y_.load(), dz = stream_->dir_z_.load();
 
 	if (stream_->output_mode_.load() == OpenDouSpatialStream::OUTPUT_SPEAKERS) {
@@ -416,6 +445,15 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 			interleaved_[2 * i + 1] = delay_r_.process(interleaved_[2 * i + 1]);
 		}
 		stream_->applied_itd_.store(itd);
+		// Campo cercano: ILD extra en el oido LEJANO (los HRTF medidos a 1-2 m no la traen).
+		const float nf_ild = stream_->near_field_ild_db_.load();
+		if (nf_ild > 0.05f) {
+			const float g = std::pow(10.0f, -nf_ild / 20.0f);
+			const int far = dx >= 0.0f ? 0 : 1;
+			for (int i = 0; i < frame_size; i++) {
+				interleaved_[2 * i + far] *= g;
+			}
+		}
 	}
 
 	// 4. Al anillo.

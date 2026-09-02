@@ -26,6 +26,8 @@ var spatial_backend: StringName = &"godot"
 ## Inyecta el pool de reproductores nativos.
 func set_player_pool(pool: OpenDouNativePlayerPool) -> void:
 	player_pool = pool
+	for ch in channels:
+		ch.player_pool = pool
 
 func _init(p_max_voices: int = 64) -> void:
 	max_physical_voices = max(1, p_max_voices)

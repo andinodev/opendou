@@ -230,3 +230,99 @@ static func run_curve_async(tree: SceneTree) -> OpenDouAssert:
 	probe.teardown()
 	ProjectSettings.set_setting("opendou/spatial/backend", previous)
 	return a
+
+## Spread: a 1 m con radio 10 la voz colapsa hacia el centro (ILD e ITD ~0); a 20 m, no.
+static func run_spread_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("spread")
+	if not ClassDB.class_exists("OpenDouSpatialStream"):
+		print("[OpenDou] extension nativa AUSENTE: suite spread omitida")
+		return a
+	var previous: String = _backend_setting()
+	ParityClass.ensure_bus()
+	var probe = OpenDouAudioProbeClass.new()
+	probe.attach_to_existing_bus(ParityClass.BUS, 2.0)
+	var cam: Camera3D = ParityClass.make_listener_camera(tree)
+	var manager = ParityClass.make_manager(tree, "steam_audio")
+	await tree.process_frame
+	var def = AudioEventDefClass.new(&"SpreadNoise", BinauralClass._periodic_noise(int(AudioServer.get_mix_rate())))
+	def.is_looping = true
+	def.stream_length = 1.0
+	def.target_bus = ParityClass.BUS
+	def.attenuation_model = 3
+	manager.register_event_definition(def)
+	manager.set_listener_position(Vector3.ZERO)
+	var results: Dictionary = {}
+	for radius in [10.0, 0.0]:
+		def.spread_radius_m = radius
+		for d in [1.0, 20.0]:
+			var inst = manager.post_event(def, null)
+			inst.set_position(Vector3(d, 0, 0))
+			await _wait_ms(tree, 250)
+			probe.drain()
+			var cap := await BinauralClass._capture(tree, probe)
+			results["%s_%s" % [radius, d]] = {"ild": BinauralClass._ild_db(cap.left, cap.right), "lag": BinauralClass._itd_lag(cap.left, cap.right)}
+			inst.stop()
+			await probe.await_silence(tree, 0.002, 30)
+	print("[OpenDou] spread: ", results)
+	# Spread 0.9 deja un 10 % de HRTF: la ILD no es cero, pero cae a menos de un cuarto.
+	a.lt(absf(results["10.0_1.0"]["ild"]), 0.25 * results["10.0_20.0"]["ild"], "radio 10 a 1 m: la ILD cae a menos de un cuarto de la de 20 m (spread 0.9)")
+	a.ok(absf(results["10.0_1.0"]["lag"]) <= 4, "y el ITD tambien")
+	a.gt(results["10.0_20.0"]["ild"], 6.0, "radio 10 a 20 m: ILD normal")
+	a.gt(results["0.0_1.0"]["ild"], 6.0, "radio 0 (apagado) a 1 m: ILD normal (control)")
+	manager.stop_all()
+	tree.root.remove_child(manager)
+	manager.free()
+	tree.root.remove_child(cam)
+	cam.free()
+	probe.teardown()
+	ProjectSettings.set_setting("opendou/spatial/backend", previous)
+	return a
+
+## Campo cercano: a 0.2 m con distancia 0.5 suben los graves y crece la ILD; a 1 m, no.
+static func run_near_field_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("near_field")
+	if not ClassDB.class_exists("OpenDouSpatialStream"):
+		print("[OpenDou] extension nativa AUSENTE: suite near_field omitida")
+		return a
+	var previous: String = _backend_setting()
+	ParityClass.ensure_bus()
+	var probe = OpenDouAudioProbeClass.new()
+	probe.attach_to_existing_bus(ParityClass.BUS, 2.0)
+	var cam: Camera3D = ParityClass.make_listener_camera(tree)
+	var manager = ParityClass.make_manager(tree, "steam_audio")
+	await tree.process_frame
+	var rate: float = AudioServer.get_mix_rate()
+	var def = AudioEventDefClass.new(&"NearNoise", BinauralClass._periodic_noise(int(rate)))
+	def.is_looping = true
+	def.stream_length = 1.0
+	def.target_bus = ParityClass.BUS
+	def.attenuation_model = 3
+	manager.register_event_definition(def)
+	manager.set_listener_position(Vector3.ZERO)
+	var res: Dictionary = {}
+	for nfd in [0.5, 0.0]:
+		def.near_field_distance_m = nfd
+		for d in [0.2, 1.0]:
+			var inst = manager.post_event(def, null)
+			inst.set_position(Vector3(d, 0, 0))
+			await _wait_ms(tree, 250)
+			probe.drain()
+			var cap := await BinauralClass._capture(tree, probe)
+			res["%s_%s" % [nfd, d]] = {"bass": BinauralClass._band_energy_stereo(cap, rate, 60.0, 200.0), "ild": BinauralClass._ild_db(cap.left, cap.right)}
+			inst.stop()
+			await probe.await_silence(tree, 0.002, 30)
+	var bass_gain_db: float = 10.0 * log(res["0.5_0.2"]["bass"] / maxf(res["0.5_1.0"]["bass"], 1e-12)) / log(10.0)
+	var bass_ctrl_db: float = 10.0 * log(res["0.0_0.2"]["bass"] / maxf(res["0.0_1.0"]["bass"], 1e-12)) / log(10.0)
+	print("[OpenDou] campo cercano: graves +%.1f dB (control %.1f), ILD %.1f frente a %.1f dB" % [bass_gain_db, bass_ctrl_db, res["0.5_0.2"]["ild"], res["0.5_1.0"]["ild"]])
+	# A 0.2 m con distancia 0.5 la cercania es 0.6: se piden 3.6 dB de graves y 3.6 de ILD.
+	a.approx(bass_gain_db, 3.6, "a 0.2 m los graves suben lo pedido (0.6 x 6 dB)", 1.0)
+	a.lt(absf(bass_ctrl_db), 1.0, "con la distancia en 0, los graves no cambian (control)")
+	a.gt(res["0.5_0.2"]["ild"] - res["0.5_1.0"]["ild"], 2.5, "y la ILD crece al menos 2.5 dB (pedidos 3.6)")
+	manager.stop_all()
+	tree.root.remove_child(manager)
+	manager.free()
+	tree.root.remove_child(cam)
+	cam.free()
+	probe.teardown()
+	ProjectSettings.set_setting("opendou/spatial/backend", previous)
+	return a

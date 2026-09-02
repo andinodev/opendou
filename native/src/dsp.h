@@ -57,6 +57,22 @@ struct Biquad {
 		a2 = static_cast<float>(((g + 1.0) - (g - 1.0) * cw - beta * sw) / a0);
 	}
 
+	// Low-shelf RBJ: ganancia gain_db por debajo de fc. Campo cercano (Fase 9).
+	void set_lowshelf(float fs, float fc, float gain_db) {
+		fc = std::clamp(fc, 10.0f, fs * 0.45f);
+		const float A = std::pow(10.0f, gain_db / 40.0f);
+		const float w0 = 2.0f * kPi * fc / fs;
+		const float cw = std::cos(w0), sw = std::sin(w0);
+		const float alpha = sw / 2.0f * std::sqrt(2.0f);
+		const float sqA2a = 2.0f * std::sqrt(A) * alpha;
+		const float a0 = (A + 1.0f) + (A - 1.0f) * cw + sqA2a;
+		b0 = (A * ((A + 1.0f) - (A - 1.0f) * cw + sqA2a)) / a0;
+		b1 = (2.0f * A * ((A - 1.0f) - (A + 1.0f) * cw)) / a0;
+		b2 = (A * ((A + 1.0f) - (A - 1.0f) * cw - sqA2a)) / a0;
+		a1 = (-2.0f * ((A - 1.0f) + (A + 1.0f) * cw)) / a0;
+		a2 = ((A + 1.0f) + (A - 1.0f) * cw - sqA2a) / a0;
+	}
+
 	inline float process(float x) {
 		const float y = b0 * x + z1;
 		z1 = b1 * x - a1 * y + z2;

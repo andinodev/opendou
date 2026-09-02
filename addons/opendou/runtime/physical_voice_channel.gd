@@ -28,6 +28,9 @@ var owned_by_node: bool = false
 ## COMO. Null en las voces anonimas y en el backend godot.
 var position_node_ref: WeakRef = null
 
+## El pool al que pertenece el reproductor (para la mezcla HRTF por defecto del jugador).
+var player_pool = null
+
 # Bus de mezcla destino en el AudioServer de Godot.
 var target_bus: StringName = &"Master"
 
@@ -167,6 +170,18 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		var v_total: float = volume_db + instance.emitter_volume_db
 		player.volume_db = clampf(v_total + gain_db, -80.0, 24.0)
 		s.direction = DistanceModelClass.listener_direction(p, listener_position, listener_basis)
+		# Spread: la fuente deja de ser un punto al acercarse. El ajuste del jugador es un factor.
+		var spread: float = 0.0
+		if instance.spread_radius_m > 0.0:
+			spread = clampf(1.0 - distance / instance.spread_radius_m, 0.0, 1.0)
+		var base_blend: float = player_pool.default_spatial_blend if player_pool != null else 1.0
+		s.spatial_blend = base_blend * (1.0 - spread)
+		# Campo cercano: refuerzo de graves e ILD extra al pegarse a la oreja.
+		var nf: float = 0.0
+		if instance.near_field_distance_m > 0.0:
+			nf = clampf(1.0 - distance / instance.near_field_distance_m, 0.0, 1.0)
+		s.near_field_bass_db = 6.0 * nf
+		s.near_field_ild_db = 6.0 * nf * absf(s.direction.x)
 		# El multiplicador se calcula UNA vez: sirve para la ganancia del stream (sin el
 		# volumen, que ya va en el reproductor) y para la profundidad del shelf.
 		var mult: float = DistanceModelClass.multiplier(distance, instance.attenuation_model, instance.unit_size, v_total, DistanceModelClass.MAX_DB, instance.attenuation_max_distance, instance.attenuation_curve, instance.attenuation_curve_distance_m)
@@ -185,6 +200,11 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 			vol += DistanceModelClass.attenuation_db(d_curve, DistanceModelClass.MODEL_CURVE, instance.unit_size, instance.attenuation_curve, instance.attenuation_curve_distance_m)
 		player.volume_db = clampf(vol, -80.0, 24.0)
 		player.attenuation_filter_cutoff_hz = clampf(minf(cutoff_hz, instance.attenuation_filter_cutoff_hz), 20.0, 20000.0)
+		# Spread en godot: su propio mando de paneo.
+		var spread_g: float = 0.0
+		if instance.spread_radius_m > 0.0:
+			spread_g = clampf(1.0 - instance.current_apparent_position.distance_to(listener_position) / instance.spread_radius_m, 0.0, 1.0)
+		player.panning_strength = 1.0 - spread_g
 		if not owned_by_node:
 			player.global_position = instance.current_apparent_position
 	elif player is AudioStreamPlayer2D:

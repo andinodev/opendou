@@ -162,6 +162,9 @@ func _apply_spatial_settings() -> void:
 	if player_pool != null:
 		player_pool.default_spatial_blend = blend
 		player_pool.default_output_mode = mode
+		# Se escribe en todos los streams; en los ocupados el canal lo sobreescribe cada frame
+		# como factor por voz (default_spatial_blend x (1 - spread), Fase 9), que sin spread
+		# es el mismo valor.
 		player_pool.for_each_spatial_stream(func(s): s.spatial_blend = blend; s.output_mode = mode)
 	if spatial_settings.hrtf == "default":
 		if str(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_name")) != "default":

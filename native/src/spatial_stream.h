@@ -69,6 +69,13 @@ public:
 	void set_output_mode(int p_mode);
 	int get_output_mode() const;
 
+	// Campo cercano (Fase 9): refuerzo de graves (low-shelf a 250 Hz) e ILD extra en el oido
+	// lejano, en dB. 0 = sin efecto. Los calcula el canal segun la distancia.
+	void set_near_field_bass_db(float p_db);
+	float get_near_field_bass_db() const;
+	void set_near_field_ild_db(float p_db);
+	float get_near_field_ild_db() const;
+
 	// Ultimos retardos de pico (izquierdo, derecho) en segundos que Steam Audio escribio al
 	// renderizar. El HRTF trae los picos alineados: el ITD NO esta en su salida y OpenDou lo
 	// aplica aparte; este valor es el residuo que se resta.
@@ -115,6 +122,8 @@ private:
 	std::atomic<float> shelf_db_{ 0.0f };
 	std::atomic<float> shelf_cutoff_hz_{ 5000.0f };
 	std::atomic<int> output_mode_{ OUTPUT_HEADPHONES };
+	std::atomic<float> near_field_bass_db_{ 0.0f };
+	std::atomic<float> near_field_ild_db_{ 0.0f };
 	std::atomic<float> peak_left_{ 0.0f };
 	std::atomic<float> peak_right_{ 0.0f };
 	std::atomic<float> applied_itd_{ 0.0f };
@@ -161,6 +170,8 @@ private:
 	float lpf_applied_hz_ = -1.0f;
 	float shelf_applied_db_ = 1.0f; // imposible a proposito: fuerza el primer calculo
 	float shelf_applied_hz_ = -1.0f;
+	dsp::Biquad near_shelf_;
+	float near_applied_db_ = -1.0f;
 
 	// ITD esferico: una linea de retardo por oido; se retrasa el oido LEJANO.
 	dsp::FractionalDelay delay_l_;

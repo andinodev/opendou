@@ -401,6 +401,8 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestEmitterPhysicsClass.run_doppler_async(tree))
 	acc.absorb(await TestEmitterPhysicsClass.run_directivity_async(tree))
 	acc.absorb(await TestEmitterPhysicsClass.run_curve_async(tree))
+	acc.absorb(await TestEmitterPhysicsClass.run_spread_async(tree))
+	acc.absorb(await TestEmitterPhysicsClass.run_near_field_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,
