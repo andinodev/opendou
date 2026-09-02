@@ -175,28 +175,29 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		var distance: float = p.distance_to(listener_position)
 		var v_total: float = volume_db + instance.emitter_volume_db
 		player.volume_db = clampf(v_total + gain_db, -80.0, 24.0)
-		s.direction = DistanceModelClass.listener_direction(p, listener_position, listener_basis)
+		var direction: Vector3 = DistanceModelClass.listener_direction(p, listener_position, listener_basis)
 		# Spread: la fuente deja de ser un punto al acercarse. El ajuste del jugador es un factor.
 		var spread: float = 0.0
 		if instance.spread_radius_m > 0.0:
 			spread = clampf(1.0 - distance / instance.spread_radius_m, 0.0, 1.0)
 		var base_blend: float = player_pool.default_spatial_blend if player_pool != null else 1.0
-		s.spatial_blend = base_blend * (1.0 - spread)
 		# Campo cercano: refuerzo de graves e ILD extra al pegarse a la oreja.
 		var nf: float = 0.0
 		if instance.near_field_distance_m > 0.0:
 			nf = clampf(1.0 - distance / instance.near_field_distance_m, 0.0, 1.0)
-		s.near_field_bass_db = 6.0 * nf
-		s.near_field_ild_db = 6.0 * nf * absf(s.direction.x)
-		# Retardo por distancia: el sonido tarda distancia / 343 s en llegar.
-		s.propagation_delay_sec = distance / speed_of_sound if instance.propagation_delay_enabled else 0.0
+		# Retardo por distancia: el sonido tarda distancia / c segundos en llegar.
+		var delay: float = distance / speed_of_sound if instance.propagation_delay_enabled else 0.0
 		# El multiplicador se calcula UNA vez: sirve para la ganancia del stream (sin el
 		# volumen, que ya va en el reproductor) y para la profundidad del shelf.
 		var mult: float = DistanceModelClass.multiplier(distance, instance.attenuation_model, instance.unit_size, v_total, DistanceModelClass.MAX_DB, instance.attenuation_max_distance, instance.attenuation_curve, instance.attenuation_curve_distance_m)
-		s.distance_gain = mult / db_to_linear(v_total) if mult > 0.0 else 0.0
-		s.shelf_db = DistanceModelClass.shelf_db(mult, instance.attenuation_filter_db)
-		s.shelf_cutoff_hz = instance.attenuation_filter_cutoff_hz
-		s.cutoff_hz = clampf(cutoff_hz, 20.0, 20000.0)
+		# Una sola llamada al nativo por voz y cuadro: nueve escrituras de propiedad costaban
+		# medio microsegundo por voz.
+		s.set_spatial_params(direction, base_blend * (1.0 - spread),
+			mult / db_to_linear(v_total) if mult > 0.0 else 0.0,
+			clampf(cutoff_hz, 20.0, 20000.0),
+			DistanceModelClass.shelf_db(mult, instance.attenuation_filter_db),
+			instance.attenuation_filter_cutoff_hz,
+			6.0 * nf, 6.0 * nf * absf(direction.x), delay)
 	elif player is AudioStreamPlayer3D:
 		var vol: float = volume_db + gain_db
 		# Los reproductores anonimos del pool llevan la atenuacion de la INSTANCIA (modelo,

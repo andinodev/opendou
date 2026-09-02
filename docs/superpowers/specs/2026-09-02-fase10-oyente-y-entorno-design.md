@@ -348,5 +348,7 @@ cuadros, y los tests con nodos van a `run_async_suite(tree)`.
    steam_audio 4.72 / 4.90 / 4.87 (la Fase 9 cerró en 4.31–4.45 / 4.74–4.83). Con 8 volúmenes
    con viento y oclusión parcial (`OPENDOU_BENCH_VOLUMES=8`): 4.99–5.02 / 5.20–5.22, un 10 %
    más: la oclusión parcial recorre los volúmenes por rayo y el viento por voz lejana. La
-   deuda de la Fase 9 (§17.10 de su spec) sigue abierta y crece.
+   deuda de la Fase 9 (§17.10 de su spec) se pagó justo después de cerrar la fase: sin
+   `sort_custom` en el robo ni en la oclusión, sin `Dictionary` de LOD por instancia y con
+   `set_spatial_params` en el nativo, 3.20–3.44 / 3.39–3.52 µs por voz.
 9. **Suite.** 1301 aserciones, 535 objetos vivos de 540: el techo de fugas queda a cinco.

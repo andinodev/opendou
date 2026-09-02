@@ -79,14 +79,17 @@ func resolve_voice_stealing(active_instances: Array[EventInstance], listener_pos
 		instance.current_weight = weight
 		candidates.append(instance)
 		
-	# 3. Sort candidates from HIGHEST to LOWEST weight
-	candidates.sort_custom(func(a: EventInstance, b: EventInstance) -> bool:
-		return a.current_weight > b.current_weight
-	)
+	# 3. De mayor a menor peso. Pares [-peso, indice] con el sort() nativo: la lambda de
+	# sort_custom era el mayor coste del bucle de control a 200 voces.
+	var order: Array = []
+	order.resize(candidates.size())
+	for k in range(candidates.size()):
+		order[k] = [-candidates[k].current_weight, k]
+	order.sort()
 	
 	# 4. Allocate top candidates to physical channels, virtualize the rest
-	for i in range(candidates.size()):
-		var instance: EventInstance = candidates[i]
+	for i in range(order.size()):
+		var instance: EventInstance = candidates[order[i][1]]
 		
 		if i < max_physical_voices and instance.current_weight >= min_audibility_threshold and not instance.culled:
 			if instance.voice_state == EventInstanceClass.VoiceState.STATE_VIRTUAL:

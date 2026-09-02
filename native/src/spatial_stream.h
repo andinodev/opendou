@@ -80,6 +80,8 @@ public:
 	// mono antes del HRTF; el primer valor se fija de golpe y los siguientes se rampean, con
 	// lo que un emisor en movimiento produce doppler FISICO (el canal no suma el de tono).
 	void set_propagation_delay_sec(float p_sec);
+	// Todo lo que el canal escribe por voz y cuadro, en una sola llamada (deuda de coste).
+	void set_spatial_params(const godot::Vector3 &p_direction, float p_spatial_blend, float p_distance_gain, float p_cutoff_hz, float p_shelf_db, float p_shelf_cutoff_hz, float p_near_field_bass_db, float p_near_field_ild_db, float p_propagation_delay_sec);
 	float get_propagation_delay_sec() const;
 	// Tope de memoria por voz. Solo antes de crear playbacks con retardo.
 	static bool configure_max_propagation_delay(float p_sec);

@@ -77,8 +77,14 @@ parcial, descarte, superficie; pertenencia por geometría), accesibilidad (mono,
 `NIGHT`, `OpenDouSoundIndicator`) y la IA que oye (`get_loudness_at`, `OpenDouAIHearing3D`).
 Observación 48 y trampas en `AGENTS.md`; correcciones del spec en su §10.
 
-**Pendiente que sale de la Fase 10:** el coste por voz sigue sobre el techo (4.5–4.9 µs sin
-volúmenes, 5.0–5.2 con ocho); el techo de fugas queda a cinco objetos (535 de 540); el pico
-espurio del medidor LUFS ya apareció cinco veces y sigue sin causa.
+**Deuda de coste pagada (2026-09-02):** `tools/profile_control_loop.gd` mide el bucle por etapas.
+Tres recortes sin cambio de comportamiento (sin `sort_custom` en el robo de voces ni en la
+oclusión, sin `Dictionary` de rasgos LOD por instancia, una llamada nativa por voz en lugar de
+nueve escrituras): a 200 voces, de 4.5 / 4.9 µs por voz a **3.20–3.44 (godot) / 3.39–3.52
+(steam_audio)**, por debajo del techo histórico de 4.29. Lo que más pesa ahora es el robo de
+voces (1.2 µs por voz) y los parámetros por instancia (0.7).
+
+**Pendiente que sale de la Fase 10:** el techo de fugas queda a siete objetos (533 de 540); el
+pico espurio del medidor LUFS ya apareció cinco veces y sigue sin causa.
 
 **Siguiente:** spec de la Fase 11 según la hoja de ruta (emisores nuevos y modos).

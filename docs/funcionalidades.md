@@ -146,7 +146,7 @@ oclusión → shelf por distancia → HRTF o paneo → retardo entre oídos → 
 | **HRTF conmutable en vivo** | Contexto con generación y cuenta de referencias; `set_hrtf_default()` / `set_hrtf_sofa(ruta)`; un SOFA inválido se rechaza sin tocar el activo | Tres cambios con 16 voces sonando: ningún bloque en silencio | ✅ |
 | **Origen aparente para todo** | El emisor de nodo aporta posición; la voz sale por el pool y la dirección viene de `current_apparent_position` | Emisor dentro de una casa: 145 % de diferencia espectral entre salir por el portal de detrás o el de delante | ✅ |
 | **Reverb por sala conservado** | El anfitrión del stream es un `AudioStreamPlayer3D` **neutralizado** (paneo 0, atenuación y filtro apagados) colocado en la posición real del emisor: Godot no toca el estéreo binaural pero lo envía al bus de reverb del `Area3D` de la sala | La válvula de «Bajo la quilla» alimenta el reverb de su sala y no el de la bahía | ✅ |
-| **Coste** | `benchmark_block(64)`: 18–28 µs por voz y bloque de 512 según la carga (HRTF bilineal ~15, filtros e ITD ~6). Bucle de control a 200 voces: 4.21 µs por voz frente a 4.00 con Godot | Guarda gruesa en `tests/dsp_budget.txt` (techo 40) | ✅ |
+| **Coste** | `benchmark_block(64)`: 18–28 µs por voz y bloque de 512 según la carga (HRTF bilineal ~15, filtros e ITD ~6). Bucle de control a 200 voces: 3.2–3.4 µs por voz en godot y 3.4–3.5 en steam_audio (tras pagar la deuda de la Fase 9; `tools/profile_control_loop.gd` lo desglosa por etapas) | Guarda gruesa en `tests/dsp_budget.txt` (techo 40) | ✅ |
 
 ### 3.3 Ajustes del jugador y menú
 

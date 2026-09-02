@@ -66,6 +66,7 @@ void OpenDouSpatialStream::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_near_field_ild_db"), &OpenDouSpatialStream::get_near_field_ild_db);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "near_field_ild_db", PROPERTY_HINT_RANGE, "0,12,0.1"), "set_near_field_ild_db", "get_near_field_ild_db");
 	ClassDB::bind_method(D_METHOD("set_propagation_delay_sec", "sec"), &OpenDouSpatialStream::set_propagation_delay_sec);
+	ClassDB::bind_method(D_METHOD("set_spatial_params", "direction", "spatial_blend", "distance_gain", "cutoff_hz", "shelf_db", "shelf_cutoff_hz", "near_field_bass_db", "near_field_ild_db", "propagation_delay_sec"), &OpenDouSpatialStream::set_spatial_params);
 	ClassDB::bind_method(D_METHOD("get_propagation_delay_sec"), &OpenDouSpatialStream::get_propagation_delay_sec);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "propagation_delay_sec", PROPERTY_HINT_RANGE, "0,10,0.001"), "set_propagation_delay_sec", "get_propagation_delay_sec");
 	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("configure_max_propagation_delay", "sec"), &OpenDouSpatialStream::configure_max_propagation_delay);
@@ -143,6 +144,18 @@ bool OpenDouSpatialStream::configure_listener(float p_head_radius_m, float p_spe
 	head_radius_m_.store(p_head_radius_m);
 	speed_of_sound_mps_.store(p_speed_of_sound_mps);
 	return true;
+}
+
+void OpenDouSpatialStream::set_spatial_params(const godot::Vector3 &p_direction, float p_spatial_blend, float p_distance_gain, float p_cutoff_hz, float p_shelf_db, float p_shelf_cutoff_hz, float p_near_field_bass_db, float p_near_field_ild_db, float p_propagation_delay_sec) {
+	set_direction(p_direction);
+	set_spatial_blend(p_spatial_blend);
+	set_distance_gain(p_distance_gain);
+	set_cutoff_hz(p_cutoff_hz);
+	set_shelf_db(p_shelf_db);
+	set_shelf_cutoff_hz(p_shelf_cutoff_hz);
+	set_near_field_bass_db(p_near_field_bass_db);
+	set_near_field_ild_db(p_near_field_ild_db);
+	set_propagation_delay_sec(p_propagation_delay_sec);
 }
 
 bool OpenDouSpatialStream::configure_max_propagation_delay(float p_sec) {

@@ -37,6 +37,19 @@ func get_lod_level(distance: float) -> int:
 	else:
 		return AcousticLOD.LOD_3_CULLED
 
+## Distancia maxima a la que un LOD todavia pide oclusion por fisica. Se calcula desde las
+## tablas de rasgos una vez por llamada, para que el planificador no construya un Dictionary
+## por instancia y cuadro (deuda de coste, tras la Fase 10).
+func physics_occlusion_max_distance() -> float:
+	var best: float = 0.0
+	for lod in [AcousticLOD.LOD_0_FULL, AcousticLOD.LOD_1_MEDIUM, AcousticLOD.LOD_2_LOW]:
+		if bool(get_lod_features(lod).get("enable_physics_occlusion", false)):
+			match lod:
+				AcousticLOD.LOD_0_FULL: best = maxf(best, lod_0_max_distance)
+				AcousticLOD.LOD_1_MEDIUM: best = maxf(best, lod_1_max_distance)
+				AcousticLOD.LOD_2_LOW: best = maxf(best, lod_2_max_distance)
+	return best
+
 ## Returns the dictionary of active feature flags for a given Acoustic LOD level.
 func get_lod_features(lod_level: int) -> Dictionary:
 	match lod_level:

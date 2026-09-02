@@ -50,8 +50,11 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D, occlude
 	if space_state == null:
 		return 0
 
-	# Elegibles: con posicion espacial y dentro del alcance de fisica segun LOD.
-	var eligible: Array = []
+	# Elegibles: con posicion espacial y dentro del alcance de fisica segun LOD. El alcance
+	# es una distancia (una vez por cuadro), no un Dictionary de rasgos por instancia.
+	var max_d: float = lod_controller.physics_occlusion_max_distance()
+	var max_d2: float = max_d * max_d
+	var pairs: Array = []
 	for inst in instances:
 		if inst == null or not inst.has_spatial_position:
 			continue
@@ -60,17 +63,19 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D, occlude
 		# raycasts que otras voces si necesitan.
 		if inst.room_path_active or inst.culled:
 			continue
-		var lod: int = lod_controller.get_lod_level(inst.emitter_position.distance_to(listener_pos))
-		if bool(lod_controller.get_lod_features(lod).get("enable_physics_occlusion", false)):
-			eligible.append(inst)
+		var d2: float = inst.emitter_position.distance_squared_to(listener_pos)
+		if d2 <= max_d2:
+			pairs.append([d2, inst])
 
-	if eligible.is_empty():
+	if pairs.is_empty():
 		return 0
 
-	# Las mas cercanas al oyente primero: son las que mas se notan.
-	eligible.sort_custom(func(x, y):
-		return x.emitter_position.distance_squared_to(listener_pos) < y.emitter_position.distance_squared_to(listener_pos)
-	)
+	# Las mas cercanas al oyente primero: son las que mas se notan. Pares [d2, voz] con el
+	# sort() nativo: la lambda costaba mas que los rayos.
+	pairs.sort()
+	var eligible: Array = []
+	for pr in pairs:
+		eligible.append(pr[1])
 
 	# Reparto round-robin desde el cursor: sin el, las mismas voces cercanas
 	# monopolizarian el presupuesto y las demas nunca se actualizarian.

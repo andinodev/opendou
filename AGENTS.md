@@ -324,6 +324,15 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
   `VoicePoolManager.speed_of_sound` que llega a cada canal, `SpatialAcousticsManager.
   speed_of_sound` para el doppler). Un medio nuevo tiene que tocar `_update_environment`, no
   un 343 suelto.
+* **`Array.sort_custom` con lambda es el mayor coste del bucle de control.** A 200 voces, el
+  robo de voces y el planificador de oclusion ordenaban con una lambda cada cuadro: 338 y
+  219 us. Pares `[clave, valor]` con `sort()` nativo: 245 y 51. Regla: en un bucle por cuadro,
+  nunca `sort_custom`.
+* **`get_lod_features()` construye un `Dictionary` por llamada.** Llamarlo por instancia y
+  cuadro son 200 asignaciones; `physics_occlusion_max_distance()` lo resume en una distancia.
+* **Nueve escrituras de propiedad a un stream nativo cuestan mas que una llamada con nueve
+  argumentos.** `OpenDouSpatialStream.set_spatial_params(...)` reemplaza a las escrituras
+  del canal por voz y cuadro. `tools/profile_control_loop.gd` mide el bucle por etapas.
 
 ---
 
