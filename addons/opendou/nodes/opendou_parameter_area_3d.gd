@@ -41,6 +41,15 @@ enum BlendOperation {
 @export_group("Snapshots & Global Mix")
 @export var target_snapshot: StringName = &""
 
+@export_group("Trigger")
+## Evento que se postea al entrar un cuerpo (Fase 11). Vacio = ninguno.
+@export var trigger_event: StringName = &""
+@export_range(0.0, 1.0, 0.01) var trigger_probability: float = 1.0
+@export_range(0.0, 60.0, 0.05) var trigger_cooldown_sec: float = 0.0
+@export var trigger_once: bool = false
+## Solo cuerpos de este grupo disparan. Vacio = cualquiera.
+@export var trigger_group: StringName = &""
+
 @export_group("Transitions & Physics Robustness")
 @export var fade_in_time: float = 0.5
 @export var fade_out_time: float = 0.8
@@ -199,6 +208,31 @@ static func resolve_priority_values(entries: Array) -> float:
 # TARGET TRACKING & DEBOUNCING
 # ==============================================================================
 
+signal triggered(event_name: StringName, target: Node3D)
+var trigger_count: int = 0
+var _last_trigger_ms: int = -1000000
+
+## Disparador (Fase 11): grupo, recarga, una vez y probabilidad, en ese orden.
+func _maybe_trigger(target: Node3D) -> void:
+	if trigger_event.is_empty():
+		return
+	if not trigger_group.is_empty() and not target.is_in_group(trigger_group):
+		return
+	if trigger_once and trigger_count > 0:
+		return
+	var now: int = Time.get_ticks_msec()
+	if now - _last_trigger_ms < int(trigger_cooldown_sec * 1000.0):
+		return
+	if randf() >= trigger_probability:
+		return
+	var manager = _get_manager()
+	if manager == null:
+		return
+	_last_trigger_ms = now
+	trigger_count += 1
+	manager.post_event(trigger_event, target)
+	triggered.emit(trigger_event, target)
+
 func register_target_entered(target: Node3D) -> void:
 	if target == null or _active_targets.has(target):
 		return
@@ -208,6 +242,7 @@ func register_target_entered(target: Node3D) -> void:
 	# Connect to tree_exited to prevent orphaned RTPC/snapshot states on despawn
 	if not target.tree_exited.is_connected(_on_target_tree_exited):
 		target.tree_exited.connect(_on_target_tree_exited.bind(target))
+	_maybe_trigger(target)
 
 func register_target_exited(target: Node3D) -> void:
 	if target == null:
