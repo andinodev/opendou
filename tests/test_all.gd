@@ -396,6 +396,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestMixChainClass.run_all_async(tree))
 	acc.absorb(await TestLoudnessMeterClass.run_all_async(tree))
 	acc.absorb(await TestMixBusApplierClass.run_all_async(tree))
+	acc.absorb(await TestMixBusApplierClass.run_state_binding_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

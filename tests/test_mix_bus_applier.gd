@@ -148,3 +148,39 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	area.free()
 	autoload.mix.snapshots.registered_snapshots.erase(&"TestDuck")
 	return a
+
+## Un estado del juego apila su instantanea mientras dura, y la suelta al salir.
+static func run_state_binding_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("mix_state_binding")
+	var idx: int = _make_bus("MixTestMusic")
+	AudioServer.set_bus_volume_db(idx, 0.0)
+	var manager = load("res://addons/opendou/runtime/audio_event_manager.gd").new()
+	manager.hdr_enabled = false
+	tree.root.add_child(manager)
+	manager.mix.snapshots.register_snapshot(AudioMixSnapshotClass.new(&"LowHealthMix", {
+		&"MixTestMusic": {"volume_db": -10.0, "lpf_hz": 600.0, "hpf_hz": 20.0, "mute": false}}, 0.1))
+	manager.mix.snapshots.register_snapshot(AudioMixSnapshotClass.new(&"TestNeutral2", {
+		&"MixTestMusic": {"volume_db": 0.0, "lpf_hz": 20000.0, "hpf_hz": 20.0, "mute": false}}, 0.1))
+	manager.mix.snapshots.apply_snapshot_instant(&"TestNeutral2")
+	await tree.process_frame
+	var BindingClass = load("res://addons/opendou/resources/mix_state_binding.gd")
+	var b = BindingClass.new()
+	b.state_group = &"Player"
+	b.state_name = &"LowHealth"
+	b.snapshot_name = &"LowHealthMix"
+	b.blend_sec = 0.1
+	manager.register_mix_state_binding(b)
+	manager.sync_manager.set_state(&"Player", &"LowHealth")
+	await _wait_ms(tree, 400)
+	a.approx(AudioServer.get_bus_volume_db(idx), -10.0, "entrar en el estado apila su instantanea: -10 dB reales", 0.3)
+	manager.sync_manager.set_state(&"Player", &"Normal")
+	await _wait_ms(tree, 400)
+	a.approx(AudioServer.get_bus_volume_db(idx), 0.0, "salir del estado la desapila", 0.3)
+	manager.unregister_mix_state_binding(b)
+	manager.sync_manager.set_state(&"Player", &"LowHealth")
+	await _wait_ms(tree, 400)
+	a.approx(AudioServer.get_bus_volume_db(idx), 0.0, "sin vinculacion, el estado no toca la mezcla (control)", 0.3)
+	manager.sync_manager.set_state(&"Player", &"Normal")
+	tree.root.remove_child(manager)
+	manager.free()
+	return a

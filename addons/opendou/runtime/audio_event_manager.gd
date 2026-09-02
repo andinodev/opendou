@@ -73,6 +73,9 @@ var mix: OpenDouMixBusApplier = null
 ## Pila de instantaneas de mezcla. El tope manda; al vaciarse, Default.
 var _snapshot_stack: Array[Dictionary] = []   # {"name": StringName, "priority": int}
 
+## Vinculaciones estado -> instantanea (MixStateBinding).
+var _mix_state_bindings: Array = []
+
 ## Pool de reproductores nativos para las voces anonimas.
 ##
 ## Se crea en _init() para que el manager sea coherente desde el primer momento,
@@ -112,6 +115,7 @@ var hdr_enabled: bool = true
 func _init() -> void:
 	spatial_backend = SpatialBackendClass.resolve(SpatialBackendClass.read_setting(), SpatialBackendClass.native_available())
 	sync_manager = GameSyncManagerClass.new()
+	sync_manager.state_changed.connect(_on_state_changed_for_mix)
 	bank_manager = SoundBankManagerClass.new()
 	spatial_acoustics = SpatialAcousticsManagerClass.new()
 	live_update_server = LiveUpdateServerClass.new()
@@ -382,6 +386,28 @@ func _apply_snapshot_top(blend_sec: float) -> void:
 			best_priority = int(entry["priority"])
 			top = entry["name"]
 	mix.snapshots.transition_to(top, blend_sec)
+
+## Registra una vinculacion estado -> instantanea. Si el estado ya esta activo, apila ahora.
+func register_mix_state_binding(binding: MixStateBinding) -> void:
+	if binding == null or _mix_state_bindings.has(binding):
+		return
+	_mix_state_bindings.append(binding)
+	if sync_manager.get_state(binding.state_group) == binding.state_name:
+		push_snapshot(binding.snapshot_name, binding.blend_sec, binding.priority)
+
+func unregister_mix_state_binding(binding: MixStateBinding) -> void:
+	if _mix_state_bindings.has(binding):
+		_mix_state_bindings.erase(binding)
+		pop_snapshot(binding.snapshot_name, binding.blend_sec)
+
+func _on_state_changed_for_mix(group: StringName, new_state: StringName, previous: StringName) -> void:
+	for b in _mix_state_bindings:
+		if b.state_group != group:
+			continue
+		if b.state_name == previous:
+			pop_snapshot(b.snapshot_name, b.blend_sec)
+		if b.state_name == new_state:
+			push_snapshot(b.snapshot_name, b.blend_sec, b.priority)
 
 ## Volumen base de un bus: lo que el jugador o el proyecto dejaron, sin instantaneas ni
 ## ducking. Quien mueva volumenes de bus por su cuenta lo hace por aqui.
