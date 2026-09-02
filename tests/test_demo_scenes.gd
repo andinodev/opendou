@@ -61,6 +61,14 @@ static func run_street_async(tree: SceneTree) -> OpenDouAssert:
 	for i in range(20):
 		await tree.process_frame
 	a.ok(music_instance.room_path_active, "desde la calle, la musica la gobierna el grafo de salas")
+	if OS.has_environment("OPENDOU_TRACE_OBS43"):
+		var ac_dbg = manager.spatial_acoustics
+		var portals_dbg: Dictionary = {}
+		for p_name in ac_dbg.portals:
+			portals_dbg[p_name] = snappedf(ac_dbg.portals[p_name].open_factor, 0.01)
+		print("[obs43] al decidir: salas=%s portales=%s aparente=%s digest=%s cache=%s" % [
+			ac_dbg.rooms.keys(), portals_dbg, music_instance.target_apparent_position,
+			manager.room_path_dispatcher._portal_digest, manager.room_path_dispatcher._cache.keys()])
 	a.approx(music_instance.target_apparent_position.x, -4.0,
 		"y su origen aparente es la VENTANA entreabierta, no la puerta cerrada", 0.05)
 	var lpf_ajar: float = music_instance.current_spatial_lpf
