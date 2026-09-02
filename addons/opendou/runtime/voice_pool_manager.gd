@@ -101,6 +101,11 @@ func virtualize(instance: EventInstance) -> void:
 			player_pool.release(player)
 		instance.assigned_channel_id = -1
 
+	# Una voz que deja de ser fisica deja de estar gobernada por el grafo de salas: aqui
+	# es donde se sabe, y por eso el dispatcher no tiene que recorrer todas las
+	# instancias para limpiarlo.
+	instance.room_path_active = false
+
 	if instance.virtualization_mode == AudioEventDefClass.VirtualizationMode.VIRTUAL_KILL_VOICE:
 		instance.voice_state = EventInstanceClass.VoiceState.STATE_KILLED
 	else:

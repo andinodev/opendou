@@ -164,6 +164,45 @@ arreglados, con aserciones; se listan porque el patron se repite.
   Crea los buses que necesites con `DemoAudio.ensure_bus()` y **no los destruyas
   nunca**, porque `AudioServer.remove_bus(i)` desplaza los indices siguientes.
 
+**El techo de voces, medido (Fase 6).** El bucle de OpenDou cuesta **3.9 µs por voz y
+frame** en la máquina de desarrollo. Mantenerlo por debajo de 1 ms son **~256 voces**;
+por debajo de 2 ms, **~512**. En una máquina 3–5× más lenta esas cifras se dividen
+igual. «Cientos de voces» se sostiene con margen; **«miles» no, y no debe afirmarse en
+la documentación.** El techo no lo pone ninguna feature: lo pone que el motor sea
+GDScript.
+
+Antes de añadir trabajo por voz y por frame, mídelo. Las tres reglas que salieron de la
+Fase 6, con lo que costó cada una:
+
+* **Solo las voces físicas.** Una voz virtual no suena, así que calcular su filtro es
+  trabajo tirado. Y no basta con saltárselas dentro del bucle: **recorrer** las 200
+  instancias para atender a 16 costaba un 17 %. Itera los canales del pool.
+* **Cachea por lo que de verdad varía**, no por voz. El recorrido del grafo de salas
+  depende del par de salas, no de la posición de cada emisor.
+* **No formatees cadenas por voz y por frame.** Una clave de caché `"%s|%s"` con 16
+  voces se notaba en el presupuesto. Un diccionario anidado no cuesta nada.
+
+Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.093 ms con
+200 voces y tres salas).
+
+**Trampas nuevas de la Fase 6:**
+
+* **Las salas y los portales NO se desregistraban** hasta la Fase 6. Si escribes un nodo
+  que se registra en un manager global, dale su `_exit_tree`: un juego que carga y
+  descarga niveles acumulaba salas muertas, y una sala muerta que envuelva el nivel nuevo
+  **tapa todas sus salas**.
+* **`AudioEventDef.is_looping = true` no loopea si el WAV no loopea.** El reproductor
+  emite `finished` y la instancia muere tras una pasada. Es el espejo de la trampa
+  contraria, ya documentada. Mira siempre el `loop_mode` del stream.
+* **Borrar un bus de audio reenruta lo que esté sonando.** `AudioServer.remove_bus(i)`
+  desplaza los índices siguientes, y Godot resuelve el bus de una voz **por índice** al
+  arrancar la reproducción. Dentro de una suite que crea y borra buses, las mediciones
+  por bus se contaminan entre sí: por eso la verificación audible de los portales vive
+  aislada en `tools/verify_portal_audio.gd` y no en la suite.
+* **Matar un Godot headless a media ejecución puede reescribir `project.godot`** sin sus
+  secciones `[autoload]` ni `[editor_plugins]`, que deja el plugin muerto. Si matas una
+  corrida, mira `git status` antes de seguir.
+
 ---
 
 ## 6. Reglas Modulares de Referencia

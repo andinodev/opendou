@@ -1,4 +1,4 @@
-522
+540
 # Techo de instancias ObjectDB filtradas al salir. El runner falla si aumenta.
 #
 # Historia del techo:
@@ -50,6 +50,11 @@
 #    522 -> al borrar las diez demos viejas y sus cuatro suites: 100 objetos menos.
 #           Eran suyos, no del motor. Medido 519 en dos corridas; el techo se deja en
 #           522 por el ruido de +-1 que introduce «El monzon».
+#    540 -> +16 por la guarda de coste del grafo de salas (Fase 6), que postea 200
+#           voces con un presupuesto de 16 fisicas: un objeto retenido por cada uno de
+#           los 16 reproductores del pool que llegaron a reproducir. Misma retencion del
+#           servidor de audio descrita abajo, contada por reproductor en lugar de por
+#           stream porque las 16 voces comparten un unico WAV.
 #
 # Sobre esos +2: son un AudioStreamPlaybackWAV y su AudioStreamWAV que el
 # servidor de audio de Godot retiene para cualquier WAV que se haya reproducido.

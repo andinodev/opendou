@@ -364,7 +364,7 @@ func _process(delta: float) -> void:
 	# saltarse las voces que el grafo gobierna: sin eso, el mismo mamparo se cobraria dos
 	# veces y el presupuesto de raycasts se gastaria en voces ya resueltas.
 	if room_path_dispatcher != null:
-		room_path_dispatcher.process(active_instances, active_listener_position)
+		room_path_dispatcher.process_pool(voice_pool, active_listener_position)
 
 	# 4. Oclusion presupuestada: un unico manager y un techo de raycasts.
 	if occlusion_scheduler != null and is_inside_tree():

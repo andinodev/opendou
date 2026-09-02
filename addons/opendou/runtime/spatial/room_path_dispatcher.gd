@@ -41,10 +41,44 @@ var min_divisor_meters: float = 0.5
 ## Suelo de la atenuacion extra, en dB.
 var max_attenuation_db: float = -40.0
 
+## Cache ANIDADA: _cache[sala_emisor][sala_oyente] -> cadena.
+##
+## Anidada y no con una clave de texto a proposito. La primera version formateaba
+## "%s|%s" por voz y por frame, y formatear cadenas en GDScript no es barato: con 16
+## voces fisicas eran 16 formateos por frame, y se notaban en el presupuesto.
 var _cache: Dictionary = {}
 var _portal_digest: float = -1.0
 
-## Gobierna las voces que lo necesiten. Devuelve cuantas.
+## Array reutilizado para las voces fisicas. Reservar uno nuevo cada frame es basura que
+## el recolector acaba pagando.
+var _physical: Array = []
+
+## Gobierna las voces FISICAS de un pool. Devuelve cuantas.
+##
+## Itera los CANALES y no las instancias activas, y la diferencia se mide: recorrer las
+## 200 instancias para atender a las 16 fisicas costaba un 17 % sobre el bucle del motor,
+## por encima del 10 % que el diseno se fijo como techo. Iterando canales son 16
+## iteraciones en lugar de 200.
+##
+## Las voces que dejan de ser fisicas las limpia VoicePoolManager.virtualize(), que es
+## quien sabe cuando ocurre.
+func process_pool(voice_pool, listener_pos: Vector3) -> int:
+	traversals_this_frame = 0
+	cache_hits_this_frame = 0
+
+	if acoustics == null or acoustics.rooms.is_empty() or voice_pool == null:
+		return 0
+
+	_physical.clear()
+	for ch in voice_pool.channels:
+		if not ch.is_busy or ch.assigned_instance_ref == null:
+			continue
+		var inst = ch.assigned_instance_ref.get_ref()
+		if inst != null:
+			_physical.append(inst)
+	return process(_physical, listener_pos)
+
+## Gobierna las voces que lo necesiten de una lista. Devuelve cuantas.
 func process(instances: Array, listener_pos: Vector3) -> int:
 	traversals_this_frame = 0
 	cache_hits_this_frame = 0
@@ -118,10 +152,10 @@ func process(instances: Array, listener_pos: Vector3) -> int:
 ##   exit_pos      posicion del ultimo portal: el origen aparente
 ##   sealed        true si no hay camino de portales entre las dos salas
 func chain_for(emitter_room: StringName, listener_room: StringName, emitter_pos: Vector3, listener_pos: Vector3) -> Dictionary:
-	var key: String = "%s|%s" % [str(emitter_room), str(listener_room)]
-	if _cache.has(key):
+	var by_listener: Dictionary = _cache.get(emitter_room, {})
+	if by_listener.has(listener_room):
 		cache_hits_this_frame += 1
-		return _cache[key]
+		return by_listener[listener_room]
 
 	traversals_this_frame += 1
 	var path = acoustics.calculate_acoustic_path(emitter_pos, listener_pos, emitter_room, listener_room)
@@ -145,7 +179,8 @@ func chain_for(emitter_room: StringName, listener_room: StringName, emitter_pos:
 		"exit_pos": exit,
 		"sealed": sealed,
 	}
-	_cache[key] = entry_data
+	by_listener[listener_room] = entry_data
+	_cache[emitter_room] = by_listener
 	return entry_data
 
 ## Atenuacion que compensa el tramo que Godot no ve.

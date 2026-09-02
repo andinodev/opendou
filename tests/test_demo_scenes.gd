@@ -324,6 +324,17 @@ static func run_monsoon_async(tree: SceneTree) -> OpenDouAssert:
 	a.eq(int(telemetry["instances"]), manager.active_instances.size(),
 		"el conteo de la telemetria coincide con el real")
 
+	# Criterio 4 de la Fase 6: la escena no registra salas, asi que el grafo de portales
+	# no puede tocarla ni costarle nada. Si algun dia alguien le anade un Room3D, esta
+	# asercion cae y hay que decidirlo a proposito en lugar de descubrirlo por el coste.
+	a.eq(manager.room_path_dispatcher.traversals_this_frame, 0,
+		"«El monzon» no registra salas, asi que el grafo no se recorre ni una vez")
+	var governed_count: int = 0
+	for inst in manager.active_instances:
+		if inst != null and inst.room_path_active:
+			governed_count += 1
+	a.eq(governed_count, 0, "y ninguna de sus voces queda gobernada por el grafo")
+
 	# build() idempotente.
 	var before: int = demo.get_child_count()
 	demo.build()

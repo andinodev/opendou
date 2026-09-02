@@ -315,3 +315,88 @@ static func run_wiring_async(tree: SceneTree) -> OpenDouAssert:
 	tree.root.remove_child(manager)
 	manager.free()
 	return a
+
+
+## La guarda de coste: con muchas voces, el grafo se recorre un punado de veces.
+##
+## Cuenta RECORRIDOS y no milisegundos. Un test de tiempo seria fragil entre maquinas, y
+## lo que hay que impedir es que vuelva la version ingenua -un recorrido por voz y por
+## frame-, que es exactamente lo que un conteo detecta.
+static func run_budget_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("room_path_budget")
+
+	var ManagerClass = load("res://addons/opendou/runtime/audio_event_manager.gd")
+	var manager = ManagerClass.new()
+	tree.root.add_child(manager)
+	await tree.process_frame
+
+	# Tres salas: como mucho nueve pares ordenados, y en la practica muchos menos.
+	var ac = manager.spatial_acoustics
+	var specs := [
+		{"name": &"R1", "center": Vector3(0, 2, 0), "size": Vector3(20, 6, 20)},
+		{"name": &"R2", "center": Vector3(22, 2, 0), "size": Vector3(20, 6, 20)},
+		{"name": &"R3", "center": Vector3(44, 2, 0), "size": Vector3(20, 6, 20)},
+	]
+	for spec in specs:
+		var room = AudioRoomClass.new()
+		room.room_name = spec["name"]
+		room.set_bounds(AABB(spec["center"] - spec["size"] * 0.5, spec["size"]))
+		ac.register_room(room)
+	ac.register_portal(AudioPortalClass.new(&"P12", &"R1", &"R2", Vector3(11.0, 1.5, 0), 1.0))
+	ac.register_portal(AudioPortalClass.new(&"P23", &"R2", &"R3", Vector3(33.0, 1.5, 0), 1.0))
+
+	# Presupuesto pequeno: con 64 voces fisicas el pool crea 64 reproductores y la suite
+	# se llena de retenciones del servidor de audio sin que la guarda gane nada.
+	manager.set_max_physical_voices(16)
+
+	var tone: AudioStreamWAV = load("res://addons/opendou/runtime/audio_synthesizer.gd").create_rain_ambient_loop(1.0)
+	var def = AudioEventDefClass.new(&"BudgetProbe", tone)
+	def.is_looping = true
+	def.stream_length = 1.0
+	manager.register_event_definition(def)
+
+	# 200 voces, casi todas en las salas VECINAS a la del oyente.
+	#
+	# El reparto importa y la primera version lo tenia mal: con un tercio en cada sala y
+	# el oyente en la primera, las voces de su propia sala ganaban todas las plazas
+	# fisicas por cercania, ninguna quedaba gobernada, y la guarda contaba cero
+	# recorridos y pasaba sin probar nada. Lo cazo la asercion de aciertos de cache, que
+	# esta justo para eso.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 31
+	for i in range(200):
+		var inst = manager.post_event(def, null)
+		if inst == null:
+			break
+		# Una de cada veinte en la sala del oyente; el resto repartidas en las otras dos.
+		var room_index: int = 1 if i % 20 == 0 else (0 if i % 2 == 0 else 2)
+		inst.set_position(Vector3(
+			float(room_index) * 22.0 + rng.randf_range(-8.0, 8.0),
+			1.5,
+			rng.randf_range(-8.0, 8.0)
+		))
+	manager.set_listener_position(Vector3(22.0, 1.6, 0.0))  # sala del medio
+	for i in range(10):
+		await tree.process_frame
+
+	a.gt(float(manager.active_instances.size()), 150.0, "hay mas de 150 instancias activas")
+
+	# LA GUARDA. Con tres salas hay nueve pares ordenados como techo absoluto.
+	var max_traversals: int = 0
+	var saw_hits: bool = false
+	for i in range(30):
+		await tree.process_frame
+		max_traversals = maxi(max_traversals, manager.room_path_dispatcher.traversals_this_frame)
+		if manager.room_path_dispatcher.cache_hits_this_frame > 0:
+			saw_hits = true
+	a.lt(float(max_traversals), 10.0,
+		"con 200 voces y tres salas el grafo se recorre como mucho 9 veces por frame")
+
+	# Y no es cero por accidente: la cache tiene que estar sirviendo aciertos.
+	a.ok(saw_hits,
+		"la cache sirve aciertos, asi que el conteo bajo no es porque el grafo no se use")
+
+	manager.stop_all()
+	tree.root.remove_child(manager)
+	manager.free()
+	return a
