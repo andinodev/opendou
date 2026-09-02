@@ -48,6 +48,7 @@ var max_attenuation_db: float = -40.0
 ## voces fisicas eran 16 formateos por frame, y se notaban en el presupuesto.
 var _cache: Dictionary = {}
 var _portal_digest: float = -1.0
+var _graph_generation: int = -1
 
 ## Array reutilizado para las voces fisicas. Reservar uno nuevo cada frame es basura que
 ## el recolector acaba pagando.
@@ -67,6 +68,11 @@ func process_pool(voice_pool, listener_pos: Vector3) -> int:
 	cache_hits_this_frame = 0
 
 	if acoustics == null or acoustics.rooms.is_empty() or voice_pool == null:
+		# Con el grafo vacio la cache se vacia tambien: antes se conservaba junto con el
+		# digest, y una escena posterior con el mismo digest y los mismos nombres de sala
+		# habria reutilizado cadenas de otra escena (observacion 43, endurecimiento).
+		if not _cache.is_empty():
+			clear_cache()
 		return 0
 
 	_physical.clear()
@@ -85,17 +91,24 @@ func process(instances: Array, listener_pos: Vector3) -> int:
 
 	if acoustics == null or acoustics.rooms.is_empty():
 		# Sin salas registradas no hay nada que hacer, y ese es el caso de una escena al
-		# aire libre: cero coste, y las voces quedan para la oclusion.
+		# aire libre: cero coste, y las voces quedan para la oclusion. La cache se vacia:
+		# antes se conservaba junto con el digest, y una escena posterior con el mismo
+		# digest y los mismos nombres de sala habria reutilizado cadenas de otra escena.
+		if not _cache.is_empty():
+			clear_cache()
 		for instance in instances:
 			if instance != null:
 				instance.room_path_active = false
 		return 0
 
 	# El digest se calcula UNA vez por frame, no por voz: es O(P) con P portales.
+	# La generacion del grafo detecta salas y portales nuevos o retirados, que el digest de
+	# aperturas no siempre ve (observacion 43).
 	var digest: float = _portals_digest()
-	if not is_equal_approx(digest, _portal_digest):
+	if not is_equal_approx(digest, _portal_digest) or acoustics.graph_generation != _graph_generation:
 		_cache.clear()
 		_portal_digest = digest
+		_graph_generation = acoustics.graph_generation
 
 	# La sala del oyente se resuelve UNA vez, no por voz.
 	var listener_room: StringName = &""
@@ -196,6 +209,7 @@ func attenuation_db_for(virtual_distance: float, exit_pos: Vector3, listener_pos
 func clear_cache() -> void:
 	_cache.clear()
 	_portal_digest = -1.0
+	_graph_generation = -1
 
 ## Huella del estado de los portales.
 ##

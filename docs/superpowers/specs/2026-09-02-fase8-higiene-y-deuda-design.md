@@ -68,6 +68,19 @@ podría caer antes de la invalidación.
 **Se afirma.** Diez corridas seguidas verdes con la herramienta de 1, que queda en `tools/`
 para repetirlo cuando haga falta.
 
+**Hallazgo (2026-09-02, al ejecutar).** Con el código actual la observación **no se
+reproduce**: diez corridas aisladas con la herramienta y cinco corridas de la suite completa
+con la traza activa, quince trazas idénticas (seis portales registrados, resumen 6.3, la
+ventana elegida). Las dos apariciones fueron durante la ejecución de la Fase 7B; desde
+entonces los emisores de nodo publican su posición cada frame desde `_apply_voices`, lo que
+pudo cerrar la ventana de la carrera sin que nadie la viera. Se deja la herramienta y la traza
+bajo `OPENDOU_TRACE_OBS43`, y se aplica el endurecimiento de todos modos porque el defecto
+estructural es real: el retorno temprano con el grafo vacío conservaba la caché y el resumen,
+y el registro de una sala no invalidaba nada. La observación pasa a «no reproducida,
+endurecida». En las mismas cinco corridas apareció otra intermitencia: la paridad entre
+backends dio 1.10 dB de diferencia frente a un techo de 1.0 (dispersión medida 0.94–1.10);
+el techo pasa a 1.5 con la medida escrita.
+
 ---
 
 ## 3. Entrega 8.2 — Límites de instancias con alcance

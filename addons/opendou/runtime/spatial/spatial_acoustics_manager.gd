@@ -39,14 +39,21 @@ func _init() -> void:
 	reverb_bus_pool = ReverbBusPoolClass.new()
 
 ## Registers a room in the acoustics manager.
+## Sube cada vez que el conjunto de salas o portales cambia. El despachador de caminos la
+## compara para vaciar su cache: el digest de aperturas no ve una sala nueva, y un camino
+## cacheado antes de que se registrara un portal seguiria valiendo (observacion 43).
+var graph_generation: int = 0
+
 func register_room(room: AudioRoom) -> void:
 	if room and not room.room_name.is_empty():
 		rooms[room.room_name] = room
+		graph_generation += 1
 
 ## Registers a portal in the acoustics manager and links it to both connected rooms.
 func register_portal(portal: AudioPortal) -> void:
 	if portal and not portal.portal_name.is_empty():
 		portals[portal.portal_name] = portal
+		graph_generation += 1
 		if rooms.has(portal.room_a_name):
 			rooms[portal.room_a_name].register_portal(portal)
 		if rooms.has(portal.room_b_name):
@@ -64,6 +71,7 @@ func unregister_room(room_name: StringName) -> void:
 		return
 	var room: AudioRoom = rooms[room_name]
 	rooms.erase(room_name)
+	graph_generation += 1
 	# Los portales que apuntaban a esta sala quedan colgando: se retiran de la otra sala
 	# y del registro, porque un portal a ninguna parte falsea los caminos del grafo.
 	for portal_name in portals.keys():
@@ -81,6 +89,7 @@ func unregister_portal(portal_name: StringName) -> void:
 	if not portals.has(portal_name):
 		return
 	var portal: AudioPortal = portals[portal_name]
+	graph_generation += 1
 	for room_name in [portal.room_a_name, portal.room_b_name]:
 		if rooms.has(room_name):
 			rooms[room_name].connected_portals.erase(portal)

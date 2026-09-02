@@ -280,6 +280,10 @@ static func run_suite() -> Dictionary:
 	var room_path_res = TestRoomPathDispatcherClass.run_all()
 	total_tests += room_path_res.assertions_run
 	all_failures.append_array(room_path_res.failures)
+
+	var room_gen_res = TestRoomPathDispatcherClass.run_generation()
+	total_tests += room_gen_res.assertions_run
+	all_failures.append_array(room_gen_res.failures)
 	
 	# Suites nuevas de la Fase 1: cuentan aserciones reales en lugar de un total
 	# escrito a mano.

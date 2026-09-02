@@ -234,6 +234,50 @@ static func run_all() -> OpenDouAssert:
 
 
 ## El paso dentro del bucle, y que la oclusion se aparta de las voces gobernadas.
+## Fase 8 (obs 43): registrar o desregistrar una sala o un portal sube la generacion del
+## grafo, y el despachador vacia su cache al verla cambiar aunque el digest de aperturas no
+## se mueva; y con el grafo vacio la cache tambien se vacia.
+static func run_generation() -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("room_path_generation")
+	var AcousticsClass = load("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
+	var RoomClass = load("res://addons/opendou/runtime/spatial/audio_room.gd")
+	var PortalClass = load("res://addons/opendou/runtime/spatial/audio_portal.gd")
+	var DispatcherClass = load("res://addons/opendou/runtime/spatial/room_path_dispatcher.gd")
+	var PoolClass = load("res://addons/opendou/runtime/voice_pool_manager.gd")
+	var ac2 = AcousticsClass.new()
+	var gen0: int = ac2.graph_generation
+	var ra = RoomClass.new()
+	ra.room_name = &"GenA"
+	ra.set_bounds(AABB(Vector3(-5, -5, -5), Vector3(10, 10, 10)))
+	ac2.register_room(ra)
+	a.gt(float(ac2.graph_generation), float(gen0), "registrar una sala sube la generacion")
+	var gen1: int = ac2.graph_generation
+	var rb = RoomClass.new()
+	rb.room_name = &"GenB"
+	rb.set_bounds(AABB(Vector3(5, -5, -5), Vector3(10, 10, 10)))
+	ac2.register_room(rb)
+	ac2.register_portal(PortalClass.new(&"GenP", &"GenA", &"GenB", Vector3(5, 0, 0), 1.0))
+	a.gt(float(ac2.graph_generation), float(gen1), "registrar un portal tambien")
+	var disp2 = DispatcherClass.new()
+	disp2.acoustics = ac2
+	var pool = PoolClass.new(1)
+	disp2.process_pool(pool, Vector3(10, 0, 0))
+	disp2.chain_for(&"GenA", &"GenB", Vector3(0, 0, 0), Vector3(10, 0, 0))
+	a.ok(not disp2._cache.is_empty(), "la cache tiene la cadena")
+	disp2.process_pool(pool, Vector3(10, 0, 0))
+	a.ok(not disp2._cache.is_empty(), "sin cambios en el grafo, la cache se conserva")
+	ac2.unregister_portal(&"GenP")
+	disp2.process_pool(pool, Vector3(10, 0, 0))
+	a.ok(disp2._cache.is_empty(), "al cambiar la generacion, la cache se vacia")
+	ac2.register_portal(PortalClass.new(&"GenP", &"GenA", &"GenB", Vector3(5, 0, 0), 1.0))
+	disp2.process_pool(pool, Vector3(10, 0, 0))
+	disp2.chain_for(&"GenA", &"GenB", Vector3(0, 0, 0), Vector3(10, 0, 0))
+	ac2.unregister_room(&"GenA")
+	ac2.unregister_room(&"GenB")
+	disp2.process_pool(pool, Vector3(10, 0, 0))
+	a.ok(disp2._cache.is_empty(), "con el grafo vacio la cache tambien se vacia (antes se conservaba)")
+	return a
+
 static func run_wiring_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("room_path_wiring")
 
