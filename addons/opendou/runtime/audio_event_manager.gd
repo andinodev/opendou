@@ -16,6 +16,7 @@ const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_playe
 const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
 const EnvironmentStateClass = preload("res://addons/opendou/runtime/spatial/environment_state.gd")
 const MediumFilterInstallerClass = preload("res://addons/opendou/runtime/spatial/medium_filter_installer.gd")
+const AccessibilityApplierClass = preload("res://addons/opendou/runtime/accessibility_applier.gd")
 const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/occlusion_scheduler.gd")
 const RoomPathDispatcherClass = preload("res://addons/opendou/runtime/spatial/room_path_dispatcher.gd")
 const SpatialBackendClass = preload("res://addons/opendou/runtime/spatial/spatial_backend.gd")
@@ -167,6 +168,9 @@ func _ready() -> void:
 ## Aplica los ajustes del jugador a todos los streams nativos, en vivo. Con backend godot
 ## no hay streams y no hace nada; el menu lo muestra deshabilitado.
 func _apply_spatial_settings() -> void:
+	# Accesibilidad (Fase 10) sobre Master: vale para los dos backends.
+	if spatial_settings != null:
+		AccessibilityApplierClass.apply(spatial_settings)
 	var node: Node3D = get_listener_node()
 	# El radio de la cabeza va al C++ aunque el backend activo sea godot: es barato y asi el
 	# cambio de backend no lo pierde.
@@ -239,6 +243,9 @@ func _exit_tree() -> void:
 	MediumFilterInstallerClass.apply(20000.0)
 	if ClassDB.class_exists("OpenDouSpatialStream"):
 		ClassDB.class_call_static("OpenDouSpatialStream", "configure_listener", 0.0875, 343.0)
+	AccessibilityApplierClass.apply_mono(false)
+	if spatial_settings != null and spatial_settings.night_mode:
+		AccessibilityApplierClass.apply_night(false)
 
 ## Registra el OpenDouListener3D (Fase 10). Si hay dos, manda el ultimo y se avisa una vez.
 func register_listener(node: Node3D) -> void:

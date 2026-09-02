@@ -68,6 +68,7 @@ const TestAudioMarkersClass = preload("res://tests/test_audio_markers.gd")
 const TestSplineFlowClass = preload("res://tests/test_spline_flow.gd")
 const TestListener3DClass = preload("res://tests/test_listener_3d.gd")
 const TestAcousticVolumeClass = preload("res://tests/test_acoustic_volume.gd")
+const TestAccessibilityClass = preload("res://tests/test_accessibility.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -418,6 +419,10 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestAcousticVolumeClass.run_occluder_async(tree))
 	acc.absorb(await TestAcousticVolumeClass.run_cull_async(tree))
 	acc.absorb(await TestAcousticVolumeClass.run_surface_async(tree))
+	acc.absorb(TestAccessibilityClass.run_settings())
+	acc.absorb(await TestAccessibilityClass.run_mono_async(tree))
+	acc.absorb(await TestAccessibilityClass.run_night_mode_async(tree))
+	acc.absorb(await TestAccessibilityClass.run_indicator_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

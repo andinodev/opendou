@@ -6,7 +6,7 @@ extends Resource
 ## no un nodo porque Master es global: la instala el autoload segun un ajuste de proyecto
 ## y la guarda comprueba el bus, no la escena.
 
-enum Preset { GAME, CINEMATIC, MOBILE, CUSTOM }
+enum Preset { GAME, CINEMATIC, MOBILE, NIGHT, CUSTOM }
 
 @export var preset: Preset = Preset.GAME:
 	set(value):
@@ -51,6 +51,16 @@ func _apply_preset(p: Preset) -> void:
 			limiter_ceiling_db = -1.0
 			limiter_pre_gain_db = 0.0
 			limiter_release_sec = 0.2
+		Preset.NIGHT:
+			# Modo noche (accesibilidad, Fase 10): aplasta el rango dinamico y sube lo bajo.
+			compressor_threshold_db = -24.0
+			compressor_ratio = 6.0
+			compressor_attack_us = 20.0
+			compressor_release_ms = 250.0
+			compressor_gain_db = 6.0
+			limiter_ceiling_db = -0.3
+			limiter_pre_gain_db = 0.0
+			limiter_release_sec = 0.1
 		Preset.MOBILE:
 			compressor_threshold_db = -16.0
 			compressor_ratio = 4.0
