@@ -270,16 +270,6 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 		tree.root.remove_child(p2)
 		p2.free()
 
-	# ---- benchmark_block: existe, devuelve microsegundos por voz, y no es cero.
-	var us_per_voice: float = float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block", 64))
-	print("[OpenDou] DSP nativo: %.1f us por voz y bloque de %d (64 voces) | desglose: solo HRTF bilineal %.1f, solo HRTF vecino %.1f, solo filtros+ITD %.1f, solo fuente %.1f" % [
-		us_per_voice, frame_size,
-		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 1)),
-		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 2)),
-		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 3)),
-		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 4))])
-	a.gt(us_per_voice, 0.1, "benchmark_block mide algo")
-
 	player.stop()
 	tree.root.remove_child(player)
 	player.free()
@@ -490,6 +480,38 @@ static func run_settings_live_async(tree: SceneTree) -> OpenDouAssert:
 	tree.root.remove_child(manager)
 	manager.free()
 	ProjectSettings.set_setting(BackendClass.SETTING, previous)
+	return a
+
+## Guarda de coste del DSP nativo: benchmark_block(64) bajo el techo de tests/dsp_budget.txt.
+static func run_budget_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("binaural_budget")
+	if not ClassDB.class_exists("OpenDouSpatialStream"):
+		print("[OpenDou] extension nativa AUSENTE: suite binaural_budget omitida")
+		return a
+	await tree.process_frame
+	var budget_text := FileAccess.get_file_as_string("res://tests/dsp_budget.txt")
+	var budget: float = 27.0
+	for line in budget_text.split("\n"):
+		var t: String = line.strip_edges()
+		if not t.begins_with("#") and t.is_valid_float():
+			budget = float(t)
+			break
+	# Cinco medidas y el MINIMO: es una guarda gruesa contra regresiones al doble, no una
+	# medida fina (ver tests/dsp_budget.txt). El minimo es lo menos sensible a la carga de
+	# la maquina, que es lo que hace oscilar un cronometro de pared dentro de la suite.
+	var samples: Array[float] = []
+	for i in range(5):
+		samples.append(float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block", 64)))
+	samples.sort()
+	var frame_size: int = int(ClassDB.class_call_static("OpenDouSpatialStream", "get_frame_size"))
+	print("[OpenDou] DSP nativo: %.1f us por voz y bloque de %d (minimo de 5; techo %.0f) | desglose: HRTF bilineal %.1f, HRTF vecino %.1f, filtros+ITD %.1f, fuente %.1f" % [
+		samples[0], frame_size, budget,
+		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 1)),
+		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 2)),
+		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 3)),
+		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 4))])
+	a.gt(samples[0], 0.1, "benchmark_block mide algo")
+	a.lt(samples[0], budget, "el DSP nativo por voz y bloque queda bajo el techo de tests/dsp_budget.txt")
 	return a
 
 ## Muestras que se dejan pasar tras cambiar un parametro antes de medir: cubre la latencia

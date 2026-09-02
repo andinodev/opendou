@@ -163,8 +163,10 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		var v_total: float = volume_db + instance.emitter_volume_db
 		player.volume_db = clampf(v_total + gain_db, -80.0, 24.0)
 		s.direction = DistanceModelClass.listener_direction(p, listener_position, listener_basis)
-		s.distance_gain = db_to_linear(DistanceModelClass.gain_db_for_stream(distance, instance.attenuation_model, instance.unit_size, v_total, instance.attenuation_max_distance))
+		# El multiplicador se calcula UNA vez: sirve para la ganancia del stream (sin el
+		# volumen, que ya va en el reproductor) y para la profundidad del shelf.
 		var mult: float = DistanceModelClass.multiplier(distance, instance.attenuation_model, instance.unit_size, v_total, DistanceModelClass.MAX_DB, instance.attenuation_max_distance)
+		s.distance_gain = mult / db_to_linear(v_total) if mult > 0.0 else 0.0
 		s.shelf_db = DistanceModelClass.shelf_db(mult, instance.attenuation_filter_db)
 		s.shelf_cutoff_hz = instance.attenuation_filter_cutoff_hz
 		s.cutoff_hz = clampf(cutoff_hz, 20.0, 20000.0)

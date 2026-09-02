@@ -1,0 +1,17 @@
+40
+# Techo en microsegundos por voz y bloque de 512 muestras para benchmark_block(64), con la
+# cadena completa: filtros, HRTF bilineal e ITD. El test toma el MINIMO de cinco medidas.
+#
+# Es una guarda GRUESA, no una medida: un cronometro de pared dentro de la suite oscila con
+# la carga de la maquina (medido 18 a 28 us en corridas consecutivas con el mismo binario).
+# Detecta una regresion al doble -por ejemplo, volver a la linea de retardo con modulos, que
+# subio el total de 23 a 36 us-, no una del 10 %. La medida fina se toma con
+# OpenDouSpatialStream.benchmark_block_mode desde tools/bench_control_loop.gd o a mano.
+#
+# Referencia: 27 us = 15 % de un nucleo con 64 voces a 44.1 kHz; 40 us = 22 %.
+#
+# Historia:
+#   40 -> techo inicial (Fase 7B). Primera medida real: 23.4 us (36.5 antes de reescribir la
+#         linea de retardo con bufer de potencia de dos). Medidas posteriores en la misma
+#         maquina: 18-28 us. Desglose a 64 voces: HRTF bilineal ~14-17, HRTF vecino mas
+#         cercano ~8-9, filtros + ITD ~6, generar la fuente ~2.5.

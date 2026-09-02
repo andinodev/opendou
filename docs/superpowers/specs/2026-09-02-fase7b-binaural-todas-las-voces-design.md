@@ -344,6 +344,19 @@ Dos medidas y dos techos que se aprietan como el de fugas:
 El ratchet de fugas sigue igual. Las voces virtuales no tocan el stream: el coste nativo es
 solo por voz física.
 
+**Medido al cerrar la fase (2026-09-02, `tools/bench_control_loop.gd`, 120 llamadas directas a
+`_process`, cámara presente):**
+
+| Voces | `godot`, µs por voz | `steam_audio`, µs por voz |
+|---|---|---|
+| 200 | 4.00 | 4.21 |
+| 500 | 3.64 | 3.77 |
+
+El nativo cuesta un 5 % más que Godot en el bucle de control (dirección, distancia y filtros
+que Godot calculaba en C++), bajo el techo de 4.3. DSP nativo con `benchmark_block(64)`:
+18–28 µs por voz y bloque de 512 según la carga de la máquina; el techo de la suite es 40 en `tests/dsp_budget.txt` (mínimo de cinco medidas, guarda gruesa contra regresiones al doble; la medida fina es del banco); desglose:
+HRTF bilineal 16.6, HRTF vecino más cercano 9.1, filtros e ITD 6.7, generar la fuente 2.7.
+
 ---
 
 ## 10. Verificación
