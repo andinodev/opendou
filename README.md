@@ -8,11 +8,13 @@ It provides an open, royalty-free alternative to proprietary audio solutions suc
 
 ## 🚀 Key Pillars
 
-> **Estado de implementacion.** OpenDou es hoy **100% GDScript**: no hay ni una
-> linea de C++ ni de Rust en el repositorio. La capa GDExtension descrita en
-> `docs/architecture/gdextension_api.md` esta **planificada**, no implementada.
-> El motor orquesta reproductores nativos de Godot, que es quien hace la mezcla
-> en C++ y quien aporta la atenuacion 3D, el paneo y el filtro por voz.
+> **Estado de implementacion.** OpenDou es **GDScript con una extension nativa opcional**.
+> El motor, los eventos, el pool de voces, la oclusion y el grafo de salas son GDScript. El
+> binaural (HRTF + retardo interaural sobre **Steam Audio 4.8.1**) es una GDExtension en C++
+> que vive en `native/` y se compila con `native/build.sh` (macOS arm64 verificado; ver
+> `docs/architecture/gdextension_api.md`). Sin la extension, todo funciona con el panner 3D
+> de Godot: la suite lo verifica y lo dice. Avisos de licencia en
+> `addons/opendou/THIRD_PARTY_NOTICES.md`.
 
 1. **Decoupled Event & Action Dispatcher:**
    * Trigger complex sound behaviors via events (`OpenDou.post_event("Play_Footstep", self)`) without coupling sounds to scene nodes.

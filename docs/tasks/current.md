@@ -1,4 +1,4 @@
-# ⚡ Tarea Activa: «Una casa canta» — la escena que junta todo
+# ⚡ Tarea Activa: Fase 7B — binaural para todas las voces (en ejecución)
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
 * **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
@@ -29,4 +29,4 @@ el menú. Corrige la observación 42 (OpenDou anulaba el oscurecimiento por dist
 Doppler fuera por decisión. **Siguiente:** el plan de 7B. La Fase 4B (prefijado `OpenDou`)
 queda pendiente detrás.
 
-**Plan de 7B (2026-09-02):** [`2026-09-02-fase7b-binaural-todas-las-voces.md`](../superpowers/plans/2026-09-02-fase7b-binaural-todas-las-voces.md), quince tareas con su ciclo de test y commit. Lo que toca es ejecutarlo.
+**Plan de 7B (2026-09-02):** [`2026-09-02-fase7b-binaural-todas-las-voces.md`](../superpowers/plans/2026-09-02-fase7b-binaural-todas-las-voces.md), quince tareas con su ciclo de test y commit. Ejecutadas de la 1 a la 14; queda la 15 (guardas de coste). Correcciones que la ejecución obligó a hacer: §15 del spec.

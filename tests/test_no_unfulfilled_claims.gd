@@ -19,27 +19,32 @@ static func run_all() -> OpenDouAssert:
 		a.has_no_property(node, "enable_binaural_hrtf", "emisor %s sin toggle de HRTF" % entry[1])
 		node.free()
 
-	# Ni README ni plugin.cfg deben prometer HRTF.
-	for path in ["res://README.md", "res://addons/opendou/plugin.cfg"]:
-		var f = FileAccess.open(path, FileAccess.READ)
-		if f == null:
-			a.ok(false, "no se pudo leer %s" % path)
-			continue
-		var text: String = f.get_as_text().to_lower()
-		f.close()
-		a.ok(not text.contains("hrtf"), "%s no menciona HRTF" % path)
-		a.ok(not text.contains("binaural"), "%s no menciona binaural" % path)
+	# plugin.cfg sigue sin prometer HRTF: es una descripcion de una linea y no puede
+	# matizar. El README SI puede mencionarlo desde la Fase 7B, porque existe y se mide
+	# (tests/test_binaural.gd), pero solo si la extension esta en el repo y el texto dice
+	# que es opcional y que sin ella todo funciona: la promesa tiene que ir con su limite.
+	var cfg = FileAccess.open("res://addons/opendou/plugin.cfg", FileAccess.READ)
+	if cfg == null:
+		a.ok(false, "no se pudo leer plugin.cfg")
+	else:
+		var cfg_text: String = cfg.get_as_text().to_lower()
+		cfg.close()
+		a.ok(not cfg_text.contains("hrtf"), "plugin.cfg no menciona HRTF")
+		a.ok(not cfg_text.contains("binaural"), "plugin.cfg no menciona binaural")
 
-	# El README no debe presentar como existente la capa GDExtension, que no
-	# tiene una sola linea de C++ ni de Rust.
 	var rf = FileAccess.open("res://README.md", FileAccess.READ)
 	if rf != null:
 		var rtext: String = rf.get_as_text()
 		rf.close()
 		var lower := rtext.to_lower()
+		var native_exists: bool = FileAccess.file_exists("res://native/src/spatial_stream.cpp")
+		if lower.contains("hrtf") or lower.contains("binaural"):
+			a.ok(native_exists, "si el README menciona HRTF/binaural, la extension nativa existe en el repo")
+			a.ok(lower.contains("sin la extension") or lower.contains("opcional"),
+				"y dice que la extension es opcional: sin ella todo funciona")
 		if lower.contains("gdextension"):
-			a.ok(lower.contains("planificad") or lower.contains("planned"),
-				"la mencion a GDExtension se marca como planificada")
+			a.ok(lower.contains("opcional") or lower.contains("planificad") or lower.contains("planned"),
+				"la mencion a GDExtension se marca como opcional (existe) o planificada (no existe)")
 		# Los enlaces absolutos de una maquina ajena no sirven a nadie.
 		a.ok(not rtext.contains("file:///c:/"), "el README no tiene enlaces file:///c:/")
 

@@ -203,6 +203,40 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
   secciones `[autoload]` ni `[editor_plugins]`, que deja el plugin muerto. Si matas una
   corrida, mira `git status` antes de seguir.
 
+**Observaciones y trampas de la Fase 7 (Steam Audio):**
+
+* **Observación 42.** `AudioStreamPlayer3D` aplica por distancia un *high-shelf* cuyo corte
+  es `attenuation_filter_cutoff_hz` y cuya profundidad es
+  `(1 − min(1, multiplicador)) × attenuation_filter_db`. OpenDou escribía en ese corte el de
+  oclusión (20 kHz sin oclusión) y anulaba el oscurecimiento por distancia. Ahora se escribe
+  el mínimo de los dos. Limitación del backend `godot` que queda: a menos de `unit_size` la
+  profundidad es 0 y una voz ocluida no se filtra; el backend nativo no la tiene.
+* **Observación 43.** El test de «Una casa canta» falla de forma intermitente (una de cada
+  varias corridas) con el origen aparente en la puerta cerrada en lugar de la ventana:
+  una carrera entre la puerta poniendo su `open_factor` a cero en `_ready` y el despachador
+  de caminos. Pendiente de arreglar; si te sale, repite la corrida antes de buscar culpables.
+* **Observación 44.** `AudioStreamPlayer3D.new()` nace con `area_mask = 0`: no encuentra
+  ningún `Area3D` y no alimenta ningún bus de reverb. Las voces anónimas del pool nunca
+  habían tenido reverb de sala; el pool fija la máscara a 1.
+* **Un reproductor 3D no emite nada sin oyente en el viewport** (medido: 0.0000 sin cámara,
+  0.91 con ella). Un test que reproduzca por un `AudioStreamPlayer3D` pone una `Camera3D`.
+* **El shelf de Godot aplica el doble de decibelios de los pedidos** (`AudioFilterSW`
+  HIGHSHELF usa la ganancia lineal donde el «cookbook» usa su raíz). El DSP nativo lo replica
+  a propósito, por paridad.
+* **La API C de Steam Audio no renderiza el ITD** (fase plana por defecto, sin acceso al
+  `SphereITD` interno); OpenDou lo aplica en C++ con Woodworth **completo**: el residuo de
+  `peakDelays` no está en la salida y restarlo dejaba el ITD asimétrico.
+* **Extensión nativa.** Una `.dylib` bajada del navegador trae `com.apple.quarantine` y
+  macOS la rechaza («library load disallowed by system policy»); `native/build.sh` la
+  limpia y firma ad hoc. godot-cpp no tiene rama 4.7: `master` @ `26fb7ab`.
+  `AudioStreamPlayback.mix_audio()` reserva memoria en el hilo de audio; medido y aceptado.
+* **Tests binaurales: asentar y medir por MUESTRAS, no por frames.** En headless un frame
+  dura ~2 ms y seis frames no cubren la latencia del anillo. Y fuente periódica de 1024
+  muestras con bandas alineadas al periodo, o la medida espectral oscila entre corridas.
+* **`var x := load(...)...()` no infiere el tipo** desde un script cargado con `load()`:
+  rompe el parseo del archivo entero y la suite dice «Nonexistent function» en otro sitio.
+  Tipo explícito siempre que el receptor venga de `load()`.
+
 ---
 
 ## 6. Reglas Modulares de Referencia

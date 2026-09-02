@@ -1,10 +1,8 @@
 # Extension nativa de OpenDou: el DSP que GDScript no puede hacer.
 #
-# Fase 7A (spike). Reutiliza el godot-cpp ya compilado en build/godot-cpp para no
-# recompilarlo con cada cambio de la extension. Si no existe, compilalo primero:
-#   cmake -S thirdparty/godot-cpp -B build/godot-cpp -DGODOTCPP_API_VERSION=4.7 \
-#         -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
-#   cmake --build build/godot-cpp --parallel
+# Fase 7B. La forma normal de compilar es `./build.sh` (fija dependencias, compila
+# godot-cpp y esto, y firma). Este CMake reutiliza el godot-cpp ya compilado en
+# build/godot-cpp para no recompilarlo con cada cambio de la extension.
 cmake_minimum_required(VERSION 3.22)
 project(opendou_native LANGUAGES CXX)
 

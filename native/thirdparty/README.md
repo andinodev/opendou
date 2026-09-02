@@ -1,17 +1,16 @@
 # Dependencias nativas (no versionadas)
 
-Esta carpeta NO se versiona: son cientos de megas de binarios de terceros. Cada clon la
-rellena a mano con estas dos piezas, en estas rutas exactas:
+Esta carpeta NO se versiona: son cientos de megas de binarios de terceros. **La rellena
+`../build.sh`**, que descarga y fija las dos piezas en estas rutas exactas, y luego compila:
 
-| Ruta | Que es | De donde |
+| Ruta | Que es | Como se fija |
 |---|---|---|
-| `steamaudio/` | Steam Audio SDK **4.8.1** (`include/phonon.h`, `lib/<plataforma>/`) | [Releases de ValveSoftware/steam-audio](https://github.com/ValveSoftware/steam-audio/releases): el zip `steamaudio_4.8.1.zip`, descomprimido aqui |
-| `godot-cpp/` | Bindings C++ de Godot, rama **master** | `git clone --depth 1 https://github.com/godotengine/godot-cpp` |
+| `steamaudio/` | Steam Audio SDK **4.8.1** (`include/phonon.h`, `lib/<plataforma>/`) | zip `steamaudio_4.8.1.zip` de las [releases de ValveSoftware/steam-audio](https://github.com/ValveSoftware/steam-audio/releases), verificado por SHA-256 en `build.sh` |
+| `godot-cpp/` | Bindings C++ de Godot | rama `master`, commit `26fb7ab` |
 
-`godot-cpp` no tiene rama ni tag para Godot 4.7 (la ultima es 4.5), pero su **master trae
-`extension_api-4-7.json` y 4.7 es su API por defecto**, asi que se construye desde master tal
-cual. `../dump_godot_api.sh` vuelca la API del Godot instalado para **verificar** que coincide
-con la que godot-cpp usa; su salida (`../godot-api/`) no se versiona: son 7 MB regenerables.
+`godot-cpp` no tiene rama ni tag para Godot 4.7, pero su master trae `extension_api-4-7.json`
+y 4.7 es su API por defecto. `../dump_godot_api.sh` vuelca la API del Godot instalado para
+**verificar** que coincide; su salida (`../godot-api/`) no se versiona: son 7 MB regenerables.
 
-Licencia de Steam Audio: Apache 2.0. Su `THIRDPARTY.md` y el aviso de copyright viajan con
-los binarios que se distribuyan.
+Licencia de Steam Audio: Apache 2.0. El aviso vive en `addons/opendou/THIRD_PARTY_NOTICES.md`
+y su `THIRDPARTY.md` viaja con los binarios que se distribuyan.
