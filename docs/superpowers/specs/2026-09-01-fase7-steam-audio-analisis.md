@@ -273,6 +273,56 @@ y cada una útil por sí sola:
 
 ---
 
+## 11. Resultados del spike 7A (2026-09-02)
+
+La pregunta era: ¿puede una voz de Godot 4.7 salir por Steam Audio, y hace el HRTF algo que se
+pueda medir? **Sí a las dos.** Todo lo de abajo lo afirma `tests/test_binaural_spike.gd` sobre
+audio capturado del bus, con controles que apagan el HRTF para que la medida no sea vacua.
+
+**Lo construido (código de spike, no de producto).** `native/` con godot-cpp *master* (API 4.7,
+no existe rama 4.6/4.7) enlazado a `libphonon.dylib` 4.8.1; una clase `OpenDouSpatialStream`
+(`AudioStream`) que envuelve otro stream y lo pasa por `iplBinauralEffectApply` en bloques de
+512 muestras con un anillo de 2×512. Carga en el editor y en headless.
+
+| Medida | Resultado | Control (HRTF apagado) |
+|---|---|---|
+| Latencia añadida | 11.6 ms (512 @ 44.1 kHz) | — |
+| ILD, fuente a la derecha | +17 dB (R−L) | 0.00 dB |
+| ILD, fuente a la izquierda | −14 dB | — |
+| Delante/detrás, banda 5–10 kHz / 1–4 kHz | 15.9 % de diferencia | 2.5 % |
+| ITD medido en la salida | **0 muestras** | 0 |
+| `peakDelays` reportados, fuente a la derecha | L 0.363 ms, R 0.227 ms | — |
+| `peakDelays`, fuente a la izquierda | L 0.136 ms, R 0.522 ms | — |
+
+**Hallazgo principal: la API C pública NO renderiza el ITD.** El estimador de ITD recupera un
+retardo sintético de 25 muestras, así que el cero es real. La fuente de Steam Audio lo explica:
+`BinauralEffectParams::phaseType` vale `HRTFPhaseType::None` («respuesta de fase plana») por
+defecto, `api_binaural_effect.cpp` nunca lo cambia, y `binaural_effect.cpp` solo *escribe* los
+retardos de pico en `peakDelays` sin aplicarlos al audio. Steam Audio entrega la magnitud del
+HRTF (ILD y coloración del pabellón) y deja el retardo interaural en manos de quien llama.
+**Para 7B esto es un requisito, no un detalle:** el panner de OpenDou tiene que aplicar una línea
+de retardo fraccionaria por oído con los `peakDelays` de cada bloque (interpolando entre bloques
+para no hacer clic al girar). Sin eso, la localización lateral tendría la mitad de las pistas.
+El spike lo afirma en la dirección real (lag ≈ 0 y `peakDelays` distintos) para que, si una
+versión futura empieza a hornear el ITD, la línea de retardo no lo aplique dos veces.
+
+**Convención de ejes.** Steam Audio es diestro con +X derecha, +Y arriba, −Z adelante: la misma
+de Godot. No hace falta convertir direcciones.
+
+**Lecciones de infraestructura.**
+- Una `.dylib` descargada desde el navegador trae `com.apple.quarantine` y macOS la rechaza con
+  «library load disallowed by system policy». Hay que quitar el atributo y firmar *ad hoc* las
+  dos bibliotecas; el CMake lo hace en POST_BUILD. La distribución real (7B) necesita firma.
+- `AudioStreamPlayback.mix_audio()` devuelve un `PackedVector2Array` nuevo por llamada: reserva
+  memoria en el hilo de audio. Aceptable para el spike; 7B tiene que mezclar sobre un buffer
+  propio o cambiar el punto de enganche.
+- La medida delante/detrás con ruido blanco continuo oscilaba de 2 a 20 % entre corridas según
+  el segmento capturado. Con una fuente periódica de 1024 muestras y bandas alineadas al
+  periodo, tres corridas dan valores idénticos. La lección vale para 7B: los tests binaurales
+  usan fuentes periódicas.
+- El spike no relocaliza emisores propiedad de un nodo (`AudioStreamPlayer3D`): envuelve el
+  stream, no el panner. 7B resuelve eso siendo dueño del panner.
+
 ## Fuentes
 
 - [Steam Audio — releases](https://github.com/ValveSoftware/steam-audio/releases) · [repositorio](https://github.com/ValveSoftware/steam-audio) (Apache 2.0, 4.8.1)

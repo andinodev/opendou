@@ -12,7 +12,13 @@ techo, puertas con hoja, ventanas con cristal— y la calle como sala `Outdoor`.
 primera escena que luce el grafo de salas de la Fase 6: la música sale por la ventana
 entreabierta, y dentro de las casas dormidas la calle llega cortada a 300 Hz.
 
-**Siguiente:** Fase 7 — Steam Audio. Análisis previo en
-[`docs/superpowers/specs/2026-09-01-fase7-steam-audio-analisis.md`](../superpowers/specs/2026-09-01-fase7-steam-audio-analisis.md);
-el spec de 7A (el spike) es lo que toca escribir. La Fase 4B (prefijado `OpenDou`) queda
-pendiente detrás.
+**Fase 7A, spike hecho (2026-09-02):** una voz de Godot 4.7 sale por Steam Audio 4.8.1 y el
+HRTF se mide: ILD ±15 dB, delante/detrás 15.9 % frente a 2.5 % sin HRTF, 11.6 ms de latencia.
+Hallazgo: la API C **no** renderiza el ITD (fase plana por defecto); lo reporta en `peakDelays`
+y 7B tiene que aplicarlo. Resultados en §11 del
+[análisis](../superpowers/specs/2026-09-01-fase7-steam-audio-analisis.md). El código nativo vive
+en `native/` (fuentes en git; SDK, godot-cpp y binarios ignorados; se compila con
+`native/CMakeLists.txt`). Si la extensión no está compilada, la suite omite el spike y lo dice.
+
+**Siguiente:** spec de 7A/7B a partir del análisis y del spike. La Fase 4B (prefijado
+`OpenDou`) queda pendiente detrás.

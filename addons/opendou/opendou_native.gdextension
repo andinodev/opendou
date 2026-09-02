@@ -1,0 +1,14 @@
+[configuration]
+
+entry_symbol = "opendou_native_init"
+compatibility_minimum = "4.7"
+
+[libraries]
+
+macos.debug = "res://addons/opendou/bin/libopendou_native.macos.template_release.dylib"
+macos.release = "res://addons/opendou/bin/libopendou_native.macos.template_release.dylib"
+
+[dependencies]
+
+macos.debug = { "res://addons/opendou/bin/libphonon.dylib": "" }
+macos.release = { "res://addons/opendou/bin/libphonon.dylib": "" }
