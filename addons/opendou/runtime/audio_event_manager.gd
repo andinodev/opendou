@@ -205,6 +205,52 @@ func _apply_spatial_settings() -> void:
 		spatial_settings.hrtf = "default"
 	spatial_settings.save_to_disk()
 
+## Cuanto de cada voz activa llega a `position` (Fase 10, la IA oye). Reutiliza el grafo de
+## salas y la oclusion con otro destino; por eso cuesta un rayo por voz si hay world_3d.
+## loudness_db = sonoridad de diseno + volumen calculado (sin la oclusion hacia el oyente,
+## que aqui no aplica) + distancia con el modelo de la instancia + camino.
+func get_loudness_at(position: Vector3, world_3d: World3D = null) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var point_room: StringName = &""
+	if spatial_acoustics != null:
+		var r = spatial_acoustics.get_room_at_position(position)
+		if r != null:
+			point_room = r.room_name
+	for instance in active_instances:
+		if instance == null or instance.definition == null or not instance.has_spatial_position or not instance.is_playing():
+			continue
+		var d: float = instance.emitter_position.distance_to(position)
+		var db: float = instance.definition.hdr_loudness_db + instance.calculated_volume_db - instance.occlusion_attenuation_db
+		db += DistanceModelClass.attenuation_db(d, instance.attenuation_model, instance.unit_size, instance.attenuation_curve, instance.attenuation_curve_distance_m)
+		var emitter_room: StringName = &""
+		if spatial_acoustics != null:
+			var er = spatial_acoustics.get_room_at_position(instance.emitter_position)
+			if er != null:
+				emitter_room = er.room_name
+		if room_path_dispatcher != null and emitter_room != &"" and point_room != &"" and emitter_room != point_room:
+			var chain: Dictionary = room_path_dispatcher.chain_for(emitter_room, point_room, instance.emitter_position, position)
+			if bool(chain.sealed):
+				db += room_path_dispatcher.max_attenuation_db
+			else:
+				var virtual_distance: float = instance.emitter_position.distance_to(chain.entry_pos) + float(chain.chain_length) + Vector3(chain.exit_pos).distance_to(position)
+				db += room_path_dispatcher.attenuation_db_for(virtual_distance, chain.exit_pos, position)
+				var min_open: float = 1.0
+				for portal in chain.portals:
+					min_open = minf(min_open, portal.open_factor)
+				# Un portal cerrado no es un muro: -26 dB (open_factor 0.05) para que la IA oiga
+				# algo a traves de una puerta, como el jugador.
+				db += 20.0 * (log(maxf(min_open, 0.05)) / log(10.0))
+		elif world_3d != null and occlusion_scheduler != null:
+			var query := PhysicsRayQueryParameters3D.create(instance.emitter_position, position, occlusion_scheduler.collision_mask)
+			var hit: Dictionary = world_3d.direct_space_state.intersect_ray(query)
+			var ray_hits: Array[bool] = [not hit.is_empty()]
+			db += occlusion_scheduler.occlusion_manager.evaluate_occlusion(instance.emitter_position, position, ray_hits).volume_attenuation_db
+			for v in acoustic_volumes:
+				if v != null and is_instance_valid(v) and v.environment != null and v.environment.occluder_enabled:
+					db -= v.environment.occluder_db_per_m * v.segment_length_inside(instance.emitter_position, position)
+		out.append({"instance": instance, "event_name": instance.definition.event_name, "loudness_db": db, "from_position": instance.emitter_position})
+	return out
+
 ## Registra un OpenDouAcousticVolume3D (Fase 10).
 func register_acoustic_volume(volume: Node3D) -> void:
 	if not acoustic_volumes.has(volume):
