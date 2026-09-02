@@ -255,6 +255,17 @@ func _get_acoustics_manager() -> SpatialAcousticsManager:
 			return s.spatial_acoustics
 	return null
 
+## Se da de baja del grafo acustico al salir del arbol.
+##
+## Sin esto, cambiar de escena dejaba la sala registrada para siempre, y una sala muerta
+## que envuelva el nivel siguiente tapa todas sus salas. Observacion 38.
+func _exit_tree() -> void:
+	if Engine.is_editor_hint():
+		return
+	var mgr: SpatialAcousticsManager = _get_acoustics_manager()
+	if mgr != null:
+		mgr.unregister_room(room_name)
+
 func _on_body_entered(_body: Node) -> void:
 	if not snapshot_on_enter.is_empty():
 		if is_inside_tree():

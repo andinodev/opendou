@@ -148,6 +148,31 @@ static func run_all() -> OpenDouAssert:
 	dispatcher.process([same_room], Vector3(3.0, 1.2, 3.0))  # oyente en la sala de maquinas
 	a.ok(not same_room.room_path_active, "en la misma sala el grafo no gobierna")
 
+	# ---- Observacion 39: de las salas que contienen el punto, gana la MAS PEQUENA.
+	var nested_ac = _build_acoustics()
+	var hangar = AudioRoomClass.new()
+	hangar.room_name = &"Hangar"
+	hangar.set_bounds(AABB(Vector3(-40, -10, -40), Vector3(120, 30, 120)))  # envuelve todo
+	nested_ac.register_room(hangar)
+	var resolved = nested_ac.get_room_at_position(Vector3(-4, 1.2, -4))
+	a.ok(resolved != null, "una posicion dentro de dos salas resuelve a alguna")
+	if resolved != null:
+		a.eq(str(resolved.room_name), "EngineRoom",
+			"y gana la MAS PEQUENA: una sala envolvente no puede tapar a la que contiene")
+
+	# ---- Observacion 38: dar de baja una sala la retira, y con ella sus portales.
+	a.eq(nested_ac.rooms.size(), 4, "cuatro salas registradas")
+	nested_ac.unregister_room(&"Hangar")
+	a.eq(nested_ac.rooms.size(), 3, "dar de baja el hangar lo retira")
+	a.eq(nested_ac.portals.size(), 2, "y no toca portales que no le tocaban")
+
+	nested_ac.unregister_room(&"Corridor")
+	a.ok(not nested_ac.portals.has(&"Hatch"),
+		"dar de baja el pasillo se lleva el portal que lo tocaba")
+	a.ok(not nested_ac.portals.has(&"Door"), "y el otro tambien")
+	a.eq(nested_ac.rooms[&"EngineRoom"].connected_portals.size(), 0,
+		"y los desengancha de la sala que sigue viva: un portal a ninguna parte falsearia el grafo")
+
 	# ---- LA POSICION APARENTE arranca en la del emisor y no en el origen.
 	# Sin esto, cada voz nueva barreria desde (0,0,0) hasta su sitio y se oiria.
 	var fresh = _physical_instance(Vector3(9, 2, -3))
@@ -259,6 +284,32 @@ static func run_wiring_async(tree: SceneTree) -> OpenDouAssert:
 	inside.room_path_active = false
 	var raycasts_again: int = scheduler.process([inside], Vector3(14.0, 1.6, 0.0), w3d)
 	a.gt(float(raycasts_again), 0.0, "sin gobierno del grafo, la oclusion la atiende")
+
+	# ---- Observacion 38 con NODOS: liberar una escena da de baja sus salas.
+	var Room3DClass = load("res://addons/opendou/nodes/opendou_room_3d.gd")
+	var stray = Room3DClass.new()
+	stray.room_name = &"StrayRoom"
+	var stray_shape := CollisionShape3D.new()
+	var stray_box := BoxShape3D.new()
+	stray_box.size = Vector3(8, 4, 8)
+	stray_shape.shape = stray_box
+	stray.add_child(stray_shape)
+	tree.root.add_child(stray)
+	await tree.process_frame
+
+	var autoload_node = tree.root.get_node_or_null("OpenDou")
+	a.ok(autoload_node != null, "el autoload OpenDou existe")
+	if autoload_node != null:
+		var autoload_ac = autoload_node.spatial_acoustics
+		a.ok(autoload_ac.rooms.has(&"StrayRoom"), "un Room3D en el arbol se registra")
+		tree.root.remove_child(stray)
+		stray.free()
+		await tree.process_frame
+		a.ok(not autoload_ac.rooms.has(&"StrayRoom"),
+			"y al liberarlo se da de baja: sin esto el grafo crece para siempre y una sala muerta tapa el nivel nuevo")
+	else:
+		tree.root.remove_child(stray)
+		stray.free()
 
 	manager.stop_all()
 	tree.root.remove_child(manager)

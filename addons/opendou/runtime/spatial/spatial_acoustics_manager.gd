@@ -52,6 +52,40 @@ func register_portal(portal: AudioPortal) -> void:
 		if rooms.has(portal.room_b_name):
 			rooms[portal.room_b_name].register_portal(portal)
 
+## Da de baja una sala del grafo, y con ella los portales que solo la tocaban a ella.
+##
+## Existe porque rooms y portals solo CRECIAN: ni OpenDouRoom3D ni OpenDouPortal3D se
+## daban de baja al salir del arbol, asi que un juego que carga y descarga niveles
+## acumulaba salas muertas para siempre. Y una sala muerta que envuelva el nivel nuevo
+## TAPA todas sus salas, porque get_room_at_position() elige por contencion.
+## Observacion 38.
+func unregister_room(room_name: StringName) -> void:
+	if not rooms.has(room_name):
+		return
+	var room: AudioRoom = rooms[room_name]
+	rooms.erase(room_name)
+	# Los portales que apuntaban a esta sala quedan colgando: se retiran de la otra sala
+	# y del registro, porque un portal a ninguna parte falsea los caminos del grafo.
+	for portal_name in portals.keys():
+		var portal: AudioPortal = portals[portal_name]
+		if portal.room_a_name != room_name and portal.room_b_name != room_name:
+			continue
+		var other: StringName = portal.get_other_room(room_name)
+		if rooms.has(other):
+			rooms[other].connected_portals.erase(portal)
+		portals.erase(portal_name)
+	room.connected_portals.clear()
+
+## Da de baja un portal del grafo y lo desengancha de sus dos salas.
+func unregister_portal(portal_name: StringName) -> void:
+	if not portals.has(portal_name):
+		return
+	var portal: AudioPortal = portals[portal_name]
+	for room_name in [portal.room_a_name, portal.room_b_name]:
+		if rooms.has(room_name):
+			rooms[room_name].connected_portals.erase(portal)
+	portals.erase(portal_name)
+
 ## Registers an acoustic reflector in the acoustics manager.
 func register_reflector(reflector) -> void:
 	if reflector:
@@ -60,12 +94,26 @@ func register_reflector(reflector) -> void:
 			reflectors[r_name] = reflector
 
 ## Finds the room containing a 3D coordinate.
+## La sala que contiene el punto, y de las que lo contengan, la MAS PEQUENA.
+##
+## Antes devolvia la primera que encontrara recorriendo el diccionario, asi que con salas
+## anidadas o solapadas -un hangar que contiene oficinas, que es una forma legitima de
+## autorar- el resultado dependia del orden de insercion. Observacion 39.
+##
+## La mas pequena es la mas especifica: si estas en una oficina dentro de un hangar,
+## estas en la oficina.
 func get_room_at_position(pos: Vector3) -> AudioRoom:
+	var best: AudioRoom = null
+	var best_volume: float = INF
 	for r_name in rooms:
 		var r: AudioRoom = rooms[r_name]
-		if r.contains_point(pos):
-			return r
-	return null
+		if not r.contains_point(pos):
+			continue
+		var volume: float = r.bounds.size.x * r.bounds.size.y * r.bounds.size.z
+		if volume < best_volume:
+			best_volume = volume
+			best = r
+	return best
 
 ## Detects the physical ground surface at a 3D position using a 3-tier hierarchy.
 ## Priority 1: Physics raycast downward checking metadata/material.

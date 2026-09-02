@@ -42,6 +42,10 @@ const BULKHEAD_SPECS: Array[Dictionary] = [
 	{"center": Vector3(21.5, 2, 0), "size": Vector3(1, 4, 12)},
 ]
 
+## Bus de la valvula. Existe para poder MEDIRLA: en Master se mezcla con las pisadas y
+## el resto, y la asercion de la escotilla no distinguiria su caida.
+const VALVE_BUS: StringName = &"KeelValve"
+
 ## Apertura de la escotilla. Asignarla propaga al portal en runtime.
 @export_range(0.0, 1.0, 0.01) var hatch_open_factor: float = 1.0:
 	set(val):
@@ -52,6 +56,7 @@ const BULKHEAD_SPECS: Array[Dictionary] = [
 var rooms: Dictionary = {}
 var hatch: OpenDouPortal3D = null
 var valve_emitter: OpenDouEventPlayer3D = null
+var valve_bus: StringName = VALVE_BUS
 var debugger: OpenDouAcousticDebugger3D = null
 var event_manager = null
 
@@ -174,6 +179,8 @@ func _build_valve() -> void:
 	def.base_volume_db = -6.0
 	def.base_priority = 70.0
 	def.hdr_loudness_db = -6.0
+	valve_bus = DemoAudioClass.ensure_bus(VALVE_BUS)
+	def.target_bus = valve_bus
 	if event_manager != null:
 		event_manager.register_event_definition(def)
 

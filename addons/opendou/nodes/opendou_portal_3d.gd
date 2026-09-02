@@ -119,6 +119,14 @@ func _resolve_room_name(target_path: NodePath, direct_name: StringName) -> Strin
 			return StringName(node.name)
 	return &""
 
+## Se da de baja del grafo acustico al salir del arbol. Ver observacion 38.
+func _exit_tree() -> void:
+	if Engine.is_editor_hint():
+		return
+	var mgr: SpatialAcousticsManager = _get_acoustics_manager()
+	if mgr != null:
+		mgr.unregister_portal(portal_name)
+
 func _get_acoustics_manager() -> SpatialAcousticsManager:
 	if _acoustics_manager != null and is_instance_valid(_acoustics_manager):
 		return _acoustics_manager

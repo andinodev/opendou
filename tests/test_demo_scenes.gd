@@ -400,13 +400,53 @@ static func run_keel_async(tree: SceneTree) -> OpenDouAssert:
 		"la valvula NO alimenta el reverb de una sala en la que no esta")
 	probe_bay.teardown()
 
-	# Cerrar la escotilla baja el corte de difraccion del camino directo.
+	# LA ESCOTILLA. La version anterior de esta asercion comprobaba que
+	# get_diffraction_lpf() devolvia otro numero: comprobaba que un CALCULO cambiaba, no
+	# que llegara a ninguna voz, y por eso pulsar E no hacia nada mientras los tests
+	# pasaban en verde.
+	#
+	# Aqui se afirma lo que llega al MEZCLADOR de Godot: que la valvula queda gobernada
+	# por el grafo de salas, que su origen aparente es la escotilla, y que el corte que
+	# se le aplica sigue a la escotilla. Es la propiedad que Godot lee en C++ para
+	# filtrar la voz, no un calculo intermedio.
+	#
+	# La prueba AUDIBLE del mecanismo vive en test_portal_audio, con geometria
+	# controlada: alli el pico pasa de 0.1196 a 0.0011 al cerrar el portal. Medir el
+	# audio de la demo dentro de la suite resulto no ser fiable por la observacion 40
+	# -un OpenDouEventPlayer3D cuyo bus dice KeelValve y cuya senal seca aparece en
+	# Master-, que es anterior a esta fase y se investiga aparte.
+	var keel_player = demo.get_node_or_null("Player")
+	a.ok(keel_player != null, "la demo trae jugador con oyente")
+	if keel_player != null:
+		keel_player.global_position = Vector3(14.0, 1.0, 0.0)  # el pasillo: la otra sala
+	await tree.physics_frame
+	await tree.process_frame
+
+	var valve_instance = demo.valve_emitter.active_instance
+	a.ok(valve_instance != null, "la valvula tiene instancia activa")
+	if valve_instance != null:
+		valve_instance.occlusion_smoothing_speed = 200.0
+
 	demo.hatch_open_factor = 1.0
-	var lpf_open: float = demo.hatch.get_diffraction_lpf()
-	demo.hatch_open_factor = 0.05
-	var lpf_closed: float = demo.hatch.get_diffraction_lpf()
-	a.lt(lpf_closed, lpf_open * 0.5, "cerrar la escotilla baja el corte de difraccion")
-	a.approx(demo.hatch.runtime_portal.open_factor, 0.05,
+	for i in range(30):
+		await tree.process_frame
+	a.ok(valve_instance.room_path_active,
+		"con el jugador en el pasillo la valvula la gobierna el grafo de salas")
+	a.approx(valve_instance.target_apparent_position.x, 6.5,
+		"y su origen aparente es la escotilla, no el fondo de la sala de maquinas", 0.01)
+	var cutoff_open: float = demo.valve_emitter.attenuation_filter_cutoff_hz
+	a.gt(cutoff_open, 15000.0, "con la escotilla abierta el corte que Godot aplica es alto")
+
+	demo.hatch_open_factor = 0.0
+	for i in range(60):
+		await tree.process_frame
+	var cutoff_closed: float = demo.valve_emitter.attenuation_filter_cutoff_hz
+	a.lt(cutoff_closed, cutoff_open * 0.1,
+		"y cerrarla lo desploma: la tecla E llega hasta el mezclador")
+	a.lt(valve_instance.occlusion_attenuation_db, -1.0,
+		"y la voz lleva ademas la atenuacion del camino por el portal")
+
+	a.approx(demo.hatch.runtime_portal.open_factor, 0.0,
 		"asignar hatch_open_factor propaga al portal en runtime", 0.001)
 
 	# El depurador acustico se puede alternar.
