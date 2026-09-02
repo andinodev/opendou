@@ -12,6 +12,10 @@ const AudioModulatorClass = preload("res://addons/opendou/resources/modulators/a
 const AHDSRStateClass = preload("res://addons/opendou/runtime/modulators/ahdsr_state.gd")
 const LFOStateClass = preload("res://addons/opendou/runtime/modulators/lfo_state.gd")
 
+## Un marcador de la definicion (AudioMarker) quedo entre la posicion anterior y la actual
+## del reloj logico (Fase 9). En bucle vuelve a emitirse en cada vuelta.
+signal marker_reached(name: StringName)
+
 enum VoiceState {
 	STATE_STOPPED,  ## Sound has ended or stopped
 	STATE_PHYSICAL, ## Playing on an active hardware/audio channel
@@ -285,6 +289,19 @@ func set_orientation(forward: Vector3) -> void:
 	if forward.length_squared() > 0.000001:
 		emitter_forward = forward.normalized()
 
+## Emite los marcadores cuyo tiempo quedo entre la posicion anterior y la actual. Si el
+## bucle envolvio, los del tramo final y los del tramo inicial.
+func _emit_markers_crossed(previous: float, current: float, wrapped: bool) -> void:
+	if definition == null or definition.markers.is_empty():
+		return
+	for mk in definition.markers:
+		if mk == null:
+			continue
+		var t: float = mk.time_sec
+		var hit: bool = (not wrapped and t > previous and t <= current) or (wrapped and (t > previous or t <= current))
+		if hit:
+			marker_reached.emit(mk.name)
+
 ## Sets the target spatial low-pass filter cutoff in Hz.
 func set_target_lpf(lpf_hz: float, atten_db: float = 0.0) -> void:
 	target_spatial_lpf = clampf(lpf_hz, 20.0, 20000.0)
@@ -358,7 +375,15 @@ func update_parameters(delta: float, global_rtpcs: Dictionary = {}) -> void:
 	# en active_instances para siempre. En un juego que dispare ese evento a menudo es
 	# crecimiento sin techo.
 	if voice_state == VoiceState.STATE_PHYSICAL and definition.stream_length > 0.0:
+		var before_physical: float = logical_playback_position
 		logical_playback_position += delta * maxf(0.01, calculated_pitch_scale)
+		var wrapped_physical: bool = false
+		if definition.is_looping and definition.stream_length > 0.0 and logical_playback_position >= definition.stream_length:
+			# El reloj logico envuelve con el bucle tambien mientras la voz es fisica: asi los
+			# marcadores vuelven a sonar en cada vuelta (Fase 9).
+			logical_playback_position = fmod(logical_playback_position, definition.stream_length)
+			wrapped_physical = true
+		_emit_markers_crossed(before_physical, logical_playback_position, wrapped_physical)
 		if not definition.is_looping and logical_playback_position >= definition.stream_length:
 			notify_stream_finished()
 	
@@ -450,14 +475,18 @@ func advance_virtual_time(delta: float) -> void:
 	match virtualization_mode:
 		AudioEventDef.VirtualizationMode.VIRTUAL_ELAPSED_TIME:
 			var effective_pitch: float = maxf(0.01, calculated_pitch_scale)
+			var before_virtual: float = logical_playback_position
 			logical_playback_position += (delta * effective_pitch)
-			
+			var wrapped_virtual: bool = false
 			if definition and definition.stream_length > 0.0:
 				if definition.is_looping:
+					if logical_playback_position >= definition.stream_length:
+						wrapped_virtual = true
 					logical_playback_position = fmod(logical_playback_position, definition.stream_length)
 				else:
 					if logical_playback_position >= definition.stream_length:
 						voice_state = VoiceState.STATE_STOPPED
+			_emit_markers_crossed(before_virtual, logical_playback_position, wrapped_virtual)
 		AudioEventDef.VirtualizationMode.VIRTUAL_PLAY_FROM_START:
 			logical_playback_position = 0.0
 		AudioEventDef.VirtualizationMode.VIRTUAL_RESUME:

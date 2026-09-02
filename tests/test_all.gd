@@ -64,6 +64,8 @@ const TestMixChainClass = preload("res://tests/test_mix_chain.gd")
 const TestLoudnessMeterClass = preload("res://tests/test_loudness_meter.gd")
 const TestMixBusApplierClass = preload("res://tests/test_mix_bus_applier.gd")
 const TestEmitterPhysicsClass = preload("res://tests/test_emitter_physics.gd")
+const TestAudioMarkersClass = preload("res://tests/test_audio_markers.gd")
+const TestSplineFlowClass = preload("res://tests/test_spline_flow.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -404,6 +406,8 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestEmitterPhysicsClass.run_spread_async(tree))
 	acc.absorb(await TestEmitterPhysicsClass.run_near_field_async(tree))
 	acc.absorb(await TestEmitterPhysicsClass.run_propagation_delay_async(tree))
+	acc.absorb(await TestAudioMarkersClass.run_all_async(tree))
+	acc.absorb(TestSplineFlowClass.run_all(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,
