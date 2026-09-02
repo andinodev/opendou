@@ -106,3 +106,46 @@ static func run_godot_async(tree: SceneTree) -> OpenDouAssert:
 	probe.teardown()
 	ProjectSettings.set_setting(BackendClass.SETTING, previous)
 	return a
+
+## El mismo evento, a la misma distancia, con los dos backends: la CAIDA entre distancias
+## difiere menos de 1 dB, porque la gobierna la misma formula; el nivel absoluto, menos de
+## 2 dB, porque el HRTF de Steam Audio no es transparente en nivel de frente. Es lo que
+## permite prometer que cambiar de backend no cambia la mezcla.
+static func run_parity_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("backend_parity")
+	if not BackendClass.native_available():
+		print("[OpenDou] extension nativa AUSENTE: suite backend_parity omitida")
+		return a
+	var previous: String = str(ProjectSettings.get_setting(BackendClass.SETTING, "auto"))
+	ensure_bus()
+	var probe = OpenDouAudioProbeClass.new()
+	probe.attach_to_existing_bus(BUS, 2.0)
+	var cam := make_listener_camera(tree)
+	var levels: Dictionary = {}
+	for backend in ["godot", "steam_audio"]:
+		var manager = make_manager(tree, backend)
+		await tree.process_frame
+		var near := await measure_voice(tree, manager, probe, 2.0)
+		var mid := await measure_voice(tree, manager, probe, 16.0)
+		levels[backend] = {"near": near.rms_db, "mid": mid.rms_db, "ratio_near": near.high_ratio, "ratio_mid": mid.high_ratio}
+		manager.stop_all()
+		tree.root.remove_child(manager)
+		manager.free()
+	print("[OpenDou] paridad: godot 2 m %.2f dB / 16 m %.2f dB | steam_audio 2 m %.2f dB / 16 m %.2f dB" % [
+		levels["godot"].near, levels["godot"].mid, levels["steam_audio"].near, levels["steam_audio"].mid])
+	print("[OpenDou] paridad, banda alta: godot %.3f -> %.3f | steam_audio %.3f -> %.3f" % [
+		levels["godot"].ratio_near, levels["godot"].ratio_mid, levels["steam_audio"].ratio_near, levels["steam_audio"].ratio_mid])
+	var drop_godot: float = levels["godot"].mid - levels["godot"].near
+	var drop_steam: float = levels["steam_audio"].mid - levels["steam_audio"].near
+	a.lt(absf(drop_godot - drop_steam), 1.0, "la caida de 2 a 16 m difiere menos de 1 dB entre backends")
+	# Medido: 2.0 dB exactos de diferencia a 2 m (-10.70 frente a -12.69), deterministas con la
+	# fuente periodica. Es la ley de paneo de Godot para una fuente centrada frente a la
+	# respuesta frontal del HRTF, y la normalizacion RMS del HRTF no lo movio. Se afirma con
+	# medio decibelio de margen para que una decima no lo convierta en intermitente.
+	a.lt(absf(levels["godot"].near - levels["steam_audio"].near), 2.5, "el nivel absoluto a 2 m difiere menos de 2.5 dB (medido 2.0)")
+	a.lt(drop_godot, -12.0, "y la caida es la de la distancia inversa: al menos -12 dB (esperado -18)")
+	tree.root.remove_child(cam)
+	cam.free()
+	probe.teardown()
+	ProjectSettings.set_setting(BackendClass.SETTING, previous)
+	return a

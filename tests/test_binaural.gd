@@ -185,8 +185,10 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var shelf_drop_db: float = 10.0 * log(maxf(_band_energy_stereo(shelved, mix_rate, 8000.0, 14000.0), 1e-12) / maxf(_band_energy_stereo(flat, mix_rate, 8000.0, 14000.0), 1e-12)) / log(10.0)
 	var shelf_low_db: float = 10.0 * log(maxf(_band_energy_stereo(shelved, mix_rate, 500.0, 2000.0), 1e-12) / maxf(_band_energy_stereo(flat, mix_rate, 500.0, 2000.0), 1e-12)) / log(10.0)
 	print("[OpenDou] shelf -12 dB @5 kHz: 8-14 kHz cae %.1f dB, 0.5-2 kHz cae %.1f dB" % [shelf_drop_db, shelf_low_db])
-	a.lt(shelf_drop_db, -8.0, "el shelf de -12 dB baja la banda alta al menos 8 dB")
-	a.gt(shelf_low_db, -2.0, "y deja la banda media casi intacta")
+	# Semantica de Godot: su high-shelf usa la ganancia lineal donde el cookbook usa la raiz,
+	# asi que -12 dB pedidos son ~-24 dB reales por encima del corte. Se replica a proposito.
+	a.lt(shelf_drop_db, -16.0, "el shelf de -12 dB (semantica de Godot: el doble) baja la banda alta al menos 16 dB")
+	a.gt(shelf_low_db, -3.0, "y deja la banda media casi intacta")
 
 	# ---- Ganancia por distancia: 0.5 lineal son -6 dB en el RMS.
 	stream.distance_gain = 1.0

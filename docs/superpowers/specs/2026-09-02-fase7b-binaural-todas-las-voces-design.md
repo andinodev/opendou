@@ -466,3 +466,16 @@ Por escrito, con su destino:
 6. **El bus lo sigue decidiendo la definición del evento**, también para emisores de nodo en
    `steam_audio`: es la precedencia que ya tenía el backend `godot`. Una primera versión
    tomaba el bus del nodo y dejó mudas las pisadas del rig, cuyo test enruta por la definición.
+7. **El shelf por distancia replica el de Godot, no el del «Audio EQ Cookbook» (§3).** Godot
+   (`AudioFilterSW::HIGHSHELF`, resonancia 1) usa la ganancia lineal donde la fórmula RBJ usa
+   su raíz: un shelf pedido a −12 dB atenúa unos −24 dB reales por encima del corte. Con el
+   shelf RBJ, la caída de 2 a 16 m difería 1.7 dB entre backends; con la fórmula de Godot,
+   0.94 dB. Medido: −24.5 dB en 8–14 kHz y +0.4 dB en 0.5–2 kHz para −12 dB pedidos.
+8. **Paridad absoluta: 2.0 dB de frente (§10).** A 2 m, con el tope de +3 dB en ambos, el
+   backend `godot` mide −10.70 dB y el nativo −12.69 dB. Es la ley de paneo de Godot para una
+   fuente centrada frente a la respuesta frontal del HRTF; la normalización RMS del HRTF no
+   lo movió ni una décima. El test lo afirma con 2.5 dB de margen y deja escrito el valor.
+9. **`AudioStreamPlayer3D.new()` nace con `area_mask = 0`** (§4). Los reproductores 3D
+   anónimos del pool nunca habían alimentado el reverb de sala en ningún backend: solo los
+   emisores de nodo, que en la escena llevan máscara 1. El pool fija la máscara a 1 y el
+   anfitrión binaural hereda la del nodo emisor. Observación 44 en `AGENTS.md`.

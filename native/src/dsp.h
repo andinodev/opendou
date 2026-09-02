@@ -37,21 +37,24 @@ struct Biquad {
 		a2 = (1.0f - alpha) / a0;
 	}
 
-	// High-shelf: ganancia gain_db por encima de fc, 0 dB por debajo. Es el filtro que
-	// Godot aplica por distancia (set_playback_highshelf_params).
-	void set_highshelf(float fs, float fc, float gain_db) {
-		fc = std::clamp(fc, 10.0f, fs * 0.45f);
-		const float A = std::pow(10.0f, gain_db / 40.0f);
-		const float w0 = 2.0f * kPi * fc / fs;
-		const float cw = std::cos(w0), sw = std::sin(w0);
-		const float alpha = sw / 2.0f * std::sqrt(2.0f); // S = 1
-		const float sqA2a = 2.0f * std::sqrt(A) * alpha;
-		const float a0 = (A + 1.0f) - (A - 1.0f) * cw + sqA2a;
-		b0 = (A * ((A + 1.0f) + (A - 1.0f) * cw + sqA2a)) / a0;
-		b1 = (-2.0f * A * ((A - 1.0f) + (A + 1.0f) * cw)) / a0;
-		b2 = (A * ((A + 1.0f) + (A - 1.0f) * cw - sqA2a)) / a0;
-		a1 = (2.0f * ((A - 1.0f) - (A + 1.0f) * cw)) / a0;
-		a2 = ((A + 1.0f) - (A - 1.0f) * cw - sqA2a) / a0;
+	// High-shelf EXACTAMENTE como lo calcula Godot (servers/audio/audio_filter_sw.cpp,
+	// AudioFilterSW::HIGHSHELF con resonance = 1), porque es el filtro por distancia de
+	// AudioStreamPlayer3D y el backend nativo tiene que sonar igual. Ojo: Godot usa la
+	// ganancia LINEAL donde el "Audio EQ Cookbook" usa su raiz, asi que un shelf pedido a
+	// -12 dB atenua unos -24 dB por encima del corte. No es un error nuestro: es lo que
+	// Godot hace, y la paridad manda.
+	void set_highshelf_godot(float fs, float fc, float gain_linear) {
+		fc = std::clamp(fc, 1.0f, fs * 0.5f - 1.0f);
+		const double g = std::max(static_cast<double>(gain_linear), 0.001);
+		const double omega = 2.0 * kPi * fc / fs;
+		const double cw = std::cos(omega), sw = std::sin(omega);
+		const double beta = std::sqrt(g); // sqrt(gain) / sqrt(Q), con Q = 1
+		const double a0 = (g + 1.0) - (g - 1.0) * cw + beta * sw;
+		b0 = static_cast<float>((g * ((g + 1.0) + (g - 1.0) * cw + beta * sw)) / a0);
+		b1 = static_cast<float>((-2.0 * g * ((g - 1.0) + (g + 1.0) * cw)) / a0);
+		b2 = static_cast<float>((g * ((g + 1.0) + (g - 1.0) * cw - beta * sw)) / a0);
+		a1 = static_cast<float>((2.0 * ((g - 1.0) - (g + 1.0) * cw)) / a0);
+		a2 = static_cast<float>(((g + 1.0) - (g - 1.0) * cw - beta * sw) / a0);
 	}
 
 	inline float process(float x) {

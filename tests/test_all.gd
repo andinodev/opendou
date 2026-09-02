@@ -381,6 +381,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestBinauralClass.run_pool_async(tree))
 	acc.absorb(await TestBinauralClass.run_node_emitter_async(tree))
 	acc.absorb(await TestBackendParityClass.run_godot_async(tree))
+	acc.absorb(await TestBackendParityClass.run_parity_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

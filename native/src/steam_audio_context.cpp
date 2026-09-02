@@ -59,6 +59,8 @@ bool SteamAudioContext::install_hrtf(IPLHRTFSettings &settings, const std::strin
 		return false;
 	}
 	settings.volume = 1.0f;
+	// Sin normalizacion: se probo IPL_HRTFNORMTYPE_RMS para cerrar los 2 dB de diferencia
+	// frontal con el paneo de Godot y no movio el nivel medido ni una decima.
 	settings.normType = IPL_HRTFNORMTYPE_NONE;
 	IPLHRTF hrtf = nullptr;
 	if (iplHRTFCreate(context_, &audio_, &settings, &hrtf) != IPL_STATUS_SUCCESS || hrtf == nullptr) {

@@ -155,7 +155,7 @@ float OpenDouSpatialStream::benchmark_block_mode(int voices, int mode) {
 	const float fs = static_cast<float>(audio.samplingRate);
 	dsp::Biquad lpf, shelf;
 	lpf.set_lowpass(fs, 8000.0f, 0.7071f);
-	shelf.set_highshelf(fs, 5000.0f, -12.0f);
+	shelf.set_highshelf_godot(fs, 5000.0f, 0.25f);
 	dsp::FractionalDelay dl, dr;
 	dl.init(static_cast<int>(0.002f * fs) + 2);
 	dr.init(static_cast<int>(0.002f * fs) + 2);
@@ -347,7 +347,7 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 		if (shelf_db > -0.05f) {
 			shelf_.set_identity();
 		} else {
-			shelf_.set_highshelf(fs, shelf_hz, shelf_db);
+			shelf_.set_highshelf_godot(fs, shelf_hz, std::pow(10.0f, shelf_db / 20.0f));
 		}
 		shelf_applied_db_ = shelf_db;
 		shelf_applied_hz_ = shelf_hz;
