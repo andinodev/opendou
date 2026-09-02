@@ -133,6 +133,17 @@ func get_room_at_position(pos: Vector3) -> AudioRoom:
 ## Priority 2: Enclosing AudioRoom.floor_surface.
 ## Priority 3: Fallback &"Concrete".
 func detect_surface_at(pos: Vector3, world_3d: World3D = null) -> StringName:
+	# Prioridad 0 (Fase 10): superficie pintada por un OpenDouAcousticVolume3D.
+	var best_name: StringName = &""
+	var best_prio: int = -2147483648
+	for v in surface_volumes:
+		if v == null or not is_instance_valid(v) or v.environment == null or not v.environment.surface_enabled:
+			continue
+		if v.environment.surface_priority > best_prio and v.contains_point(pos):
+			best_prio = v.environment.surface_priority
+			best_name = v.environment.surface_type
+	if best_name != &"":
+		return best_name
 	# Priority 1: Physics Raycast downward (if world_3d provided)
 	if world_3d != null:
 		var space_state = world_3d.direct_space_state

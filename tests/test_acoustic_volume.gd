@@ -223,3 +223,86 @@ static func run_occluder_async(tree: SceneTree) -> OpenDouAssert:
 	probe.teardown()
 	ProjectSettings.set_setting(BackendClass.SETTING, previous_backend)
 	return a
+
+static func run_cull_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("acoustic_volume_cull")
+	var previous_backend = ProjectSettings.get_setting(BackendClass.SETTING, "auto")
+	var manager = TestParityClass.make_manager(tree, "godot")
+	var cam := TestParityClass.make_listener_camera(tree)
+	var def = AudioEventDefClass.new(&"CullVoice", TestBinauralClass._periodic_noise(int(AudioServer.get_mix_rate())))
+	def.is_looping = true
+	def.stream_length = 1.0
+	def.target_bus = &"Master"
+	manager.register_event_definition(def)
+	var inst = manager.post_event(def, null)
+	inst.set_position(Vector3(0, 0, -3))
+	for i in range(10):
+		await tree.process_frame
+	a.eq(int(inst.voice_state), int(inst.VoiceState.STATE_PHYSICAL), "sin volumen la voz es fisica")
+	var env = EnvClass.new()
+	env.cull_enabled = true
+	env.cull_buses.append(&"Master")
+	var bunker = make_box_volume(tree, Vector3.ZERO, Vector3(10, 10, 10), env)
+	manager.register_acoustic_volume(bunker)
+	for i in range(10):
+		await tree.process_frame
+	a.ok(inst.culled, "con el oyente dentro, la voz queda descartada")
+	a.eq(int(inst.voice_state), int(inst.VoiceState.STATE_VIRTUAL), "y se virtualiza")
+	a.eq(manager.occlusion_scheduler.raycasts_this_frame, 0, "sin gastar rayos")
+	var t_before: float = inst.logical_playback_position
+	await _settle(tree, 0.5)
+	var advanced: float = inst.logical_playback_position - t_before
+	if advanced < 0.0:
+		advanced += def.stream_length
+	a.approx(advanced, 0.5, "su tiempo logico sigue corriendo", 0.12)
+	var before_exit: float = inst.logical_playback_position
+	var t0: int = Time.get_ticks_msec()
+	bunker.global_position = Vector3(100, 0, 0)
+	for i in range(10):
+		await tree.process_frame
+	a.ok(not inst.culled, "al salir deja de estar descartada")
+	a.eq(int(inst.voice_state), int(inst.VoiceState.STATE_PHYSICAL), "y vuelve a ser fisica")
+	var expected: float = fmod(before_exit + float(Time.get_ticks_msec() - t0) / 1000.0, def.stream_length)
+	var got: float = inst.logical_playback_position
+	var diff: float = absf(got - expected)
+	if diff > def.stream_length * 0.5:
+		diff = def.stream_length - diff
+	a.lt(diff, 0.1, "en la posicion del bucle que le toca (esperada %.2f, real %.2f)" % [expected, got])
+	inst.stop()
+	manager.unregister_acoustic_volume(bunker)
+	tree.root.remove_child(bunker); bunker.free()
+	tree.root.remove_child(cam); cam.free()
+	tree.root.remove_child(manager); manager.free()
+	ProjectSettings.set_setting(BackendClass.SETTING, previous_backend)
+	return a
+
+static func run_surface_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("acoustic_volume_surface")
+	var manager = load("res://addons/opendou/runtime/audio_event_manager.gd").new()
+	manager.hdr_enabled = false
+	tree.root.add_child(manager)
+	var street = load("res://addons/opendou/runtime/spatial/audio_room.gd").new(&"Calle", 1.0, 0.5, &"Asphalt")
+	street.set_bounds(AABB(Vector3(-50, -5, -50), Vector3(100, 20, 100)))
+	manager.spatial_acoustics.register_room(street)
+	a.eq(String(manager.spatial_acoustics.detect_surface_at(Vector3(5, 0, 5))), "Asphalt", "sin volumen, el suelo de la sala")
+	var env = EnvClass.new()
+	env.surface_enabled = true
+	env.surface_type = &"Water"
+	env.surface_priority = 1
+	var puddle = make_box_volume(tree, Vector3(5, 0, 5), Vector3(2, 1, 2), env)
+	manager.register_acoustic_volume(puddle)
+	a.eq(String(manager.spatial_acoustics.detect_surface_at(Vector3(5, 0, 5))), "Water", "dentro del charco, agua")
+	a.eq(String(manager.spatial_acoustics.detect_surface_at(Vector3(8, 0, 5))), "Asphalt", "fuera, asfalto")
+	var env2 = EnvClass.new()
+	env2.surface_enabled = true
+	env2.surface_type = &"Metal"
+	env2.surface_priority = 5
+	var grate = make_box_volume(tree, Vector3(5, 0, 5), Vector3(1, 1, 1), env2)
+	manager.register_acoustic_volume(grate)
+	a.eq(String(manager.spatial_acoustics.detect_surface_at(Vector3(5, 0, 5))), "Metal", "gana la prioridad mayor")
+	for n in [puddle, grate]:
+		manager.unregister_acoustic_volume(n)
+		tree.root.remove_child(n); n.free()
+	manager.spatial_acoustics.unregister_room(&"Calle")
+	tree.root.remove_child(manager); manager.free()
+	return a

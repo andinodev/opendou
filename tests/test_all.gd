@@ -416,6 +416,8 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestAcousticVolumeClass.run_medium_async(tree))
 	acc.absorb(await TestAcousticVolumeClass.run_wind_async(tree))
 	acc.absorb(await TestAcousticVolumeClass.run_occluder_async(tree))
+	acc.absorb(await TestAcousticVolumeClass.run_cull_async(tree))
+	acc.absorb(await TestAcousticVolumeClass.run_surface_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

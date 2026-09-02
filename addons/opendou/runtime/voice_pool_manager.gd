@@ -88,7 +88,7 @@ func resolve_voice_stealing(active_instances: Array[EventInstance], listener_pos
 	for i in range(candidates.size()):
 		var instance: EventInstance = candidates[i]
 		
-		if i < max_physical_voices and instance.current_weight >= min_audibility_threshold:
+		if i < max_physical_voices and instance.current_weight >= min_audibility_threshold and not instance.culled:
 			if instance.voice_state == EventInstanceClass.VoiceState.STATE_VIRTUAL:
 				devirtualize(instance)
 		else:

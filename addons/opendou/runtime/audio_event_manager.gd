@@ -97,6 +97,7 @@ var _listener_node_ref: WeakRef = null
 var acoustic_volumes: Array = []
 var environment: OpenDouEnvironmentState = EnvironmentStateClass.new()
 var _active_medium_snapshot: StringName = &""
+var _had_culled: bool = false
 var _warned_hrtf_override: String = ""
 
 ## Programador unico de raycasts de oclusion, con presupuesto por frame.
@@ -137,6 +138,8 @@ func _init() -> void:
 	voice_pool.set_player_pool(player_pool)
 	voice_pool.spatial_backend = spatial_backend
 	listener_resolver = ListenerResolverClass.new()
+	if spatial_acoustics != null:
+		spatial_acoustics.surface_volumes = acoustic_volumes
 	occlusion_scheduler = OcclusionSchedulerClass.new()
 	room_path_dispatcher = RoomPathDispatcherClass.new()
 	room_path_dispatcher.acoustics = spatial_acoustics
@@ -682,6 +685,14 @@ func _process(delta: float) -> void:
 	# 5d. La mezcla dinamica llega a los buses: base + instantanea + ducking.
 	if mix != null:
 		mix.apply(delta)
+
+	# 5e. Descarte por entorno (Fase 10): peso cero en el robo, sin rayos. Solo se recorre
+	# si hay algo que descartar o lo hubo el cuadro anterior.
+	if not environment.culled_buses.is_empty() or _had_culled:
+		_had_culled = not environment.culled_buses.is_empty()
+		for instance in active_instances:
+			var bus: StringName = instance.definition.target_bus if instance.definition != null else &""
+			instance.culled = environment.is_culled(bus)
 
 	# 6. Asignar permiso: quien es audible dentro del presupuesto.
 	if voice_pool:
