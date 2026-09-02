@@ -20,5 +20,11 @@ y 7B tiene que aplicarlo. Resultados en §11 del
 en `native/` (fuentes en git; SDK, godot-cpp y binarios ignorados; se compila con
 `native/CMakeLists.txt`). Si la extensión no está compilada, la suite omite el spike y lo dice.
 
-**Siguiente:** spec de 7A/7B a partir del análisis y del spike. La Fase 4B (prefijado
-`OpenDou`) queda pendiente detrás.
+**Fase 7B, spec aprobado en diseño (2026-09-02):**
+[`2026-09-02-fase7b-binaural-todas-las-voces-design.md`](../superpowers/specs/2026-09-02-fase7b-binaural-todas-las-voces-design.md).
+Todas las voces físicas 3D por un panner propio sobre Steam Audio: HRTF, ITD por cabeza
+esférica (Woodworth a C++), LPF de oclusión y shelf por distancia con los números de Godot,
+emisores de nodo como fuente de posición, ajustes del jugador y bloque de espacialización en
+el menú. Corrige la observación 42 (OpenDou anulaba el oscurecimiento por distancia de Godot).
+Doppler fuera por decisión. **Siguiente:** el plan de 7B. La Fase 4B (prefijado `OpenDou`)
+queda pendiente detrás.
