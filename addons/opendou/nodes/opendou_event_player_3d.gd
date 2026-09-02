@@ -57,6 +57,22 @@ func _get_property_list() -> Array[Dictionary]:
 @export_flags_3d_physics var occlusion_collision_mask: int = 1
 @export var occlusion_refresh_interval: float = 0.05
 
+@export_group("Emitter Physics")
+## Cambia el tono con la velocidad relativa. Ambos backends.
+@export var doppler_enabled: bool = false
+## El sonido llega tarde de lejos (343 m/s). En godot solo retrasa el arranque.
+@export var propagation_delay_enabled: bool = false
+## Radio en el que la fuente deja de ser un punto al acercarse (0 = apagado).
+@export_range(0.0, 200.0, 0.1) var spread_radius_m: float = 0.0
+## Refuerzo de graves e ILD extra al pegarse a la oreja (0 = apagado; solo steam_audio).
+@export_range(0.0, 2.0, 0.01) var near_field_distance_m: float = 0.0
+## Directividad tipo dipolo (0 = omnidireccional). El eje es -Z del nodo.
+@export_range(0.0, 1.0, 0.01) var directivity_dipole_weight: float = 0.0
+@export_range(0.1, 8.0, 0.1) var directivity_power: float = 1.0
+## Con attenuation_model = Curve: curva en dB sobre 0..attenuation_curve_distance_m.
+@export var attenuation_curve: Curve = null
+@export var attenuation_curve_distance_m: float = 50.0
+
 @export_group("Voice Management")
 @export_range(0.0, 100.0, 1.0) var base_priority: float = 50.0
 @export var virtualization_mode: int = 0
@@ -137,6 +153,7 @@ func play_event(p_event_name: StringName = &"") -> void:
 		# pool le asigne ademas una voz anonima, que era la doble reproduccion.
 		active_instance.bind_player(self)
 		active_instance.copy_attenuation_from_player(self)
+		active_instance.copy_emitter_settings_from_player(self)
 		active_instance.virtualization_mode = virtualization_mode
 		active_instance.max_distance = cull_distance
 		var cur_pos: Vector3 = global_position if is_inside_tree() else position

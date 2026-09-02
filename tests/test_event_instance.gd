@@ -79,4 +79,25 @@ static func run_all() -> Array[String]:
 		failures.append("7B-d: max_distance del robo de voces NO debe cambiar al copiar la atenuacion")
 	p3.free()
 
+
+	# Fase 9: exports del emisor completo, apagados por defecto, copiados desde el nodo.
+	var def9 = AudioEventDef.new(&"Full")
+	var inst9 = EventInstance.new(def9, null)
+	if inst9.doppler_enabled or inst9.propagation_delay_enabled or inst9.spread_radius_m != 0.0 or inst9.near_field_distance_m != 0.0 or inst9.directivity_dipole_weight != 0.0 or not is_equal_approx(inst9.directivity_power, 1.0):
+		failures.append("9-a: los exports del emisor completo no arrancan apagados")
+	var node9 = load("res://addons/opendou/nodes/opendou_event_player_3d.gd").new()
+	node9.doppler_enabled = true
+	node9.spread_radius_m = 12.0
+	node9.near_field_distance_m = 0.5
+	node9.directivity_dipole_weight = 0.7
+	node9.directivity_power = 2.0
+	node9.propagation_delay_enabled = true
+	inst9.copy_emitter_settings_from_player(node9)
+	if not (inst9.doppler_enabled and inst9.propagation_delay_enabled and is_equal_approx(inst9.spread_radius_m, 12.0) and is_equal_approx(inst9.near_field_distance_m, 0.5) and is_equal_approx(inst9.directivity_dipole_weight, 0.7) and is_equal_approx(inst9.directivity_power, 2.0)):
+		failures.append("9-b: copy_emitter_settings_from_player no copia los exports")
+	inst9.set_orientation(Vector3(1, 0, 0))
+	if not inst9.emitter_forward.is_equal_approx(Vector3(1, 0, 0)):
+		failures.append("9-c: set_orientation no fija emitter_forward")
+	node9.free()
+
 	return failures

@@ -57,6 +57,18 @@ var attenuation_filter_db: float = -24.0
 ## volume_db del emisor de nodo; 0 en las voces anonimas.
 var emitter_volume_db: float = 0.0
 
+# El emisor completo (Fase 9). Copiados de la definicion o del nodo emisor.
+var doppler_enabled: bool = false
+var propagation_delay_enabled: bool = false
+var spread_radius_m: float = 0.0
+var near_field_distance_m: float = 0.0
+var directivity_dipole_weight: float = 0.0
+var directivity_power: float = 1.0
+var attenuation_curve: Curve = null
+var attenuation_curve_distance_m: float = 50.0
+## Hacia donde mira el emisor (eje de la directividad). Los nodos lo actualizan cada frame.
+var emitter_forward: Vector3 = Vector3(0, 0, -1)
+
 # 3D / Spatial Positioning
 var emitter_position: Vector3 = Vector3.ZERO
 var has_spatial_position: bool = false
@@ -135,6 +147,14 @@ func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 		attenuation_model = definition.attenuation_model
 		attenuation_filter_cutoff_hz = definition.attenuation_filter_cutoff_hz
 		attenuation_filter_db = definition.attenuation_filter_db
+		doppler_enabled = definition.doppler_enabled
+		propagation_delay_enabled = definition.propagation_delay_enabled
+		spread_radius_m = definition.spread_radius_m
+		near_field_distance_m = definition.near_field_distance_m
+		directivity_dipole_weight = definition.directivity_dipole_weight
+		directivity_power = definition.directivity_power
+		attenuation_curve = definition.attenuation_curve
+		attenuation_curve_distance_m = definition.attenuation_curve_distance_m
 		
 		# Instantiate modulator runtime states
 		modulator_states = []
@@ -229,6 +249,20 @@ func copy_attenuation_from_player(player: AudioStreamPlayer3D) -> void:
 	attenuation_filter_cutoff_hz = player.attenuation_filter_cutoff_hz
 	attenuation_filter_db = player.attenuation_filter_db
 	emitter_volume_db = player.volume_db
+
+## Copia los exports del emisor completo de un nodo (OpenDouEventPlayer3D u otro que los
+## declare). Los que el nodo no tenga se dejan como estan.
+func copy_emitter_settings_from_player(player: Node3D) -> void:
+	if player == null:
+		return
+	for field in ["doppler_enabled", "propagation_delay_enabled", "spread_radius_m", "near_field_distance_m", "directivity_dipole_weight", "directivity_power", "attenuation_curve", "attenuation_curve_distance_m"]:
+		if field in player:
+			set(field, player.get(field))
+
+## Eje de la directividad para voces anonimas; los nodos lo fijan cada frame desde su base.
+func set_orientation(forward: Vector3) -> void:
+	if forward.length_squared() > 0.000001:
+		emitter_forward = forward.normalized()
 
 ## Sets the target spatial low-pass filter cutoff in Hz.
 func set_target_lpf(lpf_hz: float, atten_db: float = 0.0) -> void:

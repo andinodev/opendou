@@ -71,7 +71,7 @@ enum LimitPolicy {
 @export var unit_size: float = 10.0
 ## 0 = sin limite. Distinto de max_distance (robo de voces): unificarlos rompia la paridad.
 @export var attenuation_max_distance: float = 0.0
-@export_enum("Inverse", "Inverse Square", "Logarithmic", "Disabled") var attenuation_model: int = 0
+@export_enum("Inverse", "Inverse Square", "Logarithmic", "Disabled", "Curve") var attenuation_model: int = 0
 @export var attenuation_filter_cutoff_hz: float = 5000.0
 @export var attenuation_filter_db: float = -24.0
 
@@ -88,6 +88,24 @@ enum LimitPolicy {
 @export var instance_radius_m: float = 5.0
 @export var limit_policy: LimitPolicy = LimitPolicy.STEAL_OLDEST
 @export var limit_fade_out_sec: float = 0.05
+@export_group("")
+
+## El emisor completo (Fase 9). Todo apagado por defecto: ninguna escena cambia de sonido
+## hasta que un emisor o una definicion lo encienda. Los emisores de nodo copian estos
+## valores de sus propios exports.
+@export_group("Emitter Physics")
+@export var doppler_enabled: bool = false
+@export var propagation_delay_enabled: bool = false
+@export_range(0.0, 200.0, 0.1) var spread_radius_m: float = 0.0
+@export_range(0.0, 2.0, 0.01) var near_field_distance_m: float = 0.0
+@export_range(0.0, 1.0, 0.01) var directivity_dipole_weight: float = 0.0
+@export_range(0.1, 8.0, 0.1) var directivity_power: float = 1.0
+## Con attenuation_model = Curve: la curva se autora en dB (0 a -60) y su eje X va de 0 a
+## attenuation_curve_distance_m.
+@export var attenuation_curve: Curve = null
+@export var attenuation_curve_distance_m: float = 50.0
+## Marcadores con nombre que la instancia emite al cruzarlos.
+@export var markers: Array[AudioMarker] = []
 @export_group("")
 
 @export var stealing_behavior: VoiceStealingBehavior = VoiceStealingBehavior.LOWEST_PRIORITY

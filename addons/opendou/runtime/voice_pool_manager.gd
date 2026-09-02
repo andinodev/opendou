@@ -137,6 +137,7 @@ func devirtualize(instance: EventInstance) -> void:
 	if spatial_backend == &"steam_audio" and player is AudioStreamPlayer3D and not player.stream is Object or (spatial_backend == &"steam_audio" and player is AudioStreamPlayer3D and (player.stream == null or player.stream.get_class() != "OpenDouSpatialStream")):
 		position_node = player
 		instance.copy_attenuation_from_player(player)
+		instance.copy_emitter_settings_from_player(player)
 		player = null
 	var owned_by_node: bool = player != null
 
