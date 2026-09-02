@@ -25,6 +25,13 @@ enum VirtualizationMode {
 	VIRTUAL_KILL_VOICE       ## Immediately destroys the instance if virtualized
 }
 
+enum LimitPolicy {
+	REJECT_NEW,     ## La instancia nueva no nace: post_event devuelve null
+	STEAL_OLDEST,   ## Se detiene con fundido la mas antigua del alcance lleno
+	STEAL_QUIETEST, ## La mas silenciosa
+	STEAL_FARTHEST, ## La mas lejana del oyente
+}
+
 @export var event_name: StringName = &""
 
 ## Target mixing bus in Godot AudioServer (e.g. Master, SFX, Music, Dialogue, Ambience).
@@ -67,7 +74,21 @@ enum VirtualizationMode {
 @export_enum("Inverse", "Inverse Square", "Logarithmic", "Disabled") var attenuation_model: int = 0
 @export var attenuation_filter_cutoff_hz: float = 5000.0
 @export var attenuation_filter_db: float = -24.0
-@export var max_instances: int = 5
+
+## Limites de instancias (Fase 8). Deciden cuantas instancias EXISTEN, antes de crearlas;
+## el pool de voces decide despues cuales SUENAN. 0 = sin limite.
+##
+## max_instances llevaba declarado desde el principio del proyecto con valor 5 y ningun
+## codigo lo leia. Ahora se aplica; el defecto pasa a 0 para que nada cambie hasta que una
+## definicion lo suba a proposito.
+@export_group("Instance Limits")
+@export var max_instances: int = 0
+@export var max_instances_per_emitter: int = 0
+@export var max_instances_in_radius: int = 0
+@export var instance_radius_m: float = 5.0
+@export var limit_policy: LimitPolicy = LimitPolicy.STEAL_OLDEST
+@export var limit_fade_out_sec: float = 0.05
+@export_group("")
 
 @export var stealing_behavior: VoiceStealingBehavior = VoiceStealingBehavior.LOWEST_PRIORITY
 @export var virtualization_mode: VirtualizationMode = VirtualizationMode.VIRTUAL_ELAPSED_TIME

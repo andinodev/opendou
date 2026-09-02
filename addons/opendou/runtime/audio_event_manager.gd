@@ -18,6 +18,7 @@ const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/oc
 const RoomPathDispatcherClass = preload("res://addons/opendou/runtime/spatial/room_path_dispatcher.gd")
 const SpatialBackendClass = preload("res://addons/opendou/runtime/spatial/spatial_backend.gd")
 const SpatialSettingsClass = preload("res://addons/opendou/runtime/spatial/spatial_settings.gd")
+const InstanceLimiterClass = preload("res://addons/opendou/runtime/instance_limiter.gd")
 const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
 const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
@@ -54,6 +55,9 @@ var spatial_backend: StringName = &"godot"
 ## Ajustes de espacializacion del jugador (HRTF, mezcla, salida). Persisten en user:// y se
 ## aplican en vivo a los streams nativos del pool al cambiar.
 var spatial_settings: OpenDouSpatialSettings = null
+
+## Limites de instancias por evento, emisor y radio (Fase 8). Se consulta en post_event.
+var instance_limiter: OpenDouInstanceLimiter = null
 
 ## Pool de reproductores nativos para las voces anonimas.
 ##
@@ -107,6 +111,7 @@ func _init() -> void:
 	room_path_dispatcher.acoustics = spatial_acoustics
 	reflection_dispatcher = ReflectionDispatcherClass.new()
 	hdr_engine = AudioHDREngineClass.new()
+	instance_limiter = InstanceLimiterClass.new()
 	spatial_settings = SpatialSettingsClass.new()
 	spatial_settings.changed.connect(_apply_spatial_settings)
 
@@ -306,7 +311,19 @@ func post_event(event: Variant, caller: Node = null) -> EventInstance:
 			
 	if not def:
 		return null
-		
+
+	# Limites de instancias: se decide ANTES de crear nada. Una rechazada no existe; una
+	# robada se va con el fundido de la definicion.
+	var has_position: bool = caller is Node3D
+	var position: Vector3 = Vector3.ZERO
+	if caller is Node3D:
+		position = caller.global_position if caller.is_inside_tree() else caller.position
+	var verdict: Dictionary = instance_limiter.check(def, caller, position, has_position, active_instances, active_listener_position)
+	if not bool(verdict["allow"]):
+		return null
+	if verdict["steal"] != null:
+		verdict["steal"].stop(def.limit_fade_out_sec)
+
 	var instance: EventInstance = EventInstanceClass.new(def, caller)
 	# El contexto se refresca ANTES de play(): la primera resolucion tiene que ver el
 	# estado vivo, no un contexto vacio.
@@ -366,6 +383,8 @@ func _apply_voices() -> void:
 		# sonoridad de DISENO del evento, no el nivel de mezcla.
 		if hdr_enabled and hdr_engine != null and instance.definition != null:
 			volume_db += hdr_engine.calculate_voice_gain_db(instance.definition.hdr_loudness_db)
+		# Fundido de stop(fade): multiplica la ganancia hasta que la instancia termine sola.
+		volume_db += linear_to_db(maxf(instance.stop_fade_gain(), 0.0001))
 		var cutoff: float = float(instance.calculated_properties.get(&"cutoff_hz", 20000.0))
 		# La posicion aparente es igual a la del emisor salvo cuando el grafo de salas
 		# gobierna la voz, asi que aqui no hace falta ninguna rama.
@@ -432,8 +451,13 @@ func _process(delta: float) -> void:
 		instance.update_parameters(delta, global_rtpcs)
 		instance.refresh_playback_context(global_rtpcs, sync_manager)
 		if instance.is_finished():
+			# virtualize() suelta el canal pero deja la instancia en STATE_VIRTUAL, y una
+			# instancia terminada y fuera de la lista respondia is_playing() == true. Se
+			# conserva el estado final (STOPPED o KILLED) tras soltar el canal.
+			var final_state = instance.voice_state
 			if voice_pool and instance.assigned_channel_id >= 0:
 				voice_pool.virtualize(instance)
+			instance.voice_state = final_state
 			active_instances.remove_at(i)
 
 	# 5b. Ventana HDR: se alimenta con la sonoridad de las voces activas y avanza

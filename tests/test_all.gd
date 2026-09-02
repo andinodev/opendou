@@ -59,6 +59,7 @@ const TestSpatialBackendClass = preload("res://tests/test_spatial_backend.gd")
 const TestSpatialSettingsClass = preload("res://tests/test_spatial_settings.gd")
 const TestDistanceModelClass = preload("res://tests/test_distance_model.gd")
 const TestBackendParityClass = preload("res://tests/test_backend_parity.gd")
+const TestInstanceLimiterClass = preload("res://tests/test_instance_limiter.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -388,6 +389,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestBinauralClass.run_budget_async(tree))
 	acc.absorb(await TestBackendParityClass.run_godot_async(tree))
 	acc.absorb(await TestBackendParityClass.run_parity_async(tree))
+	acc.absorb(await TestInstanceLimiterClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

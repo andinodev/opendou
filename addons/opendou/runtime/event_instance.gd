@@ -87,6 +87,11 @@ var is_paused_state: bool = false
 var is_key_on: bool = true
 var elapsed_time: float = 0.0
 
+## Fundido de salida pedido por stop(fade). > 0 mientras dura; la voz sigue sonando con la
+## ganancia de stop_fade_gain() y termina sola. Antes stop() ignoraba su parametro.
+var stop_fade_total: float = 0.0
+var stop_fade_remaining: float = -1.0
+
 ## Reproductor nativo que esta instancia usa como voz fisica, si su emisor es un
 ## nodo OpenDouEventPlayer*. Null en las voces anonimas, que reciben uno del pool.
 var bound_player_ref: WeakRef = null
@@ -279,6 +284,11 @@ func interpolate_locals(delta: float) -> void:
 
 ## Evaluates all RTPC bindings, modulators, spatial occlusion and computes final output properties.
 func update_parameters(delta: float, global_rtpcs: Dictionary = {}) -> void:
+	if stop_fade_remaining > 0.0:
+		stop_fade_remaining -= delta
+		if stop_fade_remaining <= 0.0:
+			stop_fade_remaining = 0.0
+			voice_state = VoiceState.STATE_STOPPED
 	if not definition:
 		return
 		
@@ -368,8 +378,10 @@ func update_parameters(delta: float, global_rtpcs: Dictionary = {}) -> void:
 				var cur_p: float = calculated_properties.get(mod.target_property, 0.0)
 				calculated_properties[mod.target_property] = mod.apply_to(cur_p, mod_out)
 				
-	# If stop was requested and all AHDSR modulators reached IDLE, conclude playback
-	if not is_key_on and (modulator_states.is_empty() or all_modulators_idle):
+	# If stop was requested and all AHDSR modulators reached IDLE, conclude playback.
+	# Durante un fundido de stop(fade) la voz sigue viva: la concluye el fundido al llegar
+	# a cero, no esta linea.
+	if not is_key_on and not is_stopping() and (modulator_states.is_empty() or all_modulators_idle):
 		voice_state = VoiceState.STATE_STOPPED
 		
 	calculated_volume_db = vol
@@ -407,8 +419,14 @@ func play() -> void:
 	elapsed_time = 0.0
 
 ## Stops playback of the event instance (triggers AHDSR Release phase).
-func stop(_fade_time: float = 0.0) -> void:
+func stop(fade_time: float = 0.0) -> void:
 	is_key_on = false
+	# Con fade_time > 0 la voz baja hasta cero durante ese tiempo y termina sola (ver
+	# update_parameters); con 0, para en el acto y el canal hace su micro-fade anticlic.
+	if fade_time > 0.0 and is_playing():
+		stop_fade_total = fade_time
+		stop_fade_remaining = fade_time
+		return
 	if modulator_states.is_empty():
 		voice_state = VoiceState.STATE_STOPPED
 		# El canal NO se suelta aqui, por lo mismo que en notify_stream_finished(): la
@@ -425,6 +443,16 @@ func pause() -> void:
 func resume() -> void:
 	if is_paused_state:
 		is_paused_state = false
+
+## true mientras dura el fundido de stop().
+func is_stopping() -> bool:
+	return stop_fade_remaining > 0.0
+
+## Ganancia lineal del fundido de stop(): 1.0 sin fundido, baja a 0.
+func stop_fade_gain() -> float:
+	if stop_fade_total <= 0.0 or stop_fade_remaining < 0.0:
+		return 1.0
+	return clampf(stop_fade_remaining / stop_fade_total, 0.0, 1.0)
 
 func is_playing() -> bool:
 	return (voice_state == VoiceState.STATE_PHYSICAL or voice_state == VoiceState.STATE_VIRTUAL) and not is_paused_state
