@@ -1,7 +1,7 @@
 # Fase 10 — El oyente y el entorno
 
 **Fecha:** 2026-09-02
-**Estado:** Aprobado en diseño (ciclo spec → plan → ejecución aprobado por adelantado), pendiente de plan.
+**Estado:** Implementado (2026-09-02); correcciones en §10.
 **Rama:** `main`
 **Godot verificado:** 4.7.2.stable.official.ed1daf0bf
 **Hoja de ruta:** [`docs/roadmap/2026-09-02-sprint-aaa.md`](../../roadmap/2026-09-02-sprint-aaa.md), Fase 10
@@ -326,6 +326,27 @@ cuadros, y los tests con nodos van a `run_async_suite(tree)`.
 
 ---
 
-## 10. Correcciones que la ejecución obligue a hacer
+## 10. Correcciones que la ejecución obligó a hacer
 
-Se anotan aquí, numeradas, como en las fases anteriores.
+1. **`priority` → `volume_priority` (§4.2).** `Area3D` ya tiene un miembro `priority`.
+2. **Medir en el bus de sonda, no en Master (§8).** Master lleva el compresor de la cadena
+   `GAME`: un −12 dB en la voz medía −4.3 y un −6 medía +1.2. Viento y oclusión parcial se
+   miden en `ParityProbe`; en Master solo el medio, el mono y el modo noche, que viven ahí.
+   Medido limpio: 4 m de follaje −11.1 dB (esperado −12 ± 1.5), 2 m −5.6; viento en contra
+   −5.0 dB respecto a a favor y banda 2–8 kHz −12 dB.
+3. **El autoload `/root/OpenDou` existe en la suite (§5.3, §6.2).** El indicador y el oído de
+   la IA ganan `set_manager()`; sin él leen el autoload vacío.
+4. **`speed_of_sound` es miembro, no parámetro (§4.3).** `SpatialAcousticsManager.speed_of_sound`
+   en lugar de un parámetro de `calculate_doppler_pitch`; misma semántica, menos firmas.
+5. **ITD bajo el agua (§4.4).** 0.656 → 0.152 ms = 0.23, menos de un cuarto como se corrigió
+   en §1. Banda 4–8 kHz: −27.9 dB con el paso-bajo a 800 Hz.
+6. **Modo noche (§5).** Rango pico-valle de 22.3 dB (`GAME`) a 4.0 dB (`NIGHT`), lo bajo sube
+   5.3 dB. Mono: ILD 17.7 → 0.00 dB.
+7. **La IA oye (§6).** `unit_size` por defecto es 10: a 20 m son −6 dB. Con la puerta cerrada
+   −38.1 dB, abierta −12.0. La prueba compara con `attenuation_db` en vez de con −26 a mano.
+8. **Coste (§9).** Tres corridas a 200 voces sin volúmenes: godot 4.53 / 4.58 / 4.53 µs,
+   steam_audio 4.72 / 4.90 / 4.87 (la Fase 9 cerró en 4.31–4.45 / 4.74–4.83). Con 8 volúmenes
+   con viento y oclusión parcial (`OPENDOU_BENCH_VOLUMES=8`): 4.99–5.02 / 5.20–5.22, un 10 %
+   más: la oclusión parcial recorre los volúmenes por rayo y el viento por voz lejana. La
+   deuda de la Fase 9 (§17.10 de su spec) sigue abierta y crece.
+9. **Suite.** 1301 aserciones, 535 objetos vivos de 540: el techo de fugas queda a cinco.

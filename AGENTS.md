@@ -295,6 +295,36 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
   `marker_reached` se perdio por no escribir el archivo, y el error salio como
   `Identifier not declared`. Comprobar con `grep` antes de correr la suite.
 
+**Observaciones y trampas de la Fase 10 (el oyente y el entorno):**
+
+* **Observación 48.** El oyente no es un cuerpo: un `Area3D` no puede detectarlo con
+  `body_entered`. `OpenDouAcousticVolume3D` decide la pertenencia del oyente por geometria
+  (caja, esfera y cilindro analiticos; otras formas por su AABB) una vez por cuadro. Es
+  determinista y no depende del paso de fisica.
+* **Godot: `Area3D` ya tiene un miembro `priority`** (el de gravedad y amortiguacion). Un
+  `@export var priority` en un nodo que hereda de `Area3D` es `Parse Error: Member redefined`.
+  El del volumen se llama `volume_priority`.
+* **Medir en Master es medir tras el compresor de la cadena `GAME`** (umbral -12 dB, 3:1):
+  un -12 dB en la voz sale como -4 y un -6 como +1 respecto a otra medida. Las diferencias
+  de nivel se miden en el bus de sonda (`TestBackendParity.BUS`) con `def.target_bus`; en
+  Master solo lo que vive en Master (el paso-bajo del medio, el mono, el modo noche).
+* **En la suite existe el autoload `/root/OpenDou`**, vacio. Un nodo que busca «el manager»
+  por esa ruta encuentra ese y no el de la prueba: los nodos que consultan el manager
+  (`OpenDouSoundIndicator`, `OpenDouAIHearing3D`) tienen `set_manager()` y el test lo usa.
+* **Godot: `AudioEffectStereoEnhance` con `pan_pullout = 0` es mono de verdad**: ILD de
+  17.7 dB a 0.00 medido en Master.
+* **Un `AudioEffectCapture` solo ve los efectos anteriores a el en el bus.** Para medir un
+  efecto que se anade despues, hay que volver a enganchar la sonda.
+* **`unit_size` de la instancia es 10 por defecto** (el de Godot), no 1: a 20 m con modelo
+  inverso son -6 dB, no -26. Los tests calculan la esperanza con `attenuation_db` y no a mano.
+* **El pico espurio del medidor LUFS** (`pico muestral -23 dBFS`, medido -4.6 a -6.7 dBFS)
+  aparecio cuatro veces en la Fase 10 y una en la 9, siempre sin cambios en ese test. El tono
+  de 1 kHz cabe exacto en 1 s (sin clic de bucle) y nada mas envia a ese bus. Sigue abierto.
+* **La velocidad del sonido es una variable en cuatro sitios** (C++ `configure_listener`,
+  `VoicePoolManager.speed_of_sound` que llega a cada canal, `SpatialAcousticsManager.
+  speed_of_sound` para el doppler). Un medio nuevo tiene que tocar `_update_environment`, no
+  un 343 suelto.
+
 ---
 
 ## 6. Reglas Modulares de Referencia

@@ -1,4 +1,4 @@
-# ⚡ Tarea Activa: Fase 9 implementada — siguiente, Fase 10
+# ⚡ Tarea Activa: Fase 10 implementada — siguiente, Fase 11
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
 * **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
@@ -67,4 +67,18 @@ El coste del bucle de control por voz quedó **por encima del techo**: 4.31–4.
 4.74–4.83 µs (steam_audio) a 200 voces, frente a 4.09 / 4.25 al inicio de la fase; el camino es
 saltar cada cálculo cuando su export está apagado (spec §17.10).
 
-**Siguiente:** spec de la Fase 10 según la hoja de ruta.
+**Fase 10, spec y plan (2026-09-02):** [spec](../superpowers/specs/2026-09-02-fase10-oyente-y-entorno-design.md) ·
+[plan](../superpowers/plans/2026-09-02-fase10-oyente-y-entorno.md), ocho tareas.
+
+**Fase 10, implementada (2026-09-02):** ocho tareas, 1301 aserciones. `OpenDouListener3D`
+(radio de cabeza y velocidad del sonido como parámetros estáticos del C++, HRTF por jugador,
+orientación externa), `AcousticEnvironment` + `OpenDouAcousticVolume3D` (medio, viento, oclusión
+parcial, descarte, superficie; pertenencia por geometría), accesibilidad (mono, modo noche
+`NIGHT`, `OpenDouSoundIndicator`) y la IA que oye (`get_loudness_at`, `OpenDouAIHearing3D`).
+Observación 48 y trampas en `AGENTS.md`; correcciones del spec en su §10.
+
+**Pendiente que sale de la Fase 10:** el coste por voz sigue sobre el techo (4.5–4.9 µs sin
+volúmenes, 5.0–5.2 con ocho); el techo de fugas queda a cinco objetos (535 de 540); el pico
+espurio del medidor LUFS ya apareció cinco veces y sigue sin causa.
+
+**Siguiente:** spec de la Fase 11 según la hoja de ruta (emisores nuevos y modos).

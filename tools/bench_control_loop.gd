@@ -29,6 +29,26 @@ func _run() -> void:
 			manager.hdr_enabled = false
 			root.add_child(manager)
 			manager.set_max_physical_voices(64)
+			# OPENDOU_BENCH_VOLUMES=n registra n volumenes de entorno (Fase 10) con viento y
+			# oclusion parcial activos: mide lo que cuesta el entorno en el bucle de control.
+			var volumes: Array = []
+			var n_vol: int = int(OS.get_environment("OPENDOU_BENCH_VOLUMES")) if OS.get_environment("OPENDOU_BENCH_VOLUMES") != "" else 0
+			for v_i in range(n_vol):
+				var env = load("res://addons/opendou/resources/acoustic_environment.gd").new()
+				env.wind_enabled = true
+				env.wind_velocity = Vector3(10, 0, 0)
+				env.occluder_enabled = true
+				var vol = load("res://addons/opendou/nodes/opendou_acoustic_volume_3d.gd").new()
+				var cs := CollisionShape3D.new()
+				var box := BoxShape3D.new()
+				box.size = Vector3(10, 10, 10)
+				cs.shape = box
+				vol.add_child(cs)
+				vol.environment = env
+				root.add_child(vol)
+				vol.global_position = Vector3(-40 + 12 * v_i, 0, 0) if v_i > 0 else Vector3.ZERO
+				manager.register_acoustic_volume(vol)
+				volumes.append(vol)
 			var tone: AudioStreamWAV = load("res://addons/opendou/runtime/audio_synthesizer.gd").create_rain_ambient_loop(1.0)
 			var def = DefClass.new(&"Bench", tone)
 			def.is_looping = true
@@ -52,5 +72,8 @@ func _run() -> void:
 			manager.stop_all()
 			root.remove_child(manager)
 			manager.free()
+			for vol in volumes:
+				root.remove_child(vol)
+				vol.free()
 	ProjectSettings.set_setting(BackendClass.SETTING, "auto")
 	quit(0)
