@@ -64,15 +64,25 @@ struct Biquad {
 
 // Linea de retardo fraccionaria con interpolacion lineal. El retardo objetivo se fija por
 // bloque y el actual se acerca en rampa muestra a muestra: girar la cabeza no hace clic.
+// El bufer es potencia de dos y se indexa con mascara: la primera version hacia tres
+// modulos y un bucle por muestra y costaba tanto como el HRTF entero.
 struct FractionalDelay {
 	std::vector<float> buf;
+	size_t mask = 0;
 	size_t write = 0;
 	float current = 0.0f;
 	float target = 0.0f;
 	float step = 0.0f;
+	float max_delay = 0.0f;
 
 	void init(int max_samples) {
-		buf.assign(static_cast<size_t>(std::max(max_samples, 4)) + 4, 0.0f);
+		size_t n = 8;
+		while (n < static_cast<size_t>(std::max(max_samples, 1)) + 4) {
+			n <<= 1;
+		}
+		buf.assign(n, 0.0f);
+		mask = n - 1;
+		max_delay = static_cast<float>(n) - 3.0f;
 		reset();
 	}
 	void reset() {
@@ -82,7 +92,6 @@ struct FractionalDelay {
 	}
 	// Retardo en muestras a alcanzar al final de un bloque de block_samples.
 	void set_target(float samples, int block_samples) {
-		const float max_delay = static_cast<float>(buf.size()) - 3.0f;
 		target = std::clamp(samples, 0.0f, max_delay);
 		step = (target - current) / static_cast<float>(std::max(block_samples, 1));
 	}
@@ -92,17 +101,12 @@ struct FractionalDelay {
 		if ((step > 0.0f && current > target) || (step < 0.0f && current < target)) {
 			current = target;
 		}
-		const size_t n = buf.size();
-		float rp = static_cast<float>(write) - current;
-		while (rp < 0.0f) {
-			rp += static_cast<float>(n);
-		}
-		const size_t i0 = static_cast<size_t>(rp) % n; // muestra mas reciente del par
-		const size_t i1 = (i0 + n - 1) % n;             // la anterior en el tiempo
-		const float frac = rp - std::floor(rp);
-		// rp cae entre i1 (mas antigua) e i0 (mas reciente): frac = 0 lee i0.
+		const int di = static_cast<int>(current);
+		const float frac = current - static_cast<float>(di);
+		const size_t i0 = (write - static_cast<size_t>(di)) & mask; // a `di` muestras: la mas reciente del par
+		const size_t i1 = (i0 - 1) & mask;                           // una mas antigua
 		const float y = buf[i0] * (1.0f - frac) + buf[i1] * frac;
-		write = (write + 1) % n;
+		write = (write + 1) & mask;
 		return y;
 	}
 };

@@ -21,6 +21,14 @@ static func run_all() -> OpenDouAssert:
 	# El ajuste de proyecto existe con su defecto.
 	a.eq(BackendClass.read_setting(), "auto", "el ajuste de proyecto vale auto por defecto")
 
+	# Tamano de bloque del DSP nativo: 256, 512 o 1024; otro valor vuelve a 512 y avisa.
+	a.eq(BackendClass.read_frame_size(), 512, "frame_size vale 512 por defecto")
+	ProjectSettings.set_setting(BackendClass.FRAME_SIZE_SETTING, 333)
+	a.eq(BackendClass.read_frame_size(), 512, "un frame_size invalido vuelve a 512")
+	ProjectSettings.set_setting(BackendClass.FRAME_SIZE_SETTING, 256)
+	a.eq(BackendClass.read_frame_size(), 256, "256 es valido")
+	ProjectSettings.set_setting(BackendClass.FRAME_SIZE_SETTING, 512)
+
 	# El manager lo expone y coincide con la regla.
 	var ManagerClass = load("res://addons/opendou/runtime/audio_event_manager.gd")
 	var manager = ManagerClass.new()

@@ -11,6 +11,8 @@ extends RefCounted
 const SETTING: String = "opendou/spatial/backend"
 const GODOT: StringName = &"godot"
 const STEAM_AUDIO: StringName = &"steam_audio"
+const FRAME_SIZE_SETTING: String = "opendou/spatial/frame_size"
+const FRAME_SIZES: Array[int] = [256, 512, 1024]
 
 ## Registra el ajuste de proyecto con su defecto si no existe. Idempotente.
 static func ensure_setting() -> void:
@@ -28,12 +30,33 @@ static func read_setting() -> String:
 	ensure_setting()
 	return str(ProjectSettings.get_setting(SETTING, "auto"))
 
+static func ensure_frame_size_setting() -> void:
+	if not ProjectSettings.has_setting(FRAME_SIZE_SETTING):
+		ProjectSettings.set_setting(FRAME_SIZE_SETTING, 512)
+	ProjectSettings.set_initial_value(FRAME_SIZE_SETTING, 512)
+	ProjectSettings.add_property_info({
+		"name": FRAME_SIZE_SETTING, "type": TYPE_INT, "hint": PROPERTY_HINT_ENUM,
+		"hint_string": "256:256,512:512,1024:1024",
+	})
+
+## Tamano de bloque del DSP nativo. Se lee UNA vez al crear el contexto: cambiarlo exige
+## reiniciar. 512 = 11.6 ms a 44.1 kHz (medido en el spike); 256 baja la latencia y sube la CPU.
+static func read_frame_size() -> int:
+	ensure_frame_size_setting()
+	var v: int = int(ProjectSettings.get_setting(FRAME_SIZE_SETTING, 512))
+	if not FRAME_SIZES.has(v):
+		push_warning("[OpenDou] opendou/spatial/frame_size = %d no es 256, 512 ni 1024: se usa 512" % v)
+		return 512
+	return v
+
 ## true si la extension esta cargada Y Steam Audio se inicializo.
 static func native_available() -> bool:
 	if not ClassDB.class_exists("OpenDouSpatialStream"):
 		return false
 	if not ClassDB.class_has_method("OpenDouSpatialStream", "is_native_available"):
 		return false
+	if ClassDB.class_has_method("OpenDouSpatialStream", "configure"):
+		ClassDB.class_call_static("OpenDouSpatialStream", "configure", read_frame_size())
 	return bool(ClassDB.class_call_static("OpenDouSpatialStream", "is_native_available"))
 
 ## La regla, separada de sus entradas para poder afirmarla sin extension.

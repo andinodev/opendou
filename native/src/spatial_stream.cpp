@@ -3,6 +3,9 @@
 #include <phonon_version.h>
 
 #include <godot_cpp/classes/audio_server.hpp>
+#include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
@@ -63,6 +66,13 @@ void OpenDouSpatialStream::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("is_native_available"), &OpenDouSpatialStream::is_native_available);
 	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("get_frame_size"), &OpenDouSpatialStream::get_frame_size);
 	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("get_steam_audio_version"), &OpenDouSpatialStream::get_steam_audio_version);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("configure", "frame_size"), &OpenDouSpatialStream::configure);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("set_hrtf_default"), &OpenDouSpatialStream::set_hrtf_default);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("set_hrtf_sofa", "path"), &OpenDouSpatialStream::set_hrtf_sofa);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("get_hrtf_name"), &OpenDouSpatialStream::get_hrtf_name);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("get_hrtf_generation"), &OpenDouSpatialStream::get_hrtf_generation);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("benchmark_block", "voices"), &OpenDouSpatialStream::benchmark_block);
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("benchmark_block_mode", "voices", "mode"), &OpenDouSpatialStream::benchmark_block_mode);
 }
 
 void OpenDouSpatialStream::set_source(const Ref<AudioStream> &p_source) { source_ = p_source; }
@@ -102,11 +112,94 @@ Vector2 OpenDouSpatialStream::get_last_peak_delays() const { return Vector2(peak
 
 bool OpenDouSpatialStream::is_native_available() {
 	const int rate = static_cast<int>(AudioServer::get_singleton()->get_mix_rate());
-	return SteamAudioContext::ensure(rate, 512);
+	return SteamAudioContext::ensure(rate);
 }
 int OpenDouSpatialStream::get_frame_size() { return SteamAudioContext::audio_settings().frameSize; }
 String OpenDouSpatialStream::get_steam_audio_version() {
 	return vformat("%d.%d.%d", STEAMAUDIO_VERSION_MAJOR, STEAMAUDIO_VERSION_MINOR, STEAMAUDIO_VERSION_PATCH);
+}
+
+bool OpenDouSpatialStream::configure(int frame_size) { return SteamAudioContext::configure_frame_size(frame_size); }
+bool OpenDouSpatialStream::set_hrtf_default() { return SteamAudioContext::set_hrtf_default(); }
+bool OpenDouSpatialStream::set_hrtf_sofa(const String &path) {
+	const String global = ProjectSettings::get_singleton()->globalize_path(path);
+	if (!FileAccess::file_exists(global)) {
+		UtilityFunctions::push_error("[OpenDou/SteamAudio] SOFA no encontrado: ", global);
+		return false;
+	}
+	return SteamAudioContext::set_hrtf_sofa(std::string(global.utf8().get_data()));
+}
+String OpenDouSpatialStream::get_hrtf_name() { return String(SteamAudioContext::hrtf_name().c_str()); }
+int OpenDouSpatialStream::get_hrtf_generation() { return SteamAudioContext::generation(); }
+
+float OpenDouSpatialStream::benchmark_block(int voices) { return benchmark_block_mode(voices, 0); }
+
+float OpenDouSpatialStream::benchmark_block_mode(int voices, int mode) {
+	const int rate = static_cast<int>(AudioServer::get_singleton()->get_mix_rate());
+	if (voices <= 0 || !SteamAudioContext::ensure(rate)) {
+		return 0.0f;
+	}
+	IPLAudioSettings audio = SteamAudioContext::audio_settings();
+	IPLContext ctx = SteamAudioContext::context();
+	SteamAudioContext::HrtfSlot *slot = SteamAudioContext::acquire_hrtf();
+	IPLBinauralEffectSettings settings = {};
+	settings.hrtf = slot->hrtf;
+	IPLBinauralEffect effect = nullptr;
+	IPLAudioBuffer in = {}, out = {};
+	if (iplBinauralEffectCreate(ctx, &audio, &settings, &effect) != IPL_STATUS_SUCCESS) {
+		SteamAudioContext::release_hrtf(slot);
+		return 0.0f;
+	}
+	iplAudioBufferAllocate(ctx, 1, audio.frameSize, &in);
+	iplAudioBufferAllocate(ctx, 2, audio.frameSize, &out);
+	const float fs = static_cast<float>(audio.samplingRate);
+	dsp::Biquad lpf, shelf;
+	lpf.set_lowpass(fs, 8000.0f, 0.7071f);
+	shelf.set_highshelf(fs, 5000.0f, -12.0f);
+	dsp::FractionalDelay dl, dr;
+	dl.init(static_cast<int>(0.002f * fs) + 2);
+	dr.init(static_cast<int>(0.002f * fs) + 2);
+	std::vector<float> inter(static_cast<size_t>(audio.frameSize) * 2);
+	float peaks[2] = { 0.0f, 0.0f };
+	const uint64_t t0 = Time::get_singleton()->get_ticks_usec();
+	const bool do_filters = (mode == 0 || mode == 3);
+	const bool do_hrtf = (mode == 0 || mode == 1 || mode == 2);
+	for (int v = 0; v < voices; v++) {
+		for (int i = 0; i < audio.frameSize; i++) {
+			float x = std::sin(0.01f * i * (v + 1));
+			if (do_filters) {
+				x = shelf.process(lpf.process(x));
+			}
+			in.data[0][i] = x;
+		}
+		if (do_hrtf) {
+			IPLBinauralEffectParams params = {};
+			params.direction = IPLVector3{ 0.7f, 0.0f, -0.7f };
+			params.interpolation = (mode == 2) ? IPL_HRTFINTERPOLATION_NEAREST : IPL_HRTFINTERPOLATION_BILINEAR;
+			params.spatialBlend = 1.0f;
+			params.hrtf = slot->hrtf;
+			params.peakDelays = peaks;
+			iplBinauralEffectApply(effect, &params, &in, &out);
+			iplAudioBufferInterleave(ctx, &out, inter.data());
+		} else {
+			for (int i = 0; i < audio.frameSize; i++) {
+				inter[2 * i] = inter[2 * i + 1] = in.data[0][i];
+			}
+		}
+		if (do_filters) {
+			dl.set_target(20.0f, audio.frameSize);
+			for (int i = 0; i < audio.frameSize; i++) {
+				inter[2 * i] = dl.process(inter[2 * i]);
+				inter[2 * i + 1] = dr.process(inter[2 * i + 1]);
+			}
+		}
+	}
+	const uint64_t t1 = Time::get_singleton()->get_ticks_usec();
+	iplAudioBufferFree(ctx, &in);
+	iplAudioBufferFree(ctx, &out);
+	iplBinauralEffectRelease(&effect);
+	SteamAudioContext::release_hrtf(slot);
+	return static_cast<float>(t1 - t0) / static_cast<float>(voices);
 }
 
 Ref<AudioStreamPlayback> OpenDouSpatialStream::_instantiate_playback() const {
@@ -133,15 +226,18 @@ void OpenDouSpatialStreamPlayback::setup(const Ref<OpenDouSpatialStream> &p_stre
 
 bool OpenDouSpatialStreamPlayback::create_effect() {
 	const int rate = static_cast<int>(AudioServer::get_singleton()->get_mix_rate());
-	if (!SteamAudioContext::ensure(rate, 512)) {
+	if (!SteamAudioContext::ensure(rate)) {
 		return false;
 	}
 	IPLContext ctx = SteamAudioContext::context();
 	IPLAudioSettings audio = SteamAudioContext::audio_settings();
 
 	IPLBinauralEffectSettings settings = {};
-	settings.hrtf = SteamAudioContext::hrtf();
-	if (iplBinauralEffectCreate(ctx, &audio, &settings, &effect_) != IPL_STATUS_SUCCESS) {
+	SteamAudioContext::HrtfSlot *slot = SteamAudioContext::acquire_hrtf();
+	settings.hrtf = slot != nullptr ? slot->hrtf : nullptr;
+	const IPLerror created = iplBinauralEffectCreate(ctx, &audio, &settings, &effect_);
+	SteamAudioContext::release_hrtf(slot);
+	if (created != IPL_STATUS_SUCCESS) {
 		effect_ = nullptr;
 		return false;
 	}
@@ -287,9 +383,13 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 		params.direction = IPLVector3{ dx, dy, dz };
 		params.interpolation = IPL_HRTFINTERPOLATION_BILINEAR;
 		params.spatialBlend = stream_->spatial_blend_.load();
-		params.hrtf = SteamAudioContext::hrtf();
+		// El HRTF puede cambiar en vivo desde el hilo principal: se toma por generacion y se
+		// suelta al terminar el bloque, y el viejo se libera cuando nadie lo lee.
+		SteamAudioContext::HrtfSlot *slot = SteamAudioContext::acquire_hrtf();
+		params.hrtf = slot != nullptr ? slot->hrtf : nullptr;
 		params.peakDelays = peak_delays_;
 		iplBinauralEffectApply(effect_, &params, &in_buffer_, &out_buffer_);
+		SteamAudioContext::release_hrtf(slot);
 		stream_->peak_left_.store(peak_delays_[0]);
 		stream_->peak_right_.store(peak_delays_[1]);
 		iplAudioBufferInterleave(SteamAudioContext::context(), &out_buffer_, interleaved_.data());

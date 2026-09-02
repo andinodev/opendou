@@ -80,6 +80,19 @@ public:
 	static bool is_native_available();
 	static int get_frame_size();
 	static godot::String get_steam_audio_version();
+	// Tamano de bloque; solo antes de crear el contexto (ver SteamAudioContext).
+	static bool configure(int frame_size);
+	// HRTF global, conmutable en vivo.
+	static bool set_hrtf_default();
+	static bool set_hrtf_sofa(const godot::String &path);
+	static godot::String get_hrtf_name();
+	static int get_hrtf_generation();
+	// Renderiza `voices` bloques de forma sincrona con la cadena completa y devuelve
+	// microsegundos por voz: la guarda de coste del DSP (tests/dsp_budget.txt).
+	static float benchmark_block(int voices);
+	// Desglose: 0 = cadena completa, 1 = solo HRTF bilineal, 2 = solo HRTF vecino mas
+	// cercano, 3 = solo filtros + ITD, 4 = solo generar la fuente (el suelo de la medida).
+	static float benchmark_block_mode(int voices, int mode);
 
 	godot::Ref<godot::AudioStreamPlayback> _instantiate_playback() const override;
 	godot::String _get_stream_name() const override;

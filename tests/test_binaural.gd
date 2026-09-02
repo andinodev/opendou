@@ -222,6 +222,61 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.ok(absf(_itd_lag(blend0_right.left, blend0_right.right)) <= 2, "spatial_blend = 0 tampoco produce ITD")
 	stream.spatial_blend = 1.0
 
+	# ---- HRTF conmutable en vivo: 16 voces sonando, se cambia y se vuelve. Sin cortes.
+	var extra: Array[AudioStreamPlayer] = []
+	for i in range(15):
+		var s2 = ClassDB.instantiate("OpenDouSpatialStream")
+		s2.source = noise
+		s2.direction = Vector3(cos(i * 0.4), 0, sin(i * 0.4))
+		var p2 := AudioStreamPlayer.new()
+		p2.stream = s2
+		p2.bus = String(BUS)
+		p2.volume_db = -18.0
+		tree.root.add_child(p2)
+		p2.play()
+		extra.append(p2)
+	var gen_before: int = int(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_generation"))
+	a.eq(str(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_name")), "default", "el HRTF activo es el incorporado")
+	# Un SOFA inexistente NO cambia nada y devuelve false.
+	a.eq(bool(ClassDB.class_call_static("OpenDouSpatialStream", "set_hrtf_sofa", "user://no_existe.sofa")), false, "un SOFA inexistente se rechaza")
+	a.eq(int(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_generation")), gen_before, "y la generacion no cambia")
+	# Volver al incorporado (aunque ya lo sea) crea una generacion nueva: es el camino que
+	# recorre un cambio de verdad, y hay que verlo funcionar con voces sonando.
+	var silent_blocks: int = 0
+	var inspected_samples: int = 0
+	for round_i in range(3):
+		a.ok(bool(ClassDB.class_call_static("OpenDouSpatialStream", "set_hrtf_default")), "set_hrtf_default devuelve true")
+		var settled: int = 0
+		while settled < 4096:
+			await tree.process_frame
+			var avail: int = probe._capture.get_frames_available()
+			if avail <= 0:
+				continue
+			var peak: float = 0.0
+			for v in probe._capture.get_buffer(avail):
+				peak = maxf(peak, maxf(absf(v.x), absf(v.y)))
+			settled += avail
+			inspected_samples += avail
+			if peak < 0.001:
+				silent_blocks += 1
+	a.gt(float(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_generation")), float(gen_before + 2), "cada cambio de HRTF sube la generacion")
+	a.ok(inspected_samples >= 3 * 4096, "se inspecciono al menos 4096 muestras por cada uno de los tres cambios")
+	a.eq(silent_blocks, 0, "ningun bloque quedo en silencio al cambiar el HRTF con 16 voces sonando")
+	for p2 in extra:
+		p2.stop()
+		tree.root.remove_child(p2)
+		p2.free()
+
+	# ---- benchmark_block: existe, devuelve microsegundos por voz, y no es cero.
+	var us_per_voice: float = float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block", 64))
+	print("[OpenDou] DSP nativo: %.1f us por voz y bloque de %d (64 voces) | desglose: solo HRTF bilineal %.1f, solo HRTF vecino %.1f, solo filtros+ITD %.1f, solo fuente %.1f" % [
+		us_per_voice, frame_size,
+		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 1)),
+		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 2)),
+		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 3)),
+		float(ClassDB.class_call_static("OpenDouSpatialStream", "benchmark_block_mode", 64, 4))])
+	a.gt(us_per_voice, 0.1, "benchmark_block mide algo")
+
 	player.stop()
 	tree.root.remove_child(player)
 	player.free()
