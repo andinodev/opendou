@@ -34,19 +34,28 @@ var stem_track_data: Array[Dictionary] = []
 var is_playing_suite: bool = false
 var is_paused_suite: bool = false
 var ducking_matrix: AudioDuckingMatrix = null
+## true si la matriz es propia (inyectada o creada aqui) y hay que avanzarla; false si es la
+## del manager, que la avanza el aplicador de mezcla.
+var _owns_ducking: bool = true
 
 # ==============================================================================
 # LIFECYCLE
 # ==============================================================================
 
 func _ready() -> void:
+	if ducking_matrix == null and not Engine.is_editor_hint():
+		var m: Node = get_node_or_null("/root/OpenDou")
+		if m != null and "mix" in m and m.mix != null:
+			ducking_matrix = m.mix.ducking
+			_owns_ducking = false
 	if not Engine.is_editor_hint() and auto_play:
 		load_suite(suite_name)
 		play()
 
 func _process(delta: float) -> void:
 	if enable_ducking and ducking_matrix != null:
-		ducking_matrix.update(delta)
+		if _owns_ducking:
+			ducking_matrix.update(delta)
 		_update_stem_levels()
 
 # ==============================================================================
@@ -56,6 +65,7 @@ func _process(delta: float) -> void:
 ## Sets an explicit AudioDuckingMatrix instance for sidechain attenuation.
 func set_ducking_matrix(matrix: AudioDuckingMatrix) -> void:
 	ducking_matrix = matrix
+	_owns_ducking = true
 
 ## Loads a multi-stem music suite configuration from disk or JSON and creates synchronized stem players.
 func load_suite(s_name: StringName = &"") -> void:

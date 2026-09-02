@@ -22,7 +22,13 @@ func _ready() -> void:
 		_mute.disabled = true
 		_db.text = "—"
 		return
-	_volume.set_value_no_signal(AudioServer.get_bus_volume_db(_bus_index))
+	# Con manager, el deslizador edita la BASE del bus: la instantanea activa y el ducking se
+	# suman encima y no pelean con el jugador (Fase 8).
+	var m: Node = get_node_or_null("/root/OpenDou")
+	if m != null and m.has_method("get_bus_base_volume_db"):
+		_volume.set_value_no_signal(m.get_bus_base_volume_db(StringName(bus_name)))
+	else:
+		_volume.set_value_no_signal(AudioServer.get_bus_volume_db(_bus_index))
 	_mute.set_pressed_no_signal(AudioServer.is_bus_mute(_bus_index))
 	_db.text = "%+.1f dB" % _volume.value
 	_volume.value_changed.connect(_on_volume_changed)
@@ -43,10 +49,18 @@ func _delta_or(fallback: float) -> float:
 	return d if d > 0.0 else fallback
 
 func _on_volume_changed(value: float) -> void:
+	var m: Node = get_node_or_null("/root/OpenDou")
+	if m != null and m.has_method("set_bus_base_volume_db"):
+		m.set_bus_base_volume_db(StringName(bus_name), value)
+	# Se escribe tambien en el servidor: un bus que ninguna instantanea nombra no lo toca el
+	# aplicador, y si lo gestiona, lo reescribira al mismo valor.
 	if _bus_index >= 0:
 		AudioServer.set_bus_volume_db(_bus_index, value)
 	_db.text = "%+.1f dB" % value
 
 func _on_mute_toggled(pressed: bool) -> void:
+	var m: Node = get_node_or_null("/root/OpenDou")
+	if m != null and "mix" in m and m.mix != null:
+		m.mix.set_bus_base_mute(StringName(bus_name), pressed)
 	if _bus_index >= 0:
 		AudioServer.set_bus_mute(_bus_index, pressed)

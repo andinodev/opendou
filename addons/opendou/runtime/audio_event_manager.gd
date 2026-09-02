@@ -21,6 +21,7 @@ const SpatialSettingsClass = preload("res://addons/opendou/runtime/spatial/spati
 const InstanceLimiterClass = preload("res://addons/opendou/runtime/instance_limiter.gd")
 const MixChainInstallerClass = preload("res://addons/opendou/runtime/mix_chain_installer.gd")
 const LoudnessMeterClass = preload("res://addons/opendou/runtime/loudness_meter.gd")
+const MixBusApplierClass = preload("res://addons/opendou/runtime/mix_bus_applier.gd")
 const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
 const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
@@ -64,6 +65,13 @@ var instance_limiter: OpenDouInstanceLimiter = null
 ## Medidor de sonoridad BS.1770 (Fase 8). Apagado por defecto: se engancha a un bus con
 ## loudness_meter.attach(); mientras este enganchado, el manager lo alimenta por frame.
 var loudness_meter: OpenDouLoudnessMeter = null
+
+## Mezcla dinamica aplicada al AudioServer (Fase 8): instantaneas, ducking y filtros por bus,
+## sobre la base que deja el jugador. Hasta esta fase nadie escribia estos valores.
+var mix: OpenDouMixBusApplier = null
+
+## Pila de instantaneas de mezcla. El tope manda; al vaciarse, Default.
+var _snapshot_stack: Array[Dictionary] = []   # {"name": StringName, "priority": int}
 
 ## Pool de reproductores nativos para las voces anonimas.
 ##
@@ -119,6 +127,7 @@ func _init() -> void:
 	hdr_engine = AudioHDREngineClass.new()
 	instance_limiter = InstanceLimiterClass.new()
 	loudness_meter = LoudnessMeterClass.new()
+	mix = MixBusApplierClass.new()
 	spatial_settings = SpatialSettingsClass.new()
 	spatial_settings.changed.connect(_apply_spatial_settings)
 
@@ -342,6 +351,46 @@ func post_event(event: Variant, caller: Node = null) -> EventInstance:
 	instance.play()
 	return instance
 
+# ==============================================================================
+# MEZCLA DINAMICA: INSTANTANEAS Y BASE POR BUS
+# ==============================================================================
+
+## Apila una instantanea de mezcla y transiciona al tope. OpenDouParameterArea3D lo llama al
+## entrar el oyente; MixStateBinding, al entrar en un estado.
+func push_snapshot(name: StringName, blend_sec: float = -1.0, priority: int = 0) -> void:
+	if not mix.snapshots.registered_snapshots.has(name):
+		push_warning("[OpenDou] push_snapshot: la instantanea '%s' no esta registrada" % String(name))
+		return
+	_snapshot_stack.append({"name": name, "priority": priority})
+	_apply_snapshot_top(blend_sec)
+
+## Quita la ultima entrada de ese nombre, este o no en el tope, y transiciona al tope
+## resultante (Default si la pila queda vacia).
+func pop_snapshot(name: StringName, blend_sec: float = -1.0) -> void:
+	for i in range(_snapshot_stack.size() - 1, -1, -1):
+		if _snapshot_stack[i]["name"] == name:
+			_snapshot_stack.remove_at(i)
+			break
+	_apply_snapshot_top(blend_sec)
+
+## El tope es la de mayor prioridad; a igual prioridad, la mas reciente.
+func _apply_snapshot_top(blend_sec: float) -> void:
+	var top: StringName = &"Default"
+	var best_priority: int = -2147483648
+	for entry in _snapshot_stack:
+		if int(entry["priority"]) >= best_priority:
+			best_priority = int(entry["priority"])
+			top = entry["name"]
+	mix.snapshots.transition_to(top, blend_sec)
+
+## Volumen base de un bus: lo que el jugador o el proyecto dejaron, sin instantaneas ni
+## ducking. Quien mueva volumenes de bus por su cuenta lo hace por aqui.
+func set_bus_base_volume_db(bus: StringName, db: float) -> void:
+	mix.set_bus_base_volume_db(bus, db)
+
+func get_bus_base_volume_db(bus: StringName) -> float:
+	return mix.get_bus_base_volume_db(bus)
+
 ## Stops all currently playing event instances.
 func stop_all() -> void:
 	for instance in active_instances:
@@ -476,6 +525,10 @@ func _process(delta: float) -> void:
 	# 5c. Medidor de sonoridad, solo si alguien lo engancho.
 	if loudness_meter != null and loudness_meter.is_attached():
 		loudness_meter.process()
+
+	# 5d. La mezcla dinamica llega a los buses: base + instantanea + ducking.
+	if mix != null:
+		mix.apply(delta)
 
 	# 6. Asignar permiso: quien es audible dentro del presupuesto.
 	if voice_pool:

@@ -287,13 +287,13 @@ func _activate_snapshot() -> void:
 		return
 	_is_snapshot_active = true
 	var mgr: AudioEventManager = _get_manager()
-	if mgr != null and mgr.has_method("push_snapshot"):
-		mgr.call("push_snapshot", target_snapshot)
+	if mgr != null:
+		mgr.push_snapshot(target_snapshot, fade_in_time)
 
 func _release_snapshot() -> void:
 	if not _is_snapshot_active or target_snapshot.is_empty():
 		return
 	_is_snapshot_active = false
 	var mgr: AudioEventManager = _get_manager()
-	if mgr != null and mgr.has_method("pop_snapshot"):
-		mgr.call("pop_snapshot", target_snapshot)
+	if mgr != null:
+		mgr.pop_snapshot(target_snapshot, fade_out_time)
