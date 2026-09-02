@@ -16,6 +16,7 @@ const SCENES: Array[String] = [
 	"res://scenes/demos/monsoon/monsoon_demo.tscn",
 	"res://scenes/demos/cabin/cabin_demo.tscn",
 	"res://scenes/demos/street/street_demo.tscn",
+	"res://scenes/demos/workshop/workshop_demo.tscn",
 ]
 
 ## Los 15 tipos de nodo del plugin. El unico que las demos NO instancian, por decision
@@ -29,9 +30,17 @@ const NODE_SCRIPTS: Array[String] = [
 	"opendou_parameter_area_3d.gd", "opendou_portal_3d.gd",
 	"opendou_reflector_3d.gd", "opendou_room_3d.gd",
 	"opendou_spline_emitter_3d.gd",
+	"opendou_physics_impact_3d.gd", "opendou_dialogue_emitter_3d.gd",
+	"opendou_listener_3d.gd", "opendou_acoustic_volume_3d.gd",
+	"opendou_sound_indicator.gd", "opendou_ai_hearing_3d.gd",
 ]
 
-const EXPECTED_UNCOVERED: String = "opendou_event_player_2d.gd"
+## Sin demo por decision: el 2D (spec de la Fase 5) y los cuatro nodos de la Fase 10 (el
+## oyente y el entorno todavia no tienen escena que los luzca; queda anotado en current.md).
+const EXPECTED_UNCOVERED: Array[String] = [
+	"opendou_event_player_2d.gd", "opendou_listener_3d.gd", "opendou_acoustic_volume_3d.gd",
+	"opendou_sound_indicator.gd", "opendou_ai_hearing_3d.gd",
+]
 
 ## Extensiones de audio que no puede referenciar ningun archivo de scenes/.
 const AUDIO_EXTENSIONS: Array[String] = [".wav", ".ogg", ".mp3"]
@@ -78,6 +87,16 @@ const COMPOSITION: Array[Dictionary] = [
 	{"scene": "res://scenes/shared/demo_hud.tscn", "min_nodes": 12, "requires": []},
 	{"scene": "res://scenes/shared/pause_menu.tscn", "min_nodes": 24, "requires": []},
 	{"scene": "res://scenes/shared/bus_row.tscn", "min_nodes": 5, "requires": []},
+	{
+		"scene": "res://scenes/demos/workshop/workshop_demo.tscn",
+		"min_nodes": 40,
+		"requires": [
+			"opendou_room_3d.gd", "opendou_event_player_3d.gd", "opendou_event_player.gd",
+			"opendou_parameter_area_3d.gd", "opendou_physics_impact_3d.gd",
+			"opendou_dialogue_emitter_3d.gd", "opendou_multi_position_emitter_3d.gd",
+			"opendou_acoustic_geometry_bake.gd", "opendou_acoustic_debugger_3d.gd",
+		],
+	},
 	{
 		"scene": "res://scenes/demos/street/street_demo.tscn",
 		"min_nodes": 200,
@@ -238,13 +257,13 @@ static func run_coverage_async(tree: SceneTree) -> OpenDouAssert:
 		root.free()
 		await tree.process_frame
 
-	# 14 de los 15, y el que falta es exactamente el esperado.
-	a.eq(covered.size(), NODE_SCRIPTS.size() - 1,
-		"las escenas instancian 14 de los 15 tipos de nodo, cubiertos: %s" % str(covered.keys()))
-	a.ok(not covered.has(EXPECTED_UNCOVERED),
-		"el tipo no cubierto es %s, por decision del spec" % EXPECTED_UNCOVERED)
+	# Todos menos los no cubiertos por decision, y ninguno de esos aparece.
+	a.eq(covered.size(), NODE_SCRIPTS.size() - EXPECTED_UNCOVERED.size(),
+		"las escenas instancian %d de los %d tipos de nodo, cubiertos: %s" % [NODE_SCRIPTS.size() - EXPECTED_UNCOVERED.size(), NODE_SCRIPTS.size(), str(covered.keys())])
+	for script_name in EXPECTED_UNCOVERED:
+		a.ok(not covered.has(script_name), "%s no lo instancia ninguna demo, por decision" % script_name)
 	for script_name in NODE_SCRIPTS:
-		if script_name == EXPECTED_UNCOVERED:
+		if EXPECTED_UNCOVERED.has(script_name):
 			continue
 		a.ok(covered.has(script_name), "alguna escena instancia %s" % script_name)
 

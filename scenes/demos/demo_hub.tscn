@@ -81,6 +81,12 @@ demo_title = "Una casa canta"
 thesis = "Una casa vibra, dos duermen, y la calle es el puente: la musica sale por la ventana entreabierta, y dentro de las dormidas la calle llega amortiguada."
 scene_path = "res://scenes/demos/street/street_demo.tscn"
 
+[node name="Card_Workshop" parent="Margin/Column/Center/Grid" instance=ExtResource("3_card")]
+layout_mode = 2
+demo_title = "El taller"
+thesis = "Los objetos suenan solos: cuerpos que chocan, un mecanico que saluda, la radio como altavoz de verdad, un motor por RPM y una lona por su punto mas cercano."
+scene_path = "res://scenes/demos/workshop/workshop_demo.tscn"
+
 [node name="Card_Bench" parent="Margin/Column/Center/Grid" instance=ExtResource("3_card")]
 layout_mode = 2
 demo_title = "Banco del rig"

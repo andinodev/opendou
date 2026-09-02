@@ -13,9 +13,11 @@ const BackendClass = preload("res://addons/opendou/runtime/spatial/spatial_backe
 
 static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("world_bus")
-	var previous_backend = ProjectSettings.get_setting(BackendClass.SETTING, "auto")
-	var backend: String = "steam_audio" if BackendClass.native_available() else "godot"
-	var manager = TestParityClass.make_manager(tree, backend)
+	# El autoload, como las demos: el bus Radio lo gobierna su aplicador de mezcla (el
+	# dialogo del taller lo nombra en una regla de ducking) y dos managers pelearian por el.
+	var manager = tree.root.get_node_or_null("OpenDou")
+	a.ok(manager != null, "el autoload OpenDou existe")
+	var backend: String = "steam_audio" if manager.is_steam_audio_backend() else "godot"
 	var cam := TestParityClass.make_listener_camera(tree)
 	if AudioServer.get_bus_index("Radio") < 0:
 		var idx: int = AudioServer.bus_count
@@ -69,6 +71,5 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	tree.root.remove_child(radio); radio.free()
 	tree.root.remove_child(speaker); speaker.free()
 	tree.root.remove_child(cam); cam.free()
-	tree.root.remove_child(manager); manager.free()
-	ProjectSettings.set_setting(BackendClass.SETTING, previous_backend)
+	manager.stop_all()
 	return a

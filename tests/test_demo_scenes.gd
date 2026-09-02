@@ -5,6 +5,7 @@ extends RefCounted
 
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const OpenDouAudioProbeClass = preload("res://tests/support/audio_probe.gd")
+const TestBinauralClass = preload("res://tests/test_binaural.gd")
 const TestLoudnessMeterClass = preload("res://tests/test_loudness_meter.gd")
 
 ## Las tres demos y el hub. Cada bloque se anade en su propia tarea.
@@ -14,6 +15,7 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_monsoon_async(tree))
 	a.absorb(await run_cabin_async(tree))
 	a.absorb(await run_street_async(tree))
+	a.absorb(await run_workshop_async(tree))
 	a.absorb(run_hub())
 	a.absorb(await run_pause_menu_async(tree))
 	return a
@@ -153,14 +155,14 @@ static func run_hub() -> OpenDouAssert:
 		var inst = state.get_node_instance(i)
 		if inst != null and str(inst.resource_path).ends_with("demo_card.tscn"):
 			declared_cards += 1
-	a.eq(declared_cards, 5, "el hub declara cinco tarjetas en su .tscn: cuatro demos y el banco")
+	a.eq(declared_cards, 6, "el hub declara seis tarjetas en su .tscn: cinco demos y el banco")
 
 	var hub = packed.instantiate()
 	# Fuera del arbol no hay _ready, asi que se anade a un padre suelto para leerlo.
 	var holder := Node.new()
 	holder.add_child(hub)
 	var paths: PackedStringArray = hub.get_entry_paths()
-	a.eq(paths.size(), 5, "y expone cinco rutas, una por tarjeta")
+	a.eq(paths.size(), 6, "y expone seis rutas, una por tarjeta")
 
 	# Ninguna ruta muerta. Es la asercion que impide que el hub sobreviva a un borrado
 	# apuntando a escenas que ya no existen.
@@ -743,3 +745,90 @@ static func _release_current(node: Node) -> void:
 		node.clear_current()
 	for child in node.get_children():
 		_release_current(child)
+
+static func run_workshop_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("workshop_demo")
+	var manager = tree.root.get_node_or_null("OpenDou")
+	a.ok(manager != null, "el autoload OpenDou existe")
+	var packed: PackedScene = load("res://scenes/demos/workshop/workshop_demo.tscn")
+	a.ok(packed != null, "la escena del taller carga")
+	if packed == null:
+		return a
+	var demo = packed.instantiate()
+	tree.root.add_child(demo)
+	var lufs_meter = TestLoudnessMeterClass.start_master_meter(tree)
+	await tree.process_frame
+	await tree.physics_frame
+	await tree.physics_frame
+	# Impactos: soltar la repisa y esperar a que caigan.
+	var hits: Array = []
+	for body_name in ["Can", "Crate", "Wrench"]:
+		demo.get_node(body_name + "/Impact").impact_posted.connect(func(s, m, mat, p): hits.append([s, mat]))
+	demo.release_shelf()
+	var t0: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 2500 and hits.size() < 3:
+		await tree.physics_frame
+	a.ok(hits.size() >= 1, "al soltar la repisa, al menos un impacto suena (%d)" % hits.size())
+	var materials: Dictionary = {}
+	for h in hits:
+		materials[String(h[1])] = true
+		a.gt(float(h[0]), 1.0, "ImpactForce > 1 m/s (%.2f)" % h[0])
+	a.ok(materials.has("Metal") or materials.has("Concrete"), "el material es la mesa (Metal) o el suelo (Concrete): %s" % str(materials.keys()))
+	# Motor: RPM cambia la capa dominante. Se mide en el bus de REVERB de la sala, porque
+	# dentro de un Area3D con reverb Godot manda la salida del reproductor 3D solo a ese bus
+	# y su target_bus no recibe nada (observacion 49; tools/probe_area_reverb.gd lo mide).
+	var room_bus: StringName = demo.get_node("Workshop").get_assigned_reverb_bus()
+	var probe = OpenDouAudioProbeClass.new()
+	a.ok(probe.attach_to_existing_bus(room_bus, 2.0), "la sonda se engancha al bus de reverb del taller ('%s')" % String(room_bus))
+	# El emisor suaviza el RTPC: se espera por tiempo, no por cuadros (2 ms en headless).
+	demo.set_rpm(800.0)
+	var t_rpm: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t_rpm < 800:
+		await tree.process_frame
+		probe.drain()
+	var ei = demo.engine.active_instance
+	var offsets_low: Array = ei.voice_offsets_db.duplicate() if ei != null else []
+	var low := await TestBinauralClass._capture(tree, probe)
+	demo.set_rpm(5000.0)
+	t_rpm = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t_rpm < 800:
+		await tree.process_frame
+		probe.drain()
+	var offsets_high: Array = ei.voice_offsets_db.duplicate() if ei != null else []
+	var high := await TestBinauralClass._capture(tree, probe)
+	a.ok(ei != null and ei.live_blend and ei.voice_offsets_db.size() == 3, "el motor es un blend en vivo de tres capas")
+	if offsets_low.size() == 3 and offsets_high.size() == 3:
+		a.gt(offsets_low[0], offsets_low[2] + 20.0, "a 800 rpm manda la capa de ralenti (%s)" % str(offsets_low))
+		a.gt(offsets_high[2], offsets_high[0] + 20.0, "a 5000 rpm manda la capa alta (%s)" % str(offsets_high))
+	# El motor vive entre 40 y 640 Hz: se mide el reparto entre la banda grave (20-150 Hz,
+	# la capa de ralenti) y la media (150-800 Hz, la capa alta), no el centroide.
+	var rate: float = AudioServer.get_mix_rate()
+	var ratio_low: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo(low, rate, 150.0, 800.0), 1e-12)) - linear_to_db(maxf(TestBinauralClass._band_energy_stereo(low, rate, 20.0, 150.0), 1e-12))
+	var ratio_high: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo(high, rate, 150.0, 800.0), 1e-12)) - linear_to_db(maxf(TestBinauralClass._band_energy_stereo(high, rate, 20.0, 150.0), 1e-12))
+	print("[OpenDou] taller: motor a 800 rpm media/grave %.1f dB, a 5000 rpm %.1f dB; impactos %s" % [ratio_low, ratio_high, str(hits)])
+	a.gt(ratio_high, ratio_low + 3.0, "y en el bus de reverb del taller la banda media gana al menos 3 dB sobre la grave")
+	probe.teardown()
+	# Radio: el bus directo esta callado porque suena por el altavoz.
+	var radio_idx: int = AudioServer.get_bus_index("Radio")
+	a.approx(AudioServer.get_bus_volume_db(radio_idx), -80.0, "el bus Radio esta callado en directo: suena por el altavoz", 0.1)
+	a.ok(demo.radio_speaker.active_instance != null and demo.radio_speaker.active_instance.is_playing(), "el altavoz tiene voz")
+	# Mecanico: el area dispara y la voz habla con subtitulo.
+	var subtitles: Array = []
+	demo.mechanic_voice.subtitle_changed.connect(func(t): subtitles.append(t))
+	demo.greet_zone.register_target_entered(demo.get_node("Player"))
+	await tree.process_frame
+	a.eq(subtitles.size(), 1, "el area del mecanico dispara el saludo con subtitulo")
+	a.ok(demo.mechanic_voice.is_speaking(), "y el mecanico habla")
+	# Composicion.
+	var state: SceneState = packed.get_state()
+	a.gt(float(state.get_node_count()), 39.5, "la escena declara al menos 40 nodos (%d)" % state.get_node_count())
+	var t1: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t1 < 1500:
+		await tree.process_frame
+	TestLoudnessMeterClass.check_budget(a, "workshop", TestLoudnessMeterClass.finish_master_meter(lufs_meter))
+	if manager != null:
+		manager.stop_all()
+	_release_current(demo)
+	tree.root.remove_child(demo)
+	demo.free()
+	return a

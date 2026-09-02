@@ -141,7 +141,14 @@ func _start_bus_capture(manager: AudioEventManager) -> void:
 		_capture.resource_name = MARK_CAPTURE
 		_capture.buffer_length = 0.5
 		AudioServer.add_bus_effect(idx, _capture)
-	_capture_bus_prev_db = AudioServer.get_bus_volume_db(idx)
+	# El bus se calla en el servidor Y en la base del aplicador de mezcla: si una regla de
+	# ducking o una instantanea nombran este bus, el aplicador lo escribe cada cuadro y sin la
+	# base recordaria -80 como su volumen normal para siempre.
+	if manager.mix != null:
+		_capture_bus_prev_db = manager.mix.get_bus_base_volume_db(capture_bus)
+		manager.mix.set_bus_base_volume_db(capture_bus, -80.0)
+	else:
+		_capture_bus_prev_db = AudioServer.get_bus_volume_db(idx)
 	AudioServer.set_bus_volume_db(idx, -80.0)
 	_generator = AudioStreamGenerator.new()
 	_generator.mix_rate = AudioServer.get_mix_rate()
@@ -194,6 +201,9 @@ func _stop_bus_capture() -> void:
 	if _capture != null:
 		var idx: int = AudioServer.get_bus_index(String(capture_bus))
 		if idx >= 0:
+			var manager: AudioEventManager = _get_manager()
+			if manager != null and manager.mix != null:
+				manager.mix.set_bus_base_volume_db(capture_bus, _capture_bus_prev_db)
 			AudioServer.set_bus_volume_db(idx, _capture_bus_prev_db)
 			for i in range(AudioServer.get_bus_effect_count(idx)):
 				if AudioServer.get_bus_effect(idx, i) == _capture:

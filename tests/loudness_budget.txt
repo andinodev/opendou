@@ -7,3 +7,4 @@ keel -32 -20
 monsoon -30 -18
 cabin -26 -14
 street -35 -23
+workshop -30 -18
