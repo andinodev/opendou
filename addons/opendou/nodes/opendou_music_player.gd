@@ -9,6 +9,7 @@ extends Node
 
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 const AudioDuckingMatrixClass = preload("res://addons/opendou/core/audio_ducking_matrix.gd")
+const DataPathsClass = preload("res://addons/opendou/runtime/data_paths.gd")
 
 # ==============================================================================
 # EXPORT GROUPS
@@ -71,9 +72,9 @@ func load_suite(s_name: StringName = &"") -> void:
 	stem_track_data.clear()
 	
 	var tracks_to_create: Array[Dictionary] = []
-	const SUITES_PATH = "res://opendou_music_suites.json"
-	if FileAccess.file_exists(SUITES_PATH):
-		var file = FileAccess.open(SUITES_PATH, FileAccess.READ)
+	var suites_path: String = DataPathsClass.resolve(DataPathsClass.MUSIC_SUITES)
+	if not suites_path.is_empty():
+		var file = FileAccess.open(suites_path, FileAccess.READ)
 		if file:
 			var parsed = JSON.parse_string(file.get_as_text())
 			if parsed is Dictionary and parsed.has(str(suite_name)):

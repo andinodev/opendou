@@ -10,6 +10,7 @@ const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_d
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
+const SynthPresetRegistryClass = preload("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
 
 # ==============================================================================
 # EXPORT GROUPS
@@ -27,23 +28,20 @@ var synth_preset: String = "None"
 @export var synth_frequency: float = 440.0
 
 func _get_property_list() -> Array[Dictionary]:
-	var properties: Array[Dictionary] = []
-	var presets: Array[String] = ["None"]
-	var reg = load("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
-	if reg != null:
-		var singleton = reg.get_singleton()
-		if singleton != null:
-			for p_name in singleton.get_preset_names():
-				presets.append(str(p_name))
-	var hint_str = ",".join(presets)
-	properties.append({
+	# El inspector invoca este metodo en CADA refresco. Antes hacia aqui un load()
+	# desde disco y enumeraba el registro de presets entero cada vez; el hint viene
+	# ahora de una cache que el propio registro invalida al cambiar.
+	var hint_str: String = "None"
+	var singleton = SynthPresetRegistryClass.get_singleton()
+	if singleton != null:
+		hint_str = singleton.get_preset_hint_string()
+	return [{
 		"name": "synth_preset",
 		"type": TYPE_STRING,
 		"hint": PROPERTY_HINT_ENUM,
 		"hint_string": hint_str,
 		"usage": PROPERTY_USAGE_DEFAULT
-	})
-	return properties
+	}]
 
 @export_group("Game Syncs")
 @export var rtpc_bindings: Dictionary = {}
@@ -73,10 +71,11 @@ func _ready() -> void:
 		elif stream == null and not event_name.is_empty():
 			_auto_infer_synth_preset()
 			
-		if auto_play_event:
+		# Un unico camino de arranque: play_event() es quien crea la voz. Antes
+		# autoplay llamaba al play() nativo por su cuenta, dejando una voz que el
+		# manager no conocia.
+		if auto_play_event or (autoplay and stream != null):
 			play_event()
-		elif autoplay and stream != null and not playing:
-			play()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_EXIT_TREE:
@@ -95,6 +94,13 @@ func set_event_manager(manager: AudioEventManager) -> void:
 func play_event(p_event_name: StringName = &"") -> void:
 	var target_name: StringName = p_event_name if not p_event_name.is_empty() else event_name
 	var manager: AudioEventManager = _get_manager()
+	# El reproductor de este nodo puede hospedar UNA voz. Si ya habia una activa hay
+	# que detenerla: si no, la vieja se queda ocupando el emisor y, con el bonus de
+	# histeresis del pool, le gana a la nueva. Dos disparos seguidos del mismo emisor
+	# -dos pisadas, dos disparos de arma- dejaban muda la segunda.
+	if active_instance != null:
+		stop_event()
+
 	
 	if manager != null:
 		if event_def != null and p_event_name.is_empty():
@@ -117,6 +123,9 @@ func play_event(p_event_name: StringName = &"") -> void:
 		active_instance.play()
 		
 	if active_instance != null:
+		# El reproductor de este nodo ES la voz fisica. Vincularlo evita que el
+		# pool le asigne ademas una voz anonima, que era la doble reproduccion.
+		active_instance.bind_player(self)
 		active_instance.virtualization_mode = virtualization_mode
 		
 		for param_name in rtpc_bindings:
@@ -135,8 +144,6 @@ func play_event(p_event_name: StringName = &"") -> void:
 	if AudioServer.get_bus_index(bus_category) != -1:
 		bus = bus_category
 
-	if stream != null and is_inside_tree():
-		play(0.0)
 
 ## Stops playback of the currently active event instance.
 func stop_event(fade_time: float = 0.0) -> void:

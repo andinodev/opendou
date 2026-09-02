@@ -52,9 +52,47 @@ var max_distance: float = 100.0
 var emitter_position: Vector3 = Vector3.ZERO
 var has_spatial_position: bool = false
 
+## True mientras el grafo de salas y portales gobierne esta voz.
+##
+## Cuando lo esta, la oclusion por raycast NO la toca: el grafo ya sabe que hay un
+## mamparo y por donde se rodea, y sumar los dos cobraria dos veces por la misma pared.
+var room_path_active: bool = false
+
+## Posicion hacia la que se interpola la posicion aparente.
+var target_apparent_position: Vector3 = Vector3.ZERO
+
+## Posicion que se pasa al canal fisico.
+##
+## Es la del emisor casi siempre. Cuando el grafo gobierna la voz es la del portal por el
+## que sale el sonido, que es lo que hace que se oiga VINIENDO de la escotilla en lugar
+## de atravesando el mamparo.
+var current_apparent_position: Vector3 = Vector3.ZERO
+
+## Velocidad de convergencia de la posicion aparente, en unidades de 1/s.
+##
+## Existe porque al cruzar el portal la posicion aparente pasa del portal al emisor: si
+## saltara, se oiria el chasquido del paneo.
+var apparent_smoothing_speed: float = 8.0
+
 var is_paused_state: bool = false
 var is_key_on: bool = true
 var elapsed_time: float = 0.0
+
+## Reproductor nativo que esta instancia usa como voz fisica, si su emisor es un
+## nodo OpenDouEventPlayer*. Null en las voces anonimas, que reciben uno del pool.
+var bound_player_ref: WeakRef = null
+
+## Contexto de resolucion de esta instancia: RTPC y switches vivos.
+##
+## Sin el, AudioSwitchContainer resolvia siempre a su default_state y
+## AudioBlendContainer veia siempre RTPC = 0.0, porque devirtualize() invocaba
+## resolve_voices() sin argumento y se creaba uno vacio.
+##
+## Se crea PEREZOSAMENTE y solo si la definicion tiene un arbol de contenedores:
+## resolve_voices() no lo mira cuando el evento es un base_stream a secas, asi que
+## crearlo para toda instancia era un objeto por instancia que nadie leia -y en la
+## demo del monzon serian 200-.
+var playback_context: AudioPlaybackContext = null
 
 func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 	definition = p_definition
@@ -69,6 +107,11 @@ func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 			emitter_position = Vector3(p2d.x, p2d.y, 0.0)
 			has_spatial_position = true
 	
+	# La posicion aparente arranca donde el emisor. Sin esto cada voz nueva barreria
+	# desde el origen del mundo hasta su sitio, y eso se oye.
+	target_apparent_position = emitter_position
+	current_apparent_position = emitter_position
+
 	if definition:
 		calculated_volume_db = definition.base_volume_db
 		calculated_pitch_scale = definition.base_pitch_scale
@@ -82,10 +125,79 @@ func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 				if state:
 					modulator_states.append({"def": mod, "state": state})
 
+## Refresca el contexto con los valores vivos: globales primero, locales encima.
+##
+## Los locales ganan porque un RTPC de instancia es mas especifico que el global, y un
+## switch de entidad mas que el de grupo.
+func refresh_playback_context(global_rtpcs: Dictionary, sync_manager) -> void:
+	# Sin arbol de contenedores nadie lee el contexto: resolve_voices() solo lo usa si
+	# hay root_container. No crearlo aqui evita un objeto por instancia.
+	if definition == null or definition.root_container == null:
+		return
+	if playback_context == null:
+		playback_context = AudioPlaybackContextClass.new()
+
+	for param_name in global_rtpcs:
+		var rtpc = global_rtpcs[param_name]
+		playback_context.set_rtpc(param_name, rtpc.current_value)
+	for param_name in local_rtpcs:
+		var local: RTPCValue = local_rtpcs[param_name]
+		playback_context.set_rtpc(param_name, local.current_value)
+
+	if sync_manager == null:
+		return
+	for group in sync_manager.global_switches:
+		playback_context.set_switch(group, sync_manager.global_switches[group])
+	# Switches de la entidad que disparo el evento, si sigue viva.
+	var caller = caller_node_ref.get_ref() if caller_node_ref != null else null
+	if caller != null and is_instance_valid(caller):
+		var entity_map: Dictionary = sync_manager.entity_switches.get(caller.get_instance_id(), {})
+		for group in entity_map:
+			playback_context.set_switch(group, entity_map[group])
+
+
+## Vincula esta instancia al reproductor de su nodo emisor.
+##
+## Existe para que el pool no le asigne ademas una voz anonima: el reproductor
+## del nodo ES la voz fisica, y crear otra era la doble reproduccion.
+func bind_player(player: Node) -> void:
+	bound_player_ref = weakref(player) if player != null else null
+
+## Notifica que el reproductor nativo emitio `finished`.
+##
+## Es la fuente de verdad del fin de reproduccion. advance_virtual_time() vuelve
+## temprano si el estado no es VIRTUAL, asi que una voz fisica no avanza su
+## posicion logica y por si sola nunca sabria que su stream acabo: sin esta senal,
+## is_finished() era siempre falso y active_instances crecia sin limite.
+func notify_stream_finished() -> void:
+	if not is_key_on or modulator_states.is_empty():
+		voice_state = VoiceState.STATE_STOPPED
+		# El canal NO se suelta aqui. Antes se ponia assigned_channel_id = -1, y
+		# entonces la limpieza del manager -que virtualiza solo si el id es >= 0- no
+		# podia soltarlo: el canal se quedaba is_busy para siempre y el reproductor
+		# seguia vinculado. Tras suficientes one-shots el pool quedaba lleno de
+		# canales ocupados por voces que ya no existian.
+		return
+	# Con moduladores activos se entra en fase de release, y update_parameters()
+	# concluira cuando el AHDSR llegue a IDLE.
+	is_key_on = false
+
+## Reproductor vinculado, o null si no hay o el nodo ya no existe.
+func get_bound_player() -> Node:
+	if bound_player_ref == null:
+		return null
+	var p = bound_player_ref.get_ref()
+	if p != null and is_instance_valid(p):
+		return p
+	return null
+
 ## Sets a 3D emitter position directly.
 func set_position(pos: Vector3) -> void:
 	emitter_position = pos
 	has_spatial_position = true
+	if not room_path_active:
+		target_apparent_position = pos
+		current_apparent_position = pos
 
 ## Sets the target spatial low-pass filter cutoff in Hz.
 func set_target_lpf(lpf_hz: float, atten_db: float = 0.0) -> void:
@@ -145,6 +257,19 @@ func update_parameters(delta: float, global_rtpcs: Dictionary = {}) -> void:
 		return
 		
 	elapsed_time += delta
+
+	# El reloj logico avanza tambien mientras la voz es FISICA, y un evento no-loop
+	# termina al llegar a stream_length.
+	#
+	# Sin esto, is_looping = false era una mentira en cuanto el AudioStreamWAV traia
+	# loop_mode = LOOP_FORWARD -y varios de los sintetizados lo traen, el trueno entre
+	# ellos-: el reproductor no emite `finished` jamas, asi que la instancia se quedaba
+	# en active_instances para siempre. En un juego que dispare ese evento a menudo es
+	# crecimiento sin techo.
+	if voice_state == VoiceState.STATE_PHYSICAL and definition.stream_length > 0.0:
+		logical_playback_position += delta * maxf(0.01, calculated_pitch_scale)
+		if not definition.is_looping and logical_playback_position >= definition.stream_length:
+			notify_stream_finished()
 	
 	# Update spatial position if caller node is valid
 	if caller_node_ref:
@@ -157,6 +282,16 @@ func update_parameters(delta: float, global_rtpcs: Dictionary = {}) -> void:
 			emitter_position = Vector3(p2d.x, p2d.y, 0.0)
 			has_spatial_position = true
 	
+	# El destino se fija aqui para las voces que el grafo NO gobierna: el dispatcher solo
+	# mira las fisicas, asi que sin esto una voz que deja de estar gobernada se quedaria
+	# con la posicion del portal para siempre.
+	if not room_path_active:
+		target_apparent_position = emitter_position
+	current_apparent_position = current_apparent_position.lerp(
+		target_apparent_position,
+		clampf(apparent_smoothing_speed * delta, 0.0, 1.0)
+	)
+
 	# 1. Start from base definition values and apply occlusion volume attenuation
 	var vol: float = definition.base_volume_db + occlusion_attenuation_db
 	var pitch: float = definition.base_pitch_scale
@@ -250,7 +385,10 @@ func stop(_fade_time: float = 0.0) -> void:
 	is_key_on = false
 	if modulator_states.is_empty():
 		voice_state = VoiceState.STATE_STOPPED
-		assigned_channel_id = -1
+		# El canal NO se suelta aqui, por lo mismo que en notify_stream_finished(): la
+		# limpieza del manager virtualiza a las instancias terminadas y eso es lo que
+		# detiene el canal y devuelve el reproductor. Poner el id a -1 aqui dejaba el
+		# canal is_busy para siempre.
 
 ## Pauses playback of the event instance.
 func pause() -> void:

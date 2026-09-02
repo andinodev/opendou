@@ -1,7 +1,8 @@
 # Godot 4.x specific ignores
 .godot/
 *.translation
-*.import
+# Los .import NO se ignoran: llevan el UID y los ajustes de importacion del
+# recurso, y sin versionarlos cada clon regenera UIDs distintos.
 
 # Godot export/build output
 export/
@@ -33,7 +34,6 @@ Cargo.lock
 
 # C# / .NET build artifacts
 .vs/
-bin/
 obj/
 *.csproj.user
 *.suo

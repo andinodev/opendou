@@ -2,6 +2,8 @@
 class_name SynthPresetRegistry
 extends RefCounted
 
+const DataPathsClass = preload("res://addons/opendou/runtime/data_paths.gd")
+
 ## Central persistent repository and runtime registry for OpenDou Procedural Synth presets.
 ## Manages loading/saving to JSON (opendou_synth_presets.json) and baking AudioStreamWAV instances on-demand.
 
@@ -9,6 +11,16 @@ static var _instance: SynthPresetRegistry = null
 
 ## Dictionary containing loaded synth presets keyed by preset name (String -> Dictionary).
 var presets: Dictionary = {}
+
+## Cache del hint_string del desplegable de presets del inspector.
+##
+## _get_property_list() de los emisores lo pedia en CADA refresco del inspector, y
+## antes hacia un load() desde disco y enumeraba el registro entero cada vez.
+##
+## La cache vive aqui, y no en cada nodo, porque este es quien sabe cuando cambian
+## los presets: se invalida desde los propios mutadores y nadie tiene que
+## acordarse de llamar a nada.
+var _hint_cache: String = ""
 
 ## Returns the singleton instance of SynthPresetRegistry, instantiating and loading default presets if needed.
 static func get_singleton() -> SynthPresetRegistry:
@@ -20,11 +32,25 @@ static func get_singleton() -> SynthPresetRegistry:
 ## Loads synth presets from a JSON file path.
 ## [param json_path]: Resource or OS file path to presets JSON.
 ## [returns]: True if presets loaded successfully, false otherwise.
-func load_presets(json_path: String = "res://opendou_synth_presets.json") -> bool:
-	if not FileAccess.file_exists(json_path):
+## Carga los presets de sintesis.
+##
+## Con json_path vacio resuelve por su cuenta: override del proyecto, default del
+## addon, o nada.
+func load_presets(json_path: String = "") -> bool:
+	invalidate_hint_cache()
+	var path: String = json_path
+	if path.is_empty():
+		path = DataPathsClass.resolve(DataPathsClass.SYNTH_PRESETS)
+	if path.is_empty():
+		push_warning("[OpenDou] no hay presets de sintesis: no existe ni '%s' ni '%s'. El desplegable de presets del inspector quedara vacio." % [
+			DataPathsClass.project_override_path(DataPathsClass.SYNTH_PRESETS),
+			DataPathsClass.addon_default_path(DataPathsClass.SYNTH_PRESETS)])
+		return false
+	if not FileAccess.file_exists(path):
+		push_warning("[OpenDou] el archivo de presets '%s' no existe. El desplegable de presets del inspector quedara vacio." % path)
 		return false
 
-	var file = FileAccess.open(json_path, FileAccess.READ)
+	var file = FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return false
 
@@ -45,12 +71,19 @@ func load_presets(json_path: String = "res://opendou_synth_presets.json") -> boo
 ## Saves currently registered synth presets to a JSON file path.
 ## [param json_path]: Destination file path.
 ## [returns]: True if saved successfully, false otherwise.
-func save_presets(json_path: String = "res://opendou_synth_presets.json") -> bool:
+## Guarda los presets.
+##
+## Con json_path vacio guarda en el OVERRIDE DEL PROYECTO, nunca en el default del
+## addon: modificar el addon del usuario seria incorrecto.
+func save_presets(json_path: String = "") -> bool:
+	var path: String = json_path
+	if path.is_empty():
+		path = DataPathsClass.project_override_path(DataPathsClass.SYNTH_PRESETS)
 	var save_dict: Dictionary = {
 		"presets": presets
 	}
 	var json_str: String = JSON.stringify(save_dict, "\t")
-	var file = FileAccess.open(json_path, FileAccess.WRITE)
+	var file = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		return false
 
@@ -82,11 +115,13 @@ func get_preset(preset_name: StringName) -> Dictionary:
 ## [param preset_name]: The StringName identifier of the preset.
 ## [param preset_dict]: The preset configuration dictionary.
 func set_preset(preset_name: StringName, preset_dict: Dictionary) -> void:
+	invalidate_hint_cache()
 	presets[str(preset_name)] = preset_dict.duplicate(true)
 
 ## Removes a preset from the registry.
 ## [param preset_name]: The StringName identifier of the preset to delete.
 func delete_preset(preset_name: StringName) -> void:
+	invalidate_hint_cache()
 	presets.erase(str(preset_name))
 	presets.erase(preset_name)
 
@@ -142,3 +177,19 @@ func get_all_categories() -> Array[String]:
 	arr.sort()
 	return arr
 
+## hint_string del desplegable de presets: "None" seguido de los nombres.
+func get_preset_hint_string() -> String:
+	if not _hint_cache.is_empty():
+		return _hint_cache
+	var names: Array[String] = ["None"]
+	for p_name in get_preset_names():
+		names.append(str(p_name))
+	_hint_cache = ",".join(names)
+	return _hint_cache
+
+## Invalida la cache del desplegable.
+##
+## La llaman los mutadores de este registro. Es publica por si alguien modifica el
+## diccionario de presets por fuera.
+func invalidate_hint_cache() -> void:
+	_hint_cache = ""

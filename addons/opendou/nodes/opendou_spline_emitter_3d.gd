@@ -1,3 +1,4 @@
+@icon("res://addons/opendou/icons/icon_spline_emitter_3d.svg")
 @tool
 class_name OpenDouSplineEmitter3D
 extends AudioStreamPlayer3D
@@ -36,6 +37,16 @@ const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spati
 @export_flags_3d_physics var acoustic_collision_mask: int = 1
 
 var _acoustics_manager: SpatialAcousticsManager
+
+## Transform que define el espacio en el que vive la curva.
+##
+## Se captura en _ready() y NO sigue al nodo. El nodo se mueve como cabeza de
+## reproduccion virtual, y si la curva se interpretara en su espacio vivo se
+## moveria con el: bucle de realimentacion, y la curva entera derivando hacia el
+## oyente frame a frame. Medido antes del arreglo: 96 m de deriva en 60 frames,
+## pasandose de largo al oyente y acelerando.
+var _curve_anchor: Transform3D = Transform3D()
+var _anchor_captured: bool = false
 var _virtual_target_pos: Vector3 = Vector3.ZERO
 var _current_air_cutoff: float = 20000.0
 var _prev_listener_pos: Vector3 = Vector3.ZERO
@@ -49,8 +60,23 @@ func _init() -> void:
 		sound_spread_curve.add_point(Vector2(1.0, 1.0))  # Near: 180 deg spread
 
 func _ready() -> void:
+	reanchor()
 	_virtual_target_pos = global_position
 	_prev_emitter_pos = global_position
+
+## Fija el espacio de la curva a la posicion actual del nodo.
+##
+## Llamalo cuando reubiques el emisor a proposito, por ejemplo un rio o una cinta
+## transportadora montados sobre un vehiculo en marcha.
+func reanchor() -> void:
+	_curve_anchor = global_transform if is_inside_tree() else transform
+	_anchor_captured = true
+
+## Transform que define el espacio en el que vive la curva.
+func get_curve_anchor() -> Transform3D:
+	if not _anchor_captured:
+		return global_transform if is_inside_tree() else transform
+	return _curve_anchor
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings = PackedStringArray()
@@ -62,9 +88,13 @@ func _get_configuration_warnings() -> PackedStringArray:
 func get_closest_virtual_point(listener_pos: Vector3) -> Vector3:
 	if curve == null or curve.point_count < 2:
 		return global_position if is_inside_tree() else position
-	var local_listener = to_local(listener_pos) if is_inside_tree() else (listener_pos - position)
-	var closest_local = curve.get_closest_point(local_listener)
-	return to_global(closest_local) if is_inside_tree() else (position + closest_local)
+	var anchor: Transform3D = get_curve_anchor()
+	# El oyente se lleva al espacio del ANCLA, no al del nodo: el nodo se mueve
+	# cada frame como cabeza de reproduccion, y usar su transform vivo arrastraria
+	# la curva con el.
+	var local_listener: Vector3 = anchor.affine_inverse() * listener_pos
+	var closest_local: Vector3 = curve.get_closest_point(local_listener)
+	return anchor * closest_local
 
 ## Updates the virtual emitter transform, air absorption, and Doppler pitch based on listener state.
 func update_spline_acoustics(listener_pos: Vector3, listener_vel: Vector3 = Vector3.ZERO, delta: float = 0.016) -> void:

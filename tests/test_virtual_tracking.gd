@@ -4,12 +4,18 @@ extends RefCounted
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const VoicePoolManagerClass = preload("res://addons/opendou/runtime/voice_pool_manager.gd")
+const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
+const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 static func run_all() -> Array[String]:
+	# Un AudioEventDef sin stream ya no obtiene canal fisico: conceder hardware
+	# para emitir silencio no tiene sentido. Los tests que afirman que una voz es
+	# fisica necesitan por tanto una voz que pueda sonar de verdad.
+	var _test_tone := AudioSynthesizerClass.create_tone(440.0, 0.1, 0.5, false)
 	var failures: Array[String] = []
 	
 	# Test 1: Pitch-scaled virtual time advancement
-	var def_pitch = AudioEventDefClass.new(&"Motor_RPM")
+	var def_pitch = AudioEventDefClass.new(&"Motor_RPM", _test_tone)
 	def_pitch.virtualization_mode = AudioEventDefClass.VirtualizationMode.VIRTUAL_ELAPSED_TIME
 	var inst_pitch = EventInstanceClass.new(def_pitch)
 	inst_pitch.calculated_pitch_scale = 1.5 # 50% faster
@@ -20,7 +26,7 @@ static func run_all() -> Array[String]:
 		failures.append("Test 1 Failed: Pitch-scaled virtual time expected 3.0s, got %f" % inst_pitch.logical_playback_position)
 		
 	# Test 2: Looping Modulo Wrapping
-	var def_loop = AudioEventDefClass.new(&"Ambient_River")
+	var def_loop = AudioEventDefClass.new(&"Ambient_River", _test_tone)
 	def_loop.stream_length = 10.0
 	def_loop.is_looping = true
 	def_loop.virtualization_mode = AudioEventDefClass.VirtualizationMode.VIRTUAL_ELAPSED_TIME
@@ -32,7 +38,7 @@ static func run_all() -> Array[String]:
 		failures.append("Test 2 Failed: Loop wrapping expected 3.5s, got %f" % inst_loop.logical_playback_position)
 		
 	# Test 3: Non-Looping Natural Auto-Expiration
-	var def_oneshot = AudioEventDefClass.new(&"Voice_Bark")
+	var def_oneshot = AudioEventDefClass.new(&"Voice_Bark", _test_tone)
 	def_oneshot.stream_length = 4.0
 	def_oneshot.is_looping = false
 	def_oneshot.virtualization_mode = AudioEventDefClass.VirtualizationMode.VIRTUAL_ELAPSED_TIME
@@ -44,7 +50,7 @@ static func run_all() -> Array[String]:
 		failures.append("Test 3 Failed: Non-looping virtual sound should be STATE_STOPPED after duration expires")
 		
 	# Test 4: VIRTUAL_RESUME Mode (Frozen Position)
-	var def_dialogue = AudioEventDefClass.new(&"Hero_Dialogue")
+	var def_dialogue = AudioEventDefClass.new(&"Hero_Dialogue", _test_tone)
 	def_dialogue.virtualization_mode = AudioEventDefClass.VirtualizationMode.VIRTUAL_RESUME
 	var inst_dialogue = EventInstanceClass.new(def_dialogue)
 	inst_dialogue.play()
@@ -56,7 +62,9 @@ static func run_all() -> Array[String]:
 		
 	# Test 5: Dynamic Bus Routing on Devirtualization
 	var pool = VoicePoolManagerClass.new(1)
-	var def_sfx = AudioEventDefClass.new(&"Laser")
+	# Una voz solo puede volverse fisica si hay un reproductor real que la sirva.
+	pool.set_player_pool(NativePlayerPoolClass.new(64))
+	var def_sfx = AudioEventDefClass.new(&"Laser", _test_tone)
 	def_sfx.target_bus = &"SFX_Weapons"
 	var inst_sfx = EventInstanceClass.new(def_sfx)
 	inst_sfx.play()
@@ -72,4 +80,7 @@ static func run_all() -> Array[String]:
 		if ch.target_bus != &"SFX_Weapons":
 			failures.append("Test 5c Failed: Mercenary channel target_bus expected 'SFX_Weapons', got '%s'" % str(ch.target_bus))
 			
+	# El pool de reproductores es un Node: liberarlo es responsabilidad de quien
+	# lo inyecta, o el trinquete de fugas lo detecta.
+	pool.player_pool.free()
 	return failures

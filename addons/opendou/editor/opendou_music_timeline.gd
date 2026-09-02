@@ -22,8 +22,10 @@ const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthe
 const OpenDouTrackLaneDataClass = preload("res://addons/opendou/editor/opendou_track_lane_data.gd")
 const SynthPresetRegistryClass = preload("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
 const ModularSynthEngineClass = preload("res://addons/opendou/runtime/synth/modular_synth_engine.gd")
+const DataPathsClass = preload("res://addons/opendou/runtime/data_paths.gd")
 
-const MUSIC_SUITES_SAVE_PATH = "res://opendou_music_suites.json"
+## Guardar va al override del proyecto; leer pasa por el resolutor.
+const MUSIC_SUITES_SAVE_PATH = "%s%s.json" % [OpenDouDataPaths.PROJECT_PREFIX, OpenDouDataPaths.MUSIC_SUITES]
 
 var clock: MusicClock
 var transition_matrix: MusicTransitionMatrix

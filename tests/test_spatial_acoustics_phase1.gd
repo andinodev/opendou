@@ -142,8 +142,16 @@ static func run_all() -> Array[String]:
 	if plugin_file:
 		var plugin_text = plugin_file.get_as_text()
 		plugin_file.close()
-		if not plugin_text.contains("OpenDouSplineEmitter3D"):
-			failures.append("Test 8 Failed: OpenDouSplineEmitter3D not registered in plugin.gd")
+		# El registro por add_custom_type se retiro. La clase debe estar en el
+		# registro global con su icono, que es de donde el dialogo "Crear nodo" las
+		# toma.
+		var spline_registered := false
+		for entry in ProjectSettings.get_global_class_list():
+			if str(entry.get("class", "")) == "OpenDouSplineEmitter3D":
+				spline_registered = not str(entry.get("icon", "")).is_empty()
+				break
+		if not spline_registered:
+			failures.append("Test 8 Failed: OpenDouSplineEmitter3D no esta en el registro global con icono")
 	else:
 		failures.append("Test 8 Failed: Could not read plugin.gd")
 	

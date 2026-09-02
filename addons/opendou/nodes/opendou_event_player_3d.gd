@@ -9,8 +9,8 @@ extends AudioStreamPlayer3D
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event_manager.gd")
-const OcclusionManagerClass = preload("res://addons/opendou/runtime/spatial/occlusion_manager.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
+const SynthPresetRegistryClass = preload("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
 
 # ==============================================================================
 # EXPORT GROUPS
@@ -28,23 +28,20 @@ var synth_preset: String = "None"
 @export var synth_frequency: float = 440.0
 
 func _get_property_list() -> Array[Dictionary]:
-	var properties: Array[Dictionary] = []
-	var presets: Array[String] = ["None"]
-	var reg = load("res://addons/opendou/runtime/synth/synth_preset_registry.gd")
-	if reg != null:
-		var singleton = reg.get_singleton()
-		if singleton != null:
-			for p_name in singleton.get_preset_names():
-				presets.append(str(p_name))
-	var hint_str = ",".join(presets)
-	properties.append({
+	# El inspector invoca este metodo en CADA refresco. Antes hacia aqui un load()
+	# desde disco y enumeraba el registro de presets entero cada vez; el hint viene
+	# ahora de una cache que el propio registro invalida al cambiar.
+	var hint_str: String = "None"
+	var singleton = SynthPresetRegistryClass.get_singleton()
+	if singleton != null:
+		hint_str = singleton.get_preset_hint_string()
+	return [{
 		"name": "synth_preset",
 		"type": TYPE_STRING,
 		"hint": PROPERTY_HINT_ENUM,
 		"hint_string": hint_str,
 		"usage": PROPERTY_USAGE_DEFAULT
-	})
-	return properties
+	}]
 
 @export_group("Game Syncs")
 @export var rtpc_bindings: Dictionary = {}
@@ -54,8 +51,8 @@ func _get_property_list() -> Array[Dictionary]:
 @export var active_state: StringName = &""
 
 @export_group("Spatial Acoustics & Occlusion")
-@export var enable_binaural_hrtf: bool = true
 @export var enable_early_reflections: bool = true
+## Informa al programador central de oclusion; ya no dispara raycasts propios.
 @export var enable_dynamic_occlusion: bool = true
 @export_flags_3d_physics var occlusion_collision_mask: int = 1
 @export var occlusion_refresh_interval: float = 0.05
@@ -74,12 +71,7 @@ func _get_property_list() -> Array[Dictionary]:
 
 var active_instance: EventInstance = null
 var _event_manager: AudioEventManager = null
-var _occlusion_manager: OcclusionManager = null
-var _calculated_occlusion: float = 0.0
-var _occlusion_timer: float = 0.0
 
-func _init() -> void:
-	_occlusion_manager = OcclusionManagerClass.new()
 
 func _ready() -> void:
 	if not Engine.is_editor_hint():
@@ -88,25 +80,17 @@ func _ready() -> void:
 		elif stream == null and not event_name.is_empty():
 			_auto_infer_synth_preset()
 			
-		if auto_play_event:
+		# Un unico camino de arranque: play_event() es quien crea la voz. Antes
+		# autoplay llamaba al play() nativo por su cuenta, dejando una voz que el
+		# manager no conocia.
+		if auto_play_event or (autoplay and stream != null):
 			play_event()
-		elif autoplay and stream != null and not playing:
-			play()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_EXIT_TREE:
 		if stop_on_tree_exit and active_instance != null:
 			active_instance.stop()
 
-func _process(delta: float) -> void:
-	if Engine.is_editor_hint():
-		return
-		
-	if enable_dynamic_occlusion and is_inside_tree():
-		_occlusion_timer += delta
-		if _occlusion_timer >= occlusion_refresh_interval:
-			_occlusion_timer = 0.0
-			_update_occlusion()
 
 # ==============================================================================
 # PUBLIC API
@@ -120,6 +104,13 @@ func set_event_manager(manager: AudioEventManager) -> void:
 func play_event(p_event_name: StringName = &"") -> void:
 	var target_name: StringName = p_event_name if not p_event_name.is_empty() else event_name
 	var manager: AudioEventManager = _get_manager()
+	# El reproductor de este nodo puede hospedar UNA voz. Si ya habia una activa hay
+	# que detenerla: si no, la vieja se queda ocupando el emisor y, con el bonus de
+	# histeresis del pool, le gana a la nueva. Dos disparos seguidos del mismo emisor
+	# -dos pisadas, dos disparos de arma- dejaban muda la segunda.
+	if active_instance != null:
+		stop_event()
+
 	
 	if manager != null:
 		if event_def != null and p_event_name.is_empty():
@@ -142,6 +133,9 @@ func play_event(p_event_name: StringName = &"") -> void:
 		active_instance.play()
 		
 	if active_instance != null:
+		# El reproductor de este nodo ES la voz fisica. Vincularlo evita que el
+		# pool le asigne ademas una voz anonima, que era la doble reproduccion.
+		active_instance.bind_player(self)
 		active_instance.virtualization_mode = virtualization_mode
 		active_instance.max_distance = cull_distance
 		var cur_pos: Vector3 = global_position if is_inside_tree() else position
@@ -163,8 +157,6 @@ func play_event(p_event_name: StringName = &"") -> void:
 	if AudioServer.get_bus_index(bus_category) != -1:
 		bus = bus_category
 
-	if stream != null and is_inside_tree():
-		play(0.0)
 
 ## Stops playback of the currently active event instance.
 func stop_event(fade_time: float = 0.0) -> void:
@@ -200,7 +192,13 @@ func set_state(group: StringName, state_value: StringName) -> void:
 
 ## Returns the latest calculated physical occlusion factor (0.0 = clear, 1.0 = fully occluded).
 func get_calculated_occlusion() -> float:
-	return _calculated_occlusion
+	if active_instance == null:
+		return 0.0
+	# El programador central escribe el LPF objetivo en la instancia y de ahi se
+	# deriva el factor. El rango va del LPF sin ocluir al de oclusion total, que
+	# son los limites que usa OcclusionManager.
+	var span: float = 20000.0 - 1500.0
+	return clampf((20000.0 - active_instance.target_spatial_lpf) / span, 0.0, 1.0)
 
 # ==============================================================================
 # INTERNAL HELPERS
@@ -221,32 +219,6 @@ func _get_manager() -> AudioEventManager:
 			return s
 	return null
 
-func _update_occlusion() -> void:
-	var listener_pos: Vector3 = Vector3.ZERO
-	var manager = _get_manager()
-	if manager != null:
-		listener_pos = manager.active_listener_position
-	elif get_viewport() != null:
-		var cam: Camera3D = get_viewport().get_camera_3d()
-		if cam != null:
-			listener_pos = cam.global_position
-			
-	if not is_inside_tree() or get_world_3d() == null:
-		return
-		
-	var space_state = get_world_3d().direct_space_state
-	if space_state == null:
-		return
-		
-	var query = PhysicsRayQueryParameters3D.create(global_position, listener_pos, occlusion_collision_mask)
-	var hit = space_state.intersect_ray(query)
-	var ray_hits: Array[bool] = [not hit.is_empty()]
-	
-	if _occlusion_manager != null:
-		var occ_result = _occlusion_manager.evaluate_occlusion(global_position, listener_pos, ray_hits)
-		_calculated_occlusion = occ_result.occlusion_factor
-		if active_instance != null:
-			active_instance.set_target_lpf(occ_result.target_lpf, occ_result.volume_attenuation_db)
 
 func _apply_synth_preset() -> void:
 	if synth_preset == "None" or synth_preset.is_empty():

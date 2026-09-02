@@ -2,19 +2,27 @@ class_name TestVoicePool
 extends RefCounted
 
 const VoicePoolManagerClass = preload("res://addons/opendou/runtime/voice_pool_manager.gd")
+const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
+const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 static func run_all() -> Array[String]:
+	# Un AudioEventDef sin stream ya no obtiene canal fisico: conceder hardware
+	# para emitir silencio no tiene sentido. Los tests que afirman que una voz es
+	# fisica necesitan por tanto una voz que pueda sonar de verdad.
+	var _test_tone := AudioSynthesizerClass.create_tone(440.0, 0.1, 0.5, false)
 	var failures: Array[String] = []
 	
 	# Setup VoicePool with only 2 channels for deterministic testing
 	var pool = VoicePoolManagerClass.new(2)
+	# Una voz solo puede volverse fisica si hay un reproductor real que la sirva.
+	pool.set_player_pool(NativePlayerPoolClass.new(64))
 	
-	var def_low = AudioEventDefClass.new(&"Footstep")
+	var def_low = AudioEventDefClass.new(&"Footstep", _test_tone)
 	def_low.base_priority = 20.0
 	
-	var def_high = AudioEventDefClass.new(&"Explosion")
+	var def_high = AudioEventDefClass.new(&"Explosion", _test_tone)
 	def_high.base_priority = 90.0
 	
 	var inst1 = EventInstanceClass.new(def_low)
@@ -37,7 +45,7 @@ static func run_all() -> Array[String]:
 		failures.append("Test 1 Failed: High priority Explosion should be PHYSICAL")
 		
 	# Test 2: Distance Virtualization
-	var def_distant = AudioEventDefClass.new(&"Distant_Gunshot")
+	var def_distant = AudioEventDefClass.new(&"Distant_Gunshot", _test_tone)
 	def_distant.base_priority = 100.0
 	var inst_distant = EventInstanceClass.new(def_distant)
 	inst_distant.set_position(Vector3(500.0, 0.0, 0.0))
@@ -61,7 +69,9 @@ static func run_all() -> Array[String]:
 		
 	# Test 4: VirtualizationMode.VIRTUAL_KILL_VOICE
 	var pool_tiny = VoicePoolManagerClass.new(1)
-	var def_kill = AudioEventDefClass.new(&"Debris")
+	# Una voz solo puede volverse fisica si hay un reproductor real que la sirva.
+	pool_tiny.set_player_pool(NativePlayerPoolClass.new(64))
+	var def_kill = AudioEventDefClass.new(&"Debris", _test_tone)
 	def_kill.base_priority = 5.0
 	
 	var inst_kill = EventInstanceClass.new(def_kill)
@@ -77,4 +87,8 @@ static func run_all() -> Array[String]:
 	if inst_kill.voice_state != EventInstanceClass.VoiceState.STATE_KILLED:
 		failures.append("Test 4 Failed: Event with KILL_VOICE mode should be STATE_KILLED when losing pool channel")
 		
+	# El pool de reproductores es un Node: liberarlo es responsabilidad de quien
+	# lo inyecta, o el trinquete de fugas lo detecta.
+	pool.player_pool.free()
+	pool_tiny.player_pool.free()
 	return failures

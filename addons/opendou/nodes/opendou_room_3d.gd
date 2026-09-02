@@ -9,12 +9,12 @@ extends Area3D
 
 const AudioRoomClass = preload("res://addons/opendou/runtime/spatial/audio_room.gd")
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
-const ConvolutionReverbNodeClass = preload("res://addons/opendou/core/dsp/convolution_reverb_node.gd")
+const IRAnalyzerClass = preload("res://addons/opendou/runtime/spatial/ir_rt60_analyzer.gd")
+const TransformUtilsClass = preload("res://addons/opendou/runtime/spatial/transform_utils.gd")
 
 enum ReverbMode {
-	ALGORITHMIC,
-	CONVOLUTION_IR,
-	HYBRID
+	SABINE_RT60,     ## RT60 calculado geometricamente con la formula de Sabine
+	IR_DERIVED_RT60, ## RT60 derivado de una respuesta al impulso medida
 }
 
 # ==============================================================================
@@ -31,32 +31,32 @@ enum ReverbMode {
 @export var snapshot_on_enter: StringName = &""
 
 @export_group("Reverb & Convolution IR")
-@export var reverb_mode: ReverbMode = ReverbMode.ALGORITHMIC:
+@export var reverb_mode: ReverbMode = ReverbMode.SABINE_RT60:
 	set(val):
 		reverb_mode = val
 		if runtime_room != null:
 			runtime_room.reverb_mode = int(val)
 
+## Respuesta al impulso medida de la sala.
+##
+## Ya no se convoluciona: se analiza para derivar su RT60, que es el que alimenta
+## el reverb nativo cuando reverb_mode es IR_DERIVED_RT60.
 @export var impulse_response_stream: AudioStreamWAV = null:
 	set(val):
 		impulse_response_stream = val
-		_update_ir_kernel()
+		_ir_derived_rt60 = IRAnalyzerClass.rt60_from_ir(val)
 
-@export_range(-60.0, 0.0, 0.5) var convolution_wet_db: float = -6.0:
+## Cuanta senal de los emisores de dentro se envia al bus de reverb de la sala.
+@export_range(0.0, 1.0, 0.01) var reverb_send_amount: float = 0.5:
 	set(val):
-		convolution_wet_db = val
-		if runtime_room != null:
-			runtime_room.convolution_wet_db = val
-		if _convolution_node:
-			_convolution_node.wet_gain_db = val
+		reverb_send_amount = clampf(val, 0.0, 1.0)
+		reverb_bus_amount = reverb_send_amount
 
-@export_range(-60.0, 0.0, 0.5) var convolution_dry_db: float = 0.0:
+## Uniformidad del reverb dentro del volumen de la sala.
+@export_range(0.0, 1.0, 0.01) var reverb_uniformity: float = 0.5:
 	set(val):
-		convolution_dry_db = val
-		if runtime_room != null:
-			runtime_room.convolution_dry_db = val
-		if _convolution_node:
-			_convolution_node.dry_gain_db = val
+		reverb_uniformity = clampf(val, 0.0, 1.0)
+		reverb_bus_uniformity = reverb_uniformity
 
 # ==============================================================================
 # RUNTIME STATE
@@ -65,7 +65,12 @@ enum ReverbMode {
 var runtime_room: AudioRoom = null
 var _acoustics_manager: SpatialAcousticsManager = null
 var _dimensions: Vector3 = Vector3.ZERO
-var _convolution_node: ConvolutionReverbNode = null
+## RT60 derivado del ultimo IR asignado, en segundos. 0.0 si no hay o no se pudo
+## medir.
+var _ir_derived_rt60: float = 0.0
+
+## Bus de reverb que el pool asigno a esta sala.
+var _assigned_reverb_bus: StringName = &""
 
 func _ready() -> void:
 	# Auto-detect child CollisionShape3D box dimensions
@@ -105,8 +110,12 @@ func calculate_sabine_reverb(dimensions: Vector3) -> float:
 		runtime_room.damping = alpha
 		runtime_room.floor_surface = floor_surface
 		runtime_room.material_preset = material_preset
-		var center_pos: Vector3 = global_position if is_inside_tree() else position
-		runtime_room.set_bounds(AABB(center_pos - _dimensions * 0.5, _dimensions))
+		# El AABB envuelve las ocho esquinas transformadas, asi que respeta rotacion
+		# y escala. Antes se construia como centro +- tamano/2, que solo es correcto
+		# si la sala no esta rotada ni escalada.
+		runtime_room.set_bounds(
+			TransformUtilsClass.enclosing_aabb(TransformUtilsClass.world_transform_of(self), _dimensions)
+		)
 		
 	return calculated_rt60
 
@@ -135,10 +144,20 @@ func get_absorption() -> float:
 			return absorption_coefficient
 
 ## Returns custom reverb time if set (> 0.0), otherwise calculated Sabine RT60.
+## RT60 efectivo de la sala, en segundos.
+##
+## Prioridad: el valor manual si se fijo, luego el derivado del IR si el modo lo
+## pide y se pudo medir, y por ultimo el calculo de Sabine.
 func get_effective_reverb_time() -> float:
 	if custom_reverb_time > 0.0:
 		return custom_reverb_time
+	if reverb_mode == ReverbMode.IR_DERIVED_RT60 and _ir_derived_rt60 > 0.0:
+		return _ir_derived_rt60
 	return calculated_rt60
+
+## RT60 derivado del IR asignado, en segundos.
+func get_ir_derived_rt60() -> float:
+	return _ir_derived_rt60
 
 ## Explicitly injects a SpatialAcousticsManager for isolated testing.
 func set_acoustics_manager(manager: SpatialAcousticsManager) -> void:
@@ -154,8 +173,6 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 		runtime_room = AudioRoomClass.new(room_name, reverb_time, alpha, floor_surface)
 		runtime_room.material_preset = material_preset
 		runtime_room.reverb_mode = int(reverb_mode)
-		runtime_room.convolution_wet_db = convolution_wet_db
-		runtime_room.convolution_dry_db = convolution_dry_db
 	else:
 		runtime_room.room_name = room_name
 		runtime_room.reverb_decay_time = reverb_time
@@ -163,8 +180,6 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 		runtime_room.floor_surface = floor_surface
 		runtime_room.material_preset = material_preset
 		runtime_room.reverb_mode = int(reverb_mode)
-		runtime_room.convolution_wet_db = convolution_wet_db
-		runtime_room.convolution_dry_db = convolution_dry_db
 
 	if _dimensions == Vector3.ZERO:
 		for child in get_children():
@@ -174,53 +189,56 @@ func register_in_manager(manager: SpatialAcousticsManager = null) -> AudioRoom:
 					break
 
 	if _dimensions != Vector3.ZERO:
-		var center_pos: Vector3 = global_position if is_inside_tree() else _get_world_position_fallback()
-		runtime_room.set_bounds(AABB(center_pos - _dimensions * 0.5, _dimensions))
+		runtime_room.set_bounds(
+			TransformUtilsClass.enclosing_aabb(TransformUtilsClass.world_transform_of(self), _dimensions)
+		)
 
 	if mgr != null:
 		mgr.register_room(runtime_room)
 
+	_route_native_reverb(mgr)
+
 	return runtime_room
 
-func _get_world_position_fallback() -> Vector3:
-	var pos: Vector3 = position
-	var cur: Node = get_parent()
-	while cur != null and cur is Node3D:
-		pos += (cur as Node3D).position
-		cur = cur.get_parent()
-	return pos
-
-func _update_ir_kernel() -> void:
-	if _convolution_node == null:
-		_convolution_node = ConvolutionReverbNodeClass.new()
-	_convolution_node.wet_gain_db = convolution_wet_db
-	_convolution_node.dry_gain_db = convolution_dry_db
-
-	var kernel: PackedFloat32Array = PackedFloat32Array()
-	if impulse_response_stream != null and impulse_response_stream.data.size() > 0:
-		var raw = impulse_response_stream.data
-		var count = min(raw.size() / 2, 512)
-		kernel.resize(count)
-		for i in range(count):
-			var b0 = raw[i * 2]
-			var b1 = raw[i * 2 + 1]
-			var val16 = b0 | (b1 << 8)
-			if val16 >= 32768:
-				val16 -= 65536
-			kernel[i] = float(val16) / 32768.0
-	else:
-		# Calibrated default concrete bunker IR kernel (exponential decay)
-		kernel.resize(512)
-		for i in range(512):
-			kernel[i] = exp(-float(i) / 64.0) * sin(float(i) * 0.2)
-
-	_convolution_node.set_impulse_response(kernel)
-	if runtime_room != null:
-		runtime_room.ir_kernel = kernel
 
 # ==============================================================================
 # INTERNAL HELPERS
 # ==============================================================================
+
+## Bus de reverb que el pool asigno a esta sala.
+func get_assigned_reverb_bus() -> StringName:
+	return _assigned_reverb_bus
+
+## Pide su bus de reverb al pool y enruta el reverb nativo del Area3D hacia el.
+##
+## Sustituye a la convolucion en GDScript, que calculaba 512 taps que nadie
+## reproducia. Aqui el reverb lo aplica Godot en C++ sobre un bus compartido.
+func _route_native_reverb(mgr: SpatialAcousticsManager) -> void:
+	if mgr == null or mgr.reverb_bus_pool == null:
+		return
+
+	var bus: StringName = mgr.reverb_bus_pool.bus_for_rt60(get_effective_reverb_time(), get_absorption())
+	if bus.is_empty():
+		return
+	_assigned_reverb_bus = bus
+
+	reverb_bus_enabled = true
+	reverb_bus_name = String(bus)
+	reverb_bus_amount = reverb_send_amount
+	reverb_bus_uniformity = reverb_uniformity
+
+	# Godot NO da error si el bus no existe: coacciona el nombre a "Master" y el
+	# reverb de la sala entera se va al bus maestro sin que nadie se entere. Hay
+	# que releer el valor para saber si la asignacion pego.
+	if String(reverb_bus_name) != String(bus):
+		push_error("[OpenDou] la sala '%s' no pudo enrutar su reverb al bus '%s': Godot lo coacciono a '%s'." % [
+			str(room_name), String(bus), String(reverb_bus_name)])
+		_assigned_reverb_bus = StringName(reverb_bus_name)
+
+	# El reverb nativo solo alcanza a los reproductores cuyo area_mask corte la
+	# capa de este Area3D. Las voces del pool nacen con area_mask = 1.
+	if (collision_layer & 1) == 0:
+		push_warning("[OpenDou] la sala '%s' no esta en la capa fisica 1, asi que el reverb nativo no alcanzara a las voces del pool de OpenDou." % str(room_name))
 
 func _get_acoustics_manager() -> SpatialAcousticsManager:
 	if _acoustics_manager != null and is_instance_valid(_acoustics_manager):
@@ -236,6 +254,17 @@ func _get_acoustics_manager() -> SpatialAcousticsManager:
 		if "spatial_acoustics" in s and s.spatial_acoustics != null:
 			return s.spatial_acoustics
 	return null
+
+## Se da de baja del grafo acustico al salir del arbol.
+##
+## Sin esto, cambiar de escena dejaba la sala registrada para siempre, y una sala muerta
+## que envuelva el nivel siguiente tapa todas sus salas. Observacion 38.
+func _exit_tree() -> void:
+	if Engine.is_editor_hint():
+		return
+	var mgr: SpatialAcousticsManager = _get_acoustics_manager()
+	if mgr != null:
+		mgr.unregister_room(room_name)
 
 func _on_body_entered(_body: Node) -> void:
 	if not snapshot_on_enter.is_empty():

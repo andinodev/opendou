@@ -42,6 +42,17 @@ enum VirtualizationMode {
 ## Whether this audio event loops continuously.
 @export var is_looping: bool = false
 
+## Sonoridad de diseno del evento en dB HDR: cuanto suena esta cosa EN EL MUNDO,
+## no en la mezcla. Explosion +18, disparo +6, pisada -20.
+##
+## Es la entrada del motor HDR, que la compara con la ventana de sonoridad activa
+## para decidir cuanto se atenua esta voz. No confundir con base_volume_db, que es
+## nivel de mezcla: son magnitudes distintas.
+##
+## El valor por defecto de 0.0 hace que la contribucion del HDR sea exactamente
+## 0 dB, asi que activarlo no altera ninguna mezcla existente.
+@export var hdr_loudness_db: float = 0.0
+
 @export var base_volume_db: float = 0.0
 @export var base_pitch_scale: float = 1.0
 @export var base_priority: float = 50.0 # 0 (lowest) to 100 (highest)

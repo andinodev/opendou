@@ -1,309 +1,100 @@
 [gd_scene format=3 uid="uid://cb41mlav031qg"]
 
 [ext_resource type="Script" uid="uid://cvavudmmwkp0s" path="res://scenes/demos/demo_hub.gd" id="1_script"]
+[ext_resource type="Theme" path="res://scenes/shared/opendou_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://scenes/shared/demo_card.tscn" id="3_card"]
 
-[node name="DemoHub" type="Control" unique_id=35559910]
+[node name="DemoHub" type="Control" unique_id=269230938]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_script")
 
-[node name="Background" type="ColorRect" parent="." unique_id=822942828]
+[node name="Background" type="ColorRect" parent="." unique_id=1327255432]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.07, 0.08, 0.1, 1)
+color = Color(0.07, 0.08, 0.105, 1)
 
-[node name="MainContainer" type="VBoxContainer" parent="." unique_id=470453482]
+[node name="Margin" type="MarginContainer" parent="." unique_id=678714139]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_top = 24.0
-offset_right = -32.0
-offset_bottom = -24.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 20
+theme_override_constants/margin_left = 56
+theme_override_constants/margin_top = 44
+theme_override_constants/margin_right = 56
+theme_override_constants/margin_bottom = 36
 
-[node name="HeaderPanel" type="PanelContainer" parent="MainContainer" unique_id=418761906]
+[node name="Column" type="VBoxContainer" parent="Margin" unique_id=1166928880]
 layout_mode = 2
+theme_override_constants/separation = 28
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/HeaderPanel" unique_id=1280779145]
+[node name="Header" type="VBoxContainer" parent="Margin/Column" unique_id=1027423295]
 layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 12
-
-[node name="HBox" type="HBoxContainer" parent="MainContainer/HeaderPanel/Margin" unique_id=315591727]
-layout_mode = 2
-
-[node name="VBox" type="VBoxContainer" parent="MainContainer/HeaderPanel/Margin/HBox" unique_id=1706307904]
-layout_mode = 2
-
-[node name="Title" type="Label" parent="MainContainer/HeaderPanel/Margin/HBox/VBox" unique_id=55218953]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "🎧 OpenDou Audio Middleware - Interactive Feature Showcase"
-
-[node name="Subtitle" type="Label" parent="MainContainer/HeaderPanel/Margin/HBox/VBox" unique_id=914120334]
-layout_mode = 2
-text = "Interactive AAA audio systems running natively in Godot 4.7+"
-
-[node name="BtnMasterSandbox" type="Button" parent="MainContainer/HeaderPanel/Margin/HBox" unique_id=1389357603]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "⭐ Launch Master Vertical Slice"
-
-[node name="BtnRunTests" type="Button" parent="MainContainer/HeaderPanel/Margin/HBox" unique_id=1792861876]
-layout_mode = 2
-text = "🧪 Run 90 Unit Tests"
-
-[node name="HeroCard" type="PanelContainer" parent="MainContainer" unique_id=987654321]
-layout_mode = 2
-
-[node name="Margin" type="MarginContainer" parent="MainContainer/HeroCard" unique_id=987654322]
-layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 16
-
-[node name="HBox" type="HBoxContainer" parent="MainContainer/HeroCard/Margin" unique_id=987654323]
-layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="VBox" type="VBoxContainer" parent="MainContainer/HeroCard/Margin/HBox" unique_id=987654324]
-layout_mode = 2
-size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="HeroTitle" type="Label" parent="MainContainer/HeroCard/Margin/HBox/VBox" unique_id=987654325]
+[node name="Title" type="Label" parent="Margin/Column/Header" unique_id=1504321389]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "🏙️ Demo 07: Cyberpunk Infiltration (AAA Showcase)"
+theme_type_variation = &"TitleLabel"
+text = "OpenDou"
 
-[node name="HeroDesc" type="Label" parent="MainContainer/HeroCard/Margin/HBox/VBox" unique_id=987654326]
+[node name="Subtitle" type="Label" parent="Margin/Column/Header" unique_id=1172944615]
 layout_mode = 2
-text = "Fully playable 3D vertical slice featuring 4 acoustic sectors, airlock portal diffraction, 250-voice siege virtualization, localized radio dialogue, and adaptive combat music."
+theme_type_variation = &"MutedLabel"
+text = "Cinco escenas. Cada una demuestra una cosa; si no se oye, esta roto."
 
-[node name="BtnLaunch7" type="Button" parent="MainContainer/HeroCard/Margin/HBox" unique_id=987654327]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "🎮 Launch Demo 7: Cyberpunk Infiltration (AAA Showcase)"
-
-[node name="GridContainer" type="GridContainer" parent="MainContainer" unique_id=1163110350]
+[node name="Center" type="CenterContainer" parent="Margin/Column" unique_id=228915969]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/h_separation = 20
-theme_override_constants/v_separation = 20
+
+[node name="Grid" type="GridContainer" parent="Margin/Column/Center" unique_id=1205490647]
+layout_mode = 2
+theme_override_constants/h_separation = 22
+theme_override_constants/v_separation = 22
 columns = 3
 
-[node name="Card1" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=1673384373]
+[node name="Card_Keel" parent="Margin/Column/Center/Grid" unique_id=82812485 instance=ExtResource("3_card")]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+demo_title = "Bajo la quilla"
+thesis = "El mismo emisor suena de cuatro maneras distintas solo por geometria: directo, difractado, como cola de reverb, y opaco bajo el agua."
+scene_path = "res://scenes/demos/keel/keel_demo.tscn"
 
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card1" unique_id=575027802]
+[node name="Card_Monsoon" parent="Margin/Column/Center/Grid" unique_id=1684623395 instance=ExtResource("3_card")]
 layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+demo_title = "El monzon"
+thesis = "200 emisores contra 32 voces fisicas. El voice stealing decide cada frame, y el trueno hunde el ambiente porque la ventana HDR subio."
+scene_path = "res://scenes/demos/monsoon/monsoon_demo.tscn"
 
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card1/Margin" unique_id=1159588366]
+[node name="Card_Cabin" parent="Margin/Column/Center/Grid" unique_id=2037459066 instance=ExtResource("3_card")]
 layout_mode = 2
-theme_override_constants/separation = 10
+demo_title = "La cabina"
+thesis = "Un solo RTPC conduce tres cosas a la vez -stems, filtro de la radio, reverb- y los estados cruzan en lugar de cortar."
+scene_path = "res://scenes/demos/cabin/cabin_demo.tscn"
 
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card1/Margin/VBox" unique_id=791370631]
+[node name="Card_Street" parent="Margin/Column/Center/Grid" unique_id=32125030 instance=ExtResource("3_card")]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "🚪 01: Spatial Rooms & Portals"
+demo_title = "Una casa canta"
+thesis = "Una casa vibra, dos duermen, y la calle es el puente: la musica sale por la ventana entreabierta, y dentro de las dormidas la calle llega amortiguada."
+scene_path = "res://scenes/demos/street/street_demo.tscn"
 
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card1/Margin/VBox" unique_id=2005843034]
+[node name="Card_Bench" parent="Margin/Column/Center/Grid" unique_id=279734392 instance=ExtResource("3_card")]
 layout_mode = 2
-size_flags_vertical = 3
-text = "Macro-acoustic pathfinding, doorway portal diffraction and multi-room reverb sends in full 3D."
-autowrap_mode = 2
+demo_title = "Banco del rig"
+thesis = "Tres materiales, un jugador con oyente y un NPC sin el. Donde se valida la convencion de metadata antes de que las demos dependan de ella."
+scene_path = "res://scenes/rig_bench/rig_bench.tscn"
 
-[node name="BtnLaunch1" type="Button" parent="MainContainer/GridContainer/Card1/Margin/VBox" unique_id=1563908711]
+[node name="Footer" type="Label" parent="Margin/Column" unique_id=638454834]
 layout_mode = 2
-text = "Launch Demo 01"
-
-[node name="Card2" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=397759919]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card2" unique_id=567035256]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
-
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card2/Margin" unique_id=1651370472]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card2/Margin/VBox" unique_id=1224599014]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "⚡ 02: Massive Voice Starvation"
-
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card2/Margin/VBox" unique_id=1066276084]
-layout_mode = 2
-size_flags_vertical = 3
-text = "250+ simultaneous emitters managed by hardware voice pool with zero-cost virtual tracking."
-autowrap_mode = 2
-
-[node name="BtnLaunch2" type="Button" parent="MainContainer/GridContainer/Card2/Margin/VBox" unique_id=14822997]
-layout_mode = 2
-text = "Launch Demo 02"
-
-[node name="Card3" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=74100609]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card3" unique_id=2004449970]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
-
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card3/Margin" unique_id=688629857]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card3/Margin/VBox" unique_id=1187781185]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "👞 03: Footstep Surfaces"
-
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card3/Margin/VBox" unique_id=2129088090]
-layout_mode = 2
-size_flags_vertical = 3
-text = "Discrete switch containers (Wood, Concrete, Metal, Water) with shuffle bags and pitch/vol jitter."
-autowrap_mode = 2
-
-[node name="BtnLaunch3" type="Button" parent="MainContainer/GridContainer/Card3/Margin/VBox" unique_id=903094824]
-layout_mode = 2
-text = "Launch Demo 03"
-
-[node name="Card4" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=206956711]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card4" unique_id=2073621935]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
-
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card4/Margin" unique_id=1884132726]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card4/Margin/VBox" unique_id=885614859]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "🏎️ 04: Vehicle RPM Crossfading"
-
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card4/Margin/VBox" unique_id=2074415288]
-layout_mode = 2
-size_flags_vertical = 3
-text = "Multi-layer engine crossfading driven by continuous RTPC curves with silence culling at -80dB."
-autowrap_mode = 2
-
-[node name="BtnLaunch4" type="Button" parent="MainContainer/GridContainer/Card4/Margin/VBox" unique_id=121836643]
-layout_mode = 2
-text = "Launch Demo 04"
-
-[node name="Card5" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=1506581758]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card5" unique_id=1374102919]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
-
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card5/Margin" unique_id=1634233034]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card5/Margin/VBox" unique_id=1747046923]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "🧱 05: Dynamic Raycast Occlusion"
-
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card5/Margin/VBox" unique_id=572667777]
-layout_mode = 2
-size_flags_vertical = 3
-text = "Multi-ray obstacle detection, geometry line-of-sight tests, and slew-rate filter smoothing."
-autowrap_mode = 2
-
-[node name="BtnLaunch5" type="Button" parent="MainContainer/GridContainer/Card5/Margin/VBox" unique_id=1682617092]
-layout_mode = 2
-text = "Launch Demo 05"
-
-[node name="Card6" type="PanelContainer" parent="MainContainer/GridContainer" unique_id=428755032]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="Margin" type="MarginContainer" parent="MainContainer/GridContainer/Card6" unique_id=888283090]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
-
-[node name="VBox" type="VBoxContainer" parent="MainContainer/GridContainer/Card6/Margin" unique_id=1478473244]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="CardTitle" type="Label" parent="MainContainer/GridContainer/Card6/Margin/VBox" unique_id=349560640]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "📦 06: SoundBank Streaming"
-
-[node name="CardDesc" type="Label" parent="MainContainer/GridContainer/Card6/Margin/VBox" unique_id=1061977304]
-layout_mode = 2
-size_flags_vertical = 3
-text = "Binary SoundBank format with 0ms RAM prefetch slice and background disk ring-buffer streaming."
-autowrap_mode = 2
-
-[node name="BtnLaunch6" type="Button" parent="MainContainer/GridContainer/Card6/Margin/VBox" unique_id=839134399]
-layout_mode = 2
-text = "Launch Demo 06"
-
-[node name="FooterPanel" type="PanelContainer" parent="MainContainer" unique_id=1170334895]
-layout_mode = 2
-
-[node name="Margin" type="MarginContainer" parent="MainContainer/FooterPanel" unique_id=580413981]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 8
-
-[node name="FooterLabel" type="Label" parent="MainContainer/FooterPanel/Margin" unique_id=859906958]
-layout_mode = 2
-text = "OpenDou Audio Middleware • Pure GDScript Architecture • Godot Engine 4.7+"
+theme_type_variation = &"SectionLabel"
+text = "EN CUALQUIER ESCENA:  F1 muestra el cartel   ·   Escape abre el menu   ·   F9 el depurador acustico"
 horizontal_alignment = 1

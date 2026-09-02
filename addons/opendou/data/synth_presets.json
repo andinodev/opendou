@@ -1,0 +1,4664 @@
+{
+	"presets": {
+		"Bird_Chirp": {
+			"base_freq": 2400.0,
+			"base_freq_var": 0.08,
+			"category": "Nature/Ambience",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 3.0,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"frequency_sweep": {
+				"end_mult": 0.6,
+				"start_mult": 1.0,
+				"trill_rate": 6.0
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "FM_Chirp",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"mod_index": 2.0,
+			"mod_mult": 1.5,
+			"pan": 0.0,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"Cicada_Swarm": {
+			"base_freq": 5200.0,
+			"base_freq_var": 0.0,
+			"category": "Nature/Ambience",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 2.0,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"flutter_depth": 0.15,
+			"flutter_rate": 12.0,
+			"fx": {
+				"delay": {
+					"feedback": 0.31,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -9.0,
+			"generator_type": "Harmonic_Buzz",
+			"harmonics": [
+				0.35,
+				0.3,
+				0.25
+			],
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"pan": 0.0,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"Cyber_Hornet": {
+			"base_freq": 180.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 1.3,
+			"envelope": {
+				"attack": 0.1,
+				"decay": 0.2,
+				"release": 0.2,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -8.0,
+			"generator_type": "Harmonic_Buzz",
+			"harmonics": [
+				0.5,
+				0.3,
+				0.15
+			],
+			"lfo": {
+				"depth": 0.4,
+				"rate_hz": 85.0,
+				"target": "Amplitude",
+				"wave": "Sawtooth"
+			},
+			"loop_mode": true,
+			"pan": 0.0,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"EV_Electric_Engine": {
+			"base_freq": 120.0,
+			"base_freq_var": 0.0,
+			"category": "SFX",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 2.0,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -8.0,
+			"generator_type": "Wavetable_PM",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"mod_ratio": 2.0,
+			"pan": 0.0,
+			"phase_modulation_index": 1.2,
+			"rtpc_bindings": {
+				"base_freq": {
+					"max_in": 8000.0,
+					"max_out": 950.0,
+					"min_in": 0.0,
+					"min_out": 120.0,
+					"rtpc_name": "vehicle_rpm"
+				},
+				"phase_modulation_index": {
+					"max_in": 1.0,
+					"max_out": 3.5,
+					"min_in": 0.0,
+					"min_out": 0.2,
+					"rtpc_name": "vehicle_load"
+				}
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"Frog_Croak": {
+			"base_freq": 130.0,
+			"base_freq_var": 0.0,
+			"category": "Nature/Ambience",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 2.5,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"formants": [
+				260.0,
+				620.0,
+				940.0
+			],
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -7.0,
+			"generator_type": "Resonant_Formant",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"pan": 0.0,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"Homer_Doh_Synth": {
+			"base_freq": 179.0,
+			"base_freq_var": 1.0,
+			"category": "SFX",
+			"detune_cents": 67.0,
+			"drive": {
+				"amount": 1.2,
+				"type": "Foldback"
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.44,
+				"release": 0.83,
+				"sustain": 0.76
+			},
+			"filter": {
+				"cutoff_hz": 3000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"formants": [
+				450.0,
+				850.0,
+				2400.0
+			],
+			"fx": {
+				"delay": {
+					"enabled": true,
+					"feedback": 0.34,
+					"mix": 0.22,
+					"time_ms": 540.0
+				},
+				"reverb": {
+					"enabled": false,
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -2.0,
+			"generator_type": "Resonant_Formant",
+			"lfo": {
+				"depth": 0.25,
+				"rate_hz": 37.9,
+				"target": "Pan",
+				"wave": "Square"
+			},
+			"loop_mode": false,
+			"octave": -3.0,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": -7.0,
+				"decay": 0.25
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 300.0
+			}
+		},
+		"Plucked_Wood_Step": {
+			"base_freq": 220.0,
+			"base_freq_var": 0.12,
+			"category": "Percussion",
+			"damping": 0.35,
+			"decay_factor": 0.985,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.35,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Karplus_Strong",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"Rain_Atmosphere": {
+			"base_freq": 440.0,
+			"base_freq_var": 0.0,
+			"category": "Nature/Ambience",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 2.0,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -9.0,
+			"generator_type": "Filtered_Noise",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"noise_type": "Pink",
+			"octave": 2.0,
+			"pan": 0.0,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"SciFi_Heavy_Explosion": {
+			"base_freq": 440.0,
+			"base_freq_var": 0.0,
+			"category": "SFX",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 2.5,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": 0.0,
+			"layers": [
+				{
+					"base_freq": 1800.0,
+					"base_freq_var": 0.08,
+					"gain_db": -2.0,
+					"generator_type": "Impulse_Ping",
+					"name": "Impact_Transient",
+					"pitch_decay": 0.08,
+					"pitch_mult": 3.0,
+					"ring_q": 15.0
+				},
+				{
+					"drive": {
+						"amount": 1.8,
+						"type": "Soft_Clip"
+					},
+					"envelope": {
+						"attack": 0.01,
+						"decay": 1.2,
+						"release": 0.4,
+						"sustain": 0.0
+					},
+					"filter": {
+						"cutoff_hz": 1200.0,
+						"resonance_q": 1.5,
+						"type": "LowPass"
+					},
+					"gain_db": -4.0,
+					"generator_type": "Filtered_Noise",
+					"name": "Debris_Body",
+					"noise_type": "Brown"
+				},
+				{
+					"base_freq": 42.0,
+					"drive": {
+						"amount": 2.4,
+						"type": "Foldback"
+					},
+					"envelope": {
+						"attack": 0.05,
+						"decay": 2.2,
+						"release": 0.5,
+						"sustain": 0.0
+					},
+					"gain_db": 0.0,
+					"generator_type": "Sub_Rumble",
+					"name": "Sub_Seismic"
+				}
+			],
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"type": "Layer_Container",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"Server_Hum": {
+			"base_freq": 50.0,
+			"base_freq_var": 0.0,
+			"category": "SFX",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 2.0,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"flutter_depth": 0.02,
+			"flutter_rate": 2.0,
+			"fx": {
+				"delay": {
+					"enabled": false,
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 175.0
+				},
+				"reverb": {
+					"enabled": false,
+					"mix": 0.25,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": 4.5,
+			"generator_type": "Harmonic_Buzz",
+			"harmonics": [
+				0.4,
+				0.25,
+				0.1
+			],
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"octave": 0.0,
+			"pan": 0.0,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0,
+				"mode": "Poly"
+			}
+		},
+		"Synth_Preset_100": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_101": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_102": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_103": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_104": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_105": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_106": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_15": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_17": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_18": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_19": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_20": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_21": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Pads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_22": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Pads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_23": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Pads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_24": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Pads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_25": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Pads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_26": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Pads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_27": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Bass",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_28": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Bass",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_29": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Bass",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_30": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Bass",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_31": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Bass",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_32": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Bass",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_33": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_34": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_36": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_37": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_38": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_39": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_40": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"category": "Leads",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_41": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_42": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_43": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_44": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_45": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_46": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_47": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_48": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_49": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_50": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"enabled": false,
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"enabled": false,
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_51": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_52": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_53": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_54": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_55": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_56": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_57": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_58": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_59": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_60": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_61": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_62": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_63": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_64": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_65": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_66": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_67": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_68": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_69": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_70": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_71": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_72": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_73": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_74": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_75": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_76": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_77": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_78": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_79": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_80": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.85,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"enabled": false,
+					"feedback": 0.81,
+					"mix": 0.63,
+					"time_ms": 560.0
+				},
+				"reverb": {
+					"enabled": true,
+					"mix": 0.17,
+					"room_size": 0.97
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_81": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_82": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_83": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_84": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_85": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_86": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_87": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_88": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 0.5,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pan": 0.0,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			},
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_89": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_90": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_91": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_92": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_93": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_94": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_95": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_96": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_97": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_98": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Synth_Preset_99": {
+			"base_freq": 550.0,
+			"base_freq_var": 0.0,
+			"duration": 0.51,
+			"envelope": {
+				"attack": 0.01,
+				"decay": 0.1,
+				"release": 0.1,
+				"sustain": 0.8
+			},
+			"filter": {
+				"cutoff_hz": 4000.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"gain_db": -6.0,
+			"generator_type": "Basic_Wave",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 5.0,
+				"target": "Amplitude",
+				"wave": "Sine"
+			},
+			"loop_mode": false,
+			"pitch_envelope": {
+				"amount_st": 0.0,
+				"decay": 0.1
+			},
+			"type": "Single_Generator",
+			"wave_type": "Sine"
+		},
+		"Thunder_Rumble": {
+			"base_freq": 42.0,
+			"base_freq_var": 0.0,
+			"category": "Percussion",
+			"drive": {
+				"amount": 2.2,
+				"type": "Foldback"
+			},
+			"duration": 3.5,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -4.0,
+			"generator_type": "Sub_Rumble",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"pan": 0.0,
+			"swell_rate": 1.2,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"Water_Droplet": {
+			"base_freq": 1200.0,
+			"base_freq_var": 0.15,
+			"category": "Nature/Ambience",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 2.0,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 2000.0,
+				"resonance_q": 1.0
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -7.0,
+			"generator_type": "Impulse_Ping",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"pan": 0.0,
+			"pitch_decay": 0.05,
+			"pitch_mult": 2.5,
+			"ring_q": 12.0,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"Waterfall_Stream": {
+			"base_freq": 440.0,
+			"base_freq_var": 0.0,
+			"category": "Nature/Ambience",
+			"drive": {
+				"amount": 1.0
+			},
+			"duration": 2.5,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 1800.0,
+				"resonance_q": 1.5,
+				"type": "BandPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35,
+					"mix": 0.25,
+					"time_ms": 180.0
+				},
+				"reverb": {
+					"mix": 0.2,
+					"room_size": 0.65
+				}
+			},
+			"gain_db": -8.0,
+			"generator_type": "Filtered_Noise",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"noise_type": "Brown",
+			"pan": 0.0,
+			"type": "Single_Generator",
+			"voice": {
+				"glide_ms": 0.0
+			}
+		},
+		"Wind_Canopy": {
+			"base_freq": 440.0,
+			"category": "Nature/Ambience",
+			"duration": 3.0,
+			"envelope": {
+				"attack": 0.05,
+				"decay": 0.1,
+				"release": 0.2,
+				"sustain": 0.7
+			},
+			"filter": {
+				"cutoff_hz": 3200.0,
+				"resonance_q": 1.0,
+				"type": "LowPass"
+			},
+			"fx": {
+				"delay": {
+					"feedback": 0.35
+				}
+			},
+			"gain_db": -8.0,
+			"generator_type": "Filtered_Noise",
+			"lfo": {
+				"depth": 0.0,
+				"rate_hz": 2.0
+			},
+			"loop_mode": true,
+			"noise_type": "Pink",
+			"type": "Single_Generator"
+		}
+	}
+}

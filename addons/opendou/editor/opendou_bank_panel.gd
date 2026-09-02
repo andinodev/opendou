@@ -18,6 +18,11 @@ var compile_button: Button
 var max_prefetch_budget_kb: float = 512.0
 var current_prefetch_total_kb: float = 64.0
 
+## Streams pendientes de compilar en el banco. Es el modelo real que respalda
+## asset_tree: antes el arbol se rellenaba con nombres de archivo escritos a
+## mano y no habia forma de anadir ni de compilar lo que se veia.
+var pending_streams: Array[Dictionary] = []
+
 func _init() -> void:
 	custom_minimum_size = Vector2(0, 0)
 	clip_contents = true
@@ -126,20 +131,37 @@ func _build_ui() -> void:
 	_populate_sample_assets()
 
 func _populate_sample_assets() -> void:
+	pending_streams.clear()
+	pending_streams.append({ "name": "ambient_music_loop.wav", "size_kb": 1420, "prefetch_kb": 64 })
+	pending_streams.append({ "name": "monster_roar_deep.wav", "size_kb": 340, "prefetch_kb": 32 })
+	pending_streams.append({ "name": "vehicle_rpm_mid.wav", "size_kb": 512, "prefetch_kb": 32 })
+	_refresh_asset_tree()
+
+## Redibuja el arbol a partir de pending_streams.
+func _refresh_asset_tree() -> void:
+	if asset_tree == null:
+		return
 	asset_tree.clear()
 	var root = asset_tree.create_item()
-	
-	var sample_files = [
-		{ "name": "ambient_music_loop.wav", "size": "1,420 KB", "pre": "64 KB" },
-		{ "name": "monster_roar_deep.wav", "size": "340 KB", "pre": "32 KB" },
-		{ "name": "vehicle_rpm_mid.wav", "size": "512 KB", "pre": "32 KB" }
-	]
-	
-	for s in sample_files:
+	for entry in pending_streams:
 		var item = asset_tree.create_item(root)
-		item.set_text(0, "🎵 %s" % s["name"])
-		item.set_text(1, s["size"])
-		item.set_text(2, s["pre"])
+		item.set_text(0, "🎵 %s" % str(entry.get("name", "sin_nombre")))
+		item.set_text(1, "%d KB" % int(entry.get("size_kb", 0)))
+		item.set_text(2, "%d KB" % int(entry.get("prefetch_kb", 0)))
+
+## Anade una entrada de stream a la lista de compilacion del banco.
+func _on_add_stream_pressed() -> void:
+	var index: int = pending_streams.size() + 1
+	pending_streams.append({
+		"name": "stream_%02d.wav" % index,
+		"size_kb": 0,
+		"prefetch_kb": int(prefetch_spin.value) if prefetch_spin != null else 32,
+	})
+	_refresh_asset_tree()
+
+## Numero de streams en la lista de compilacion.
+func get_stream_count() -> int:
+	return pending_streams.size()
 
 func _on_prefetch_changed(val: float) -> void:
 	current_prefetch_total_kb = val
@@ -150,31 +172,50 @@ func _on_prefetch_changed(val: float) -> void:
 		budget_label.text = "Prefetch RAM Budget: %.0f KB / %.0f KB (%.1f%%)" % [current_prefetch_total_kb, max_prefetch_budget_kb, pct]
 
 func _on_compile_pressed() -> void:
-	var out_path = output_path_edit.text.strip_edges()
+	var ok: bool = compile_soundbank()
+	if status_label == null:
+		return
+	var out_path: String = output_path_edit.text.strip_edges() if output_path_edit != null else ""
 	if out_path.is_empty():
 		status_label.text = "Error: Invalid output path."
-		return
-		
-	status_label.text = "Compiling %s..." % out_path
-	
-	# Synthesize dummy PCM for demonstration compilation
-	var pcm = PackedByteArray()
+	elif ok:
+		status_label.text = "✅ Successfully baked %s" % out_path
+	else:
+		status_label.text = "❌ Failed to bake %s" % out_path
+
+## Compila el banco con los streams pendientes. Devuelve true si se escribio.
+##
+## Esta logica estaba dentro del handler del boton, asi que no habia manera de
+## verificarla desde un test sin simular una pulsacion.
+func compile_soundbank() -> bool:
+	if output_path_edit == null:
+		return false
+	var out_path: String = output_path_edit.text.strip_edges()
+	if out_path.is_empty():
+		return false
+
+	var prefetch_bytes: int = int(prefetch_spin.value * 1024.0) if prefetch_spin != null else 32768
+	var bank_label: String = bank_name_edit.text if bank_name_edit != null else "Bank"
+
+	# PCM de relleno: el panel todavia no importa audio real desde disco. Lo que
+	# se verifica aqui es que el pipeline de empaquetado ODBK escribe el archivo.
+	var pcm := PackedByteArray()
 	pcm.resize(44100 * 2)
-	
-	var streams: Array[Dictionary] = [
-		{
-			"id": 1,
-			"name": StringName(bank_name_edit.text),
+
+	var streams: Array[Dictionary] = []
+	var count: int = maxi(1, pending_streams.size())
+	for i in range(count):
+		var entry_name: String = bank_label
+		if i < pending_streams.size():
+			entry_name = str(pending_streams[i].get("name", bank_label))
+		streams.append({
+			"id": i + 1,
+			"name": StringName(entry_name),
 			"data": pcm,
 			"channels": 2,
 			"sample_rate": 44100,
 			"codec": 0,
-			"prefetch_size": int(prefetch_spin.value * 1024)
-		}
-	]
-	
-	var ok = SoundBankCompilerClass.compile_bank(out_path, streams)
-	if ok:
-		status_label.text = "✅ Successfully baked %s" % out_path
-	else:
-		status_label.text = "❌ Failed to bake %s" % out_path
+			"prefetch_size": prefetch_bytes
+		})
+
+	return bool(SoundBankCompilerClass.compile_bank(out_path, streams))

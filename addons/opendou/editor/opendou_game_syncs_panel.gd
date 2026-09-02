@@ -4,13 +4,28 @@ extends PanelContainer
 
 ## Sidebar manager for Game Syncs (RTPCs, States, Switches, and Synth Presets) in OpenDou Studio with persistent JSON storage.
 
+const DataPathsClass = preload("res://addons/opendou/runtime/data_paths.gd")
+
 signal rtpc_selected(param_name: StringName, min_val: float, max_val: float, def_val: float)
 signal rtpc_value_changed(rtpc_name: StringName, value: float)
 signal state_changed(group: StringName, state: StringName)
 signal switch_changed(group: StringName, sw: StringName)
 signal syncs_updated()
 
-const SYNCS_FILE_PATH: String = "res://opendou_syncs.json"
+## Ruta del override del proyecto para los Game Syncs.
+const SYNCS_FILE_PATH: String = "%s%s.json" % [OpenDouDataPaths.PROJECT_PREFIX, OpenDouDataPaths.GAME_SYNCS]
+
+## Ruta de persistencia de los Game Syncs. Inyectable para que los tests no
+## escriban en res:// y contaminen el repositorio: ejecutar la suite llegaba a
+## inyectar entradas RTPC en el JSON versionado del proyecto.
+## La migracion general de res:// a user:// es la observacion 17 (Fase 4).
+var syncs_file_path: String = SYNCS_FILE_PATH
+
+## Ruta del override del proyecto para los presets de sintesis.
+const DEFAULT_PRESETS_PATH: String = "%s%s.json" % [OpenDouDataPaths.PROJECT_PREFIX, OpenDouDataPaths.SYNTH_PRESETS]
+
+## Ruta de persistencia de los presets de sintesis. Misma razon.
+var presets_file_path: String = DEFAULT_PRESETS_PATH
 
 ## Custom control for rendering synthesized audio waveform previews
 class WaveformVisualizerControl extends Control:
@@ -96,7 +111,12 @@ var active_preset_name: StringName = &""
 var current_waveform_samples: PackedFloat32Array = PackedFloat32Array()
 var _is_updating_ui: bool = false
 
-func _init() -> void:
+## Las rutas entran por el constructor porque _init() ya carga del disco: si se
+## asignaran despues, la carga habria ocurrido ya contra res://. Los valores por
+## defecto conservan el comportamiento existente para el resto del editor.
+func _init(p_syncs_path: String = SYNCS_FILE_PATH, p_presets_path: String = DEFAULT_PRESETS_PATH) -> void:
+	syncs_file_path = p_syncs_path
+	presets_file_path = p_presets_path
 	custom_minimum_size = Vector2(0, 0)
 	clip_contents = true
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -628,8 +648,12 @@ func _create_rack_section(parent: Node, section_title: String) -> VBoxContainer:
 
 ## Loads persistent game syncs registry from project disk file.
 func load_syncs_from_disk() -> void:
-	if FileAccess.file_exists(SYNCS_FILE_PATH):
-		var file = FileAccess.open(SYNCS_FILE_PATH, FileAccess.READ)
+	# Si el override del proyecto no existe, se cae al default del addon.
+	var read_path: String = syncs_file_path
+	if not FileAccess.file_exists(read_path):
+		read_path = DataPathsClass.resolve(DataPathsClass.GAME_SYNCS)
+	if not read_path.is_empty() and FileAccess.file_exists(read_path):
+		var file = FileAccess.open(read_path, FileAccess.READ)
 		if file:
 			var json_str = file.get_as_text()
 			file.close()
@@ -657,7 +681,7 @@ func load_syncs_from_disk() -> void:
 
 ## Saves current game syncs registry permanently to project disk file.
 func save_syncs_to_disk() -> void:
-	var file = FileAccess.open(SYNCS_FILE_PATH, FileAccess.WRITE)
+	var file = FileAccess.open(syncs_file_path, FileAccess.WRITE)
 	if file:
 		var data = _serialize_syncs()
 		file.store_string(JSON.stringify(data, "\t"))
@@ -1095,7 +1119,7 @@ func _on_delete_preset_pressed() -> void:
 	_refresh_preset_tree()
 
 func _on_save_presets_pressed() -> void:
-	SynthPresetRegistry.get_singleton().save_presets()
+	SynthPresetRegistry.get_singleton().save_presets(presets_file_path)
 
 func _on_audition_play_pressed() -> void:
 	if active_preset_name.is_empty():

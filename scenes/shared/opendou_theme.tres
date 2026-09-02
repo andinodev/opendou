@@ -1,0 +1,126 @@
+[gd_resource type="Theme" format=3 uid="uid://d2gj5nf5lcxtj"]
+
+[sub_resource type="StyleBoxFlat" id="Button_hover"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(1, 0.72, 0.36, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Button_normal"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.95, 0.64, 0.24, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Button_pressed"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.78, 0.5, 0.16, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Panel_card"]
+content_margin_left = 20.0
+content_margin_top = 18.0
+content_margin_right = 20.0
+content_margin_bottom = 16.0
+bg_color = Color(0.13, 0.15, 0.19, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.22, 0.25, 0.31, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="Button_ghost"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.18, 0.205, 0.26, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.28, 0.32, 0.4, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Panel_dark"]
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 14.0
+bg_color = Color(0.11, 0.125, 0.16, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.205, 0.26, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Meter_fill"]
+bg_color = Color(0.95, 0.64, 0.24, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[resource]
+default_font_size = 15
+Button/colors/font_color = Color(0.1, 0.09, 0.07, 1)
+Button/colors/font_hover_color = Color(0.1, 0.09, 0.07, 1)
+Button/colors/font_pressed_color = Color(0.1, 0.09, 0.07, 1)
+Button/font_sizes/font_size = 15
+Button/styles/focus = SubResource("Button_hover")
+Button/styles/hover = SubResource("Button_hover")
+Button/styles/normal = SubResource("Button_normal")
+Button/styles/pressed = SubResource("Button_pressed")
+CardPanel/base_type = &"PanelContainer"
+CardPanel/styles/panel = SubResource("Panel_card")
+GhostButton/base_type = &"Button"
+GhostButton/colors/font_color = Color(0.9, 0.91, 0.93, 1)
+GhostButton/colors/font_hover_color = Color(1, 1, 1, 1)
+GhostButton/colors/font_pressed_color = Color(0.85, 0.87, 0.9, 1)
+GhostButton/styles/focus = SubResource("Button_ghost")
+GhostButton/styles/hover = SubResource("Button_ghost")
+GhostButton/styles/normal = SubResource("Button_ghost")
+GhostButton/styles/pressed = SubResource("Button_ghost")
+HeadingLabel/base_type = &"Label"
+HeadingLabel/colors/font_color = Color(0.95, 0.64, 0.24, 1)
+HeadingLabel/font_sizes/font_size = 19
+Label/colors/font_color = Color(0.9, 0.91, 0.93, 1)
+Label/font_sizes/font_size = 15
+MutedLabel/base_type = &"Label"
+MutedLabel/colors/font_color = Color(0.7, 0.73, 0.8, 1)
+MutedLabel/font_sizes/font_size = 14
+PanelContainer/styles/panel = SubResource("Panel_dark")
+ProgressBar/styles/fill = SubResource("Meter_fill")
+SectionLabel/base_type = &"Label"
+SectionLabel/colors/font_color = Color(0.6, 0.64, 0.72, 1)
+SectionLabel/font_sizes/font_size = 12
+TitleLabel/base_type = &"Label"
+TitleLabel/colors/font_color = Color(1, 1, 1, 1)
+TitleLabel/font_sizes/font_size = 30

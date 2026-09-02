@@ -14,7 +14,6 @@ const TestVirtualTrackingClass = preload("res://tests/test_virtual_tracking.gd")
 const TestGameSyncsClass = preload("res://tests/test_game_syncs.gd")
 const TestModulatorsClass = preload("res://tests/test_modulators.gd")
 const TestSoundBanksClass = preload("res://tests/test_soundbanks.gd")
-const TestRingBufferClass = preload("res://tests/test_ringbuffer.gd")
 const TestSpatialAcousticsClass = preload("res://tests/test_spatial_acoustics.gd")
 const TestMicroAcousticsClass = preload("res://tests/test_micro_acoustics.gd")
 const TestLiveUpdateClass = preload("res://tests/test_live_update.gd")
@@ -25,7 +24,6 @@ const TestTransportBarClass = preload("res://tests/test_transport_bar.gd")
 const TestRadarViewClass = preload("res://tests/test_radar_view.gd")
 const TestBankPanelClass = preload("res://tests/test_bank_panel.gd")
 const TestStudioMainClass = preload("res://tests/test_studio_main.gd")
-const TestDemoSuiteClass = preload("res://tests/test_demo_suite.gd")
 const TestHDRSnapshotsClass = preload("res://tests/test_hdr_snapshots.gd")
 const TestInteractiveMusicClass = preload("res://tests/test_interactive_music.gd")
 const TestDialogueLocalizationClass = preload("res://tests/test_dialogue_localization.gd")
@@ -33,7 +31,6 @@ const TestEarlyReflectionsHRTFClass = preload("res://tests/test_early_reflection
 const TestDSPAdvancedClass = preload("res://tests/test_dsp_advanced.gd")
 const TestProfilerRewindClass = preload("res://tests/test_profiler_rewind.gd")
 const TestStudioAdvancedUIClass = preload("res://tests/test_studio_advanced_ui.gd")
-const TestCyberpunkDemoClass = preload("res://tests/test_cyberpunk_demo.gd")
 const TestDeclarativeNodesClass = preload("res://tests/test_declarative_nodes.gd")
 const TestAudibleMonitorClass = preload("res://tests/test_audible_monitor.gd")
 const TestSynthNatureClass = preload("res://tests/test_synth_nature.gd")
@@ -43,15 +40,39 @@ const TestSynthVstWorkspaceClass = preload("res://tests/test_synth_vst_workspace
 const TestAcousticDebuggerClass = preload("res://tests/test_acoustic_debugger.gd")
 const TestSpatialAcousticsPhase1Class = preload("res://tests/test_spatial_acoustics_phase1.gd")
 const TestSpatialAcousticsPhase2Class = preload("res://tests/test_spatial_acoustics_phase2.gd")
-const TestTacticalCanyonDemoClass = preload("res://tests/test_tactical_canyon_demo.gd")
 const TestGranularEmitter3DClass = preload("res://tests/test_granular_emitter_3d.gd")
-const TestRoomConvolutionClass = preload("res://tests/test_room_convolution.gd")
+const TestRoomReverbModesClass = preload("res://tests/test_room_reverb_modes.gd")
 const TestSoundBankPackagingAndStreamingClass = preload("res://tests/test_soundbank_packaging_and_streaming.gd")
 const TestParameterArea3DClass = preload("res://tests/test_parameter_area_3d.gd")
 const TestMultiPositionEmitter3DClass = preload("res://tests/test_multi_position_emitter_3d.gd")
 const TestAcousticGeometryBakeClass = preload("res://tests/test_acoustic_geometry_bake.gd")
 const TestAnimationSyncClass = preload("res://tests/test_animation_sync.gd")
-const TestTacticalInfiltrationDemoClass = preload("res://tests/test_tactical_infiltration_demo.gd")
+const TestSurfaceDetectionClass = preload("res://tests/test_surface_detection.gd")
+const TestPlaybackContextClass = preload("res://tests/test_playback_context.gd")
+const TestCharacterRigClass = preload("res://tests/test_character_rig.gd")
+const TestDemoScenesClass = preload("res://tests/test_demo_scenes.gd")
+const TestSceneGuardsClass = preload("res://tests/test_scene_guards.gd")
+const TestRoomPathDispatcherClass = preload("res://tests/test_room_path_dispatcher.gd")
+const TestPortalAudioClass = preload("res://tests/test_portal_audio.gd")
+const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
+const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
+const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
+const TestListenerResolverClass = preload("res://tests/test_listener_resolver.gd")
+const TestOcclusionSchedulerClass = preload("res://tests/test_occlusion_scheduler.gd")
+const TestEarlyReflectionsClass = preload("res://tests/test_early_reflections.gd")
+const TestNoUnfulfilledClaimsClass = preload("res://tests/test_no_unfulfilled_claims.gd")
+const TestTransformUtilsClass = preload("res://tests/test_transform_utils.gd")
+const TestWavDecoderClass = preload("res://tests/test_wav_decoder.gd")
+const TestSplineAnchorClass = preload("res://tests/test_spline_anchor.gd")
+const TestPortalDiffractionClass = preload("res://tests/test_portal_diffraction.gd")
+const TestReverbBusPoolClass = preload("res://tests/test_reverb_bus_pool.gd")
+const TestIRRT60Class = preload("res://tests/test_ir_rt60.gd")
+const TestBankPreloadClass = preload("res://tests/test_bank_preload.gd")
+const TestPresetHintCacheClass = preload("res://tests/test_preset_hint_cache.gd")
+const TestHDRVoiceGainClass = preload("res://tests/test_hdr_voice_gain.gd")
+const TestDataPathsClass = preload("res://tests/test_data_paths.gd")
+const TestRuntimeNoResWritesClass = preload("res://tests/test_runtime_no_res_writes.gd")
+const TestPluginRegistrationClass = preload("res://tests/test_plugin_registration.gd")
 
 static func run_suite() -> Dictionary:
 	var total_tests: int = 0
@@ -109,10 +130,6 @@ static func run_suite() -> Dictionary:
 	total_tests += 4
 	all_failures.append_array(r13)
 	
-	var r14 = TestRingBufferClass.run_all()
-	total_tests += 3
-	all_failures.append_array(r14)
-	
 	var r15 = TestSpatialAcousticsClass.run_all()
 	total_tests += 3
 	all_failures.append_array(r15)
@@ -153,10 +170,6 @@ static func run_suite() -> Dictionary:
 	total_tests += 3
 	all_failures.append_array(r24)
 	
-	var r25 = TestDemoSuiteClass.run_all()
-	total_tests += 7
-	all_failures.append_array(r25)
-	
 	var r26 = TestHDRSnapshotsClass.run_all()
 	total_tests += 9
 	all_failures.append_array(r26)
@@ -184,10 +197,6 @@ static func run_suite() -> Dictionary:
 	var r32 = TestStudioAdvancedUIClass.run_all()
 	total_tests += 12
 	all_failures.append_array(r32)
-	
-	var r33 = TestCyberpunkDemoClass.run_all()
-	total_tests += 25
-	all_failures.append_array(r33)
 	
 	var r34 = TestDeclarativeNodesClass.run_all()
 	total_tests += 20
@@ -222,18 +231,15 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r41)
 	
 	var r42 = TestSpatialAcousticsPhase2Class.run_all()
-	total_tests += 10
+	# 8 y no 10: los Tests 9 y 10 cubrian el motor HDR duplicado que se elimino.
+	total_tests += 8
 	all_failures.append_array(r42)
-	
-	var r43 = TestTacticalCanyonDemoClass.run_all()
-	total_tests += 11
-	all_failures.append_array(r43)
 	
 	var r44 = TestGranularEmitter3DClass.run_all()
 	total_tests += 5
 	all_failures.append_array(r44)
 	
-	var r45 = TestRoomConvolutionClass.run_all()
+	var r45 = TestRoomReverbModesClass.run_all()
 	total_tests += 5
 	all_failures.append_array(r45)
 	
@@ -253,16 +259,108 @@ static func run_suite() -> Dictionary:
 	total_tests += 10
 	all_failures.append_array(r49)
 	
-	var r50 = TestAnimationSyncClass.run_all()
-	total_tests += 10
-	all_failures.append_array(r50)
+	# Reescrita para afirmar sustancia: cuenta aserciones reales, no un 10 a mano.
+	var anim_sync_res = TestAnimationSyncClass.run_all()
+	total_tests += anim_sync_res.assertions_run
+	all_failures.append_array(anim_sync_res.failures)
+
+	var guards_res = TestSceneGuardsClass.run_all()
+	total_tests += guards_res.assertions_run
+	all_failures.append_array(guards_res.failures)
+
+	var composition_res = TestSceneGuardsClass.run_composition()
+	total_tests += composition_res.assertions_run
+	all_failures.append_array(composition_res.failures)
+
+	var room_path_res = TestRoomPathDispatcherClass.run_all()
+	total_tests += room_path_res.assertions_run
+	all_failures.append_array(room_path_res.failures)
 	
-	var r51 = TestTacticalInfiltrationDemoClass.run_all()
-	total_tests += 10
-	all_failures.append_array(r51)
-	
+	# Suites nuevas de la Fase 1: cuentan aserciones reales en lugar de un total
+	# escrito a mano.
+	var pool_res = TestNativePlayerPoolClass.run_all()
+	total_tests += pool_res.assertions_run
+	all_failures.append_array(pool_res.failures)
+
+	var claims_res = TestNoUnfulfilledClaimsClass.run_all()
+	total_tests += claims_res.assertions_run
+	all_failures.append_array(claims_res.failures)
+
+	var xform_res = TestTransformUtilsClass.run_all()
+	total_tests += xform_res.assertions_run
+	all_failures.append_array(xform_res.failures)
+
+	var wav_res = TestWavDecoderClass.run_all()
+	total_tests += wav_res.assertions_run
+	all_failures.append_array(wav_res.failures)
+
+	var portal_res = TestPortalDiffractionClass.run_all()
+	total_tests += portal_res.assertions_run
+	all_failures.append_array(portal_res.failures)
+
+	var reverb_pool_res = TestReverbBusPoolClass.run_all()
+	total_tests += reverb_pool_res.assertions_run
+	all_failures.append_array(reverb_pool_res.failures)
+
+	var ir_res = TestIRRT60Class.run_all()
+	total_tests += ir_res.assertions_run
+	all_failures.append_array(ir_res.failures)
+
+	var bank_res = TestBankPreloadClass.run_all()
+	total_tests += bank_res.assertions_run
+	all_failures.append_array(bank_res.failures)
+
+	var hint_res = TestPresetHintCacheClass.run_all()
+	total_tests += hint_res.assertions_run
+	all_failures.append_array(hint_res.failures)
+
+	var hdr_res = TestHDRVoiceGainClass.run_all()
+	total_tests += hdr_res.assertions_run
+	all_failures.append_array(hdr_res.failures)
+
+	var paths_res = TestDataPathsClass.run_all()
+	total_tests += paths_res.assertions_run
+	all_failures.append_array(paths_res.failures)
+
+	var writes_res = TestRuntimeNoResWritesClass.run_all()
+	total_tests += writes_res.assertions_run
+	all_failures.append_array(writes_res.failures)
+
+	var plugin_res = TestPluginRegistrationClass.run_all()
+	total_tests += plugin_res.assertions_run
+	all_failures.append_array(plugin_res.failures)
+
 	return {
 		"total": total_tests,
 		"failures": all_failures,
 		"passed": total_tests - all_failures.size()
+	}
+
+## Suite asincrona: tests que necesitan avanzar frames del SceneTree, como todas
+## las aserciones de audio real. Se ejecuta despues de la suite sincrona.
+##
+## Cada funcion run_*_async que se anada a un test de audio hay que invocarla
+## desde aqui (o desde el run_all_async de su archivo), o quedara escrita y nunca
+## se ejecutara, que es exactamente el tipo de ceguera que esta fase corrige.
+static func run_async_suite(tree: SceneTree):
+	var acc := OpenDouAssertClass.new()
+	acc.absorb(await TestAudioOutputClass.run_all_async(tree))
+	acc.absorb(await TestListenerResolverClass.run_all_async(tree))
+	acc.absorb(await TestOcclusionSchedulerClass.run_all_async(tree))
+	acc.absorb(await TestEarlyReflectionsClass.run_all_async(tree))
+	acc.absorb(await TestSplineAnchorClass.run_all_async(tree))
+	acc.absorb(await TestSurfaceDetectionClass.run_all_async(tree))
+	acc.absorb(await TestAnimationSyncClass.run_all_async(tree))
+	acc.absorb(await TestPlaybackContextClass.run_all_async(tree))
+	acc.absorb(await TestCharacterRigClass.run_all_async(tree))
+	acc.absorb(await TestCharacterRigClass.run_bench_async(tree))
+	acc.absorb(await TestDemoScenesClass.run_all_async(tree))
+	acc.absorb(await TestSceneGuardsClass.run_coverage_async(tree))
+	acc.absorb(await TestRoomPathDispatcherClass.run_wiring_async(tree))
+	acc.absorb(await TestPortalAudioClass.run_all_async(tree))
+	acc.absorb(await TestRoomPathDispatcherClass.run_budget_async(tree))
+	return {
+		"total": acc.assertions_run,
+		"failures": acc.failures,
+		"passed": acc.assertions_run - acc.failures.size(),
 	}

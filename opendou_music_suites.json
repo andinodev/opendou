@@ -377,5 +377,44 @@
 				"volume_db": 0.0
 			}
 		]
+	},
+	"Tower_Night_Watch": {
+		"bpm": 96.0,
+		"description": "Cuatro stems para la torre de control nocturna de «La cabina». Un bus por stem, y los buses envian a Master y no a Music, para que el bus de stingers mida solo stingers.",
+		"intensity": 0.0,
+		"tracks": [
+			{
+				"audio_file_path": "",
+				"bus_name": "MusicPads",
+				"max_intensity": 0.45,
+				"min_intensity": 0.0,
+				"name": "Pads_Night_Watch",
+				"volume_db": -6.0
+			},
+			{
+				"audio_file_path": "",
+				"bus_name": "MusicBass",
+				"max_intensity": 0.7,
+				"min_intensity": 0.2,
+				"name": "Bass_Radar_Sweep",
+				"volume_db": -7.0
+			},
+			{
+				"audio_file_path": "",
+				"bus_name": "MusicDrums",
+				"max_intensity": 0.9,
+				"min_intensity": 0.5,
+				"name": "Drums_Alert_Pulse",
+				"volume_db": -8.0
+			},
+			{
+				"audio_file_path": "",
+				"bus_name": "MusicBrass",
+				"max_intensity": 1.0,
+				"min_intensity": 0.8,
+				"name": "Brass_Emergency_Climax",
+				"volume_db": -5.0
+			}
+		]
 	}
 }

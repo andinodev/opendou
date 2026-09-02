@@ -27,8 +27,14 @@ static func run_all() -> Array[String]:
 		failures.append("Test 1 Failed: auto_play_event default should be false")
 	if p3d.stop_on_tree_exit != true:
 		failures.append("Test 1 Failed: stop_on_tree_exit default should be true")
-	if not p3d.enable_binaural_hrtf or not p3d.enable_early_reflections or not p3d.enable_dynamic_occlusion:
+	if not p3d.enable_early_reflections or not p3d.enable_dynamic_occlusion:
 		failures.append("Test 1 Failed: spatial acoustics flags should default to true")
+	# enable_binaural_hrtf se retiro: Godot no tiene HRTF nativo y un HRTF real
+	# exige convolucionar cada voz con un par de HRIR, o sea DSP por muestra en
+	# GDScript. El toggle prometia algo que esta arquitectura no puede dar.
+	for prop in p3d.get_property_list():
+		if String(prop["name"]) == "enable_binaural_hrtf":
+			failures.append("Test 1 Failed: enable_binaural_hrtf deberia haber sido retirado")
 	if p3d.occlusion_collision_mask != 1:
 		failures.append("Test 1 Failed: occlusion_collision_mask should default to 1")
 	if not is_equal_approx(p3d.occlusion_refresh_interval, 0.05):
@@ -407,10 +413,17 @@ static func run_all() -> Array[String]:
 		failures.append("Test 16 Failed: Could not read addons/opendou/plugin.gd")
 	else:
 		for type_name in required_nodes.keys():
-			if not plugin_code.contains('add_custom_type("%s"' % type_name) and not plugin_code.contains("add_custom_type('%s'" % type_name):
-				failures.append("Test 16 Failed: plugin.gd missing add_custom_type for %s" % type_name)
-			if not plugin_code.contains('remove_custom_type("%s"' % type_name) and not plugin_code.contains("remove_custom_type('%s'" % type_name):
-				failures.append("Test 16 Failed: plugin.gd missing remove_custom_type for %s" % type_name)
+			# El registro por add_custom_type se retiro: duplicaba las entradas del
+			# dialogo "Crear nodo", y los nodos anadidos asi pierden su tipo al
+			# guardar la escena. Lo que importa es estar en el registro global con
+			# icono, que es de donde el dialogo los toma.
+			var _reg_ok := false
+			for _e in ProjectSettings.get_global_class_list():
+				if str(_e.get("class", "")) == type_name:
+					_reg_ok = not str(_e.get("icon", "")).is_empty()
+					break
+			if not _reg_ok:
+				failures.append("Test 16 Failed: %s no esta en el registro global con icono" % type_name)
 
 	# Test 17: Dynamic property list enum hinting for synth_preset
 	var p3d_dyn = OpenDouEventPlayer3DClass.new()
@@ -580,6 +593,10 @@ static func run_all() -> Array[String]:
 		failures.append("Test 22 Failed: runtime_room.floor_surface should be &\"Foliage\", got %s" % str(room_floor.runtime_room.floor_surface))
 	room_floor.free()
 
+	# AudioEventManager es un Node y arrastra su pool de reproductores y su
+	# resolutor de oyente: no liberarlo filtra todo el conjunto.
+	if manager != null and is_instance_valid(manager):
+		manager.free()
 	return failures
 
 

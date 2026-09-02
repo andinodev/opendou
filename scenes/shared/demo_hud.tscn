@@ -1,0 +1,74 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/shared/demo_hud.gd" id="1_hud"]
+[ext_resource type="Theme" path="res://scenes/shared/opendou_theme.tres" id="2_theme"]
+
+[node name="DemoHud" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="Panel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(760, 0)
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 780.0
+offset_bottom = 120.0
+theme = ExtResource("2_theme")
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+
+[node name="Column" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Panel/Margin/Column"]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "OpenDou"
+
+[node name="Thesis" type="Label" parent="Panel/Margin/Column"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+autowrap_mode = 3
+
+[node name="Divider" type="HSeparator" parent="Panel/Margin/Column"]
+layout_mode = 2
+
+[node name="Columns" type="HBoxContainer" parent="Panel/Margin/Column"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="ControlsBox" type="VBoxContainer" parent="Panel/Margin/Column/Columns"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="ControlsTitle" type="Label" parent="Panel/Margin/Column/Columns/ControlsBox"]
+layout_mode = 2
+theme_type_variation = &"SectionLabel"
+text = "CONTROLES"
+
+[node name="Controls" type="Label" parent="Panel/Margin/Column/Columns/ControlsBox"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ExercisesBox" type="VBoxContainer" parent="Panel/Margin/Column/Columns"]
+custom_minimum_size = Vector2(380, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="ExercisesTitle" type="Label" parent="Panel/Margin/Column/Columns/ExercisesBox"]
+layout_mode = 2
+theme_type_variation = &"SectionLabel"
+text = "ESTA ESCENA EJERCITA"
+
+[node name="Exercises" type="Label" parent="Panel/Margin/Column/Columns/ExercisesBox"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Hint" type="Label" parent="Panel/Margin/Column"]
+layout_mode = 2
+theme_type_variation = &"SectionLabel"

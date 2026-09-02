@@ -31,10 +31,10 @@ Este documento resume las fases estratégicas, hitos principales y estado genera
 
 ---
 
-### 🔵 Fase 3: Pipeline de SoundBanks, Prefetching y Streaming (✅ Completada)
+### 🔵 Fase 3: Pipeline de SoundBanks y Precarga (✅ Completada)
 * [x] Especificación y formato de archivo binario monolítico `ODBK` (`TASK-008`).
 * [x] Gestor de memoria física con búfer de *Prefetch* en RAM contigua (`TASK-008`).
-* [x] Búfer circular SPSC lock-free y empalme prefetch-a-disco (*stitching*) con protección anti-underruns (`TASK-009`).
+* [x] Precarga perezosa de cada stream del banco como `AudioStreamWAV` reproducible (`TASK-009`). El streaming asíncrono desde disco se retiró: exige un mezclador en el hilo de audio, y GDScript no puede sostenerlo.
 * [x] Herramienta de compilación/empaquetado de bancos de sonido (`SoundBankCompiler`).
 
 ---

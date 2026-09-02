@@ -6,15 +6,23 @@ const LiveUpdateProtocolClass = preload("res://addons/opendou/runtime/network/li
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const EventInstanceClass = preload("res://addons/opendou/runtime/event_instance.gd")
 const VoicePoolManagerClass = preload("res://addons/opendou/runtime/voice_pool_manager.gd")
+const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
+const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 
 static func run_all() -> Array[String]:
+	# Un AudioEventDef sin stream ya no obtiene canal fisico: conceder hardware
+	# para emitir silencio no tiene sentido. Los tests que afirman que una voz es
+	# fisica necesitan por tanto una voz que pueda sonar de verdad.
+	var _test_tone := AudioSynthesizerClass.create_tone(440.0, 0.1, 0.5, false)
 	var failures: Array[String] = []
 	
 	# Test 1: Collector Gathers Telemetry Snapshot
 	var pool = VoicePoolManagerClass.new(4)
-	var def1 = AudioEventDefClass.new(&"Footstep")
+	# Una voz solo puede volverse fisica si hay un reproductor real que la sirva.
+	pool.set_player_pool(NativePlayerPoolClass.new(64))
+	var def1 = AudioEventDefClass.new(&"Footstep", _test_tone)
 	def1.base_volume_db = -3.0
-	var def2 = AudioEventDefClass.new(&"Explosion")
+	var def2 = AudioEventDefClass.new(&"Explosion", _test_tone)
 	def2.base_volume_db = 0.0
 	
 	var inst1 = EventInstanceClass.new(def1)
@@ -58,4 +66,7 @@ static func run_all() -> Array[String]:
 		if v0["event_name"] != &"Footstep" or v0["world_position"] != Vector3(1.0, 2.0, 3.0):
 			failures.append("Test 2e Failed: Voice 0 decoded properties mismatch")
 			
+	# El pool de reproductores es un Node: liberarlo es responsabilidad de quien
+	# lo inyecta, o el trinquete de fugas lo detecta.
+	pool.player_pool.free()
 	return failures

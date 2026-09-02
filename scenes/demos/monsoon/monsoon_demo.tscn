@@ -1,0 +1,122 @@
+[gd_scene load_steps=18 format=3]
+
+[ext_resource type="Script" path="res://scenes/demos/monsoon/monsoon_demo.gd" id="1_monsoon"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_multi_position_emitter_3d.gd" id="2_canal"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_spline_emitter_3d.gd" id="3_treeline"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_granular_emitter_3d.gd" id="4_swarm"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_audible_monitor.gd" id="5_monitor"]
+[ext_resource type="Script" path="res://scenes/demos/monsoon/monsoon_telemetry.gd" id="6_telemetry"]
+[ext_resource type="PackedScene" path="res://scenes/shared/player.tscn" id="7_player"]
+[ext_resource type="PackedScene" path="res://scenes/shared/demo_hud.tscn" id="8_hud"]
+[ext_resource type="PackedScene" path="res://scenes/shared/pause_menu.tscn" id="9_menu"]
+
+[sub_resource type="BoxShape3D" id="Box_terrace"]
+size = Vector3(40, 1, 24)
+
+[sub_resource type="BoxMesh" id="Mesh_terrace"]
+size = Vector3(40, 1, 24)
+
+[sub_resource type="StandardMaterial3D" id="Mat_water"]
+albedo_color = Color(0.16, 0.35, 0.52, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_stone"]
+albedo_color = Color(0.45, 0.43, 0.4, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_foliage"]
+albedo_color = Color(0.24, 0.44, 0.22, 1)
+
+[sub_resource type="Curve3D" id="Curve3D_treeline"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -24, 6, -14, 0, 0, 0, 0, 0, 0, -16, 6, -17, 0, 0, 0, 0, 0, 0, -8, 6, -19.1962, 0, 0, 0, 0, 0, 0, 0, 6, -20, 0, 0, 0, 0, 0, 0, 8, 6, -19.1962, 0, 0, 0, 0, 0, 0, 16, 6, -17, 0, 0, 0, 0, 0, 0, 24, 6, -14),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0)
+}
+point_count = 7
+
+[node name="MonsoonDemo" type="Node3D"]
+script = ExtResource("1_monsoon")
+
+[node name="Terrace_Water" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+metadata/surface_type = &"Water"
+
+[node name="Collision" type="CollisionShape3D" parent="Terrace_Water"]
+shape = SubResource("Box_terrace")
+
+[node name="Mesh" type="MeshInstance3D" parent="Terrace_Water"]
+mesh = SubResource("Mesh_terrace")
+material_override = SubResource("Mat_water")
+
+[node name="Terrace_Stone" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.5, 26)
+metadata/surface_type = &"Stone"
+
+[node name="Collision" type="CollisionShape3D" parent="Terrace_Stone"]
+shape = SubResource("Box_terrace")
+
+[node name="Mesh" type="MeshInstance3D" parent="Terrace_Stone"]
+mesh = SubResource("Mesh_terrace")
+material_override = SubResource("Mat_stone")
+
+[node name="Terrace_Foliage" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.5, 52)
+metadata/surface_type = &"Foliage"
+
+[node name="Collision" type="CollisionShape3D" parent="Terrace_Foliage"]
+shape = SubResource("Box_terrace")
+
+[node name="Mesh" type="MeshInstance3D" parent="Terrace_Foliage"]
+mesh = SubResource("Mesh_terrace")
+material_override = SubResource("Mat_foliage")
+
+[node name="IrrigationCanal" type="AudioStreamPlayer3D" parent="."]
+unit_size = 12.0
+autoplay = true
+script = ExtResource("2_canal")
+emission_points = Array[Vector3]([Vector3(-20, 0.4, 12), Vector3(-16.6667, 0.4, 13), Vector3(-13.3333, 0.4, 13.7321), Vector3(-10, 0.4, 14), Vector3(-6.66667, 0.4, 13.7321), Vector3(-3.33333, 0.4, 13), Vector3(0, 0.4, 12), Vector3(3.33333, 0.4, 11), Vector3(6.66667, 0.4, 10.2679), Vector3(10, 0.4, 10), Vector3(13.3333, 0.4, 10.2679), Vector3(16.6667, 0.4, 11), Vector3(20, 0.4, 12)])
+rendering_mode = 0
+cull_distance = 90.0
+
+[node name="Treeline" type="AudioStreamPlayer3D" parent="."]
+unit_size = 14.0
+autoplay = true
+script = ExtResource("3_treeline")
+curve = SubResource("Curve3D_treeline")
+enable_air_absorption = true
+enable_doppler = true
+max_virtual_distance = 120.0
+
+[node name="CicadaSwarm" type="AudioStreamPlayer3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 4, -8)
+unit_size = 10.0
+script = ExtResource("4_swarm")
+grain_size_ms = 35.0
+grain_rate_hz = 60.0
+position_jitter_ms = 25.0
+pitch_jitter_semitones = 4.0
+max_concurrent_grains = 24
+auto_play_emitter = true
+
+[node name="Player" parent="." instance=ExtResource("7_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="Telemetry" type="CanvasLayer" parent="."]
+layer = 9
+script = ExtResource("6_telemetry")
+
+[node name="AudibleMonitor" type="CanvasLayer" parent="."]
+script = ExtResource("5_monitor")
+enabled = true
+max_items_displayed = 8
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.766044, -0.219846, 0.604023, 0, 0.939693, 0.34202, -0.642788, 0.262003, -0.719846, 0, 12, 0)
+light_color = Color(0.6, 0.68, 0.85, 1)
+light_energy = 0.15
+
+[node name="Hud" parent="." instance=ExtResource("8_hud")]
+demo_title = "El monzon"
+thesis = "200 emisores contra un presupuesto de 32 voces fisicas: 168 quedan virtuales y el voice stealing decide cuales cada frame. Cuando cae el trueno el ambiente se hunde, y no porque nadie lo programara: porque la ventana HDR subio."
+controls = Array[String](["Flechas — caminar por las terrazas", "T — lanzar un trueno", "F8 — monitor de voces audibles", "F1 — mostrar u ocultar este cartel"])
+exercises = Array[String](["post_event masivo — 200 instancias sobre 32 voces", "Voice stealing — por prioridad Y distancia, no solo distancia", "HDR — el trueno declara +18 dB y hunde el ambiente", "OpenDouMultiPositionEmitter3D — el canal de riego como objeto grande", "OpenDouSplineEmitter3D — la linea de arboles, con doppler y absorcion de aire", "OpenDouGranularEmitter3D — el enjambre de cigarras", "OpenDouAudibleMonitor — que voces se oyen ahora mismo", "LOD acustico — lo lejano no gasta raycasts de oclusion"])
+
+[node name="PauseMenu" parent="." instance=ExtResource("9_menu")]

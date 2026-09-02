@@ -12,6 +12,12 @@ const SoundBankManagerClass = preload("res://addons/opendou/runtime/soundbank_ma
 const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
 const LiveUpdateServerClass = preload("res://addons/opendou/runtime/network/live_update_server.gd")
 const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_playback_context.gd")
+const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
+const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_resolver.gd")
+const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/occlusion_scheduler.gd")
+const RoomPathDispatcherClass = preload("res://addons/opendou/runtime/spatial/room_path_dispatcher.gd")
+const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
+const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
 # Central Game Syncs Manager (States, Switches, Global RTPCs, Triggers)
 var sync_manager: GameSyncManager
@@ -37,15 +43,75 @@ var voice_pool: VoicePoolManager
 # Listener position cache
 var active_listener_position: Vector3 = Vector3.ZERO
 
+## Pool de reproductores nativos para las voces anonimas.
+##
+## Se crea en _init() para que el manager sea coherente desde el primer momento,
+## y se mete en el arbol en _ready(): un reproductor fuera del arbol no puede
+## reproducir, asi que sin ese paso las voces cambiarian de estado sin sonar.
+var player_pool: OpenDouNativePlayerPool = null
+
+## Resolutor del oyente activo.
+var listener_resolver: OpenDouListenerResolver = null
+
+## Programador unico de raycasts de oclusion, con presupuesto por frame.
+var occlusion_scheduler: OpenDouOcclusionScheduler = null
+
+## Aplica el grafo de salas y portales a las voces fisicas.
+##
+## Antes de esto, salas y portales se calculaban y no llegaban a ninguna voz.
+var room_path_dispatcher: OpenDouRoomPathDispatcher = null
+
+## Despachador de reflexiones tempranas como voces del pool.
+var reflection_dispatcher: OpenDouReflectionDispatcher = null
+
+## Motor de ventana de sonoridad HDR.
+##
+## Estaba huerfano: solo lo usaba el mixer del editor. Existia ademas un segundo
+## motor duplicado, HDRAudioManager, que solo accionaba una demo. Se consolido en
+## este, que tiene ataque y liberacion separados, limites de ventana y senal de
+## cambio.
+var hdr_engine: AudioHDREngine = null
+
+## Si el HDR contribuye a la mezcla.
+##
+## Va activado porque con la sonoridad por defecto de los eventos su contribucion
+## es exactamente 0 dB: dejarlo apagado habria movido el huerfano del editor al
+## runtime en lugar de arreglarlo.
+var hdr_enabled: bool = true
+
 func _init() -> void:
 	sync_manager = GameSyncManagerClass.new()
 	bank_manager = SoundBankManagerClass.new()
 	spatial_acoustics = SpatialAcousticsManagerClass.new()
 	live_update_server = LiveUpdateServerClass.new()
 	voice_pool = VoicePoolManagerClass.new(64)
+	player_pool = NativePlayerPoolClass.new(64)
+	voice_pool.set_player_pool(player_pool)
+	listener_resolver = ListenerResolverClass.new()
+	occlusion_scheduler = OcclusionSchedulerClass.new()
+	room_path_dispatcher = RoomPathDispatcherClass.new()
+	room_path_dispatcher.acoustics = spatial_acoustics
+	reflection_dispatcher = ReflectionDispatcherClass.new()
+	hdr_engine = AudioHDREngineClass.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Los reproductores solo pueden reproducir dentro del arbol.
+	if player_pool != null and player_pool.get_parent() == null:
+		add_child(player_pool)
+
+## Sustituye el pool de reproductores nativos.
+func set_player_pool(pool: OpenDouNativePlayerPool) -> void:
+	if pool == null:
+		return
+	if player_pool != null and player_pool != pool and player_pool.get_parent() == self:
+		remove_child(player_pool)
+		player_pool.queue_free()
+	player_pool = pool
+	if voice_pool != null:
+		voice_pool.set_player_pool(pool)
+	if is_inside_tree() and pool.get_parent() == null:
+		add_child(pool)
 
 # ==============================================================================
 # LIVE UPDATE & PROFILING API
@@ -70,6 +136,13 @@ func load_bank(file_path: String, bank_name: StringName = &"") -> RefCounted:
 ## Unloads a sound bank, freeing its prefetch RAM and closing its file descriptor.
 func unload_bank(bank_name: StringName) -> void:
 	bank_manager.unload_bank(bank_name)
+
+## AudioStreamWAV de un stream de un banco cargado, listo para usar como
+## base_stream de un AudioEventDef.
+func get_bank_stream(bank_name: StringName, stream_id: int) -> AudioStreamWAV:
+	if bank_manager == null:
+		return null
+	return bank_manager.get_stream(bank_name, stream_id)
 
 # ==============================================================================
 # CONVENIENCE GAME SYNCS API
@@ -125,12 +198,43 @@ func get_global_parameter(param_name: StringName) -> float:
 # ==============================================================================
 
 ## Configures the maximum physical voice pool size.
+## Cambia el presupuesto de voces fisicas.
+##
+## Antes esto era `voice_pool = VoicePoolManagerClass.new(count)` a secas, y el pool
+## nuevo nacia SIN reproductores: devirtualize() salia temprano por player_pool == null
+## y el motor entero se quedaba MUDO. Es la llamada mas obvia que haria un juego al
+## arrancar -"quiero 32 voces"-, asi que el defecto dejaba sin audio a cualquiera que la
+## usara.
 func set_max_physical_voices(count: int) -> void:
-	voice_pool = VoicePoolManagerClass.new(count)
+	var target: int = maxi(1, count)
+	if voice_pool != null and voice_pool.max_physical_voices == target:
+		return
+	# Las voces que estaban sonando hay que detenerlas por el camino bueno. Descartar
+	# el pool sin mas dejaba sus reproductores sonando y las instancias apuntando a
+	# canales de un pool que ya no existe.
+	if voice_pool != null:
+		for instance in active_instances:
+			if instance != null and instance.assigned_channel_id >= 0:
+				voice_pool.virtualize(instance)
+	voice_pool = VoicePoolManagerClass.new(target)
+	voice_pool.set_player_pool(player_pool)
 
-## Sets the current active listener 3D position.
+## Fija una posicion fija de oyente, con prioridad sobre la regla automatica.
 func set_listener_position(pos: Vector3) -> void:
 	active_listener_position = pos
+	if listener_resolver != null:
+		listener_resolver.set_listener_position(pos)
+
+## Fija un nodo como oyente explicito, para juegos con el oyente desacoplado de
+## la camara. Pasar null vuelve a la regla automatica de Godot.
+func set_listener_node(node: Node3D) -> void:
+	if listener_resolver != null:
+		listener_resolver.set_listener_node(node)
+
+## Vuelve a la regla automatica: AudioListener3D activo y, en su defecto, camara.
+func clear_listener_override() -> void:
+	if listener_resolver != null:
+		listener_resolver.clear_override()
 
 ## Registers an event definition into the global registry.
 func register_event_definition(event_def: AudioEventDef) -> void:
@@ -155,6 +259,10 @@ func post_event(event: Variant, caller: Node = null) -> EventInstance:
 		return null
 		
 	var instance: EventInstance = EventInstanceClass.new(def, caller)
+	# El contexto se refresca ANTES de play(): la primera resolucion tiene que ver el
+	# estado vivo, no un contexto vacio.
+	var initial_rtpcs = sync_manager.global_rtpcs if sync_manager else {}
+	instance.refresh_playback_context(initial_rtpcs, sync_manager)
 	active_instances.append(instance)
 	instance.play()
 	return instance
@@ -162,42 +270,135 @@ func post_event(event: Variant, caller: Node = null) -> EventInstance:
 ## Stops all currently playing event instances.
 func stop_all() -> void:
 	for instance in active_instances:
+		# virtualize() desconecta la senal finished, detiene el canal y devuelve el
+		# reproductor al pool. Sin esto, stop_all() solo marcaba la instancia como
+		# parada: el canal seguia ocupado, el reproductor seguia sonando -para siempre
+		# si el evento era un bucle- y el Callable de finished retenia la instancia.
+		if voice_pool != null and instance != null and instance.assigned_channel_id >= 0:
+			voice_pool.virtualize(instance)
 		instance.stop()
 	active_instances.clear()
 
+## Alimenta la ventana HDR con la sonoridad de las voces activas y la avanza.
+##
+## Tiene que ocurrir ANTES de aplicar, porque la ganancia de cada voz depende de
+## donde quede la ventana este frame.
+func _update_hdr(delta: float) -> void:
+	if hdr_engine == null or not hdr_enabled:
+		return
+	for instance in active_instances:
+		if instance == null or instance.definition == null:
+			continue
+		hdr_engine.push_event_loudness(instance.definition.hdr_loudness_db)
+	hdr_engine.update(delta)
+
+## Empuja los valores calculados de cada voz fisica a su reproductor nativo.
+##
+## Este paso es el que faltaba: sin el, calculated_volume_db,
+## calculated_pitch_scale y el cutoff de oclusion se recalculan cada frame y no
+## afectan a ningun sonido. Una voz arrancaba en el suelo de -80 dB que pone
+## play_stream() y se quedaba ahi para siempre.
+func _apply_voices() -> void:
+	if voice_pool == null:
+		return
+	for instance in active_instances:
+		if instance == null or instance.assigned_channel_id < 0:
+			continue
+		var ch = voice_pool.get_channel(instance.assigned_channel_id)
+		if ch == null or not ch.is_busy:
+			continue
+		var volume_db: float = instance.calculated_volume_db
+		# calculate_voice_gain_db() devuelve el nivel de salida relativo a la
+		# ventana, siempre <= 0, asi que funciona como atenuacion. Su entrada es la
+		# sonoridad de DISENO del evento, no el nivel de mezcla.
+		if hdr_enabled and hdr_engine != null and instance.definition != null:
+			volume_db += hdr_engine.calculate_voice_gain_db(instance.definition.hdr_loudness_db)
+		var cutoff: float = float(instance.calculated_properties.get(&"cutoff_hz", 20000.0))
+		# La posicion aparente es igual a la del emisor salvo cuando el grafo de salas
+		# gobierna la voz, asi que aqui no hace falta ninguna rama.
+		ch.apply(
+			volume_db,
+			instance.calculated_pitch_scale,
+			cutoff,
+			instance.current_apparent_position
+		)
+
+## Emite las reflexiones tempranas de las voces cuyo emisor las tenga activadas.
+func _dispatch_reflections() -> void:
+	if reflection_dispatcher == null or not is_inside_tree():
+		return
+	reflection_dispatcher.collect_finished()
+	var vp := get_viewport()
+	var w3d: World3D = vp.find_world_3d() if vp != null else null
+	if w3d == null:
+		return
+	for instance in active_instances:
+		if instance == null or instance.assigned_channel_id < 0:
+			continue
+		var node = instance.get_bound_player()
+		if node != null and "enable_early_reflections" in node and node.enable_early_reflections:
+			reflection_dispatcher.dispatch(instance, active_listener_position, w3d)
+
+## Resuelve el oyente del frame y actualiza la posicion cacheada.
+func _update_listener() -> void:
+	if listener_resolver == null or not is_inside_tree():
+		return
+	if listener_resolver.resolve(get_viewport()):
+		active_listener_position = listener_resolver.position
+
 ## Main frame update loop.
 func _process(delta: float) -> void:
-	# 1. Poll Live Update server & dispatch remote authoring changes
+	# 1. Resolver el oyente. Todo lo que dependa de distancia va DESPUES.
+	_update_listener()
+
+	# 2. Live Update remoto.
 	if live_update_server and live_update_server.is_server_running:
 		live_update_server.poll()
 		live_update_server.dispatch_commands(event_registry, sync_manager)
-		
-	# 2. Update Game Syncs (RTPCs & States transitions)
+
+	# 3. Game Syncs (RTPCs y transiciones de estado).
 	if sync_manager:
 		sync_manager.process(delta)
-		
-	# 3. Update active instances
+
+	# 3b. Camino por salas y portales. Va ANTES de la oclusion para que la oclusion pueda
+	# saltarse las voces que el grafo gobierna: sin eso, el mismo mamparo se cobraria dos
+	# veces y el presupuesto de raycasts se gastaria en voces ya resueltas.
+	if room_path_dispatcher != null:
+		room_path_dispatcher.process_pool(voice_pool, active_listener_position)
+
+	# 4. Oclusion presupuestada: un unico manager y un techo de raycasts.
+	if occlusion_scheduler != null and is_inside_tree():
+		var vp := get_viewport()
+		var w3d: World3D = vp.find_world_3d() if vp != null else null
+		occlusion_scheduler.process(active_instances, active_listener_position, w3d)
+
+	# 5. Parametros de instancia y limpieza de las terminadas.
 	for i in range(active_instances.size() - 1, -1, -1):
 		var instance: EventInstance = active_instances[i]
-		
-		# 3a. Interpolate local instance parameters
 		instance.interpolate_locals(delta)
-		
-		# 3b. Evaluate curves, modulators and calculate output values
 		var global_rtpcs = sync_manager.global_rtpcs if sync_manager else {}
 		instance.update_parameters(delta, global_rtpcs)
-		
-		# 3c. Clean up finished instances
+		instance.refresh_playback_context(global_rtpcs, sync_manager)
 		if instance.is_finished():
 			if voice_pool and instance.assigned_channel_id >= 0:
 				voice_pool.virtualize(instance)
 			active_instances.remove_at(i)
-			
-	# 4. Resolve Voice Stealing and Virtual Voice allocation
+
+	# 5b. Ventana HDR: se alimenta con la sonoridad de las voces activas y avanza
+	# antes de aplicar, porque la ganancia de cada voz depende de donde quede.
+	_update_hdr(delta)
+
+	# 6. Asignar permiso: quien es audible dentro del presupuesto.
 	if voice_pool:
 		voice_pool.resolve_voice_stealing(active_instances, active_listener_position, delta)
-		
-	# 5. Broadcast Profiler Telemetry
+
+	# 7. Aplicar los valores calculados a los reproductores reales.
+	_apply_voices()
+
+	# 7b. Reflexiones tempranas de las voces que las tengan activadas.
+	_dispatch_reflections()
+
+	# 8. Telemetria.
 	if live_update_server and live_update_server.is_server_running:
 		var phys_count = voice_pool.get_active_physical_count() if voice_pool else 0
 		var virt_count = voice_pool.get_active_virtual_count(active_instances) if voice_pool else 0

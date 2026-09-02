@@ -295,9 +295,47 @@ if (Test-Path $fullResultsPath) {
 }
 
 # ---------------------------------------------------------
+# 5b. Verificaciones del motor (paridad con run_tests.sh)
+# ---------------------------------------------------------
+# Un error de script en GDScript aborta la funcion que lo contiene y devuelve
+# null, asi que un test puede reportar PASSED mientras el motor grita. Por eso
+# SCRIPT ERROR y Parse Error son fatales sin excepcion.
+$engineClean = $true
+$consoleAll = (Get-Content -Path $fullLogPath -Raw -ErrorAction SilentlyContinue)
+if (-not $consoleAll) { $consoleAll = ($logLines -join "`n") }
+
+$scriptErrors = ([regex]::Matches($consoleAll, 'SCRIPT ERROR')).Count
+$parseErrors = ([regex]::Matches($consoleAll, 'Parse Error')).Count
+if ($scriptErrors -gt 0) {
+    Write-Host "[FALLO] $scriptErrors SCRIPT ERROR en el log." -ForegroundColor Red
+    $engineClean = $false
+}
+if ($parseErrors -gt 0) {
+    Write-Host "[FALLO] $parseErrors Parse Error en el log." -ForegroundColor Red
+    $engineClean = $false
+}
+
+# Trinquete de fugas de ObjectDB: no pueden aumentar respecto al techo.
+$leakBudgetFile = Join-Path $PSScriptRoot "tests\leak_budget.txt"
+$leakBudget = 0
+if (Test-Path $leakBudgetFile) {
+    $leakBudget = [int]((Get-Content -Path $leakBudgetFile -Raw).Trim())
+}
+$leakMatches = [regex]::Matches($consoleAll, '(\d+) ObjectDB instances were leaked')
+$leaked = 0
+if ($leakMatches.Count -gt 0) {
+    $leaked = [int]$leakMatches[$leakMatches.Count - 1].Groups[1].Value
+}
+Write-Host "[OpenDou] fugas ObjectDB: $leaked (techo: $leakBudget)"
+if ($leaked -gt $leakBudget) {
+    Write-Host "[FALLO] las fugas de ObjectDB aumentaron de $leakBudget a $leaked." -ForegroundColor Red
+    $engineClean = $false
+}
+
+# ---------------------------------------------------------
 # 6. Print Footer and Summary
 # ---------------------------------------------------------
-$overallSuccess = ($testPassed -and $godotExitCode -eq 0)
+$overallSuccess = ($testPassed -and $engineClean -and $godotExitCode -eq 0)
 
 $logFooter = @"
 ================================================================

@@ -44,9 +44,26 @@ static func run_all() -> Array[String]:
 	if slice.size() != 12: # 6 samples * 2 bytes PCM16
 		failures.append("Test 4 Failed: Prefetch slice size mismatch, expected 12 got %d" % slice.size())
 
+	# Comparar CONTENIDO, no solo tamano. Este test afirmaba unicamente
+	# chunk.size() != 12, y con los offsets de disco desplazados la lectura caia en
+	# el sitio equivocado y seguia devolviendo 12 bytes: pasaba devolviendo audio
+	# incorrecto.
 	var chunk = bank.read_stream_chunk(102, 0, 12)
 	if chunk.size() != 12:
 		failures.append("Test 5 Failed: Disk streaming chunk read mismatch, expected 12 got %d" % chunk.size())
+	else:
+		var expected := PackedFloat32Array([0.1, 0.2, 0.3, 0.2, 0.1, 0.0])
+		for i in range(expected.size()):
+			var lo: int = chunk[i * 2]
+			var hi: int = chunk[i * 2 + 1]
+			var v: int = lo | (hi << 8)
+			if v >= 32768:
+				v -= 65536
+			# El divisor es 32767 porque es el factor que usa build_bank al codificar.
+			var decoded: float = float(v) / 32767.0
+			if absf(decoded - expected[i]) > 0.001:
+				failures.append("Test 5b Failed: muestra %d del stream en disco vale %f, se esperaba %f" % [i, decoded, expected[i]])
+				break
 
 	mgr.unload_bank(&"test_tactical_pack")
 	DirAccess.remove_absolute(target_bank_path)

@@ -8,6 +8,7 @@ extends AudioStreamPlayer3D
 
 const AudioGranularSynthesizerClass = preload("res://addons/opendou/core/dsp/audio_granular_synthesizer.gd")
 const ModularSynthEngineClass = preload("res://addons/opendou/runtime/synth/modular_synth_engine.gd")
+const WavDecoderClass = preload("res://addons/opendou/runtime/wav_decoder.gd")
 
 @export_group("Granular Configuration")
 @export var source_stream: AudioStreamWAV = null:
@@ -72,17 +73,11 @@ func _setup_audio_generator() -> void:
 func _rebuild_synthesizer() -> void:
 	if _granular_synth == null:
 		return
+	# La decodificacion la hace OpenDouWavDecoder: aqui se asumia 16 bits mono, y
+	# el formato por defecto de AudioStreamWAV es de 8 bits con signo.
 	var samples: PackedFloat32Array = PackedFloat32Array()
 	if source_stream != null and source_stream.data.size() > 0:
-		var raw_data = source_stream.data
-		samples.resize(raw_data.size() / 2)
-		for i in range(samples.size()):
-			var b0 = raw_data[i * 2]
-			var b1 = raw_data[i * 2 + 1]
-			var val16 = b0 | (b1 << 8)
-			if val16 >= 32768:
-				val16 -= 65536
-			samples[i] = float(val16) / 32768.0
+		samples = WavDecoderClass.to_mono_floats(source_stream)
 	else:
 		# Fallback procedural grain texture (Brown filtered noise)
 		var fallback_dict: Dictionary = {
@@ -95,15 +90,7 @@ func _rebuild_synthesizer() -> void:
 		}
 		var synth_wav = ModularSynthEngineClass.synthesize_wav(fallback_dict)
 		if synth_wav and synth_wav.data.size() > 0:
-			var raw_data = synth_wav.data
-			samples.resize(raw_data.size() / 2)
-			for i in range(samples.size()):
-				var b0 = raw_data[i * 2]
-				var b1 = raw_data[i * 2 + 1]
-				var val16 = b0 | (b1 << 8)
-				if val16 >= 32768:
-					val16 -= 65536
-				samples[i] = float(val16) / 32768.0
+			samples = WavDecoderClass.to_mono_floats(synth_wav)
 
 	_granular_synth.source_samples = samples
 	_granular_synth.grain_size_ms = grain_size_ms

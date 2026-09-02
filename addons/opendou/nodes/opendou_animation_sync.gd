@@ -49,7 +49,7 @@ var _triggered_timeline_indices: Array[int] = []
 
 func _ready() -> void:
 	if not Engine.is_editor_hint():
-		_event_manager = AudioEventManagerClass.new()
+		_event_manager = _resolve_event_manager()
 		_resolve_node_paths()
 
 func _process(_delta: float) -> void:
@@ -59,6 +59,36 @@ func _process(_delta: float) -> void:
 	_process_timeline_events()
 	if blend_space_sync_enabled:
 		process_blend_space_rtpcs()
+
+## El manager autoload, o null si el proyecto no lo tiene.
+##
+## Antes esto era AudioEventManagerClass.new(): un manager huerfano, fuera del arbol,
+## con el registro vacio y cuyo _process no corre nunca. set_switch() iba ahi, asi que
+## el switch container de las pisadas no veia la superficie, y spatial_acoustics no
+## tenia ninguna sala registrada.
+##
+## Devuelve null y no una copia privada a proposito: sin manager las llamadas se quedan
+## calladas -todas comprueban _event_manager != null-, que es honesto. Una copia privada
+## finge estar conectada y ademas nunca se libera.
+func _resolve_event_manager() -> AudioEventManager:
+	if is_inside_tree():
+		var root := get_tree().root
+		if root != null and root.has_node("OpenDou"):
+			var found = root.get_node("OpenDou")
+			if found is AudioEventManager:
+				return found
+	return null
+
+
+## Fija el manager explicitamente. Para tests y para proyectos sin el autoload.
+func set_event_manager(manager: AudioEventManager) -> void:
+	_event_manager = manager
+
+
+## El manager con el que esta hablando ahora mismo.
+func get_event_manager() -> AudioEventManager:
+	return _event_manager
+
 
 func _resolve_node_paths() -> void:
 	if not animation_player_path.is_empty() and has_node(animation_player_path):
@@ -115,8 +145,13 @@ func trigger_audio_event(event_name: StringName) -> void:
 			return
 
 	if _event_manager != null and _event_manager.has_method("post_event"):
-		var emitter_pos = _get_emitter_global_position()
-		_event_manager.post_event(event_name, emitter_pos)
+		# post_event(event, caller: Node): aqui se le pasaba un Vector3 como caller, lo
+		# que abortaba la llamada con un error de tipo y dejaba el camino sin emisor
+		# completamente mudo. La posicion va en la instancia, que es donde el motor la
+		# lee.
+		var instance = _event_manager.post_event(event_name, self)
+		if instance != null:
+			instance.set_position(_get_emitter_global_position())
 
 ## Direct method callback for footstep synchronization in animations.
 func footstep(foot_index: int = 0, surface_override: StringName = &"") -> void:
@@ -128,7 +163,11 @@ func trigger_footstep(foot_index: int = 0, surface_override: StringName = &"") -
 	if surface.is_empty() and auto_detect_surface:
 		var pos = _get_emitter_global_position()
 		if _event_manager != null and _event_manager.spatial_acoustics != null:
-			surface = _event_manager.spatial_acoustics.detect_surface_at(pos)
+			# El World3D es obligatorio: la prioridad 1 de detect_surface_at es un
+			# raycast hacia abajo que solo se ejecuta si se le pasa. Sin el, caia al
+			# floor_surface de la sala y tres parches de material distinto en la misma
+			# sala daban tres pisadas identicas.
+			surface = _event_manager.spatial_acoustics.detect_surface_at(pos, _get_world_3d())
 		else:
 			surface = &"Concrete"
 
@@ -216,6 +255,19 @@ func process_blend_space_rtpcs() -> void:
 # ==============================================================================
 # HELPER METHODS
 # ==============================================================================
+
+## World3D del emisor, o del propio nodo si no hay emisor asignado.
+func _get_world_3d() -> World3D:
+	if target_emitter != null and is_instance_valid(target_emitter) and target_emitter is Node3D:
+		if (target_emitter as Node3D).is_inside_tree():
+			return (target_emitter as Node3D).get_world_3d()
+	var parent_node = get_parent()
+	if parent_node is Node3D and parent_node.is_inside_tree():
+		return (parent_node as Node3D).get_world_3d()
+	if is_inside_tree() and get_viewport() != null:
+		return get_viewport().find_world_3d()
+	return null
+
 
 func _get_emitter_global_position() -> Vector3:
 	if target_emitter != null and is_instance_valid(target_emitter) and target_emitter is Node3D:

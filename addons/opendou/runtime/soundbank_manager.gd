@@ -7,6 +7,12 @@ const SoundBankClass = preload("res://addons/opendou/runtime/soundbank.gd")
 
 var loaded_banks: Dictionary = {} # StringName -> SoundBank
 
+## Streams ya reconstruidos, indexados por "banco/id".
+##
+## Reconstruir el AudioStreamWAV en cada peticion recomponeria los mismos bytes una
+## y otra vez. La carga es perezosa: solo se materializa lo que se pide.
+var _stream_cache: Dictionary = {}
+
 ## Loads a sound bank file and caches it by name.
 func load_bank(file_path: String, bank_name: StringName = &"") -> SoundBank:
 	var b_name: StringName = bank_name
@@ -25,9 +31,29 @@ func load_bank(file_path: String, bank_name: StringName = &"") -> SoundBank:
 ## Unloads a sound bank and releases its RAM prefetch block and file handle.
 func unload_bank(bank_name: StringName) -> void:
 	if loaded_banks.has(bank_name):
+		# Purgar la cache de ese banco: si no, get_stream() seguiria devolviendo
+		# streams de un banco ya cerrado.
+		var prefix: String = "%s/" % String(bank_name)
+		for key in _stream_cache.keys():
+			if String(key).begins_with(prefix):
+				_stream_cache.erase(key)
 		var bank: SoundBank = loaded_banks[bank_name]
 		bank.close()
 		loaded_banks.erase(bank_name)
+
+## AudioStreamWAV de un stream de un banco cargado, reconstruyendolo la primera
+## vez. Devuelve null si el banco no esta cargado o el stream no es reproducible.
+func get_stream(bank_name: StringName, stream_id: int) -> AudioStreamWAV:
+	var key: String = "%s/%d" % [String(bank_name), stream_id]
+	if _stream_cache.has(key):
+		return _stream_cache[key]
+	var bank: SoundBank = get_bank(bank_name)
+	if bank == null:
+		return null
+	var wav: AudioStreamWAV = bank.build_stream(stream_id)
+	if wav != null:
+		_stream_cache[key] = wav
+	return wav
 
 ## Retrieves a loaded sound bank by name.
 func get_bank(bank_name: StringName) -> SoundBank:
@@ -56,3 +82,4 @@ func clear_all() -> void:
 		var bank: SoundBank = loaded_banks[b_name]
 		bank.close()
 	loaded_banks.clear()
+	_stream_cache.clear()

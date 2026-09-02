@@ -1,0 +1,95 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scenes/demos/cabin/cabin_demo.gd" id="1_cabin"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_room_3d.gd" id="2_room"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_music_player.gd" id="3_music"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_event_player.gd" id="4_radio"]
+[ext_resource type="PackedScene" path="res://scenes/shared/player.tscn" id="5_player"]
+[ext_resource type="PackedScene" path="res://scenes/shared/demo_hud.tscn" id="6_hud"]
+[ext_resource type="PackedScene" path="res://scenes/shared/pause_menu.tscn" id="7_menu"]
+
+[sub_resource type="BoxShape3D" id="Box_cabin"]
+size = Vector3(10, 3.5, 10)
+
+[sub_resource type="BoxShape3D" id="Box_deck"]
+size = Vector3(10, 0.4, 10)
+
+[sub_resource type="BoxMesh" id="Mesh_deck"]
+size = Vector3(10, 0.4, 10)
+
+[sub_resource type="BoxShape3D" id="Box_catwalk"]
+size = Vector3(3, 0.4, 8)
+
+[sub_resource type="BoxMesh" id="Mesh_catwalk"]
+size = Vector3(3, 0.4, 8)
+
+[sub_resource type="StandardMaterial3D" id="Mat_wood"]
+albedo_color = Color(0.52, 0.36, 0.2, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_metal"]
+albedo_color = Color(0.62, 0.66, 0.72, 1)
+
+[node name="CabinDemo" type="Node3D"]
+script = ExtResource("1_cabin")
+
+[node name="Cabin" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+script = ExtResource("2_room")
+room_name = &"Cabin"
+material_preset = "Glass"
+floor_surface = &"Wood"
+reverb_send_amount = 0.55
+
+[node name="Shape" type="CollisionShape3D" parent="Cabin"]
+shape = SubResource("Box_cabin")
+
+[node name="Deck_Wood" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+metadata/surface_type = &"Wood"
+
+[node name="Collision" type="CollisionShape3D" parent="Deck_Wood"]
+shape = SubResource("Box_deck")
+
+[node name="Mesh" type="MeshInstance3D" parent="Deck_Wood"]
+mesh = SubResource("Mesh_deck")
+material_override = SubResource("Mat_wood")
+
+[node name="Catwalk_Metal" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 9)
+metadata/surface_type = &"Metal"
+
+[node name="Collision" type="CollisionShape3D" parent="Catwalk_Metal"]
+shape = SubResource("Box_catwalk")
+
+[node name="Mesh" type="MeshInstance3D" parent="Catwalk_Metal"]
+mesh = SubResource("Mesh_catwalk")
+material_override = SubResource("Mat_metal")
+
+[node name="Music" type="Node" parent="."]
+script = ExtResource("3_music")
+suite_name = &"Tower_Night_Watch"
+auto_play = false
+master_bus = &"Music"
+enable_ducking = false
+combat_intensity = 0.0
+
+[node name="Radio" type="AudioStreamPlayer" parent="."]
+script = ExtResource("4_radio")
+auto_play_event = false
+bus_category = "Master"
+
+[node name="Operator" parent="." instance=ExtResource("5_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.939693, -0.116978, 0.321394, 0, 0.939693, 0.34202, -0.34202, -0.321394, 0.883022, 0, 8, 0)
+light_color = Color(0.7, 0.75, 0.95, 1)
+light_energy = 0.2
+
+[node name="Hud" parent="." instance=ExtResource("6_hud")]
+demo_title = "La cabina"
+thesis = "UN solo valor de RTPC -Tension- conduce TRES cosas a la vez: que stems musicales suenan, el corte del filtro de la radio, y el envio de reverb de la cabina. Y los estados CRUZAN en lugar de cortar."
+controls = Array[String](["1 / 2 / 3 — rutina, alerta, emergencia", "R — cambiar de estacion de radio", "Flechas — caminar de la tarima a la rejilla", "F1 — mostrar u ocultar este cartel"])
+exercises = Array[String](["OpenDouMusicPlayer — cuatro stems, un bus cada uno", "States con crossfade — la situacion cruza, no corta", "RTPC — un valor moviendo tres cosas coherentemente", "RTPCBinding sobre cutoff_hz — el filtro de la radio", "Triggers — un nombre posteado produce un stinger", "Switches — la estacion elige que linea de radio suena", "AudioSwitchContainer — el chatter, una rama por estacion", "SoundBank — locuciones precargadas desde un .bnk", "Tabla de dialogo — las mismas locuciones en dos lenguas", "OpenDouEventPlayer — la radio, NO espacial"])
+
+[node name="PauseMenu" parent="." instance=ExtResource("7_menu")]

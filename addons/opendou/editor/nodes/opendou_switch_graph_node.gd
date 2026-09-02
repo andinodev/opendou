@@ -43,3 +43,25 @@ func _build_ui() -> void:
 	branches_lbl.text = "States: Asphalt • Mud • Metal • Stone • Wood • Water"
 	branches_lbl.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(branches_lbl)
+
+## Sustituye la lista de estados del switch y reconstruye sus slots.
+## La llama el editor al cargar un contenedor cuyos estados no son los de por
+## defecto, y el panel de Game Syncs cuando cambia el grupo activo.
+func set_states_list(new_states: Array) -> void:
+	states.clear()
+	for s in new_states:
+		states.append(str(s))
+	_rebuild_state_slots()
+
+## Redibuja un slot de salida por estado.
+func _rebuild_state_slots() -> void:
+	if slots_vbox == null:
+		return
+	for child in slots_vbox.get_children():
+		child.queue_free()
+	for i in range(states.size()):
+		var row := HBoxContainer.new()
+		var lbl := Label.new()
+		lbl.text = states[i]
+		row.add_child(lbl)
+		slots_vbox.add_child(row)
