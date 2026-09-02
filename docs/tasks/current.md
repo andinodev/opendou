@@ -103,4 +103,15 @@ gobiernen las voces 3D dentro de salas (obs 49; encaja con la fase de reverb); u
 luzca los nodos de la Fase 10 (hoy no cubiertos por la guarda); el techo de fugas queda a
 trece objetos (527 de 540).
 
-**Siguiente:** spec de la Fase 12 según la hoja de ruta (materiales y efecto directo de Steam Audio).
+**Fases 12, 13 y 14, diseñadas y planificadas sin intervención (2026-09-02):** specs
+[12](../superpowers/specs/2026-09-02-fase12-efecto-directo-design.md) ·
+[13](../superpowers/specs/2026-09-02-fase13-reflexiones-y-ambisonics-design.md) ·
+[14](../superpowers/specs/2026-09-02-fase14-propagacion-y-geometria-dinamica-design.md) y planes
+[12](../superpowers/plans/2026-09-02-fase12-efecto-directo.md) ·
+[13](../superpowers/plans/2026-09-02-fase13-reflexiones-y-ambisonics.md) ·
+[14](../superpowers/plans/2026-09-02-fase14-propagacion-y-geometria-dinamica.md).
+**Las dudas están en [`observaciones-fases-12-14.md`](observaciones-fases-12-14.md)** (13 decisiones
+A1–A13, 13 comprobaciones B1–B13, 5 deudas C1–C5) y hay que resolverlas antes de ejecutar.
+
+**Siguiente:** resolver las observaciones A1–A13 y el spike B5; después ejecutar la Fase 12 con
+`superpowers:executing-plans` (inline), luego la 13 y la 14.
