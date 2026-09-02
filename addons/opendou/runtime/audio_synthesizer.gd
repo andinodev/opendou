@@ -150,7 +150,7 @@ static func create_chord_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	stream.stereo = false
 	return stream
 
@@ -177,7 +177,7 @@ static func create_engine_loop(base_freq: float = 55.0, duration_sec: float = 1.
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	stream.stereo = false
 	return stream
 
@@ -201,7 +201,7 @@ static func create_music_pad_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	return stream
 
 ## Creates an energetic rhythmic bassline loop (Layer 2).
@@ -223,7 +223,7 @@ static func create_music_bass_loop(duration_sec: float = 2.0) -> AudioStreamWAV:
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	return stream
 
 ## Creates a rhythmic drum beat loop (Layer 3).
@@ -256,7 +256,7 @@ static func create_music_drums_loop(duration_sec: float = 2.0) -> AudioStreamWAV
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	return stream
 
 ## Creates an epic orchestral brass climax loop (Layer 4).
@@ -279,7 +279,7 @@ static func create_music_brass_loop(duration_sec: float = 2.0) -> AudioStreamWAV
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	return stream
 
 ## Creates a celebratory brass fanfare stinger (Victory_Brass).
@@ -351,7 +351,7 @@ static func create_rain_ambient_loop(duration_sec: float = 2.0) -> AudioStreamWA
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	return stream
 
 ## Creates a soft 50Hz/100Hz transformer electrical hum for server rooms.
@@ -374,7 +374,7 @@ static func create_server_ambient_loop(duration_sec: float = 2.0) -> AudioStream
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	return stream
 
 ## Creates a subtle underground water stream / trickling loop.
@@ -397,7 +397,7 @@ static func create_water_stream_ambient_loop(duration_sec: float = 2.0) -> Audio
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	return stream
 
 ## Creates a gentle nature / atmospheric foley loop (sparkles and soft pads).
@@ -420,7 +420,7 @@ static func create_nature_foley_loop(duration_sec: float = 2.0) -> AudioStreamWA
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	return stream
 
 ## Creates a lush looping canopy wind atmospheric sound with undulating gusts and foliage rustle.
@@ -459,7 +459,7 @@ static func create_canopy_wind_loop(duration: float = 3.0, sample_rate: int = 44
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	stream.stereo = false
 	return stream
 
@@ -504,7 +504,7 @@ static func create_bird_chirp(base_frequency: float = 2400.0, duration: float = 
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	stream.stereo = false
 	return stream
 
@@ -538,7 +538,7 @@ static func create_thunder_rumble(duration: float = 3.5, sample_rate: int = 4410
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	stream.stereo = false
 	return stream
 
@@ -566,7 +566,7 @@ static func create_cicada_swarm_loop(duration: float = 2.0, sample_rate: int = 4
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	stream.stereo = false
 	return stream
 
@@ -605,7 +605,7 @@ static func create_frog_croak(duration: float = 2.5, sample_rate: int = 44100) -
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	stream.stereo = false
 	return stream
 
@@ -648,7 +648,7 @@ static func create_water_droplet(pitch: float = 1200.0, sample_rate: int = 44100
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	stream.stereo = false
 	return stream
 
@@ -676,7 +676,7 @@ static func create_cyber_hornet_loop(duration: float = 1.5, sample_rate: int = 4
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = sample_rate
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_end = num_samples
+	stream.loop_end = num_samples - 1  # n exacto hace leer mas alla del bufer en el bucle (pico espurio)
 	stream.stereo = false
 	return stream
 

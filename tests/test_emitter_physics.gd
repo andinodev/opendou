@@ -22,7 +22,7 @@ static func _tone(freq: float, seconds: float, peak_db: float = -6.0) -> AudioSt
 	wav.mix_rate = rate
 	wav.data = bytes
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	wav.loop_end = n
+	wav.loop_end = n - 1
 	return wav
 
 ## Frecuencia por cruces por cero de la suma L+R. Solo vale para un tono puro.

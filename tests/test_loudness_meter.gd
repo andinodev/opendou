@@ -24,7 +24,7 @@ static func _sine_db(peak_db: float, seconds: float) -> AudioStreamWAV:
 	wav.mix_rate = rate
 	wav.data = bytes
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	wav.loop_end = n
+	wav.loop_end = n - 1
 	return wav
 
 static func _make_bus(name: String) -> void:
