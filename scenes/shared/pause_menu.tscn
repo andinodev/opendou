@@ -83,6 +83,60 @@ text = "CANALES DE SONIDO — medidor en vivo, volumen y silencio por bus"
 layout_mode = 2
 theme_override_constants/separation = 8
 
+[node name="SpatialTitle" type="Label" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
+layout_mode = 2
+theme_type_variation = &"SectionLabel"
+text = "ESPACIALIZACIÓN — cómo se ubican los sonidos 3D"
+
+[node name="BackendLabel" type="Label" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Backend: —"
+
+[node name="BlendRow" type="HBoxContainer" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BlendLabel" type="Label" parent="Root/Center/Panel/Margin/Column/SoundPanel/BlendRow"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Mezcla HRTF"
+
+[node name="BlendSlider" type="HSlider" parent="Root/Center/Panel/Margin/Column/SoundPanel/BlendRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="OutputToggle" type="CheckButton" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
+layout_mode = 2
+text = "Altavoces (apagado = audífonos)"
+
+[node name="SofaRow" type="HBoxContainer" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SofaButton" type="Button" parent="Root/Center/Panel/Margin/Column/SoundPanel/SofaRow"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cargar HRTF .sofa…"
+
+[node name="SofaResetButton" type="Button" parent="Root/Center/Panel/Margin/Column/SoundPanel/SofaRow"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "HRTF incorporado"
+
+[node name="SofaDialog" type="FileDialog" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
+title = "Elegir un archivo SOFA"
+size = Vector2i(720, 480)
+access = 2
+file_mode = 0
+filters = PackedStringArray("*.sofa ; SOFA HRTF")
+
 [node name="Back" type="Button" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
 custom_minimum_size = Vector2(140, 38)
 layout_mode = 2

@@ -215,6 +215,15 @@ static func run_pause_menu_async(tree: SceneTree) -> OpenDouAssert:
 		names.append(row.bus_name)
 	a.ok("Master" in names, "Master esta en la lista")
 
+	# Fase 7B: el bloque de espacializacion existe como nodos y refleja el backend.
+	var sc: Dictionary = menu.spatial_controls()
+	a.ok(sc.backend is Label and sc.blend is HSlider and sc.output is CheckButton and sc.sofa is Button and sc.reset is Button, "el bloque de espacializacion esta compuesto en la escena")
+	var spatial_manager = DemoAudio.manager(menu)
+	var native: bool = spatial_manager != null and spatial_manager.is_steam_audio_backend()
+	a.eq(sc.blend.editable, native, "el deslizador de mezcla solo se edita con steam_audio")
+	a.eq(sc.output.disabled, not native, "el conmutador de salida se deshabilita con godot")
+	a.eq(sc.backend.text.contains("Steam Audio"), native, "la etiqueta dice el backend real")
+
 	# Mover un deslizador cambia el volumen REAL del bus, y silenciar lo silencia.
 	var master_row = null
 	for row in rows:

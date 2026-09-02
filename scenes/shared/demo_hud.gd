@@ -35,6 +35,10 @@ func _ready() -> void:
 	# Cada linea lleva su vineta; los titulos de seccion ya estan en la escena.
 	_controls.text = "\n".join(controls.map(func(c): return "•  " + c)) if not controls.is_empty() else "—"
 	_exercises.text = "\n".join(exercises.map(func(e): return "•  " + e)) if not exercises.is_empty() else "—"
+	# El backend espacial es parte de lo que la escena ejercita, y cambia por maquina.
+	var m: Node = get_node_or_null("/root/OpenDou")
+	if m != null and m.has_method("spatial_backend_label"):
+		_exercises.text += "\n•  Backend espacial: %s" % m.spatial_backend_label()
 	_hint.text = "%s  MOSTRAR U OCULTAR ESTE CARTEL     ·     ESCAPE  MENU" % OS.get_keycode_string(toggle_key).to_upper()
 
 func _unhandled_key_input(event: InputEvent) -> void:

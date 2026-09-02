@@ -461,6 +461,37 @@ static func run_node_emitter_async(tree: SceneTree) -> OpenDouAssert:
 	ProjectSettings.set_setting(BackendClass.SETTING, previous)
 	return a
 
+## Los ajustes del jugador llegan en vivo a los streams del pool.
+static func run_settings_live_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("binaural_settings_live")
+	if not ClassDB.class_exists("OpenDouSpatialStream"):
+		print("[OpenDou] extension nativa AUSENTE: suite binaural_settings_live omitida")
+		return a
+	var ParityClass = load("res://tests/test_backend_parity.gd")
+	var BackendClass = load("res://addons/opendou/runtime/spatial/spatial_backend.gd")
+	var PoolClass = load("res://addons/opendou/runtime/native_player_pool.gd")
+	var previous: String = str(ProjectSettings.get_setting(BackendClass.SETTING, "auto"))
+	var manager = ParityClass.make_manager(tree, "steam_audio")
+	await tree.process_frame
+	var kind: int = PoolClass.PlayerKind.BINAURAL_3D
+	var p = manager.player_pool.acquire(kind)
+	a.approx(p.stream.spatial_blend, 1.0, "un stream recien creado lleva la mezcla de los ajustes (1.0)")
+	manager.spatial_settings.set_blend(0.4)
+	a.approx(p.stream.spatial_blend, 0.4, "cambiar la mezcla llega al stream en vivo", 0.001)
+	manager.spatial_settings.set_output("speakers")
+	a.eq(p.stream.output_mode, 1, "cambiar la salida llega al stream en vivo")
+	manager.spatial_settings.set_output("headphones")
+	var p2 = manager.player_pool.acquire(kind)
+	a.approx(p2.stream.spatial_blend, 0.4, "un stream creado DESPUES nace con los ajustes vigentes", 0.001)
+	a.ok(manager.spatial_backend_label().begins_with("Steam Audio"), "la etiqueta del backend nombra a Steam Audio")
+	manager.spatial_settings.set_blend(1.0)
+	manager.player_pool.release(p)
+	manager.player_pool.release(p2)
+	tree.root.remove_child(manager)
+	manager.free()
+	ProjectSettings.set_setting(BackendClass.SETTING, previous)
+	return a
+
 ## Muestras que se dejan pasar tras cambiar un parametro antes de medir: cubre la latencia
 ## del anillo (512) mas la del servidor de audio, con margen.
 const SETTLE_SAMPLES: int = 6144

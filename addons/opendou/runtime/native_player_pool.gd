@@ -21,6 +21,10 @@ enum PlayerKind {
 ## Cupo maximo de reproductores por tipo.
 var max_players_per_kind: int = 64
 
+## Ajustes vigentes con los que nace cada stream nativo nuevo (los fija el manager).
+var default_spatial_blend: float = 1.0
+var default_output_mode: int = 0
+
 var _free: Dictionary = {}
 var _busy: Dictionary = {}
 
@@ -123,6 +127,8 @@ func _instantiate(kind: int) -> Node:
 			# El stream nativo es PERMANENTE: por voz solo cambia su fuente. Crear uno por voz
 			# seria crear y destruir efectos de Steam Audio a cada disparo.
 			p.stream = ClassDB.instantiate("OpenDouSpatialStream")
+			p.stream.spatial_blend = default_spatial_blend
+			p.stream.output_mode = default_output_mode
 			return p
 		_:
 			return AudioStreamPlayer.new()

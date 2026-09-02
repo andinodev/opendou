@@ -28,6 +28,12 @@ const BusRowScene = preload("res://scenes/shared/bus_row.tscn")
 @onready var _sound_button: Button = $Root/Center/Panel/Margin/Column/MainButtons/Sound
 @onready var _hub: Button = $Root/Center/Panel/Margin/Column/MainButtons/Hub
 @onready var _back: Button = $Root/Center/Panel/Margin/Column/SoundPanel/Back
+@onready var _backend_label: Label = $Root/Center/Panel/Margin/Column/SoundPanel/BackendLabel
+@onready var _blend: HSlider = $Root/Center/Panel/Margin/Column/SoundPanel/BlendRow/BlendSlider
+@onready var _output: CheckButton = $Root/Center/Panel/Margin/Column/SoundPanel/OutputToggle
+@onready var _sofa: Button = $Root/Center/Panel/Margin/Column/SoundPanel/SofaRow/SofaButton
+@onready var _sofa_reset: Button = $Root/Center/Panel/Margin/Column/SoundPanel/SofaRow/SofaResetButton
+@onready var _sofa_dialog: FileDialog = $Root/Center/Panel/Margin/Column/SoundPanel/SofaDialog
 
 var is_open: bool = false
 
@@ -38,6 +44,12 @@ func _ready() -> void:
 	_sound_button.pressed.connect(show_sound)
 	_hub.pressed.connect(go_to_hub)
 	_back.pressed.connect(show_main)
+	_blend.value_changed.connect(_on_blend_changed)
+	_output.toggled.connect(_on_output_toggled)
+	_sofa.pressed.connect(_sofa_dialog.popup_centered)
+	_sofa_dialog.file_selected.connect(_on_sofa_selected)
+	_sofa_reset.pressed.connect(_on_sofa_reset)
+	_refresh_spatial()
 
 func open() -> void:
 	is_open = true
@@ -61,6 +73,7 @@ func show_sound() -> void:
 	_main.visible = false
 	_sound.visible = true
 	_rebuild_bus_rows()
+	_refresh_spatial()
 
 func show_main() -> void:
 	_sound.visible = false
@@ -83,6 +96,49 @@ func _rebuild_bus_rows() -> void:
 		var row = BusRowScene.instantiate()
 		row.bus_name = AudioServer.get_bus_name(i)
 		_bus_list.add_child(row)
+
+## El manager del juego, si esta como autoload.
+func _manager() -> Node:
+	return get_node_or_null("/root/OpenDou")
+
+## Refleja el backend y los ajustes vigentes; con godot, todo deshabilitado y dicho.
+func _refresh_spatial() -> void:
+	var m: Node = _manager()
+	var native: bool = m != null and m.has_method("is_steam_audio_backend") and m.is_steam_audio_backend()
+	_backend_label.text = "Backend: %s" % (m.spatial_backend_label() if m != null and m.has_method("spatial_backend_label") else "sin manager")
+	_blend.editable = native
+	_output.disabled = not native
+	_sofa.disabled = not native
+	_sofa_reset.disabled = not native
+	if m != null and "spatial_settings" in m and m.spatial_settings != null:
+		_blend.set_value_no_signal(m.spatial_settings.blend)
+		_output.set_pressed_no_signal(m.spatial_settings.output == "speakers")
+
+## Los controles del bloque de espacializacion, para la suite.
+func spatial_controls() -> Dictionary:
+	return {"backend": _backend_label, "blend": _blend, "output": _output, "sofa": _sofa, "reset": _sofa_reset}
+
+func _on_blend_changed(value: float) -> void:
+	var m: Node = _manager()
+	if m != null and "spatial_settings" in m:
+		m.spatial_settings.set_blend(value)
+
+func _on_output_toggled(on: bool) -> void:
+	var m: Node = _manager()
+	if m != null and "spatial_settings" in m:
+		m.spatial_settings.set_output("speakers" if on else "headphones")
+
+func _on_sofa_selected(path: String) -> void:
+	var m: Node = _manager()
+	if m != null and "spatial_settings" in m:
+		m.spatial_settings.set_hrtf(path)
+	_refresh_spatial()
+
+func _on_sofa_reset() -> void:
+	var m: Node = _manager()
+	if m != null and "spatial_settings" in m:
+		m.spatial_settings.set_hrtf("default")
+	_refresh_spatial()
 
 ## El jugador, si la escena tiene uno: es quien se congela.
 func _set_player_input(enabled: bool) -> void:

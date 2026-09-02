@@ -17,6 +17,7 @@ const ListenerResolverClass = preload("res://addons/opendou/runtime/listener_res
 const OcclusionSchedulerClass = preload("res://addons/opendou/runtime/spatial/occlusion_scheduler.gd")
 const RoomPathDispatcherClass = preload("res://addons/opendou/runtime/spatial/room_path_dispatcher.gd")
 const SpatialBackendClass = preload("res://addons/opendou/runtime/spatial/spatial_backend.gd")
+const SpatialSettingsClass = preload("res://addons/opendou/runtime/spatial/spatial_settings.gd")
 const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
 const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
@@ -49,6 +50,10 @@ var active_listener_basis: Basis = Basis.IDENTITY
 ## Quien convierte las voces 3D en estereo: &"godot" o &"steam_audio". Se decide una vez
 ## en _init y no cambia en caliente. Lo leen el pool de voces, el menu, el HUD y la suite.
 var spatial_backend: StringName = &"godot"
+
+## Ajustes de espacializacion del jugador (HRTF, mezcla, salida). Persisten en user:// y se
+## aplican en vivo a los streams nativos del pool al cambiar.
+var spatial_settings: OpenDouSpatialSettings = null
 
 ## Pool de reproductores nativos para las voces anonimas.
 ##
@@ -102,6 +107,8 @@ func _init() -> void:
 	room_path_dispatcher.acoustics = spatial_acoustics
 	reflection_dispatcher = ReflectionDispatcherClass.new()
 	hdr_engine = AudioHDREngineClass.new()
+	spatial_settings = SpatialSettingsClass.new()
+	spatial_settings.changed.connect(_apply_spatial_settings)
 
 func is_steam_audio_backend() -> bool:
 	return spatial_backend == SpatialBackendClass.STEAM_AUDIO
@@ -111,6 +118,35 @@ func _ready() -> void:
 	# Los reproductores solo pueden reproducir dentro del arbol.
 	if player_pool != null and player_pool.get_parent() == null:
 		add_child(player_pool)
+	spatial_settings.load_from_disk()
+	_apply_spatial_settings()
+
+## Aplica los ajustes del jugador a todos los streams nativos, en vivo. Con backend godot
+## no hay streams y no hace nada; el menu lo muestra deshabilitado.
+func _apply_spatial_settings() -> void:
+	if spatial_settings == null or not is_steam_audio_backend():
+		return
+	var mode: int = 1 if spatial_settings.output == "speakers" else 0
+	var blend: float = spatial_settings.blend
+	if player_pool != null:
+		player_pool.default_spatial_blend = blend
+		player_pool.default_output_mode = mode
+		player_pool.for_each_spatial_stream(func(s): s.spatial_blend = blend; s.output_mode = mode)
+	if spatial_settings.hrtf == "default":
+		if str(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_name")) != "default":
+			ClassDB.class_call_static("OpenDouSpatialStream", "set_hrtf_default")
+	elif not bool(ClassDB.class_call_static("OpenDouSpatialStream", "set_hrtf_sofa", spatial_settings.hrtf)):
+		push_warning("[OpenDou] el HRTF %s no se pudo cargar: se vuelve al incorporado" % spatial_settings.hrtf)
+		spatial_settings.hrtf = "default"
+	spatial_settings.save_to_disk()
+
+## Texto para el menu y el HUD: que backend suena y con que HRTF.
+func spatial_backend_label() -> String:
+	if not is_steam_audio_backend():
+		return "Godot"
+	return "Steam Audio %s · HRTF: %s" % [
+		str(ClassDB.class_call_static("OpenDouSpatialStream", "get_steam_audio_version")),
+		str(ClassDB.class_call_static("OpenDouSpatialStream", "get_hrtf_name"))]
 
 ## Sustituye el pool de reproductores nativos.
 func set_player_pool(pool: OpenDouNativePlayerPool) -> void:

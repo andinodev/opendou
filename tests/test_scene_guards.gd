@@ -76,7 +76,7 @@ const COMPOSITION: Array[Dictionary] = [
 	{"scene": "res://scenes/demos/demo_hub.tscn", "min_nodes": 12, "requires": []},
 	{"scene": "res://scenes/shared/demo_card.tscn", "min_nodes": 6, "requires": []},
 	{"scene": "res://scenes/shared/demo_hud.tscn", "min_nodes": 12, "requires": []},
-	{"scene": "res://scenes/shared/pause_menu.tscn", "min_nodes": 14, "requires": []},
+	{"scene": "res://scenes/shared/pause_menu.tscn", "min_nodes": 24, "requires": []},
 	{"scene": "res://scenes/shared/bus_row.tscn", "min_nodes": 5, "requires": []},
 	{
 		"scene": "res://scenes/demos/street/street_demo.tscn",
