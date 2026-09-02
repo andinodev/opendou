@@ -178,7 +178,8 @@ static func run_all() -> Array[String]:
 	
 	var bin_node = OpenDouBinauralGraphNodeClass.new()
 	bin_node._on_azimuth_changed(90.0)
-	if not bin_node.metrics_lbl.text.contains("Shadow"):
+	# Fase 7B: la etiqueta ya no ensena una formula de Woodworth sino el backend real.
+	if not bin_node.metrics_lbl.text.contains("Backend"):
 		failures.append("Test 4c Failed: Binaural node metrics label not formatted")
 	bin_node.free()
 	

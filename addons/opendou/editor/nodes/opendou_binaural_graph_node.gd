@@ -2,9 +2,9 @@
 class_name OpenDouBinauralGraphNode
 extends OpenDouBaseGraphNode
 
-## Graph node for 3D Binaural HRTF spatialization with Head-Shadowing (ILD) and Interaural Time Delay (ITD) radar visualization.
-
-const AudioSpatialBinauralClass = preload("res://addons/opendou/core/spatial/audio_spatial_binaural.gd")
+## Nodo de grafo del binaural 3D. Muestra lo REAL: backend, HRTF, mezcla y bloque del manager
+## en marcha. Antes ensenaba una formula de Woodworth que ningun runtime consumia; desde la
+## Fase 7B el binaural es la extension nativa sobre Steam Audio y el ITD se aplica en C++.
 
 var radar_canvas: Control
 var azimuth_spinbox: SpinBox
@@ -68,19 +68,29 @@ func _build_ui() -> void:
 	container.add_child(grid)
 	
 	metrics_lbl = Label.new()
-	metrics_lbl.text = "ITD: 0.46 ms | Shadow: -5.7 dB"
 	metrics_lbl.add_theme_font_size_override("font_size", 9)
 	metrics_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	container.add_child(metrics_lbl)
+	refresh_from_runtime()
 
 func _on_azimuth_changed(val: float) -> void:
 	current_azimuth_deg = val
-	var az_rad = absf(deg_to_rad(val))
-	var itd_ms = ((0.0875 / 343.0) * (sin(az_rad) + az_rad)) * 1000.0
-	var shadow_db = -8.0 * sin(az_rad)
-	metrics_lbl.text = "ITD: %.2f ms | Shadow: %.1f dB" % [itd_ms, shadow_db]
 	if radar_canvas:
 		radar_canvas.queue_redraw()
+	refresh_from_runtime()
+
+## Lo que el nodo ensena es lo REAL: backend, HRTF, mezcla y bloque del manager en marcha.
+## En el editor no hay manager y lo dice.
+func refresh_from_runtime() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	var m: Node = tree.root.get_node_or_null("OpenDou") if tree != null and tree.root != null else null
+	if m == null or not m.has_method("spatial_backend_label"):
+		metrics_lbl.text = "Backend: sin runtime, se resuelve al ejecutar"
+		return
+	var line: String = "Backend: %s" % m.spatial_backend_label()
+	if m.is_steam_audio_backend():
+		line += "\nMezcla %.2f · bloque %d" % [m.spatial_settings.blend, int(ClassDB.class_call_static("OpenDouSpatialStream", "get_frame_size"))]
+	metrics_lbl.text = line
 
 func _on_draw_head_radar() -> void:
 	if not radar_canvas:

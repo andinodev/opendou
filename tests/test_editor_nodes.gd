@@ -49,4 +49,12 @@ static func run_all() -> Array[String]:
 	if output_node.node_type != OpenDouBaseGraphNodeClass.NodeType.TYPE_OUTPUT:
 		failures.append("Test 5 Failed: Output node type mismatch")
 		
+
+	# Fase 7B: el nodo binaural muestra el backend REAL, no una formula.
+	var bin_node = load("res://addons/opendou/editor/nodes/opendou_binaural_graph_node.gd").new()
+	bin_node.refresh_from_runtime()
+	if not bin_node.metrics_lbl.text.contains("Backend"):
+		failures.append("7B: el nodo binaural del editor no muestra el backend real")
+	bin_node.free()
+
 	return failures

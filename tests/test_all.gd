@@ -152,7 +152,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r18)
 	
 	var r19 = TestEditorNodesClass.run_all()
-	total_tests += 5
+	total_tests += 6
 	all_failures.append_array(r19)
 	
 	var r20 = TestGraphSerializerClass.run_all()
@@ -188,7 +188,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r28)
 	
 	var r29 = TestEarlyReflectionsHRTFClass.run_all()
-	total_tests += 7
+	total_tests += 3
 	all_failures.append_array(r29)
 	
 	var r30 = TestDSPAdvancedClass.run_all()
