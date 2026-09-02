@@ -11,6 +11,11 @@ y cómo se afirmaría en la suite, porque una funcionalidad que no se puede medi
 
 Al final hay una lista corta recomendada: lo que más se oye por lo que menos cuesta.
 
+**Revisión del 2026-09-02.** Una revisión arquitectónica señaló que varias ideas encajan mejor
+como exports o recursos que como nodos, para no ensuciar el árbol de escena, y cuatro huecos
+frente al estándar AAA que la primera versión no veía. Las secciones F y G recogen ambas cosas
+y la lista corta (D) está revisada en consecuencia.
+
 ---
 
 ## A. Nodos que Steam Audio habilita
@@ -267,28 +272,32 @@ y nuestro stream nativo ya tiene la línea de retardo, los filtros y la ganancia
 
 ---
 
-## D. Lista corta recomendada
+## D. Lista corta recomendada (revisada)
 
-Ordenada por lo que se oye dividido por lo que cuesta, y por lo que desbloquea después:
+Ordenada por lo que se oye dividido por lo que cuesta, y por lo que desbloquea después. La
+columna «Forma» dice si es un export, un recurso, una fusión con un nodo existente o un nodo
+nuevo (sección F).
 
-| # | Idea | Por qué primero |
-|---|---|---|
-| 1 | **B2 Doppler** | Lo que más se echa en falta en el coche que pasa; una tarde; los dos backends |
-| 2 | **B1 Retardo por distancia** | Hace grandes los espacios abiertos; reutiliza la línea de retardo; habilita B7 y afina B2 |
-| 3 | **C1 Cadena de masterización** | Protege todo lo demás; casi gratis; la guarda de escenas lo exige |
-| 4 | **A7 Oyente propio** | Ordena lo que hoy está repartido (radio de cabeza, HRTF por jugador, seguimiento) y prepara VR |
-| 5 | **C2 Volúmenes de oclusión parcial** | Follaje y lluvia son la mitad de los exteriores; sobre el raycast que ya existe |
-| 6 | **B5 Campo cercano** | Lo que hace que algo suene *encima*; un biquad |
-| 7 | **A2 Directividad** | Primera pieza visible de 7C; con fallback en GDScript se puede adelantar |
-| 8 | **B6 Altavoz de mundo** | Convierte la radio de «La cabina» en un objeto; muy demostrable |
-| 9 | **A3 Camas ambisónicas** | Cambia cómo se hacen los ambientes; requiere un stream nuevo |
-| 10 | **A1 → A5 → A6 → A4** | El camino largo de Steam Audio: materiales, geometría dinámica, reverb por convolución, sondas |
+| # | Idea | Forma | Por qué en este puesto |
+|---|---|---|---|
+| 1 | **G4 Límites de instancias con alcance** | `AudioEventDef` + pool | Limpia la mezcla de golpe; y `max_instances` ya está declarado **sin aplicarse**: hoy es una promesa vacía que hay que cumplir o quitar |
+| 2 | **B2 Doppler** | export del emisor | Lo que más se echa en falta en el coche que pasa; una tarde; los dos backends |
+| 3 | **G1 Spread por distancia** | export del emisor + stream | La fuente grande deja de colapsar en un punto al acercarte; `spatial_blend` por voz ya existe en el stream, falta el producto con la distancia |
+| 4 | **B1 Retardo por distancia** | export del emisor | Hace grandes los espacios abiertos; reutiliza la línea de retardo; habilita B7 y afina B2 |
+| 5 | **C1 Cadena de masterización** | nodo (uno por escena) | Protege todo lo demás; casi gratis; la guarda de escenas lo exige |
+| 6 | **A7 `OpenDouListener3D`** | nodo nuevo | Ordena radio de cabeza, HRTF por jugador y seguimiento; prepara VR |
+| 7 | **G3 Impactos físicos** | nodo nuevo (`OpenDouPhysicsImpact3D`) | Quita el script repetido en cada `RigidBody3D`; velocidad y masa como RTPC |
+| 8 | **C2 Volúmenes de oclusión parcial** | `Area3D` nuevo | Follaje y lluvia son la mitad de los exteriores; sobre el raycast que ya existe |
+| 9 | **B5 Campo cercano** | export del emisor + stream | Lo que hace que algo suene *encima*; un biquad |
+| 10 | **A2 Directividad** | export del emisor | Primera pieza visible de 7C; con fallback en GDScript se puede adelantar |
+| 11 | **G2 Emisor de malla** | nodo nuevo (`OpenDouMeshEmitter3D`) | Fuego y lagos irregulares; necesita una BVH propia porque Godot no da el punto más cercano de una malla |
+| 12 | **B6 Altavoz de mundo** | nodo nuevo | Convierte la radio de «La cabina» en un objeto; muy demostrable |
+| 13 | **A3 Camas ambisónicas** | nodo nuevo + stream | Cambia cómo se hacen los ambientes |
+| 14 | **A1 → A5 → A6 → A4** | recurso · nodo · fusión en `Room3D` · nodo | El camino largo de Steam Audio: materiales, geometría dinámica, reverb por convolución, sondas |
 
-Lo que **no** está en la lista y por qué: C3, C4, C5, C6 y C7 son útiles y baratos, pero no
-cambian cómo suena el juego; son comodidad de autoría y entran cuando un nivel real las pida.
-B3 y B4 son perceptualmente potentes pero dependen del juego que se haga con el plugin: un
-juego sin agua ni exteriores no las necesita, y el documento no debe empujar funcionalidades
-que nadie va a usar.
+Fuera de la lista y por qué: C3, C4, C5 y C7 son comodidad de autoría, no calidad de sonido;
+C6 se fusiona en `OpenDouParameterArea3D` cuando un nivel lo pida; B3 y B4 dependen del juego
+que se haga con el plugin.
 
 ---
 
@@ -302,3 +311,112 @@ que nadie va a usar.
 4. **Paga su coste a la vista**: entra en el banco del bucle de control o en la guarda del DSP.
 5. **No duplica**: si extiende un nodo existente (directividad en el emisor, curva en la
    definición), se extiende; los nodos nuevos son para responsabilidades nuevas.
+
+---
+
+## F. Nodo nuevo, export, recurso o fusión
+
+La regla «la estructura vive en el `.tscn`» no significa «un nodo por funcionalidad». Un nodo
+nuevo se justifica cuando tiene **ciclo de vida propio**, **canales de entrada o salida
+distintos** o **una responsabilidad que ningún nodo existente tiene**. Lo demás son exports en
+el nodo que ya existe o recursos arrastrables, que es lo idiomático en Godot y lo que mantiene
+limpio el árbol.
+
+| Idea | Forma correcta | Por qué |
+|---|---|---|
+| B1 retardo, B2 doppler, B5 campo cercano, A2 directividad | **Exports** de `OpenDouEventPlayer3D` (y su equivalente en `AudioEventDef` para voces anónimas) | Son propiedades físicas de la fuente; un nodo por cada una fragmentaría la autoría |
+| A1 materiales acústicos | **Recurso** `AcousticMaterial` asignable al `MeshInstance3D` o al registro del `OpenDouAcousticGeometryBake` | Un material es dato, no comportamiento; el bake ya recorre las mallas |
+| C3 curva de atenuación | **Recurso** `Curve` en `AudioEventDef` o en el emisor, como modelo nuevo de `OpenDouDistanceModel` | El inspector de Godot ya sabe dibujar curvas |
+| A6 reverb por convolución | **Fusión**: `OpenDouRoom3D.reverb_mode = {SABINE, CONVOLUTION}` | La sala ya es la unidad de reverb; un segundo nodo de zona duplicaría sus límites |
+| C6 disparador por lugar | **Fusión**: exports `trigger_event`, `trigger_probability`, `trigger_cooldown`, `trigger_once` en `OpenDouParameterArea3D` | Ya reacciona a entrar y salir; con cuidado de no convertirlo en un cajón de sastre: si crece más, se separa |
+| A7 oyente, A3 cama ambisónica, B6 altavoz de mundo | **Nodos nuevos** | Ciclo de vida propio (el oyente), canales distintos (cuatro o nueve de entrada; un bus capturado) y un stream nativo específico cada uno |
+| B3 medio, B4 viento, C2 oclusión parcial, C4 descarte, C5 superficie pintada | **Nodos nuevos que heredan de `Area3D`** | Comportamientos acústicos puramente espaciales: el volumen es la responsabilidad |
+| A4 sondas, A5 ocluidor dinámico | **Nodos nuevos** | El primero es un volumen de bake, como `VoxelGI`; el segundo registra mallas móviles con transform vivo |
+| C1 cadena de masterización | **Nodo**, uno por escena | No es una propiedad de nada; y la guarda de composición necesita algo que exigir |
+| C7 planificador de ambiente | **Nodo** | Tiene su propia línea de tiempo; pero entra solo cuando un nivel real lo pida |
+
+---
+
+## G. Huecos frente al estándar AAA que la primera versión no veía
+
+Cuatro cosas que Wwise y FMOD resuelven de forma nativa y que ni los quince nodos actuales ni
+las ideas de arriba cubren. Con los hechos comprobados en el código.
+
+### G1. Spread y focus — la fuente grande no colapsa en un punto
+- **Problema.** Al pegarte a un río o a una nave, el binaural la reduce a un punto entre los
+  oídos. Una fuente grande tiene **tamaño aparente**: cuanto más cerca, más ancho, hasta rodear
+  al oyente.
+- **Hecho comprobado.** El stream nativo ya tiene `spatial_blend` (0 = sin espacializar, 1 =
+  binaural completo), pero hoy es **global**: lo fija el menú del jugador para todos los streams
+  del pool. No existe un valor por voz.
+- **Cómo.** Export `spread_radius_m` en el emisor (y en la definición). El canal calcula por
+  voz `spread = clamp(1 − distancia / spread_radius, 0, 1)` con una curva opcional, y el blend
+  efectivo del stream es `blend_global × (1 − spread)`. A `spread = 1` la voz suena «dentro de la
+  cabeza», que es lo que hace un río cuando estás en él. Segunda etapa, más fiel: renderizar la
+  fuente como dos o tres direcciones HRTF repartidas en el ángulo de spread y decorreladas;
+  Steam Audio no lo trae, pero son dos aplicaciones más del efecto binaural por voz, y el
+  banco del DSP dirá si cabe.
+- **Cuesta.** La primera etapa es baja: un export, una multiplicación en `apply_spatial` y que
+  el ajuste global sea un factor y no un valor absoluto. La segunda, media, y se mide.
+- **Se afirma.** Fuente a 1 m con `spread_radius_m = 10`: ILD e ITD cercanos a cero; la misma
+  fuente a 20 m: los de siempre. Con `spread_radius_m = 0`, sin cambio.
+
+### G2. Emisores de malla — fuego y lagos irregulares
+- **Problema.** `OpenDouMultiPositionEmitter3D` y `OpenDouSplineEmitter3D` cubren puntos y
+  curvas. Una superficie irregular (un lago, un incendio sobre una malla) necesita el punto
+  **de la malla** más cercano al oyente como origen aparente.
+- **Hecho comprobado.** Godot no ofrece «punto más cercano de una malla»: `Geometry3D` da el
+  del segmento y del triángulo, no de una malla entera, y las consultas de `PhysicsServer3D`
+  devuelven contactos, no el punto más próximo.
+- **Cómo.** `OpenDouMeshEmitter3D` que toma un `Mesh`, construye al entrar en el árbol una
+  jerarquía de cajas (BVH) sobre sus triángulos, y cada frame baja por ella hasta el triángulo
+  más cercano y proyecta el oyente en él. Ese punto es `set_position()` de la voz, con
+  histéresis para que no salte entre triángulos vecinos. El bake acústico ya recorre mallas:
+  la BVH se comparte.
+- **Cuesta.** Medio: la BVH es código nuestro, pero es un problema resuelto y cabe en GDScript
+  para mallas de miles de triángulos; para más, en C++.
+- **Se afirma.** Oyente moviéndose a lo largo de un plano inclinado de 1000 triángulos: el
+  origen aparente lo sigue a menos de una arista de distancia, y el coste por frame queda bajo
+  un techo escrito.
+
+### G3. Impactos físicos — sin un script por cada cuerpo
+- **Problema.** Cada `RigidBody3D` que deba sonar al chocar obliga a escribir el mismo script:
+  conectar `body_entered`, leer velocidades, decidir el evento por material.
+- **Hecho comprobado.** El `PhysicsMaterial` de Godot solo tiene fricción y rebote: no hay
+  material acústico en él. La detección de superficie de las pisadas ya usa metadatos
+  `SurfaceType` en los cuerpos; el impacto tiene que leer lo mismo.
+- **Cómo.** `OpenDouPhysicsImpact3D`, hijo de un `RigidBody3D` (con `contact_monitor` activo),
+  que intercepta `body_entered`, lee el `SurfaceType` de los dos cuerpos, calcula la velocidad
+  relativa normal y la masa, y postea el evento con dos RTPC locales (`ImpactForce`,
+  `ImpactMass`) y el switch de material. Umbral mínimo y tiempo de recarga para no disparar
+  en cada micro-rebote; posición real del contacto.
+- **Cuesta.** Bajo. Todo existe salvo el nodo.
+- **Se afirma.** Dos cuerpos que chocan a 2 m/s y a 8 m/s: el segundo postea con
+  `ImpactForce` cuatro veces mayor y la rama `Metal` si el otro cuerpo lo declara; por debajo
+  del umbral, ningún evento.
+
+### G4. Límites de instancias con alcance — la mezcla limpia
+- **Problema.** El robo de voces elige por peso (prioridad, sonoridad, distancia) y virtualiza
+  a coste cero, pero no sabe de **contexto**: veinte pisadas de veinte soldados a cinco metros
+  son veinte voces legítimas y una papilla.
+- **Hecho comprobado, y es el más importante de este documento.** `AudioEventDef` declara
+  `max_instances: int = 5` desde el principio del proyecto y **ningún código del runtime lo
+  lee**: hoy es una promesa que el inspector enseña y nadie cumple. La regla del proyecto es
+  que eso no puede quedarse así: se implementa o se quita.
+- **Cómo.** En `AudioEventDef`: `max_instances` (global por evento, el que ya está declarado),
+  `max_instances_per_emitter`, y `max_instances_in_radius` con `instance_radius_m`. En
+  `post_event`, antes de crear la instancia: si se supera el límite, la política decide
+  (`REJECT_NEW`, `STEAL_OLDEST`, `STEAL_QUIETEST`, `STEAL_FARTHEST`), con un fundido de salida.
+  El conteo por radio recorre las instancias activas del mismo evento: con la cuenta actual
+  de instancias es una resta de vectores por instancia, y el banco del bucle lo mide.
+- **Cuesta.** Bajo-medio. Y cierra una deuda.
+- **Se afirma.** Con `max_instances = 3`, el cuarto `post_event` devuelve una instancia que se
+  virtualiza o roba la más antigua según la política, y nunca suenan cuatro voces del evento en
+  el bus; con `max_instances_in_radius = 2` y radio 5 m, dos emisores a 1 m no suman una
+  tercera voz mientras otro a 50 m sí suena.
+
+### Qué cambia en la lista corta
+
+G4 pasa al primer puesto porque además de calidad de mezcla repara una promesa vacía. G1 entra
+en el tercero porque la mitad del trabajo ya está hecha en el stream. G3 y G2 entran detrás del
+oyente y de la oclusión parcial: valen, pero no cambian lo que se oye en las demos actuales.
