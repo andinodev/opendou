@@ -54,7 +54,7 @@ const TestDemoScenesClass = preload("res://tests/test_demo_scenes.gd")
 const TestSceneGuardsClass = preload("res://tests/test_scene_guards.gd")
 const TestRoomPathDispatcherClass = preload("res://tests/test_room_path_dispatcher.gd")
 const TestPortalAudioClass = preload("res://tests/test_portal_audio.gd")
-const TestBinauralSpikeClass = preload("res://tests/test_binaural_spike.gd")
+const TestBinauralClass = preload("res://tests/test_binaural.gd")
 const TestSpatialBackendClass = preload("res://tests/test_spatial_backend.gd")
 const TestSpatialSettingsClass = preload("res://tests/test_spatial_settings.gd")
 const TestDistanceModelClass = preload("res://tests/test_distance_model.gd")
@@ -377,7 +377,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestRoomPathDispatcherClass.run_wiring_async(tree))
 	acc.absorb(await TestPortalAudioClass.run_all_async(tree))
 	acc.absorb(await TestRoomPathDispatcherClass.run_budget_async(tree))
-	acc.absorb(await TestBinauralSpikeClass.run_all_async(tree))
+	acc.absorb(await TestBinauralClass.run_all_async(tree))
 	acc.absorb(await TestBackendParityClass.run_godot_async(tree))
 	return {
 		"total": acc.assertions_run,

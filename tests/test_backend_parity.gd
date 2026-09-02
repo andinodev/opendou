@@ -12,7 +12,7 @@ const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const OpenDouAudioProbeClass = preload("res://tests/support/audio_probe.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const BackendClass = preload("res://addons/opendou/runtime/spatial/spatial_backend.gd")
-const SpikeClass = preload("res://tests/test_binaural_spike.gd")   # por _periodic_noise y _pinna_band_ratio
+const SpikeClass = preload("res://tests/test_binaural.gd")   # por _periodic_noise y _pinna_band_ratio
 
 const BUS: StringName = &"ParityProbe"
 

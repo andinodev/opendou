@@ -7,6 +7,7 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 using namespace godot;
@@ -33,6 +34,28 @@ void OpenDouSpatialStream::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_spatialize", "enabled"), &OpenDouSpatialStream::set_spatialize);
 	ClassDB::bind_method(D_METHOD("is_spatialize"), &OpenDouSpatialStream::is_spatialize);
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "spatialize"), "set_spatialize", "is_spatialize");
+
+	ClassDB::bind_method(D_METHOD("set_distance_gain", "gain"), &OpenDouSpatialStream::set_distance_gain);
+	ClassDB::bind_method(D_METHOD("get_distance_gain"), &OpenDouSpatialStream::get_distance_gain);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "distance_gain", PROPERTY_HINT_RANGE, "0,2,0.001"), "set_distance_gain", "get_distance_gain");
+
+	ClassDB::bind_method(D_METHOD("set_cutoff_hz", "hz"), &OpenDouSpatialStream::set_cutoff_hz);
+	ClassDB::bind_method(D_METHOD("get_cutoff_hz"), &OpenDouSpatialStream::get_cutoff_hz);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "cutoff_hz", PROPERTY_HINT_RANGE, "20,20000,1"), "set_cutoff_hz", "get_cutoff_hz");
+
+	ClassDB::bind_method(D_METHOD("set_shelf_db", "db"), &OpenDouSpatialStream::set_shelf_db);
+	ClassDB::bind_method(D_METHOD("get_shelf_db"), &OpenDouSpatialStream::get_shelf_db);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "shelf_db", PROPERTY_HINT_RANGE, "-80,0,0.1"), "set_shelf_db", "get_shelf_db");
+
+	ClassDB::bind_method(D_METHOD("set_shelf_cutoff_hz", "hz"), &OpenDouSpatialStream::set_shelf_cutoff_hz);
+	ClassDB::bind_method(D_METHOD("get_shelf_cutoff_hz"), &OpenDouSpatialStream::get_shelf_cutoff_hz);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "shelf_cutoff_hz", PROPERTY_HINT_RANGE, "100,20000,1"), "set_shelf_cutoff_hz", "get_shelf_cutoff_hz");
+
+	ClassDB::bind_method(D_METHOD("set_output_mode", "mode"), &OpenDouSpatialStream::set_output_mode);
+	ClassDB::bind_method(D_METHOD("get_output_mode"), &OpenDouSpatialStream::get_output_mode);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "output_mode", PROPERTY_HINT_ENUM, "Headphones,Speakers"), "set_output_mode", "get_output_mode");
+	BIND_ENUM_CONSTANT(OUTPUT_HEADPHONES);
+	BIND_ENUM_CONSTANT(OUTPUT_SPEAKERS);
 
 	ClassDB::bind_method(D_METHOD("get_last_peak_delays"), &OpenDouSpatialStream::get_last_peak_delays);
 
@@ -62,6 +85,17 @@ float OpenDouSpatialStream::get_spatial_blend() const { return spatial_blend_.lo
 
 void OpenDouSpatialStream::set_spatialize(bool p_enabled) { spatialize_.store(p_enabled); }
 bool OpenDouSpatialStream::is_spatialize() const { return spatialize_.load(); }
+
+void OpenDouSpatialStream::set_distance_gain(float p_gain) { distance_gain_.store(std::clamp(p_gain, 0.0f, 2.0f)); }
+float OpenDouSpatialStream::get_distance_gain() const { return distance_gain_.load(); }
+void OpenDouSpatialStream::set_cutoff_hz(float p_hz) { cutoff_hz_.store(std::clamp(p_hz, 20.0f, 20000.0f)); }
+float OpenDouSpatialStream::get_cutoff_hz() const { return cutoff_hz_.load(); }
+void OpenDouSpatialStream::set_shelf_db(float p_db) { shelf_db_.store(std::clamp(p_db, -80.0f, 0.0f)); }
+float OpenDouSpatialStream::get_shelf_db() const { return shelf_db_.load(); }
+void OpenDouSpatialStream::set_shelf_cutoff_hz(float p_hz) { shelf_cutoff_hz_.store(std::clamp(p_hz, 100.0f, 20000.0f)); }
+float OpenDouSpatialStream::get_shelf_cutoff_hz() const { return shelf_cutoff_hz_.load(); }
+void OpenDouSpatialStream::set_output_mode(int p_mode) { output_mode_.store(p_mode == OUTPUT_SPEAKERS ? OUTPUT_SPEAKERS : OUTPUT_HEADPHONES); }
+int OpenDouSpatialStream::get_output_mode() const { return output_mode_.load(); }
 
 Vector2 OpenDouSpatialStream::get_last_peak_delays() const { return Vector2(peak_left_.load(), peak_right_.load()); }
 
@@ -123,6 +157,11 @@ bool OpenDouSpatialStreamPlayback::create_effect() {
 	ring_.assign(static_cast<size_t>(audio.frameSize) * 2, AudioFrame{ 0.0f, 0.0f });
 	ring_read_ = 0;
 	ring_available_ = 0;
+	lpf_.reset();
+	shelf_.reset();
+	lpf_applied_hz_ = -1.0f;
+	shelf_applied_db_ = 1.0f;
+	shelf_applied_hz_ = -1.0f;
 	return true;
 }
 
@@ -163,6 +202,8 @@ void OpenDouSpatialStreamPlayback::_stop() {
 	if (effect_ != nullptr) {
 		iplBinauralEffectReset(effect_);
 	}
+	lpf_.reset();
+	shelf_.reset();
 	ring_read_ = 0;
 	ring_available_ = 0;
 }
@@ -179,32 +220,76 @@ void OpenDouSpatialStreamPlayback::_seek(double p_position) {
 }
 
 bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
-	const int frame_size = SteamAudioContext::audio_settings().frameSize;
-	// mix_audio devuelve un PackedVector2Array: reserva memoria en el hilo de audio. Para el
-	// spike vale; en la 7B se busca un camino sin reservas por bloque.
+	const IPLAudioSettings &audio = SteamAudioContext::audio_settings();
+	const int frame_size = audio.frameSize;
+	const float fs = static_cast<float>(audio.samplingRate);
+	// mix_audio devuelve un PackedVector2Array nuevo: reserva memoria en el hilo de audio. La
+	// API de GDExtension no ofrece otro camino para tirar de un stream interno. Documentado
+	// en el spec 7B (S3) y medido con benchmark_block.
 	PackedVector2Array src = inner_->mix_audio(p_rate_scale, frame_size);
 	const int got = static_cast<int>(src.size());
 	if (got <= 0) {
 		return false;
 	}
 	const Vector2 *s = src.ptr();
+
+	// 1. Filtros: se recalculan solo si el parametro cambio de verdad (mas de 1 %).
+	const float cutoff = stream_->cutoff_hz_.load();
+	if (std::fabs(cutoff - lpf_applied_hz_) > 0.01f * std::max(cutoff, 1.0f)) {
+		lpf_.set_lowpass(fs, cutoff, 0.70710678f);
+		lpf_applied_hz_ = cutoff;
+	}
+	const float shelf_db = stream_->shelf_db_.load();
+	const float shelf_hz = stream_->shelf_cutoff_hz_.load();
+	if (std::fabs(shelf_db - shelf_applied_db_) > 0.05f || std::fabs(shelf_hz - shelf_applied_hz_) > 0.01f * shelf_hz) {
+		if (shelf_db > -0.05f) {
+			shelf_.set_identity();
+		} else {
+			shelf_.set_highshelf(fs, shelf_hz, shelf_db);
+		}
+		shelf_applied_db_ = shelf_db;
+		shelf_applied_hz_ = shelf_hz;
+	}
+	const bool lpf_active = cutoff < 19000.0f;
+
+	// 2. Mono + ganancia + filtros.
+	const float gain = stream_->distance_gain_.load();
 	float *mono = in_buffer_.data[0];
 	for (int i = 0; i < frame_size; i++) {
-		mono[i] = (i < got) ? 0.5f * (s[i].x + s[i].y) : 0.0f;
+		float x = (i < got) ? 0.5f * (s[i].x + s[i].y) * gain : 0.0f;
+		if (lpf_active) {
+			x = lpf_.process(x);
+		}
+		x = shelf_.process(x);
+		mono[i] = x;
 	}
 
-	IPLBinauralEffectParams params = {};
-	params.direction = IPLVector3{ stream_->dir_x_.load(), stream_->dir_y_.load(), stream_->dir_z_.load() };
-	params.interpolation = IPL_HRTFINTERPOLATION_BILINEAR;
-	params.spatialBlend = stream_->spatial_blend_.load();
-	params.hrtf = SteamAudioContext::hrtf();
-	params.peakDelays = peak_delays_;
-	iplBinauralEffectApply(effect_, &params, &in_buffer_, &out_buffer_);
-	stream_->peak_left_.store(peak_delays_[0]);
-	stream_->peak_right_.store(peak_delays_[1]);
+	const float dx = stream_->dir_x_.load(), dy = stream_->dir_y_.load(), dz = stream_->dir_z_.load();
 
-	iplAudioBufferInterleave(SteamAudioContext::context(), &out_buffer_, interleaved_.data());
+	if (stream_->output_mode_.load() == OpenDouSpatialStream::OUTPUT_SPEAKERS) {
+		// 3a. Altavoces: paneo de potencia constante, sin HRTF ni ITD. Pasa igualmente por el
+		// anillo para que la latencia sea la misma y el conmutador en vivo no salte.
+		float gl, gr;
+		dsp::constant_power_pan(dx, gl, gr);
+		for (int i = 0; i < frame_size; i++) {
+			interleaved_[2 * i] = mono[i] * gl;
+			interleaved_[2 * i + 1] = mono[i] * gr;
+		}
+	} else {
+		// 3b. Audifonos: HRTF de Steam Audio.
+		IPLBinauralEffectParams params = {};
+		params.direction = IPLVector3{ dx, dy, dz };
+		params.interpolation = IPL_HRTFINTERPOLATION_BILINEAR;
+		params.spatialBlend = stream_->spatial_blend_.load();
+		params.hrtf = SteamAudioContext::hrtf();
+		params.peakDelays = peak_delays_;
+		iplBinauralEffectApply(effect_, &params, &in_buffer_, &out_buffer_);
+		stream_->peak_left_.store(peak_delays_[0]);
+		stream_->peak_right_.store(peak_delays_[1]);
+		iplAudioBufferInterleave(SteamAudioContext::context(), &out_buffer_, interleaved_.data());
+	}
 
+	// 4. Al anillo.
 	const size_t cap = ring_.size();
 	size_t write = (ring_read_ + ring_available_) % cap;
 	for (int i = 0; i < frame_size; i++) {

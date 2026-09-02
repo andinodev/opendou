@@ -1,19 +1,25 @@
-// OpenDouSpatialStream: envuelve otro AudioStream y lo renderiza en binaural con el HRTF de
-// Steam Audio. Se reproduce con un AudioStreamPlayer ESTEREO normal, saltandose el panner 3D
-// de Godot; la direccion la pone cada frame el plano de control de OpenDou.
+// OpenDouSpatialStream: envuelve otro AudioStream y lo renderiza en estereo espacializado
+// con el HRTF de Steam Audio (audifonos) o con paneo de potencia constante (altavoces). Se
+// reproduce con un AudioStreamPlayer ESTEREO normal, saltandose el panner 3D de Godot; la
+// direccion, la ganancia por distancia y los filtros los pone cada frame el plano de
+// control de OpenDou (PhysicalVoiceChannel.apply_spatial).
 //
-// ES UN SPIKE. Responde a "puede una voz salir por Steam Audio dentro de Godot 4.7, y cuanto
-// cuesta". Lo que aqui se decida mal se rehace en la 7B; lo que se aprenda va al spec.
+// Cadena por bloque: mezcla del stream interno -> mono -> distance_gain -> LPF de oclusion
+// (cutoff_hz) -> high-shelf por distancia (shelf_db @ shelf_cutoff_hz) -> HRTF o paneo ->
+// anillo de salida.
 #pragma once
 
 #include <godot_cpp/classes/audio_stream.hpp>
 #include <godot_cpp/classes/audio_stream_playback.hpp>
 #include <godot_cpp/classes/audio_frame.hpp>
+#include <godot_cpp/core/binder_common.hpp>
 
 #include <phonon.h>
 
 #include <atomic>
 #include <vector>
+
+#include "dsp.h"
 
 namespace opendou {
 
@@ -21,6 +27,11 @@ class OpenDouSpatialStream : public godot::AudioStream {
 	GDCLASS(OpenDouSpatialStream, godot::AudioStream)
 
 public:
+	enum OutputMode {
+		OUTPUT_HEADPHONES = 0,
+		OUTPUT_SPEAKERS = 1,
+	};
+
 	OpenDouSpatialStream();
 
 	void set_source(const godot::Ref<godot::AudioStream> &p_source);
@@ -40,10 +51,27 @@ public:
 	void set_spatialize(bool p_enabled);
 	bool is_spatialize() const;
 
-	// true si Steam Audio esta cargado y el contexto se creo.
+	// Ganancia lineal por distancia, calculada por el canal con las formulas de Godot.
+	void set_distance_gain(float p_gain);
+	float get_distance_gain() const;
+
+	// Paso-bajo de oclusion (Butterworth de 2.o orden). 20000 = sin efecto.
+	void set_cutoff_hz(float p_hz);
+	float get_cutoff_hz() const;
+
+	// High-shelf por distancia: la profundidad (0 = nada) y el corte (5 kHz en Godot).
+	void set_shelf_db(float p_db);
+	float get_shelf_db() const;
+	void set_shelf_cutoff_hz(float p_hz);
+	float get_shelf_cutoff_hz() const;
+
+	// Audifonos (HRTF) o altavoces (paneo de potencia constante). Cambia en vivo.
+	void set_output_mode(int p_mode);
+	int get_output_mode() const;
+
 	// Ultimos retardos de pico (izquierdo, derecho) en segundos que Steam Audio escribio al
-	// renderizar. Si el HRTF trae los picos alineados, el ITD NO esta en el audio de salida
-	// y hay que aplicarlo aparte: este valor es la prueba.
+	// renderizar. El HRTF trae los picos alineados: el ITD NO esta en su salida y OpenDou lo
+	// aplica aparte; este valor es el residuo que se resta.
 	godot::Vector2 get_last_peak_delays() const;
 
 	static bool is_native_available();
@@ -66,6 +94,11 @@ private:
 	std::atomic<float> dir_z_{ -1.0f };
 	std::atomic<float> spatial_blend_{ 1.0f };
 	std::atomic<bool> spatialize_{ true };
+	std::atomic<float> distance_gain_{ 1.0f };
+	std::atomic<float> cutoff_hz_{ 20000.0f };
+	std::atomic<float> shelf_db_{ 0.0f };
+	std::atomic<float> shelf_cutoff_hz_{ 5000.0f };
+	std::atomic<int> output_mode_{ OUTPUT_HEADPHONES };
 	std::atomic<float> peak_left_{ 0.0f };
 	std::atomic<float> peak_right_{ 0.0f };
 };
@@ -93,7 +126,7 @@ protected:
 private:
 	bool create_effect();
 	void release_effect();
-	// Tira un bloque de frame_size del stream interno, lo renderiza y lo deja en el anillo.
+	// Tira un bloque de frame_size del stream interno, lo procesa y lo deja en el anillo.
 	bool render_block(float p_rate_scale);
 
 	godot::Ref<OpenDouSpatialStream> stream_;
@@ -106,6 +139,12 @@ private:
 	std::vector<float> interleaved_;
 	float peak_delays_[2] = { 0.0f, 0.0f };
 
+	dsp::Biquad lpf_;
+	dsp::Biquad shelf_;
+	float lpf_applied_hz_ = -1.0f;
+	float shelf_applied_db_ = 1.0f; // imposible a proposito: fuerza el primer calculo
+	float shelf_applied_hz_ = -1.0f;
+
 	// Anillo de salida: Godot pide un numero variable de frames y Steam Audio produce
 	// exactamente frameSize. El anillo desacopla los dos. Es la latencia del sistema.
 	std::vector<godot::AudioFrame> ring_;
@@ -114,3 +153,5 @@ private:
 };
 
 } // namespace opendou
+
+VARIANT_ENUM_CAST(opendou::OpenDouSpatialStream::OutputMode);
