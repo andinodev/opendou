@@ -108,6 +108,8 @@ Todos resuelven el autoload `/root/OpenDou` y admiten un manager inyectado para 
 - **Difracción por aristas** (`EdgeDiffractionEngine`) y **acoplamiento entre salas** (`RoomCouplingEngine`): ⚪ presentes, sin consumidor en el runtime; los sustituye la propagación de Steam Audio en una fase posterior.
 - **Analizador RT60 de respuestas al impulso** (`OpenDouIRRT60Analyzer`, Schroeder + T20): ✅ el análisis; ⚪ nadie produce todavía las IR que analizaría.
 
+**Ideas de nodos nuevos** (doppler, retardo por distancia, campo cercano, materiales en tres bandas, camas ambisónicas, altavoz de mundo…): [`docs/ideas/nodos-de-escena.md`](ideas/nodos-de-escena.md).
+
 ---
 
 ## 3. La extensión nativa: Steam Audio
