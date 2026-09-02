@@ -61,7 +61,10 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	# Tono de calibracion, 3.5 s.
 	meter.reset()
 	var player := AudioStreamPlayer.new()
-	player.stream = _sine_db(-23.0, 1.0)
+	# 4 s sin bucle: el WAV de 1 s en bucle daba un pico espurio de -5 a -7 dBFS justo en el
+	# punto de bucle (el interpolador lee mas alla del final del bufer); cinco corridas en
+	# dos fases lo confirmaron a los 1001 ms exactos.
+	player.stream = _sine_db(-23.0, 4.0)
 	player.bus = "LufsProbe"
 	tree.root.add_child(player)
 	player.play()
