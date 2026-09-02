@@ -207,22 +207,40 @@ func calculate_acoustic_path(emitter_pos: Vector3, listener_pos: Vector3, emitte
 			continue
 			
 		var cur_room: AudioRoom = rooms[cur_room_name]
+
+		# Entre varios portales hacia la MISMA sala vecina, gana el mas AUDIBLE, no el
+		# primero que se itere ni el mas cercano.
+		#
+		# Antes se marcaba la sala vecina como visitada con el primer portal del array,
+		# asi que entre una puerta cerrada y una ventana abierta hacia la misma sala
+		# ganaba el orden de insercion: la musica "salia" por la puerta cerrada.
+		# Observacion 41. El coste pondera la distancia por el cierre: un portal cerrado
+		# del todo cuenta como 16 veces su distancia, que son unos 24 dB, lo que
+		# atenua una puerta corriente.
+		var best_by_room: Dictionary = {} # StringName -> {portal, cost}
 		for p in cur_room.connected_portals:
 			var portal: AudioPortal = p
 			var next_room = portal.get_other_room(cur_room_name)
 			if next_room.is_empty() or visited_rooms.has(next_room):
 				continue
-				
+			var seg_dist: float = current["last_pos"].distance_to(portal.position)
+			var closure: float = 1.0 - clampf(portal.open_factor, 0.0, 1.0)
+			var cost: float = seg_dist * (1.0 + 15.0 * closure)
+			if not best_by_room.has(next_room) or cost < float(best_by_room[next_room]["cost"]):
+				best_by_room[next_room] = {"portal": portal, "cost": cost, "dist": seg_dist}
+
+		for next_room in best_by_room:
+			var chosen: Dictionary = best_by_room[next_room]
+			var portal: AudioPortal = chosen["portal"]
 			visited_rooms[next_room] = true
-			var seg_dist = current["last_pos"].distance_to(portal.position)
 			var new_lpf = minf(current["min_lpf"], portal.get_current_lpf())
 			var new_portals = current["path_portals"].duplicate()
 			new_portals.append(portal)
-			
+
 			queue.append({
 				"room": next_room,
 				"path_portals": new_portals,
-				"total_dist": current["total_dist"] + seg_dist,
+				"total_dist": current["total_dist"] + float(chosen["dist"]),
 				"last_pos": portal.position,
 				"min_lpf": new_lpf
 			})

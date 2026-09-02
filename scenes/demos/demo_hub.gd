@@ -26,6 +26,11 @@ const ENTRIES: Array[Dictionary] = [
 		"scene": "res://scenes/demos/cabin/cabin_demo.tscn",
 	},
 	{
+		"title": "Una casa canta",
+		"thesis": "Una casa vibra, dos duermen, y la calle es el puente: la musica sale por la ventana.",
+		"scene": "res://scenes/demos/street/street_demo.tscn",
+	},
+	{
 		"title": "Banco del rig",
 		"thesis": "Tres materiales, un jugador con oyente y un NPC sin el.",
 		"scene": "res://scenes/rig_bench/rig_bench.tscn",

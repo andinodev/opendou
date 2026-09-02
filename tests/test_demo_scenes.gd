@@ -12,7 +12,115 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_keel_async(tree))
 	a.absorb(await run_monsoon_async(tree))
 	a.absorb(await run_cabin_async(tree))
+	a.absorb(await run_street_async(tree))
 	a.absorb(run_hub())
+	return a
+
+
+## «Una casa canta»: una casa vibra, dos duermen, y la calle es el puente.
+static func run_street_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("street_demo")
+
+	var manager = tree.root.get_node_or_null("OpenDou")
+	a.ok(manager != null, "el autoload OpenDou existe")
+
+	var packed: PackedScene = load("res://scenes/demos/street/street_demo.tscn")
+	a.ok(packed != null, "la escena de la calle carga")
+	a.gt(float(packed.get_state().get_node_count()), 200.0,
+		"y declara mas de 200 nodos: cada pared, suelo, techo, cristal y puerta esta en la escena")
+	var demo = packed.instantiate()
+	demo.leaves_count = 12
+	tree.root.add_child(demo)
+	await tree.process_frame
+	await tree.physics_frame
+	await tree.process_frame
+
+	# ---- La geometria es real: cuatro salas, seis portales, y un bake con cientos de
+	# triangulos porque cada pared es geometria acustica.
+	var ac = manager.spatial_acoustics
+	for room_name in ["HouseA", "HouseB", "HouseC", "Street"]:
+		a.ok(ac.rooms.has(StringName(room_name)), "la sala '%s' esta registrada" % room_name)
+	a.eq(ac.portals.size(), 6, "hay seis portales: tres puertas y tres ventanas")
+	a.gt(float(demo.get_node("AcousticBake").get_baked_triangle_count()), 400.0,
+		"el bake tiene cientos de triangulos: las paredes son geometria acustica de verdad")
+
+	# La calle ES una sala, y las casas estan dentro de ella: la mas pequena gana.
+	var in_street = ac.get_room_at_position(Vector3(-6.0, 1.6, 0.0))
+	var in_house_a = ac.get_room_at_position(Vector3(-6.0, 1.6, -8.5))
+	a.ok(in_street != null and str(in_street.room_name) == "Street", "en la calzada estas en la Calle")
+	a.ok(in_house_a != null and str(in_house_a.room_name) == "HouseA",
+		"dentro de la casa A estas en la casa A, aunque la Calle la envuelva")
+
+	# ---- LA TESIS, primera mitad: desde la calle, la musica la gobierna el grafo y sale
+	# por la VENTANA entreabierta, no por la puerta cerrada que esta mas cerca.
+	var music_instance = demo.music_emitter.active_instance
+	a.ok(music_instance != null, "la musica tiene instancia activa")
+	if music_instance != null:
+		music_instance.occlusion_smoothing_speed = 200.0
+	for i in range(20):
+		await tree.process_frame
+	a.ok(music_instance.room_path_active, "desde la calle, la musica la gobierna el grafo de salas")
+	a.approx(music_instance.target_apparent_position.x, -4.0,
+		"y su origen aparente es la VENTANA entreabierta, no la puerta cerrada", 0.05)
+	var lpf_ajar: float = music_instance.current_spatial_lpf
+	a.lt(lpf_ajar, 6000.0, "entreabierta, la ventana filtra la musica")
+	a.gt(lpf_ajar, 1000.0, "pero deja pasar mas que una puerta cerrada")
+
+	# Abrir la ventana del todo la abre tambien al oido.
+	demo.toggle_window()
+	for i in range(30):
+		await tree.process_frame
+	a.gt(music_instance.current_spatial_lpf, lpf_ajar * 2.0,
+		"abrir la ventana del todo sube el corte de la musica")
+	demo.toggle_window()
+
+	# ---- Dentro de la casa A el grafo no gobierna: es sonido directo.
+	demo.player.global_position = Vector3(-5.0, 1.0, -8.0)
+	for i in range(20):
+		await tree.process_frame
+	a.ok(not music_instance.room_path_active,
+		"dentro de la casa que canta la musica es directa: el grafo no gobierna")
+
+	# ---- LA TESIS, segunda mitad: dentro de la casa B, la calle se apaga.
+	demo.player.global_position = Vector3(2.0, 1.0, -8.5)
+	var hum = demo.buzz_emitter.active_instance
+	a.ok(hum != null, "la farola tiene instancia activa")
+	if hum != null:
+		hum.occlusion_smoothing_speed = 200.0
+	for i in range(30):
+		await tree.process_frame
+	a.ok(hum.room_path_active, "dentro de la casa dormida, la farola de la calle la gobierna el grafo")
+	a.lt(hum.current_spatial_lpf, 500.0,
+		"y llega cortada a 300 Hz: el silencio es la calle amortiguada, no ausencia de sonido")
+
+	# ---- El coche se mueve, y con doppler nativo.
+	var x0: float = demo.car.position.x
+	for i in range(10):
+		await tree.physics_frame
+	a.ok(absf(demo.car.position.x - x0) > 0.01, "el coche recorre la calle")
+	a.eq(demo.car_engine.doppler_tracking, AudioStreamPlayer3D.DOPPLER_TRACKING_PHYSICS_STEP,
+		"con doppler nativo en el paso de fisica, que es donde se mueve")
+
+	# ---- Las puertas son puertas: hoja con bisagra y portal que las sigue.
+	a.eq(demo._doors.size(), 3, "tres puertas con hoja")
+	var door_a = demo.get_node("A_Door")
+	var portal_a = demo.get_node("A_DoorPortal")
+	a.approx(portal_a.open_factor, 0.0, "la puerta A arranca cerrada", 0.01)
+	door_a.toggle()
+	for i in range(60):
+		await tree.process_frame
+	a.gt(portal_a.open_factor, 0.8, "abrirla abre su portal casi del todo")
+	a.gt(absf(door_a.rotation.y), 1.2, "y la hoja giro sobre la bisagra")
+
+	# ---- El cartel dice lo que ejercita.
+	var hud = demo.get_node_or_null("Hud")
+	a.ok(hud != null and hud.exercises.size() >= 8, "el cartel lista lo que la escena ejercita")
+
+	_release_current(demo)
+	tree.root.remove_child(demo)
+	demo.free()
+	await tree.process_frame
+	a.eq(manager.active_instances.size(), 0, "la calle no deja instancias en el autoload")
 	return a
 
 
@@ -22,7 +130,7 @@ static func run_hub() -> OpenDouAssert:
 
 	var HubClass = load("res://scenes/demos/demo_hub.gd")
 	a.ok(HubClass != null, "el script del hub existe")
-	a.eq(HubClass.ENTRIES.size(), 4, "el hub tiene cuatro entradas")
+	a.eq(HubClass.ENTRIES.size(), 5, "el hub tiene cinco entradas: cuatro demos y el banco")
 
 	# Ninguna ruta muerta. Es la asercion que impide que el hub sobreviva al borrado
 	# apuntando a escenas que ya no existen.

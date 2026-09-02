@@ -15,6 +15,7 @@ const SCENES: Array[String] = [
 	"res://scenes/demos/keel/keel_demo.tscn",
 	"res://scenes/demos/monsoon/monsoon_demo.tscn",
 	"res://scenes/demos/cabin/cabin_demo.tscn",
+	"res://scenes/demos/street/street_demo.tscn",
 ]
 
 ## Los 15 tipos de nodo del plugin. El unico que las demos NO instancian, por decision
@@ -68,6 +69,15 @@ const COMPOSITION: Array[Dictionary] = [
 		"min_nodes": 10,
 		"requires": [
 			"opendou_music_player.gd", "opendou_event_player.gd", "opendou_room_3d.gd",
+		],
+	},
+	{
+		"scene": "res://scenes/demos/street/street_demo.tscn",
+		"min_nodes": 200,
+		"requires": [
+			"opendou_room_3d.gd", "opendou_portal_3d.gd", "opendou_reflector_3d.gd",
+			"opendou_acoustic_geometry_bake.gd", "opendou_event_player_3d.gd",
+			"opendou_spline_emitter_3d.gd", "opendou_acoustic_debugger_3d.gd",
 		],
 	},
 ]
@@ -195,6 +205,8 @@ static func run_coverage_async(tree: SceneTree) -> OpenDouAssert:
 			root.emitter_count = 24
 		if "physical_voice_budget" in root:
 			root.physical_voice_budget = 8
+		if "leaves_count" in root:
+			root.leaves_count = 6
 
 		tree.root.add_child(root)
 		await tree.process_frame

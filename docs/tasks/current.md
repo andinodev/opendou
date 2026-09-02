@@ -1,10 +1,15 @@
-# ⚡ Tarea Activa: Fase 5 — Las tres demos
+# ⚡ Tarea Activa: «Una casa canta» — la escena que junta todo
 
-* **Especificación:** [`docs/superpowers/specs/2026-09-01-fase5-demos-design.md`](../superpowers/specs/2026-09-01-fase5-demos-design.md)
-* **Plan:** [`docs/superpowers/plans/2026-09-01-fase5-demos.md`](../superpowers/plans/2026-09-01-fase5-demos.md)
+* **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
+* **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
 
-Las diez demos anteriores se borraron en esta fase. El hub tiene cuatro entradas:
-«Bajo la quilla», «El monzón», «La cabina» y el banco del rig. Cada una demuestra una
-cosa y lleva sus propias aserciones de audio real.
+El hub tiene cinco entradas: «Bajo la quilla», «El monzón», «La cabina», «Una casa canta» y
+el banco del rig. Todas se componen como árboles de nodos en su `.tscn`; los scripts solo
+llevan lo dinámico, y una guarda lee cada escena sin instanciarla para hacerlo cumplir.
+
+«Una casa canta» es un sector urbano cerrado con tres casas de verdad —suelo, paredes,
+techo, puertas con hoja, ventanas con cristal— y la calle como sala `Outdoor`. Es la
+primera escena que luce el grafo de salas de la Fase 6: la música sale por la ventana
+entreabierta, y dentro de las casas dormidas la calle llega cortada a 300 Hz.
 
 **Siguiente:** Fase 4B — prefijar con `OpenDou` las clases del addon que no lo llevan.

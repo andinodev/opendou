@@ -173,6 +173,35 @@ static func run_all() -> OpenDouAssert:
 	a.eq(nested_ac.rooms[&"EngineRoom"].connected_portals.size(), 0,
 		"y los desengancha de la sala que sigue viva: un portal a ninguna parte falsearia el grafo")
 
+	# ---- Observacion 41: entre dos portales hacia la misma sala gana el mas AUDIBLE.
+	# Una puerta CERRADA y cercana frente a una ventana ABIERTA y mas lejana: antes
+	# ganaba la puerta, por orden de insercion, y la musica "salia" por una puerta
+	# cerrada.
+	var two_ac = SpatialAcousticsManagerClass.new()
+	for spec in [{"n": &"House", "c": Vector3(0, 2, 0), "s": Vector3(8, 4, 8)},
+	             {"n": &"Street", "c": Vector3(0, 2, 12), "s": Vector3(30, 4, 16)}]:
+		var r = AudioRoomClass.new()
+		r.room_name = spec["n"]
+		r.set_bounds(AABB(spec["c"] - spec["s"] * 0.5, spec["s"]))
+		two_ac.register_room(r)
+	# La puerta se registra PRIMERO y esta mas cerca del emisor: es el caso que fallaba.
+	two_ac.register_portal(AudioPortalClass.new(&"ClosedDoor", &"House", &"Street", Vector3(-1.0, 1.0, 4.0), 0.0))
+	two_ac.register_portal(AudioPortalClass.new(&"OpenWindow", &"House", &"Street", Vector3(3.0, 1.8, 4.0), 1.0))
+	var through = two_ac.calculate_acoustic_path(Vector3(-1.5, 1.4, 1.0), Vector3(0.0, 1.6, 9.0), &"House", &"Street")
+	a.eq(through.portals_traversed.size(), 1, "el camino cruza un portal")
+	if through.portals_traversed.size() == 1:
+		a.eq(str(through.portals_traversed[0].portal_name), "OpenWindow",
+			"y es la ventana ABIERTA, aunque la puerta cerrada este mas cerca y se registrara antes")
+	a.gt(through.accumulated_lpf, 10000.0, "asi que el corte del camino es el de una ventana abierta")
+
+	# Y si la ventana se cierra y la puerta se abre, el camino cambia de portal.
+	two_ac.portals[&"OpenWindow"].open_factor = 0.0
+	two_ac.portals[&"ClosedDoor"].open_factor = 1.0
+	var swapped = two_ac.calculate_acoustic_path(Vector3(-1.5, 1.4, 1.0), Vector3(0.0, 1.6, 9.0), &"House", &"Street")
+	if swapped.portals_traversed.size() == 1:
+		a.eq(str(swapped.portals_traversed[0].portal_name), "ClosedDoor",
+			"al invertir las aperturas el camino cambia de portal")
+
 	# ---- LA POSICION APARENTE arranca en la del emisor y no en el origen.
 	# Sin esto, cada voz nueva barreria desde (0,0,0) hasta su sitio y se oiria.
 	var fresh = _physical_instance(Vector3(9, 2, -3))

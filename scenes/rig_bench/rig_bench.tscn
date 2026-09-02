@@ -1,6 +1,6 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene format=3 uid="uid://o2arf8rjci31"]
 
-[ext_resource type="Script" path="res://scenes/rig_bench/rig_bench.gd" id="1_bench"]
+[ext_resource type="Script" uid="uid://bni277rx4hc77" path="res://scenes/rig_bench/rig_bench.gd" id="1_bench"]
 [ext_resource type="PackedScene" path="res://scenes/shared/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/shared/npc.tscn" id="3_npc"]
 [ext_resource type="PackedScene" path="res://scenes/shared/demo_hud.tscn" id="4_hud"]
@@ -8,11 +8,11 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_patch"]
 size = Vector3(8, 1, 8)
 
-[sub_resource type="BoxMesh" id="BoxMesh_patch"]
-size = Vector3(8, 1, 8)
-
 [sub_resource type="StandardMaterial3D" id="Mat_concrete"]
 albedo_color = Color(0.55, 0.55, 0.53, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_patch"]
+size = Vector3(8, 1, 8)
 
 [sub_resource type="StandardMaterial3D" id="Mat_metal"]
 albedo_color = Color(0.62, 0.66, 0.72, 1)
@@ -20,53 +20,53 @@ albedo_color = Color(0.62, 0.66, 0.72, 1)
 [sub_resource type="StandardMaterial3D" id="Mat_water"]
 albedo_color = Color(0.16, 0.35, 0.52, 1)
 
-[node name="RigBench" type="Node3D"]
+[node name="RigBench" type="Node3D" unique_id=1877679408]
 script = ExtResource("1_bench")
 
-[node name="Patch_Concrete" type="StaticBody3D" parent="."]
+[node name="Patch_Concrete" type="StaticBody3D" parent="." unique_id=2121533925]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 metadata/surface_type = &"Concrete"
 
-[node name="Collision" type="CollisionShape3D" parent="Patch_Concrete"]
+[node name="Collision" type="CollisionShape3D" parent="Patch_Concrete" unique_id=1031717826]
 shape = SubResource("BoxShape3D_patch")
 
-[node name="Mesh" type="MeshInstance3D" parent="Patch_Concrete"]
-mesh = SubResource("BoxMesh_patch")
+[node name="Mesh" type="MeshInstance3D" parent="Patch_Concrete" unique_id=1305739688]
 material_override = SubResource("Mat_concrete")
+mesh = SubResource("BoxMesh_patch")
 
-[node name="Patch_Metal" type="StaticBody3D" parent="."]
+[node name="Patch_Metal" type="StaticBody3D" parent="." unique_id=2120668577]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, -0.5, 0)
 metadata/surface_type = &"Metal"
 
-[node name="Collision" type="CollisionShape3D" parent="Patch_Metal"]
+[node name="Collision" type="CollisionShape3D" parent="Patch_Metal" unique_id=455559896]
 shape = SubResource("BoxShape3D_patch")
 
-[node name="Mesh" type="MeshInstance3D" parent="Patch_Metal"]
-mesh = SubResource("BoxMesh_patch")
+[node name="Mesh" type="MeshInstance3D" parent="Patch_Metal" unique_id=252786663]
 material_override = SubResource("Mat_metal")
+mesh = SubResource("BoxMesh_patch")
 
-[node name="Patch_Water" type="StaticBody3D" parent="."]
+[node name="Patch_Water" type="StaticBody3D" parent="." unique_id=1190416341]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, -0.5, 0)
 metadata/surface_type = &"Water"
 
-[node name="Collision" type="CollisionShape3D" parent="Patch_Water"]
+[node name="Collision" type="CollisionShape3D" parent="Patch_Water" unique_id=1719548684]
 shape = SubResource("BoxShape3D_patch")
 
-[node name="Mesh" type="MeshInstance3D" parent="Patch_Water"]
-mesh = SubResource("BoxMesh_patch")
+[node name="Mesh" type="MeshInstance3D" parent="Patch_Water" unique_id=1677796153]
 material_override = SubResource("Mat_water")
+mesh = SubResource("BoxMesh_patch")
 
-[node name="Player" parent="." instance=ExtResource("2_player")]
+[node name="Player" parent="." unique_id=1917360616 instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
-[node name="Npc" parent="." instance=ExtResource("3_npc")]
+[node name="Npc" parent="." unique_id=523831210 instance=ExtResource("3_npc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 3)
 waypoints = Array[Vector3]([Vector3(0, 1, 3), Vector3(9, 1, 3), Vector3(18, 1, 3)])
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=990729956]
 transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 8, 0)
 
-[node name="Hud" parent="." instance=ExtResource("4_hud")]
+[node name="Hud" parent="." unique_id=505691360 instance=ExtResource("4_hud")]
 demo_title = "Banco del rig"
 thesis = "Tres materiales, un jugador con oyente y un NPC sin el. Aqui se valida la convencion de metadata surface_type antes de que las demos dependan de ella."
 controls = Array[String](["Flechas — caminar sobre los tres parches", "F1 — mostrar u ocultar este cartel"])
