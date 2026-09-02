@@ -1,0 +1,9 @@
+# Rango de sonoridad integrada (LUFS) por demo, medido con el medidor del autoload en Master
+# durante el test de cada demo. Formato: <escena> <min> <max>. Rangos de +-6 LU alrededor de
+# la primera medida real (2026-09-02: keel -26.1, monsoon -23.9, cabin -20.0, street -29.2),
+# porque los ambientes tienen aleatoriedad y los tests interactuan con la escena; detectan
+# una mezcla que se fue de madre, no una decima. Se aprietan cuando se estabilicen.
+keel -32 -20
+monsoon -30 -18
+cabin -26 -14
+street -35 -23

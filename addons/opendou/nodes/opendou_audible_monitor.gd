@@ -44,6 +44,8 @@ var displayed_voices_count: int = 0
 var panel_container: PanelContainer = null
 var title_label: Label = null
 var badge_count_label: Label = null
+## Lectura del medidor LUFS del manager, si esta enganchado (Fase 8).
+var lufs_label: Label = null
 var items_vbox: VBoxContainer = null
 var empty_label: Label = null
 
@@ -57,7 +59,22 @@ func _ready() -> void:
 	if panel_container:
 		panel_container.visible = enabled and is_overlay_visible
 
+## Texto del medidor: vacio si el manager no tiene medidor enganchado.
+func _update_lufs_label() -> void:
+	if lufs_label == null:
+		return
+	var m: Node = get_node_or_null("/root/OpenDou")
+	if m == null or not ("loudness_meter" in m) or m.loudness_meter == null or not m.loudness_meter.is_attached():
+		lufs_label.text = ""
+		return
+	var lm = m.loudness_meter
+	lufs_label.text = "LUFS M %s  S %s  I %s  pico %s dBFS" % [_fmt_lufs(lm.momentary_lufs), _fmt_lufs(lm.short_term_lufs), _fmt_lufs(lm.integrated_lufs), _fmt_lufs(lm.sample_peak_db)]
+
+static func _fmt_lufs(v: float) -> String:
+	return "—" if is_inf(v) else "%.1f" % v
+
 func _process(delta: float) -> void:
+	_update_lufs_label()
 	if not enabled or not is_overlay_visible:
 		return
 		
@@ -159,6 +176,12 @@ func _build_ui() -> void:
 	title_label.add_theme_font_size_override("font_size", 12)
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(title_label)
+
+	lufs_label = Label.new()
+	lufs_label.name = "LufsLabel"
+	lufs_label.text = ""
+	lufs_label.add_theme_font_size_override("font_size", 10)
+	header_hbox.add_child(lufs_label)
 	
 	badge_count_label = Label.new()
 	badge_count_label.name = "BadgeCountLabel"

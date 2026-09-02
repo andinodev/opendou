@@ -20,6 +20,7 @@ const SpatialBackendClass = preload("res://addons/opendou/runtime/spatial/spatia
 const SpatialSettingsClass = preload("res://addons/opendou/runtime/spatial/spatial_settings.gd")
 const InstanceLimiterClass = preload("res://addons/opendou/runtime/instance_limiter.gd")
 const MixChainInstallerClass = preload("res://addons/opendou/runtime/mix_chain_installer.gd")
+const LoudnessMeterClass = preload("res://addons/opendou/runtime/loudness_meter.gd")
 const ReflectionDispatcherClass = preload("res://addons/opendou/runtime/reflection_dispatcher.gd")
 const AudioHDREngineClass = preload("res://addons/opendou/core/audio_hdr_engine.gd")
 
@@ -59,6 +60,10 @@ var spatial_settings: OpenDouSpatialSettings = null
 
 ## Limites de instancias por evento, emisor y radio (Fase 8). Se consulta en post_event.
 var instance_limiter: OpenDouInstanceLimiter = null
+
+## Medidor de sonoridad BS.1770 (Fase 8). Apagado por defecto: se engancha a un bus con
+## loudness_meter.attach(); mientras este enganchado, el manager lo alimenta por frame.
+var loudness_meter: OpenDouLoudnessMeter = null
 
 ## Pool de reproductores nativos para las voces anonimas.
 ##
@@ -113,6 +118,7 @@ func _init() -> void:
 	reflection_dispatcher = ReflectionDispatcherClass.new()
 	hdr_engine = AudioHDREngineClass.new()
 	instance_limiter = InstanceLimiterClass.new()
+	loudness_meter = LoudnessMeterClass.new()
 	spatial_settings = SpatialSettingsClass.new()
 	spatial_settings.changed.connect(_apply_spatial_settings)
 
@@ -466,6 +472,10 @@ func _process(delta: float) -> void:
 	# 5b. Ventana HDR: se alimenta con la sonoridad de las voces activas y avanza
 	# antes de aplicar, porque la ganancia de cada voz depende de donde quede.
 	_update_hdr(delta)
+
+	# 5c. Medidor de sonoridad, solo si alguien lo engancho.
+	if loudness_meter != null and loudness_meter.is_attached():
+		loudness_meter.process()
 
 	# 6. Asignar permiso: quien es audible dentro del presupuesto.
 	if voice_pool:

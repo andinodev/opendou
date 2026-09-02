@@ -352,3 +352,24 @@ todo lo de la Fase 9, cualquier nodo nuevo, CI.
 | Aplicar la mezcla cada frame pisa a quien ya escribía en el `AudioServer` | Solo `BusRow` lo hacía en el proyecto; pasa a editar la base. Se documenta para juegos ajenos: quien toque volúmenes de bus por su cuenta debe hacerlo por `set_bus_base_volume_db()` |
 | El medidor en GDScript cuesta demasiado | Apagado por defecto; medido; aceleración nativa como tarea si hace falta |
 | Cambiar el defecto de `max_instances` sorprende a quien contaba con 5 | Nadie podía contar con él: no hacía nada. Anotado en el cambio de semántica |
+
+---
+
+## 13. Correcciones que la ejecución obligó a hacer a este spec
+
+1. **El cajón de mezcla del editor no puede leer el medidor (§5).** El cajón vive en el
+   proceso del editor y el juego corre en otro; sin Live Update conectado no hay nada que
+   leer. La lectura en vivo va en el HUD de depuración del juego (`OpenDouAudibleMonitor`),
+   que sí comparte proceso con el manager. Llevarla al cajón por telemetría es trabajo del
+   Live Update, no de esta fase.
+2. **Observación 43 no reproducida** (§2, «Hallazgo»): endurecida, herramienta y traza
+   conservadas.
+3. **`stop(fade)` necesitó dos arreglos más de los previstos (§3):** `update_parameters`
+   concluía la voz al ver `is_key_on = false` sin esperar al fundido, y la limpieza del
+   manager dejaba a las instancias terminadas en `STATE_VIRTUAL`, con lo que una instancia
+   terminada respondía `is_playing() == true`. Ambos corregidos con aserción.
+4. **El medidor cuesta 91 ms por segundo de audio en GDScript (§5)**, no los 2 ms que el spec
+   daba por aceptables: ~9 % de un núcleo mientras está enganchado. Se acepta porque va
+   apagado por defecto y solo lo enciende quien mide; la aceleración nativa (el mismo filtro
+   K y las sumas por bloque en C++) queda como tarea en `docs/tasks/current.md`. La precisión
+   sí cumple: −23.26 LUFS en las tres ventanas para el tono de calibración, pico exacto.

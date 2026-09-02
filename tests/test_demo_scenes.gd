@@ -5,6 +5,7 @@ extends RefCounted
 
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const OpenDouAudioProbeClass = preload("res://tests/support/audio_probe.gd")
+const TestLoudnessMeterClass = preload("res://tests/test_loudness_meter.gd")
 
 ## Las tres demos y el hub. Cada bloque se anade en su propia tarea.
 static func run_all_async(tree: SceneTree) -> OpenDouAssert:
@@ -32,6 +33,7 @@ static func run_street_async(tree: SceneTree) -> OpenDouAssert:
 	var demo = packed.instantiate()
 	demo.leaves_count = 12
 	tree.root.add_child(demo)
+	var lufs_meter = TestLoudnessMeterClass.start_master_meter(tree)
 	await tree.process_frame
 	await tree.physics_frame
 	await tree.process_frame
@@ -126,6 +128,7 @@ static func run_street_async(tree: SceneTree) -> OpenDouAssert:
 	a.ok(hud != null and hud.exercises.size() >= 8, "el cartel lista lo que la escena ejercita")
 
 	_release_current(demo)
+	TestLoudnessMeterClass.check_budget(a, "street", TestLoudnessMeterClass.finish_master_meter(lufs_meter))
 	tree.root.remove_child(demo)
 	demo.free()
 	await tree.process_frame
@@ -285,6 +288,7 @@ static func run_cabin_async(tree: SceneTree) -> OpenDouAssert:
 	a.ok(packed != null, "la escena de la cabina carga")
 	var demo = packed.instantiate()
 	tree.root.add_child(demo)
+	var lufs_meter = TestLoudnessMeterClass.start_master_meter(tree)
 	await tree.process_frame
 	await tree.physics_frame
 	await tree.process_frame
@@ -431,6 +435,7 @@ static func run_cabin_async(tree: SceneTree) -> OpenDouAssert:
 		"la escena declara sus nodos, no los fabrica un build()")
 
 	_release_current(demo)
+	TestLoudnessMeterClass.check_budget(a, "cabin", TestLoudnessMeterClass.finish_master_meter(lufs_meter))
 	tree.root.remove_child(demo)
 	demo.free()
 	await tree.process_frame
@@ -460,6 +465,7 @@ static func run_monsoon_async(tree: SceneTree) -> OpenDouAssert:
 	# cantidad razonable de frames. Se acorta para poder afirmar que TERMINA.
 	demo.thunder_seconds = 0.25
 	tree.root.add_child(demo)
+	var lufs_meter = TestLoudnessMeterClass.start_master_meter(tree)
 	await tree.process_frame
 	await tree.physics_frame
 	await tree.process_frame
@@ -572,6 +578,7 @@ static func run_monsoon_async(tree: SceneTree) -> OpenDouAssert:
 		"la escena declara sus nodos, no los fabrica un build()")
 
 	_release_current(demo)
+	TestLoudnessMeterClass.check_budget(a, "monsoon", TestLoudnessMeterClass.finish_master_meter(lufs_meter))
 	tree.root.remove_child(demo)
 	demo.free()
 	await tree.process_frame
@@ -601,6 +608,7 @@ static func run_keel_async(tree: SceneTree) -> OpenDouAssert:
 	a.ok(packed != null, "la escena de la quilla carga")
 	var demo = packed.instantiate()
 	tree.root.add_child(demo)
+	var lufs_meter = TestLoudnessMeterClass.start_master_meter(tree)
 	await tree.process_frame
 	await tree.physics_frame
 	await tree.physics_frame
@@ -717,6 +725,7 @@ static func run_keel_async(tree: SceneTree) -> OpenDouAssert:
 		"la escena declara sus nodos, no los fabrica un build()")
 
 	_release_current(demo)
+	TestLoudnessMeterClass.check_budget(a, "keel", TestLoudnessMeterClass.finish_master_meter(lufs_meter))
 	tree.root.remove_child(demo)
 	demo.free()
 	await tree.process_frame
