@@ -136,6 +136,7 @@ func play_event(p_event_name: StringName = &"") -> void:
 		# El reproductor de este nodo ES la voz fisica. Vincularlo evita que el
 		# pool le asigne ademas una voz anonima, que era la doble reproduccion.
 		active_instance.bind_player(self)
+		active_instance.copy_attenuation_from_player(self)
 		active_instance.virtualization_mode = virtualization_mode
 		active_instance.max_distance = cull_distance
 		var cur_pos: Vector3 = global_position if is_inside_tree() else position

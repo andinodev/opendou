@@ -48,6 +48,15 @@ var current_weight: float = 0.0
 var logical_playback_position: float = 0.0
 var max_distance: float = 100.0
 
+# Atenuacion por distancia (Fase 7B). Con los defectos de Godot; ver AudioEventDef.
+var unit_size: float = 10.0
+var attenuation_max_distance: float = 0.0
+var attenuation_model: int = 0
+var attenuation_filter_cutoff_hz: float = 5000.0
+var attenuation_filter_db: float = -24.0
+## volume_db del emisor de nodo; 0 en las voces anonimas.
+var emitter_volume_db: float = 0.0
+
 # 3D / Spatial Positioning
 var emitter_position: Vector3 = Vector3.ZERO
 var has_spatial_position: bool = false
@@ -116,6 +125,11 @@ func _init(p_definition: AudioEventDef, p_caller: Node = null) -> void:
 		calculated_volume_db = definition.base_volume_db
 		calculated_pitch_scale = definition.base_pitch_scale
 		virtualization_mode = definition.virtualization_mode
+		unit_size = definition.unit_size
+		attenuation_max_distance = definition.attenuation_max_distance
+		attenuation_model = definition.attenuation_model
+		attenuation_filter_cutoff_hz = definition.attenuation_filter_cutoff_hz
+		attenuation_filter_db = definition.attenuation_filter_db
 		
 		# Instantiate modulator runtime states
 		modulator_states = []
@@ -198,6 +212,18 @@ func set_position(pos: Vector3) -> void:
 	if not room_path_active:
 		target_apparent_position = pos
 		current_apparent_position = pos
+
+## Copia la atenuacion de un reproductor 3D de Godot: es lo que hace que un emisor de nodo
+## suene igual en los dos backends. No toca max_distance, que es del robo de voces.
+func copy_attenuation_from_player(player: AudioStreamPlayer3D) -> void:
+	if player == null:
+		return
+	unit_size = player.unit_size
+	attenuation_max_distance = player.max_distance
+	attenuation_model = int(player.attenuation_model)
+	attenuation_filter_cutoff_hz = player.attenuation_filter_cutoff_hz
+	attenuation_filter_db = player.attenuation_filter_db
+	emitter_volume_db = player.volume_db
 
 ## Sets the target spatial low-pass filter cutoff in Hz.
 func set_target_lpf(lpf_hz: float, atten_db: float = 0.0) -> void:

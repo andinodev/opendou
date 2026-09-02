@@ -89,7 +89,7 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r2)
 	
 	var r3 = TestEventInstanceClass.run_all()
-	total_tests += 5
+	total_tests += 9
 	all_failures.append_array(r3)
 	
 	var r4 = TestEventManagerClass.run_all()

@@ -56,6 +56,17 @@ enum VirtualizationMode {
 @export var base_volume_db: float = 0.0
 @export var base_pitch_scale: float = 1.0
 @export var base_priority: float = 50.0 # 0 (lowest) to 100 (highest)
+
+## Atenuacion por distancia con los DEFECTOS DE GODOT (AudioStreamPlayer3D), para que
+## cambiar de backend espacial no cambie el volumen. Un emisor de nodo los pisa con los
+## suyos; una voz anonima usa estos.
+@export_group("Distance Attenuation")
+@export var unit_size: float = 10.0
+## 0 = sin limite. Distinto de max_distance (robo de voces): unificarlos rompia la paridad.
+@export var attenuation_max_distance: float = 0.0
+@export_enum("Inverse", "Inverse Square", "Logarithmic", "Disabled") var attenuation_model: int = 0
+@export var attenuation_filter_cutoff_hz: float = 5000.0
+@export var attenuation_filter_db: float = -24.0
 @export var max_instances: int = 5
 
 @export var stealing_behavior: VoiceStealingBehavior = VoiceStealingBehavior.LOWEST_PRIORITY
