@@ -109,6 +109,13 @@ struct FractionalDelay {
 		write = 0;
 		current = target = step = 0.0f;
 	}
+	// Fija el retardo de golpe, sin rampa: para el retardo inicial por distancia, que si se
+	// rampeara se oiria como un barrido.
+	void snap(float samples) {
+		target = std::clamp(samples, 0.0f, max_delay);
+		current = target;
+		step = 0.0f;
+	}
 	// Retardo en muestras a alcanzar al final de un bloque de block_samples.
 	void set_target(float samples, int block_samples) {
 		target = std::clamp(samples, 0.0f, max_delay);

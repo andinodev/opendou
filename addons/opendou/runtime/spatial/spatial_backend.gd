@@ -13,6 +13,7 @@ const GODOT: StringName = &"godot"
 const STEAM_AUDIO: StringName = &"steam_audio"
 const FRAME_SIZE_SETTING: String = "opendou/spatial/frame_size"
 const FRAME_SIZES: Array[int] = [256, 512, 1024]
+const MAX_DELAY_SETTING: String = "opendou/spatial/max_propagation_delay_sec"
 
 ## Registra el ajuste de proyecto con su defecto si no existe. Idempotente.
 static func ensure_setting() -> void:
@@ -49,6 +50,14 @@ static func read_frame_size() -> int:
 		return 512
 	return v
 
+## Tope del retardo por distancia, en segundos (memoria por voz: 176 KB por segundo a 44.1 kHz).
+static func read_max_propagation_delay() -> float:
+	if not ProjectSettings.has_setting(MAX_DELAY_SETTING):
+		ProjectSettings.set_setting(MAX_DELAY_SETTING, 3.0)
+	ProjectSettings.set_initial_value(MAX_DELAY_SETTING, 3.0)
+	ProjectSettings.add_property_info({"name": MAX_DELAY_SETTING, "type": TYPE_FLOAT, "hint": PROPERTY_HINT_RANGE, "hint_string": "0.1,10,0.1"})
+	return clampf(float(ProjectSettings.get_setting(MAX_DELAY_SETTING, 3.0)), 0.1, 10.0)
+
 ## true si la extension esta cargada Y Steam Audio se inicializo.
 static func native_available() -> bool:
 	if not ClassDB.class_exists("OpenDouSpatialStream"):
@@ -57,6 +66,8 @@ static func native_available() -> bool:
 		return false
 	if ClassDB.class_has_method("OpenDouSpatialStream", "configure"):
 		ClassDB.class_call_static("OpenDouSpatialStream", "configure", read_frame_size())
+	if ClassDB.class_has_method("OpenDouSpatialStream", "configure_max_propagation_delay"):
+		ClassDB.class_call_static("OpenDouSpatialStream", "configure_max_propagation_delay", read_max_propagation_delay())
 	return bool(ClassDB.class_call_static("OpenDouSpatialStream", "is_native_available"))
 
 ## La regla, separada de sus entradas para poder afirmarla sin extension.

@@ -76,6 +76,15 @@ public:
 	void set_near_field_ild_db(float p_db);
 	float get_near_field_ild_db() const;
 
+	// Retardo por distancia (Fase 9), en segundos: distancia / 343. 0 = apagado. Se aplica en
+	// mono antes del HRTF; el primer valor se fija de golpe y los siguientes se rampean, con
+	// lo que un emisor en movimiento produce doppler FISICO (el canal no suma el de tono).
+	void set_propagation_delay_sec(float p_sec);
+	float get_propagation_delay_sec() const;
+	// Tope de memoria por voz. Solo antes de crear playbacks con retardo.
+	static bool configure_max_propagation_delay(float p_sec);
+	static float max_propagation_delay_sec_;
+
 	// Ultimos retardos de pico (izquierdo, derecho) en segundos que Steam Audio escribio al
 	// renderizar. El HRTF trae los picos alineados: el ITD NO esta en su salida y OpenDou lo
 	// aplica aparte; este valor es el residuo que se resta.
@@ -124,6 +133,7 @@ private:
 	std::atomic<int> output_mode_{ OUTPUT_HEADPHONES };
 	std::atomic<float> near_field_bass_db_{ 0.0f };
 	std::atomic<float> near_field_ild_db_{ 0.0f };
+	std::atomic<float> propagation_delay_{ 0.0f };
 	std::atomic<float> peak_left_{ 0.0f };
 	std::atomic<float> peak_right_{ 0.0f };
 	std::atomic<float> applied_itd_{ 0.0f };
@@ -172,6 +182,10 @@ private:
 	float shelf_applied_hz_ = -1.0f;
 	dsp::Biquad near_shelf_;
 	float near_applied_db_ = -1.0f;
+	// Retardo por distancia: linea larga en mono, reservada solo cuando la voz lo pide.
+	dsp::FractionalDelay prop_delay_;
+	bool prop_ready_ = false;
+	bool prop_snapped_ = false;
 
 	// ITD esferico: una linea de retardo por oido; se retrasa el oido LEJANO.
 	dsp::FractionalDelay delay_l_;

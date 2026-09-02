@@ -326,3 +326,66 @@ static func run_near_field_async(tree: SceneTree) -> OpenDouAssert:
 	probe.teardown()
 	ProjectSettings.set_setting("opendou/spatial/backend", previous)
 	return a
+
+## Retardo por distancia: a 343 m el primer transitorio llega ~1 s despues de postear; a 34 m,
+## antes de 0.25 s; apagado, antes de 0.12 s. En steam_audio (linea de retardo) y en godot
+## (arranque aplazado). El tiempo se mide en MUESTRAS capturadas desde el drenado previo al
+## post, no con el reloj, para que la latencia del sistema no cuente.
+static func run_propagation_delay_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("propagation_delay")
+	var previous: String = _backend_setting()
+	ParityClass.ensure_bus()
+	var probe = OpenDouAudioProbeClass.new()
+	probe.attach_to_existing_bus(ParityClass.BUS, 2.0)
+	var cam: Camera3D = ParityClass.make_listener_camera(tree)
+	var rate: float = AudioServer.get_mix_rate()
+	for backend in ["godot", "steam_audio"]:
+		if backend == "steam_audio" and not ClassDB.class_exists("OpenDouSpatialStream"):
+			print("[OpenDou] extension nativa AUSENTE: retardo en steam_audio omitido")
+			continue
+		var manager = ParityClass.make_manager(tree, backend)
+		await tree.process_frame
+		var def = AudioEventDefClass.new(&"DelayTone", _tone(1000.0, 1.0, -6.0))
+		def.is_looping = true
+		def.stream_length = 1.0
+		def.target_bus = ParityClass.BUS
+		def.attenuation_model = 3
+		manager.register_event_definition(def)
+		manager.set_listener_position(Vector3.ZERO)
+		for case in [[true, 343.0, 0.85, 1.3], [true, 34.0, 0.0, 0.25], [false, 343.0, 0.0, 0.12]]:
+			def.propagation_delay_enabled = bool(case[0])
+			await tree.process_frame
+			probe.drain()
+			var inst = manager.post_event(def, null)
+			# A 343 m el robo de voces la descartaria por su max_distance de 100 m (culling).
+			inst.max_distance = 1000.0
+			inst.set_position(Vector3(0, 0, -float(case[1])))
+			var onset: float = -1.0
+			var captured: int = 0
+			var t0: int = Time.get_ticks_msec()
+			while Time.get_ticks_msec() - t0 < 1800:
+				await tree.process_frame
+				var avail: int = probe._capture.get_frames_available()
+				if avail <= 0:
+					continue
+				var buf: PackedVector2Array = probe._capture.get_buffer(avail)
+				for i in range(buf.size()):
+					if absf(buf[i].x) + absf(buf[i].y) > 0.02:
+						onset = float(captured + i) / rate
+						break
+				if onset >= 0.0:
+					break
+				captured += avail
+			var label: String = "%s, retardo %s, %.0f m" % [backend, "on" if case[0] else "off", case[1]]
+			print("[OpenDou] %s: primer transitorio a %.3f s" % [label, onset])
+			a.ok(onset >= float(case[2]) and onset <= float(case[3]), "%s: llega entre %.2f y %.2f s (medido %.3f)" % [label, case[2], case[3], onset])
+			inst.stop()
+			await probe.await_silence(tree, 0.002, 30)
+		manager.stop_all()
+		tree.root.remove_child(manager)
+		manager.free()
+	tree.root.remove_child(cam)
+	cam.free()
+	probe.teardown()
+	ProjectSettings.set_setting("opendou/spatial/backend", previous)
+	return a

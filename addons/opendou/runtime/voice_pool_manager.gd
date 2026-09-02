@@ -22,6 +22,9 @@ var player_pool: OpenDouNativePlayerPool = null
 ## Backend espacial del manager. Decide que tipo de reproductor piden las voces con
 ## posicion: SPATIAL_3D con godot, BINAURAL_3D con steam_audio.
 var spatial_backend: StringName = &"godot"
+## Ultima posicion del oyente vista en resolve_voice_stealing: la usa devirtualize para el
+## retardo inicial por distancia.
+var _last_listener_pos: Vector3 = Vector3.ZERO
 
 ## Inyecta el pool de reproductores nativos.
 func set_player_pool(pool: OpenDouNativePlayerPool) -> void:
@@ -44,6 +47,7 @@ func find_free_channel() -> int:
 
 ## Resolves voice stealing and assigns hardware channels to highest priority instances.
 func resolve_voice_stealing(active_instances: Array[EventInstance], listener_pos: Vector3, delta: float) -> void:
+	_last_listener_pos = listener_pos
 	# 1. Update channel fade states
 	process_channel_fades(delta)
 		
@@ -208,7 +212,17 @@ func devirtualize(instance: EventInstance) -> void:
 			player.connect("finished", cb, CONNECT_ONE_SHOT)
 
 	var bus_name: StringName = instance.definition.target_bus if instance.definition else &"Master"
-	ch.play_stream(stream, start_offset, instance.calculated_volume_db, instance.calculated_pitch_scale, bus_name)
+	# Retardo por distancia (Fase 9): el valor inicial tiene que estar puesto ANTES de arrancar.
+	# En steam_audio va al stream nativo (que lo fija de golpe en su primer bloque); en godot
+	# solo se puede aplazar el arranque.
+	var start_delay: float = 0.0
+	if instance.propagation_delay_enabled and instance.has_spatial_position:
+		var delay_sec: float = instance.emitter_position.distance_to(_last_listener_pos) / 343.0
+		if player.stream != null and player.stream.get_class() == "OpenDouSpatialStream":
+			player.stream.propagation_delay_sec = delay_sec
+		else:
+			start_delay = delay_sec
+	ch.play_stream(stream, start_offset, instance.calculated_volume_db, instance.calculated_pitch_scale, bus_name, start_delay)
 
 ## Returns the number of active physical voices.
 func get_active_physical_count() -> int:

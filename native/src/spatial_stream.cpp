@@ -19,6 +19,8 @@ namespace opendou {
 
 // ------------------------------------------------------------------ OpenDouSpatialStream
 
+float OpenDouSpatialStream::max_propagation_delay_sec_ = 3.0f;
+
 OpenDouSpatialStream::OpenDouSpatialStream() {}
 
 void OpenDouSpatialStream::_bind_methods() {
@@ -63,6 +65,10 @@ void OpenDouSpatialStream::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_near_field_ild_db", "db"), &OpenDouSpatialStream::set_near_field_ild_db);
 	ClassDB::bind_method(D_METHOD("get_near_field_ild_db"), &OpenDouSpatialStream::get_near_field_ild_db);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "near_field_ild_db", PROPERTY_HINT_RANGE, "0,12,0.1"), "set_near_field_ild_db", "get_near_field_ild_db");
+	ClassDB::bind_method(D_METHOD("set_propagation_delay_sec", "sec"), &OpenDouSpatialStream::set_propagation_delay_sec);
+	ClassDB::bind_method(D_METHOD("get_propagation_delay_sec"), &OpenDouSpatialStream::get_propagation_delay_sec);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "propagation_delay_sec", PROPERTY_HINT_RANGE, "0,10,0.001"), "set_propagation_delay_sec", "get_propagation_delay_sec");
+	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("configure_max_propagation_delay", "sec"), &OpenDouSpatialStream::configure_max_propagation_delay);
 	BIND_ENUM_CONSTANT(OUTPUT_HEADPHONES);
 	BIND_ENUM_CONSTANT(OUTPUT_SPEAKERS);
 
@@ -117,6 +123,12 @@ void OpenDouSpatialStream::set_near_field_bass_db(float p_db) { near_field_bass_
 float OpenDouSpatialStream::get_near_field_bass_db() const { return near_field_bass_db_.load(); }
 void OpenDouSpatialStream::set_near_field_ild_db(float p_db) { near_field_ild_db_.store(std::clamp(p_db, 0.0f, 12.0f)); }
 float OpenDouSpatialStream::get_near_field_ild_db() const { return near_field_ild_db_.load(); }
+void OpenDouSpatialStream::set_propagation_delay_sec(float p_sec) { propagation_delay_.store(std::clamp(p_sec, 0.0f, max_propagation_delay_sec_)); }
+float OpenDouSpatialStream::get_propagation_delay_sec() const { return propagation_delay_.load(); }
+bool OpenDouSpatialStream::configure_max_propagation_delay(float p_sec) {
+	max_propagation_delay_sec_ = std::clamp(p_sec, 0.1f, 10.0f);
+	return true;
+}
 
 Vector2 OpenDouSpatialStream::get_last_peak_delays() const { return Vector2(peak_left_.load(), peak_right_.load()); }
 
@@ -317,6 +329,8 @@ void OpenDouSpatialStreamPlayback::_stop() {
 	lpf_.reset();
 	shelf_.reset();
 	near_shelf_.reset();
+	prop_delay_.reset();
+	prop_snapped_ = false;
 	delay_l_.reset();
 	delay_r_.reset();
 	ring_read_ = 0;
@@ -377,6 +391,30 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 		}
 		x = shelf_.process(x);
 		mono[i] = x;
+	}
+
+	// Retardo por distancia, en mono y antes del HRTF. La linea se reserva la primera vez que
+	// la voz lo pide (530 KB por voz a 3 s y 44.1 kHz); el primer valor se fija de golpe y
+	// los siguientes se rampean: eso ES el doppler fisico.
+	const float prop = stream_->propagation_delay_.load();
+	if (prop > 0.0f) {
+		if (!prop_ready_) {
+			prop_delay_.init(static_cast<int>(OpenDouSpatialStream::max_propagation_delay_sec_ * fs) + 4);
+			prop_ready_ = true;
+			prop_snapped_ = false;
+		}
+		const float samples = prop * fs;
+		if (!prop_snapped_) {
+			prop_delay_.snap(samples);
+			prop_snapped_ = true;
+		} else {
+			prop_delay_.set_target(samples, frame_size);
+		}
+		for (int i = 0; i < frame_size; i++) {
+			mono[i] = prop_delay_.process(mono[i]);
+		}
+	} else {
+		prop_snapped_ = false;
 	}
 
 	// Campo cercano: refuerzo de graves antes del HRTF.

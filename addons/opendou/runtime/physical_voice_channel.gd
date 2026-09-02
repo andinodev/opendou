@@ -45,6 +45,9 @@ var current_stream: AudioStream = null
 var current_volume_db: float = 0.0
 var current_pitch: float = 1.0
 var playback_start_offset: float = 0.0
+## Arranque aplazado (backend godot con retardo por distancia): segundos que faltan para
+## llamar a play(). El reproductor 3D de Godot no puede retrasar la senal, solo el arranque.
+var start_delay_remaining: float = 0.0
 
 var _player: Node = null
 
@@ -79,7 +82,7 @@ func set_bus(p_bus: StringName) -> void:
 	target_bus = p_bus if not p_bus.is_empty() else &"Master"
 
 ## Asigna el stream al reproductor vinculado y arranca la reproduccion real.
-func play_stream(stream: AudioStream, start_offset: float = 0.0, volume_db: float = 0.0, pitch: float = 1.0, bus_name: StringName = &"Master") -> void:
+func play_stream(stream: AudioStream, start_offset: float = 0.0, volume_db: float = 0.0, pitch: float = 1.0, bus_name: StringName = &"Master", start_delay_sec: float = 0.0) -> void:
 	current_stream = stream
 	playback_start_offset = start_offset
 	current_volume_db = volume_db
@@ -110,10 +113,11 @@ func play_stream(stream: AudioStream, start_offset: float = 0.0, volume_db: floa
 	# inicial se fija en el suelo para no soltar un chasquido.
 	player.volume_db = -80.0
 	player.pitch_scale = clampf(pitch, 0.01, 4.0)
-	# Los reproductores 3D anonimos del pool se reutilizan: el modelo de atenuacion vuelve al
-	# defecto y apply_spatial lo cambia si la instancia usa una curva (Fase 9).
-	if player is AudioStreamPlayer3D and not owned_by_node and player.attenuation_model == AudioStreamPlayer3D.ATTENUATION_DISABLED and player.panning_strength > 0.0:
-		player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+	if start_delay_sec > 0.0:
+		# Se arranca desde process_fade() cuando la cuenta atras llegue a cero.
+		start_delay_remaining = start_delay_sec
+		return
+	start_delay_remaining = 0.0
 	player.play(maxf(0.0, start_offset))
 
 ## Empuja los valores calculados al reproductor. Se llama una vez por frame.
@@ -182,6 +186,8 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 			nf = clampf(1.0 - distance / instance.near_field_distance_m, 0.0, 1.0)
 		s.near_field_bass_db = 6.0 * nf
 		s.near_field_ild_db = 6.0 * nf * absf(s.direction.x)
+		# Retardo por distancia: el sonido tarda distancia / 343 s en llegar.
+		s.propagation_delay_sec = distance / 343.0 if instance.propagation_delay_enabled else 0.0
 		# El multiplicador se calcula UNA vez: sirve para la ganancia del stream (sin el
 		# volumen, que ya va en el reproductor) y para la profundidad del shelf.
 		var mult: float = DistanceModelClass.multiplier(distance, instance.attenuation_model, instance.unit_size, v_total, DistanceModelClass.MAX_DB, instance.attenuation_max_distance, instance.attenuation_curve, instance.attenuation_curve_distance_m)
@@ -191,10 +197,25 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		s.cutoff_hz = clampf(cutoff_hz, 20.0, 20000.0)
 	elif player is AudioStreamPlayer3D:
 		var vol: float = volume_db + gain_db
+		# Los reproductores anonimos del pool llevan la atenuacion de la INSTANCIA (modelo,
+		# unidad, distancia maxima, filtro): hasta la Fase 9 se quedaban con los defectos de
+		# Godot y una definicion con la atenuacion desactivada seguia atenuando en godot.
+		if not owned_by_node:
+			var godot_model: int = instance.attenuation_model
+			if godot_model == DistanceModelClass.MODEL_CURVE:
+				godot_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
+			if int(player.attenuation_model) != godot_model:
+				player.attenuation_model = godot_model
+			if not is_equal_approx(player.unit_size, instance.unit_size):
+				player.unit_size = instance.unit_size
+			if not is_equal_approx(player.max_distance, instance.attenuation_max_distance):
+				player.max_distance = instance.attenuation_max_distance
+			if not is_equal_approx(player.attenuation_filter_db, instance.attenuation_filter_db):
+				player.attenuation_filter_db = instance.attenuation_filter_db
 		if instance.attenuation_model == DistanceModelClass.MODEL_CURVE:
 			# Godot no tiene curvas: se desactiva su atenuacion y la curva va al volumen. Su
 			# shelf por distancia queda en 0 (depende del multiplicador, que ahora es 1).
-			if player.attenuation_model != AudioStreamPlayer3D.ATTENUATION_DISABLED:
+			if owned_by_node and player.attenuation_model != AudioStreamPlayer3D.ATTENUATION_DISABLED:
 				player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
 			var d_curve: float = instance.current_apparent_position.distance_to(listener_position)
 			vol += DistanceModelClass.attenuation_db(d_curve, DistanceModelClass.MODEL_CURVE, instance.unit_size, instance.attenuation_curve, instance.attenuation_curve_distance_m)
@@ -254,6 +275,14 @@ func stop_immediate() -> void:
 ## Procesa los multiplicadores de fade de entrada y salida por frame.
 func process_fade(delta: float) -> void:
 	if not is_busy:
+		return
+	if start_delay_remaining > 0.0:
+		start_delay_remaining -= delta
+		if start_delay_remaining <= 0.0:
+			start_delay_remaining = 0.0
+			var p := get_player()
+			if p != null and p.is_inside_tree() and not p.playing:
+				p.play(maxf(0.0, playback_start_offset))
 		return
 
 	if is_fading_out:
