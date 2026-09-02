@@ -1,7 +1,7 @@
 # Fase 6 — Los portales se oyen
 
 **Fecha:** 2026-09-01
-**Estado:** Diseño aprobado, pendiente de plan de implementación
+**Estado:** Implementada. Este documento lleva al final las correcciones que la ejecución obligó a hacerle.
 **Rama:** `main` (este proyecto trabaja en una sola rama)
 **Godot verificado:** 4.7.2.stable.official.ed1daf0bf
 **Fases anteriores:** [1](2026-09-01-fase1-cadena-audio-real-design.md) · [2](2026-09-01-fase2-correccion-espacial-design.md) · [3](2026-09-01-fase3-rendimiento-design.md) · [4A](2026-09-01-fase4a-distribuible-design.md) · [5](2026-09-01-fase5-demos-design.md)
@@ -299,3 +299,56 @@ frágil entre máquinas; un conteo es determinista:
 | El suavizado de la posición aparente enmascara el efecto en los tests | Los tests esperan a que el suavizado converja, no cuentan frames fijos |
 | La caché devuelve un camino obsoleto | El digest por frame cubre cualquier cambio de portal, incluido uno que cree un camino más corto |
 | El coste real en máquina lenta | El techo queda escrito; el conteo de recorridos es la guarda que no depende de la máquina |
+
+
+---
+
+## 11. Correcciones que la ejecución obligó a hacer a este spec
+
+Se dejan aquí en lugar de reescribir el documento, para que se vea qué se supuso mal.
+
+**«`SpatialAcousticsManager` — sin cambios» era falso.** Cambió, y hubo que cambiarlo para
+que la fase funcionara en cualquier proyecto real, no solo en el test:
+
+* **Observación 38 — las salas y los portales nunca se desregistraban.** `rooms` y
+  `portals` solo crecían: ni `OpenDouRoom3D` ni `OpenDouPortal3D` tenían `_exit_tree`. Un
+  juego que carga y descarga niveles acumula salas muertas para siempre, y una sala
+  muerta que envuelva el nivel nuevo **tapa todas sus salas**. Lo delató una sala de
+  30×12×30 que un test dejaba registrada y que se comía la nave entera de «Bajo la
+  quilla». Ahora los dos nodos se dan de baja, y dar de baja una sala se lleva los
+  portales que la tocaban.
+* **Observación 39 — `get_room_at_position()` devolvía la primera coincidencia**, así que
+  con salas anidadas —un hangar que contiene oficinas— el resultado dependía del orden de
+  inserción del diccionario. Ahora gana la más pequeña, que es la más específica.
+
+**El apartado 7 prometía tres aserciones de audio real en la suite. No se pudieron
+sostener ahí.**
+
+* **Observación 40 —** `OpenDouAudioProbe.teardown()` borra su bus, `remove_bus()`
+  desplaza los índices, y Godot resuelve el bus de una voz **por índice** al arrancar la
+  reproducción: borrar un bus mientras algo suena reenruta esa voz. La comparación de
+  picos fallaba entre una y tres corridas de cada cinco con picos de 5 a 9 sobre una señal
+  que no pasa de 0.12. Se intentaron cuatro arreglos —drenar durante las esperas,
+  silenciar el autoload, no borrar nunca los buses (rompe doce aserciones ajenas) y
+  cambiar el orden de ejecución (lo empeora)—.
+* **Lo que quedó:** en la suite, las aserciones deterministas de lo que llega al
+  **mezclador** —el corte que Godot aplica, el origen aparente, y quién gobierna cada
+  voz—, más la de misma sala que impide que pasen con una implementación que apague todo.
+  La verificación **audible** vive en `tools/verify_portal_audio.gd`, aislada y estable:
+  **0.1196 con el portal abierto y 0.0010 cerrado, una caída de 114×**.
+
+**El coste medido, y lo que costó cumplirlo.** El criterio 5 fijaba un techo del +10 %. La
+primera implementación daba **+17 %**: recorría las 200 instancias para atender a las 16
+físicas. Iterar los canales del pool y sustituir la clave de caché de texto por un
+diccionario anidado lo dejaron en **+8.5 %, 0.093 ms** con 200 voces y tres salas
+—medianas de tres pares de 60 iteraciones—.
+
+**Una limitación conocida que no estaba prevista.** El origen aparente **no se aplica a
+los emisores de nodo** (`OpenDouEventPlayer*`): `PhysicalVoiceChannel.apply()` no mueve un
+reproductor que pertenece a un nodo, y moverlo significaría mover el nodo del juego. Para
+esos emisores llegan el filtro y la atenuación, pero no la relocalización. Las voces del
+pool sí la reciben.
+
+**Y una observación más, sin arreglar:** la observación 37, espejo de la 31 —`is_looping =
+true` no loopea si el `AudioStreamWAV` no trae `loop_mode`, y la instancia muere tras una
+pasada—.
