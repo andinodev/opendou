@@ -107,6 +107,10 @@ func play_stream(stream: AudioStream, start_offset: float = 0.0, volume_db: floa
 	# inicial se fija en el suelo para no soltar un chasquido.
 	player.volume_db = -80.0
 	player.pitch_scale = clampf(pitch, 0.01, 4.0)
+	# Los reproductores 3D anonimos del pool se reutilizan: el modelo de atenuacion vuelve al
+	# defecto y apply_spatial lo cambia si la instancia usa una curva (Fase 9).
+	if player is AudioStreamPlayer3D and not owned_by_node and player.attenuation_model == AudioStreamPlayer3D.ATTENUATION_DISABLED and player.panning_strength > 0.0:
+		player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
 	player.play(maxf(0.0, start_offset))
 
 ## Empuja los valores calculados al reproductor. Se llama una vez por frame.
@@ -165,13 +169,21 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		s.direction = DistanceModelClass.listener_direction(p, listener_position, listener_basis)
 		# El multiplicador se calcula UNA vez: sirve para la ganancia del stream (sin el
 		# volumen, que ya va en el reproductor) y para la profundidad del shelf.
-		var mult: float = DistanceModelClass.multiplier(distance, instance.attenuation_model, instance.unit_size, v_total, DistanceModelClass.MAX_DB, instance.attenuation_max_distance)
+		var mult: float = DistanceModelClass.multiplier(distance, instance.attenuation_model, instance.unit_size, v_total, DistanceModelClass.MAX_DB, instance.attenuation_max_distance, instance.attenuation_curve, instance.attenuation_curve_distance_m)
 		s.distance_gain = mult / db_to_linear(v_total) if mult > 0.0 else 0.0
 		s.shelf_db = DistanceModelClass.shelf_db(mult, instance.attenuation_filter_db)
 		s.shelf_cutoff_hz = instance.attenuation_filter_cutoff_hz
 		s.cutoff_hz = clampf(cutoff_hz, 20.0, 20000.0)
 	elif player is AudioStreamPlayer3D:
-		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
+		var vol: float = volume_db + gain_db
+		if instance.attenuation_model == DistanceModelClass.MODEL_CURVE:
+			# Godot no tiene curvas: se desactiva su atenuacion y la curva va al volumen. Su
+			# shelf por distancia queda en 0 (depende del multiplicador, que ahora es 1).
+			if player.attenuation_model != AudioStreamPlayer3D.ATTENUATION_DISABLED:
+				player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
+			var d_curve: float = instance.current_apparent_position.distance_to(listener_position)
+			vol += DistanceModelClass.attenuation_db(d_curve, DistanceModelClass.MODEL_CURVE, instance.unit_size, instance.attenuation_curve, instance.attenuation_curve_distance_m)
+		player.volume_db = clampf(vol, -80.0, 24.0)
 		player.attenuation_filter_cutoff_hz = clampf(minf(cutoff_hz, instance.attenuation_filter_cutoff_hz), 20.0, 20000.0)
 		if not owned_by_node:
 			player.global_position = instance.current_apparent_position

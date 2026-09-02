@@ -169,3 +169,64 @@ static func run_directivity_async(tree: SceneTree) -> OpenDouAssert:
 	probe.teardown()
 	ProjectSettings.set_setting("opendou/spatial/backend", previous)
 	return a
+
+## La misma curva da el mismo nivel en los dos backends: a 5.5 m cae ~20 dB respecto a 5 m.
+static func run_curve_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("attenuation_curve")
+	var previous: String = _backend_setting()
+	ParityClass.ensure_bus()
+	var probe = OpenDouAudioProbeClass.new()
+	probe.attach_to_existing_bus(ParityClass.BUS, 2.0)
+	var cam: Camera3D = ParityClass.make_listener_camera(tree)
+	var c := Curve.new()
+	c.min_value = -80.0
+	c.max_value = 6.0
+	c.add_point(Vector2(0.0, 0.0))
+	c.add_point(Vector2(0.5, 0.0))
+	c.add_point(Vector2(0.6, -40.0))
+	c.add_point(Vector2(1.0, -40.0))
+	var drops: Dictionary = {}
+	for backend in ["godot", "steam_audio"]:
+		if backend == "steam_audio" and not ClassDB.class_exists("OpenDouSpatialStream"):
+			print("[OpenDou] extension nativa AUSENTE: curva en steam_audio omitida")
+			continue
+		var manager = ParityClass.make_manager(tree, backend)
+		await tree.process_frame
+		var def = AudioEventDefClass.new(&"CurveTone", BinauralClass._periodic_noise(int(AudioServer.get_mix_rate())))
+		def.is_looping = true
+		def.stream_length = 1.0
+		def.target_bus = ParityClass.BUS
+		def.attenuation_model = 4
+		def.attenuation_curve = c
+		def.attenuation_curve_distance_m = 10.0
+		manager.register_event_definition(def)
+		manager.set_listener_position(Vector3.ZERO)
+		var levels: Dictionary = {}
+		for d in [5.0, 5.5]:
+			var inst = manager.post_event(def, null)
+			inst.set_position(Vector3(0, 0, -d))
+			await _wait_ms(tree, 250)
+			probe.drain()
+			levels[d] = BinauralClass._rms_db(await BinauralClass._capture(tree, probe))
+			inst.stop()
+			await probe.await_silence(tree, 0.002, 30)
+		# El nivel sigue a la curva TAL COMO GODOT LA INTERPOLA: la referencia es c.sample(), no
+		# una interpolacion lineal supuesta (Curve usa Hermite y a 0.55 no da -20 dB sino ~-30).
+		# El multiplicador de la curva alimenta ademas el shelf por distancia (en ambos backends,
+		# porque el de Godot incluye volume_db): sobre ruido de banda ancha eso resta unos 10 dB
+		# mas. Por eso se afirma "al menos la curva" y la paridad, no la igualdad con la curva.
+		var expected_drop: float = c.sample(0.55) - c.sample(0.5)
+		var drop: float = levels[5.5] - levels[5.0]
+		drops[backend] = drop
+		print("[OpenDou] curva (%s): 5 m %.1f dB, 5.5 m %.1f dB; la curva dice %.1f" % [backend, levels[5.0], levels[5.5], expected_drop])
+		a.lt(drop, expected_drop + 1.0, "%s: el nivel cae al menos lo que dice la curva (medido %.1f, curva %.1f)" % [backend, drop, expected_drop])
+		manager.stop_all()
+		tree.root.remove_child(manager)
+		manager.free()
+	if drops.has("godot") and drops.has("steam_audio"):
+		a.lt(absf(drops["godot"] - drops["steam_audio"]), 1.5, "la curva cae lo mismo en los dos backends (%.1f frente a %.1f)" % [drops["godot"], drops["steam_audio"]])
+	tree.root.remove_child(cam)
+	cam.free()
+	probe.teardown()
+	ProjectSettings.set_setting("opendou/spatial/backend", previous)
+	return a

@@ -9,11 +9,12 @@ const MODEL_INVERSE: int = 0
 const MODEL_INVERSE_SQUARE: int = 1
 const MODEL_LOGARITHMIC: int = 2
 const MODEL_DISABLED: int = 3
+const MODEL_CURVE: int = 4
 const MAX_DB: float = 3.0
 const EPS: float = 0.00001   # CMP_EPSILON de Godot
 
 ## Solo el modelo: sin volumen ni tope. Es _get_attenuation_db antes de sumar volume_db.
-static func attenuation_db(distance: float, model: int, unit_size: float) -> float:
+static func attenuation_db(distance: float, model: int, unit_size: float, curve: Curve = null, curve_distance: float = 50.0) -> float:
 	var u: float = maxf(unit_size, 0.001)
 	match model:
 		MODEL_INVERSE:
@@ -23,13 +24,18 @@ static func attenuation_db(distance: float, model: int, unit_size: float) -> flo
 			return linear_to_db(1.0 / (d * d + EPS))
 		MODEL_LOGARITHMIC:
 			return -20.0 * log(distance / u + EPS)
+		MODEL_CURVE:
+			# La curva se autora en dB sobre 0..curve_distance (Fase 9). Sin curva, 0 dB.
+			if curve == null:
+				return 0.0
+			return curve.sample(clampf(distance / maxf(curve_distance, 0.001), 0.0, 1.0))
 		_:
 			return 0.0
 
 ## Multiplicador lineal completo de Godot: modelo + volumen, tope max_db, y la rampa de
 ## max_distance. Cero mas alla del maximo.
-static func multiplier(distance: float, model: int, unit_size: float, volume_db: float, max_db: float, attenuation_max_distance: float) -> float:
-	var att: float = attenuation_db(distance, model, unit_size) + volume_db
+static func multiplier(distance: float, model: int, unit_size: float, volume_db: float, max_db: float, attenuation_max_distance: float, curve: Curve = null, curve_distance: float = 50.0) -> float:
+	var att: float = attenuation_db(distance, model, unit_size, curve, curve_distance) + volume_db
 	att = minf(att, max_db)
 	var mult: float = db_to_linear(att)
 	if attenuation_max_distance > 0.0:
@@ -40,8 +46,8 @@ static func multiplier(distance: float, model: int, unit_size: float, volume_db:
 
 ## Lo que se manda al stream nativo, en dB: el multiplicador SIN el volumen, porque el
 ## volumen (con el fade) va al reproductor. Equivale a min(att + V, 3) - V.
-static func gain_db_for_stream(distance: float, model: int, unit_size: float, volume_db: float, attenuation_max_distance: float) -> float:
-	var mult: float = multiplier(distance, model, unit_size, volume_db, MAX_DB, attenuation_max_distance)
+static func gain_db_for_stream(distance: float, model: int, unit_size: float, volume_db: float, attenuation_max_distance: float, curve: Curve = null, curve_distance: float = 50.0) -> float:
+	var mult: float = multiplier(distance, model, unit_size, volume_db, MAX_DB, attenuation_max_distance, curve, curve_distance)
 	if mult <= 0.0:
 		return -80.0
 	return linear_to_db(mult) - volume_db

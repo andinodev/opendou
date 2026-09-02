@@ -280,3 +280,15 @@ importador de cues en el inspector.
 | El estimador de frecuencia por cruces por cero es ruidoso | Tono puro, 0.5 s de captura, tolerancia del 2 % |
 | El doppler por tono y el retardo físico se suman por error | Regla explícita en el canal y aserción: con ambos activos en nativo, el tono medido coincide con el del retardo solo |
 | `panning_strength` como spread en `godot` no suena igual que el blend nativo | Es el fallback: se afirma lo que hace (el valor del mando), no la percepción |
+
+---
+
+## 17. Correcciones que la ejecución obligó a hacer a este spec
+
+1. **La curva no es lo único que cae con el modelo `CURVE` (§9).** El multiplicador de la
+   curva alimenta el shelf por distancia en el backend nativo, y en `godot` el multiplicador
+   de su shelf incluye `volume_db` (que ahora lleva la curva): con la curva a −20 dB, ambos
+   suman unos −10 dB más sobre ruido de banda ancha. Medido: −30.2 y −30.1 dB. Es coherente y
+   se afirma como «al menos la curva» más paridad (< 1.5 dB) entre backends, no como igualdad
+   con la curva. Y `Curve.sample()` interpola con Hermite: a mitad de camino entre dos puntos
+   da lo que la curva dice, no la interpolación lineal que el spec suponía.

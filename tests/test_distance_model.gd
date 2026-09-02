@@ -42,4 +42,18 @@ static func run_all() -> OpenDouAssert:
 	a.ok(DM.listener_direction(Vector3(0, 0, -5), Vector3.ZERO, looking_minus_x).is_equal_approx(Vector3(1, 0, 0)), "y lo que esta en -Z queda a su DERECHA")
 	a.ok(DM.listener_direction(Vector3(3, 2, 1), Vector3(3, 2, 1), Basis.IDENTITY).is_equal_approx(Vector3(0, 0, -1)), "a distancia cero, delante")
 	a.ok(DM.listener_direction(Vector3(10, 4, -2), Vector3(1, 1, 1), Basis.IDENTITY).is_normalized(), "siempre unitario")
+
+	# Fase 9: modelo CURVE, en dB sobre 0..curve_distance.
+	var c := Curve.new()
+	c.min_value = -80.0
+	c.max_value = 6.0
+	c.add_point(Vector2(0.0, 0.0))
+	c.add_point(Vector2(0.5, 0.0))
+	c.add_point(Vector2(0.6, -40.0))
+	c.add_point(Vector2(1.0, -40.0))
+	a.approx(DM.attenuation_db(5.0, DM.MODEL_CURVE, 10.0, c, 10.0), 0.0, "curva: a 5 m (0.5) vale 0 dB", 0.5)
+	a.approx(DM.attenuation_db(6.0, DM.MODEL_CURVE, 10.0, c, 10.0), -40.0, "curva: a 6 m (0.6) vale -40 dB", 0.5)
+	a.approx(DM.attenuation_db(50.0, DM.MODEL_CURVE, 10.0, c, 10.0), -40.0, "curva: mas alla del alcance se acota al ultimo punto", 0.5)
+	a.approx(DM.attenuation_db(5.0, DM.MODEL_CURVE, 10.0, null, 10.0), 0.0, "curva nula: como desactivada", 0.0001)
+	a.approx(DM.attenuation_db(5.5, DM.MODEL_CURVE, 10.0, c, 10.0), c.sample(0.55), "curva: entre puntos devuelve lo que Godot interpola", 0.001)
 	return a
