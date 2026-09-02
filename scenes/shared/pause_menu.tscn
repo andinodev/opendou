@@ -1,0 +1,91 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/shared/pause_menu.gd" id="1_menu"]
+[ext_resource type="Theme" path="res://scenes/shared/opendou_theme.tres" id="2_theme"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1_menu")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("2_theme")
+
+[node name="Dim" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.58)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Panel" type="PanelContainer" parent="Root/Center"]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="Margin" type="MarginContainer" parent="Root/Center/Panel"]
+layout_mode = 2
+
+[node name="Column" type="VBoxContainer" parent="Root/Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Margin/Column"]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "Pausa"
+
+[node name="Subtitle" type="Label" parent="Root/Center/Panel/Margin/Column"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "La escena sigue sonando mientras ajustas: el jugador queda quieto, el audio no."
+
+[node name="MainButtons" type="VBoxContainer" parent="Root/Center/Panel/Margin/Column"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Resume" type="Button" parent="Root/Center/Panel/Margin/Column/MainButtons"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "Volver al juego"
+
+[node name="Sound" type="Button" parent="Root/Center/Panel/Margin/Column/MainButtons"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "Sonido"
+
+[node name="Hub" type="Button" parent="Root/Center/Panel/Margin/Column/MainButtons"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "Volver al hub"
+
+[node name="SoundPanel" type="VBoxContainer" parent="Root/Center/Panel/Margin/Column"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SoundTitle" type="Label" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
+layout_mode = 2
+theme_type_variation = &"SectionLabel"
+text = "CANALES DE SONIDO — medidor en vivo, volumen y silencio por bus"
+
+[node name="BusList" type="VBoxContainer" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Back" type="Button" parent="Root/Center/Panel/Margin/Column/SoundPanel"]
+custom_minimum_size = Vector2(140, 38)
+layout_mode = 2
+size_flags_horizontal = 8
+theme_type_variation = &"GhostButton"
+text = "Atras"

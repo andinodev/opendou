@@ -24,17 +24,18 @@ extends CanvasLayer
 
 @onready var _title: Label = $Panel/Margin/Column/Title
 @onready var _thesis: Label = $Panel/Margin/Column/Thesis
-@onready var _controls: Label = $Panel/Margin/Column/Controls
-@onready var _exercises: Label = $Panel/Margin/Column/Exercises
+@onready var _controls: Label = $Panel/Margin/Column/Columns/ControlsBox/Controls
+@onready var _exercises: Label = $Panel/Margin/Column/Columns/ExercisesBox/Exercises
 @onready var _hint: Label = $Panel/Margin/Column/Hint
 @onready var _panel: PanelContainer = $Panel
 
 func _ready() -> void:
 	_title.text = demo_title
 	_thesis.text = thesis
-	_controls.text = "CONTROLES\n" + ("\n".join(controls) if not controls.is_empty() else "—")
-	_exercises.text = "ESTA ESCENA EJERCITA\n" + ("\n".join(exercises) if not exercises.is_empty() else "—")
-	_hint.text = "%s — mostrar u ocultar este cartel" % OS.get_keycode_string(toggle_key)
+	# Cada linea lleva su vineta; los titulos de seccion ya estan en la escena.
+	_controls.text = "\n".join(controls.map(func(c): return "•  " + c)) if not controls.is_empty() else "—"
+	_exercises.text = "\n".join(exercises.map(func(e): return "•  " + e)) if not exercises.is_empty() else "—"
+	_hint.text = "%s  MOSTRAR U OCULTAR ESTE CARTEL     ·     ESCAPE  MENU" % OS.get_keycode_string(toggle_key).to_upper()
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == toggle_key:

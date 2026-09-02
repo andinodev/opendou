@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/shared/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/shared/npc.tscn" id="3_npc"]
 [ext_resource type="PackedScene" path="res://scenes/shared/demo_hud.tscn" id="4_hud"]
+[ext_resource type="PackedScene" path="res://scenes/shared/pause_menu.tscn" id="5_menu"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_patch"]
 size = Vector3(8, 1, 8)
@@ -71,3 +72,5 @@ demo_title = "Banco del rig"
 thesis = "Tres materiales, un jugador con oyente y un NPC sin el. Aqui se valida la convencion de metadata surface_type antes de que las demos dependan de ella."
 controls = Array[String](["Flechas — caminar sobre los tres parches", "F1 — mostrar u ocultar este cartel"])
 exercises = Array[String](["CharacterAudioRig — emisor de pisadas + AnimationSync, sin oyente", "OpenDouEventPlayer3D — la voz de las pisadas", "OpenDouAnimationSync — detecta la superficie bajo los pies", "AudioSwitchContainer — UN evento de pisada, una rama por material", "AudioRandomContainer — tres variaciones por material"])
+
+[node name="PauseMenu" parent="." instance=ExtResource("5_menu")]

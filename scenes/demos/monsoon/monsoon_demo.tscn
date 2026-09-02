@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scenes/demos/monsoon/monsoon_demo.gd" id="1_monsoon"]
 [ext_resource type="Script" path="res://addons/opendou/nodes/opendou_multi_position_emitter_3d.gd" id="2_canal"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scenes/demos/monsoon/monsoon_telemetry.gd" id="6_telemetry"]
 [ext_resource type="PackedScene" path="res://scenes/shared/player.tscn" id="7_player"]
 [ext_resource type="PackedScene" path="res://scenes/shared/demo_hud.tscn" id="8_hud"]
+[ext_resource type="PackedScene" path="res://scenes/shared/pause_menu.tscn" id="9_menu"]
 
 [sub_resource type="BoxShape3D" id="Box_terrace"]
 size = Vector3(40, 1, 24)
@@ -117,3 +118,5 @@ demo_title = "El monzon"
 thesis = "200 emisores contra un presupuesto de 32 voces fisicas: 168 quedan virtuales y el voice stealing decide cuales cada frame. Cuando cae el trueno el ambiente se hunde, y no porque nadie lo programara: porque la ventana HDR subio."
 controls = Array[String](["Flechas — caminar por las terrazas", "T — lanzar un trueno", "F8 — monitor de voces audibles", "F1 — mostrar u ocultar este cartel"])
 exercises = Array[String](["post_event masivo — 200 instancias sobre 32 voces", "Voice stealing — por prioridad Y distancia, no solo distancia", "HDR — el trueno declara +18 dB y hunde el ambiente", "OpenDouMultiPositionEmitter3D — el canal de riego como objeto grande", "OpenDouSplineEmitter3D — la linea de arboles, con doppler y absorcion de aire", "OpenDouGranularEmitter3D — el enjambre de cigarras", "OpenDouAudibleMonitor — que voces se oyen ahora mismo", "LOD acustico — lo lejano no gasta raycasts de oclusion"])
+
+[node name="PauseMenu" parent="." instance=ExtResource("9_menu")]

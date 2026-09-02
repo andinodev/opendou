@@ -14,6 +14,7 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_cabin_async(tree))
 	a.absorb(await run_street_async(tree))
 	a.absorb(run_hub())
+	a.absorb(await run_pause_menu_async(tree))
 	return a
 
 
@@ -124,24 +125,45 @@ static func run_street_async(tree: SceneTree) -> OpenDouAssert:
 	return a
 
 
-## El hub: cuatro entradas y ni una ruta muerta.
+## El hub: cinco tarjetas declaradas en la escena y ni una ruta muerta.
 static func run_hub() -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("demo_hub")
 
-	var HubClass = load("res://scenes/demos/demo_hub.gd")
-	a.ok(HubClass != null, "el script del hub existe")
-	a.eq(HubClass.ENTRIES.size(), 5, "el hub tiene cinco entradas: cuatro demos y el banco")
+	var packed: PackedScene = load("res://scenes/demos/demo_hub.tscn")
+	a.ok(packed != null, "la escena del hub carga")
+	if packed == null:
+		return a
 
-	# Ninguna ruta muerta. Es la asercion que impide que el hub sobreviva al borrado
+	# Las tarjetas estan EN LA ESCENA, no las fabrica el script: se cuentan en el estado
+	# empaquetado, antes de instanciar nada.
+	var state: SceneState = packed.get_state()
+	var declared_cards: int = 0
+	for i in range(state.get_node_count()):
+		var inst = state.get_node_instance(i)
+		if inst != null and str(inst.resource_path).ends_with("demo_card.tscn"):
+			declared_cards += 1
+	a.eq(declared_cards, 5, "el hub declara cinco tarjetas en su .tscn: cuatro demos y el banco")
+
+	var hub = packed.instantiate()
+	# Fuera del arbol no hay _ready, asi que se anade a un padre suelto para leerlo.
+	var holder := Node.new()
+	holder.add_child(hub)
+	var paths: PackedStringArray = hub.get_entry_paths()
+	a.eq(paths.size(), 5, "y expone cinco rutas, una por tarjeta")
+
+	# Ninguna ruta muerta. Es la asercion que impide que el hub sobreviva a un borrado
 	# apuntando a escenas que ya no existen.
-	for entry in HubClass.ENTRIES:
-		var path: String = str(entry.get("scene", ""))
+	for path in paths:
 		a.ok(ResourceLoader.exists(path), "la escena '%s' existe" % path)
-		a.ok(not str(entry.get("title", "")).is_empty(), "la entrada '%s' tiene titulo" % path)
-		a.ok(not str(entry.get("thesis", "")).is_empty(), "la entrada '%s' declara su tesis" % path)
+	for card in hub._cards():
+		a.ok(not str(card.demo_title).is_empty(), "la tarjeta de '%s' tiene titulo" % card.scene_path)
+		a.ok(not str(card.thesis).is_empty(), "y declara su tesis")
+		# El boton tiene ancho FIJO: era el defecto visual, botones de pantalla completa.
+		var open_button: Button = card.get_node("Margin/Column/ButtonRow/Open")
+		a.ok(open_button.custom_minimum_size.x > 0.0 and open_button.custom_minimum_size.x < 200.0,
+			"el boton de la tarjeta tiene ancho fijo, no el de la pantalla")
 
-	# Y las viejas ya no estan. Sin esto, borrar los directorios y olvidar una
-	# referencia pasaria inadvertido.
+	# Y las viejas ya no estan.
 	for stale in [
 		"res://scenes/demos/01_spatial_rooms_portals/demo_rooms_portals.tscn",
 		"res://scenes/demos/07_cyberpunk_infiltration/demo_cyberpunk_infiltration.tscn",
@@ -150,6 +172,90 @@ static func run_hub() -> OpenDouAssert:
 	]:
 		a.ok(not ResourceLoader.exists(stale), "la escena vieja '%s' se borro" % stale)
 
+	holder.free()
+	return a
+
+
+## El menu de Escape: congela al jugador, NO pausa el audio, y lista los buses en vivo.
+static func run_pause_menu_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("pause_menu")
+
+	# El banco es la escena mas pequena con jugador y menu.
+	var packed: PackedScene = load("res://scenes/rig_bench/rig_bench.tscn")
+	var bench = packed.instantiate()
+	tree.root.add_child(bench)
+	await tree.process_frame
+
+	var menu = bench.get_node_or_null("PauseMenu")
+	var player = bench.get_node_or_null("Player")
+	a.ok(menu != null, "la escena instancia el menu de pausa")
+	a.ok(player != null and player.is_in_group("player"), "y el jugador esta en el grupo player, que es como el menu lo encuentra")
+	if menu == null or player == null:
+		tree.root.remove_child(bench); bench.free()
+		return a
+
+	a.ok(not menu.is_open, "el menu arranca cerrado")
+	a.ok(player.input_enabled, "y el jugador arranca con entrada activa")
+
+	# Abrir: el jugador se congela y el ARBOL NO SE PAUSA, para que el audio siga.
+	menu.toggle()
+	await tree.process_frame
+	a.ok(menu.is_open, "Escape abre el menu")
+	a.ok(not player.input_enabled, "y congela al jugador")
+	a.ok(not tree.paused, "sin pausar el arbol: el audio sigue sonando mientras se ajusta")
+	a.ok(menu.get_node("Root").visible, "el panel se ve")
+
+	# La pantalla de sonido: una fila por bus del AudioServer, en vivo.
+	menu.show_sound()
+	await tree.process_frame
+	var rows: Array = menu.bus_rows()
+	a.eq(rows.size(), AudioServer.bus_count, "hay una fila por cada bus del AudioServer")
+	var names: Array = []
+	for row in rows:
+		names.append(row.bus_name)
+	a.ok("Master" in names, "Master esta en la lista")
+
+	# Mover un deslizador cambia el volumen REAL del bus, y silenciar lo silencia.
+	var master_row = null
+	for row in rows:
+		if row.bus_name == "Master":
+			master_row = row
+	a.ok(master_row != null, "se encuentra la fila de Master")
+	if master_row != null:
+		var master_idx: int = AudioServer.get_bus_index("Master")
+		var before_db: float = AudioServer.get_bus_volume_db(master_idx)
+		var before_mute: bool = AudioServer.is_bus_mute(master_idx)
+		master_row.get_node("Volume").value = -6.0
+		await tree.process_frame
+		a.approx(AudioServer.get_bus_volume_db(master_idx), -6.0, "el deslizador mueve el volumen real del bus", 0.01)
+		master_row.get_node("Mute").button_pressed = true
+		await tree.process_frame
+		a.ok(AudioServer.is_bus_mute(master_idx), "y silenciar silencia el bus de verdad")
+		# Se restaura: es estado global y otras suites miden audio.
+		AudioServer.set_bus_volume_db(master_idx, before_db)
+		AudioServer.set_bus_mute(master_idx, before_mute)
+		var meter: ProgressBar = master_row.get_node("Meter")
+		a.ok(meter.min_value <= -60.0 and meter.max_value >= 0.0, "el medidor va de -60 a 0 dB")
+
+	# Volver al hub apunta a una escena que existe. No se cambia de escena aqui: mataria
+	# la suite. Se afirma la ruta y que el boton esta conectado.
+	a.ok(ResourceLoader.exists(menu.hub_scene_path), "Volver al hub apunta a una escena que existe")
+	var hub_button: Button = menu.get_node("Root/Center/Panel/Margin/Column/MainButtons/Hub")
+	a.ok(hub_button.pressed.is_connected(menu.go_to_hub), "y el boton esta conectado a go_to_hub")
+
+	# Cerrar devuelve la entrada al jugador.
+	menu.show_main()
+	menu.toggle()
+	await tree.process_frame
+	a.ok(not menu.is_open, "Escape otra vez lo cierra")
+	a.ok(player.input_enabled, "y el jugador recupera la entrada")
+
+	var autoload_manager = tree.root.get_node_or_null("OpenDou")
+	if autoload_manager != null:
+		autoload_manager.stop_all()
+	_release_current(bench)
+	tree.root.remove_child(bench)
+	bench.free()
 	return a
 
 

@@ -9,6 +9,10 @@ extends CharacterBody3D
 @export var move_speed: float = 4.0
 @export var look_sensitivity: float = 0.0025
 
+## Si es falso, el jugador ignora teclado y raton. Lo apaga el menu de pausa: congela al
+## jugador sin pausar el arbol, para que el audio siga sonando mientras se ajusta.
+@export var input_enabled: bool = true
+
 ## El oyente. Vive aqui y NO en el rig, para que instanciar NPC no cree oyentes.
 var listener: AudioListener3D = null
 var camera: Camera3D = null
@@ -25,16 +29,20 @@ func _ready() -> void:
 	listener.make_current()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not input_enabled:
+		return
 	if event is InputEventMouseMotion and camera != null:
 		rotate_y(-event.relative.x * look_sensitivity)
 		camera.rotate_x(-event.relative.y * look_sensitivity)
 		camera.rotation.x = clampf(camera.rotation.x, -1.2, 1.2)
 
 func _physics_process(delta: float) -> void:
-	var input_dir := Vector2(
-		Input.get_axis("ui_left", "ui_right"),
-		Input.get_axis("ui_up", "ui_down")
-	)
+	var input_dir := Vector2.ZERO
+	if input_enabled:
+		input_dir = Vector2(
+			Input.get_axis("ui_left", "ui_right"),
+			Input.get_axis("ui_up", "ui_down")
+		)
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 	velocity.x = direction.x * move_speed
 	velocity.z = direction.z * move_speed

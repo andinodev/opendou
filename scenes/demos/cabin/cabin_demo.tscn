@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scenes/demos/cabin/cabin_demo.gd" id="1_cabin"]
 [ext_resource type="Script" path="res://addons/opendou/nodes/opendou_room_3d.gd" id="2_room"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://addons/opendou/nodes/opendou_event_player.gd" id="4_radio"]
 [ext_resource type="PackedScene" path="res://scenes/shared/player.tscn" id="5_player"]
 [ext_resource type="PackedScene" path="res://scenes/shared/demo_hud.tscn" id="6_hud"]
+[ext_resource type="PackedScene" path="res://scenes/shared/pause_menu.tscn" id="7_menu"]
 
 [sub_resource type="BoxShape3D" id="Box_cabin"]
 size = Vector3(10, 3.5, 10)
@@ -90,3 +91,5 @@ demo_title = "La cabina"
 thesis = "UN solo valor de RTPC -Tension- conduce TRES cosas a la vez: que stems musicales suenan, el corte del filtro de la radio, y el envio de reverb de la cabina. Y los estados CRUZAN en lugar de cortar."
 controls = Array[String](["1 / 2 / 3 — rutina, alerta, emergencia", "R — cambiar de estacion de radio", "Flechas — caminar de la tarima a la rejilla", "F1 — mostrar u ocultar este cartel"])
 exercises = Array[String](["OpenDouMusicPlayer — cuatro stems, un bus cada uno", "States con crossfade — la situacion cruza, no corta", "RTPC — un valor moviendo tres cosas coherentemente", "RTPCBinding sobre cutoff_hz — el filtro de la radio", "Triggers — un nombre posteado produce un stinger", "Switches — la estacion elige que linea de radio suena", "AudioSwitchContainer — el chatter, una rama por estacion", "SoundBank — locuciones precargadas desde un .bnk", "Tabla de dialogo — las mismas locuciones en dos lenguas", "OpenDouEventPlayer — la radio, NO espacial"])
+
+[node name="PauseMenu" parent="." instance=ExtResource("7_menu")]

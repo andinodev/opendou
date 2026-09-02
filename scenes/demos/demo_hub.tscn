@@ -1,10 +1,94 @@
 [gd_scene format=3 uid="uid://cb41mlav031qg"]
 
 [ext_resource type="Script" uid="uid://cvavudmmwkp0s" path="res://scenes/demos/demo_hub.gd" id="1_script"]
+[ext_resource type="Theme" path="res://scenes/shared/opendou_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://scenes/shared/demo_card.tscn" id="3_card"]
 
 [node name="DemoHub" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+theme = ExtResource("2_theme")
 script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.07, 0.08, 0.105, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 56
+theme_override_constants/margin_top = 44
+theme_override_constants/margin_right = 56
+theme_override_constants/margin_bottom = 36
+
+[node name="Column" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="Header" type="VBoxContainer" parent="Margin/Column"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Margin/Column/Header"]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "OpenDou"
+
+[node name="Subtitle" type="Label" parent="Margin/Column/Header"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Cinco escenas. Cada una demuestra una cosa; si no se oye, esta roto."
+
+[node name="Center" type="CenterContainer" parent="Margin/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Grid" type="GridContainer" parent="Margin/Column/Center"]
+layout_mode = 2
+theme_override_constants/h_separation = 22
+theme_override_constants/v_separation = 22
+columns = 3
+
+[node name="Card_Keel" parent="Margin/Column/Center/Grid" instance=ExtResource("3_card")]
+layout_mode = 2
+demo_title = "Bajo la quilla"
+thesis = "El mismo emisor suena de cuatro maneras distintas solo por geometria: directo, difractado, como cola de reverb, y opaco bajo el agua."
+scene_path = "res://scenes/demos/keel/keel_demo.tscn"
+
+[node name="Card_Monsoon" parent="Margin/Column/Center/Grid" instance=ExtResource("3_card")]
+layout_mode = 2
+demo_title = "El monzon"
+thesis = "200 emisores contra 32 voces fisicas. El voice stealing decide cada frame, y el trueno hunde el ambiente porque la ventana HDR subio."
+scene_path = "res://scenes/demos/monsoon/monsoon_demo.tscn"
+
+[node name="Card_Cabin" parent="Margin/Column/Center/Grid" instance=ExtResource("3_card")]
+layout_mode = 2
+demo_title = "La cabina"
+thesis = "Un solo RTPC conduce tres cosas a la vez -stems, filtro de la radio, reverb- y los estados cruzan en lugar de cortar."
+scene_path = "res://scenes/demos/cabin/cabin_demo.tscn"
+
+[node name="Card_Street" parent="Margin/Column/Center/Grid" instance=ExtResource("3_card")]
+layout_mode = 2
+demo_title = "Una casa canta"
+thesis = "Una casa vibra, dos duermen, y la calle es el puente: la musica sale por la ventana entreabierta, y dentro de las dormidas la calle llega amortiguada."
+scene_path = "res://scenes/demos/street/street_demo.tscn"
+
+[node name="Card_Bench" parent="Margin/Column/Center/Grid" instance=ExtResource("3_card")]
+layout_mode = 2
+demo_title = "Banco del rig"
+thesis = "Tres materiales, un jugador con oyente y un NPC sin el. Donde se valida la convencion de metadata antes de que las demos dependan de ella."
+scene_path = "res://scenes/rig_bench/rig_bench.tscn"
+
+[node name="Footer" type="Label" parent="Margin/Column"]
+layout_mode = 2
+theme_type_variation = &"SectionLabel"
+horizontal_alignment = 1
+text = "EN CUALQUIER ESCENA:  F1 muestra el cartel   ·   Escape abre el menu   ·   F9 el depurador acustico"

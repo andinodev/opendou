@@ -1,0 +1,38 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/shared/demo_card.gd" id="1_card"]
+[ext_resource type="Theme" path="res://scenes/shared/opendou_theme.tres" id="2_theme"]
+
+[node name="DemoCard" type="PanelContainer"]
+custom_minimum_size = Vector2(400, 210)
+theme = ExtResource("2_theme")
+theme_type_variation = &"CardPanel"
+script = ExtResource("1_card")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="Column" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Margin/Column"]
+layout_mode = 2
+theme_type_variation = &"HeadingLabel"
+text = "Titulo"
+
+[node name="Thesis" type="Label" parent="Margin/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_type_variation = &"MutedLabel"
+autowrap_mode = 3
+text = "Tesis"
+
+[node name="ButtonRow" type="HBoxContainer" parent="Margin/Column"]
+layout_mode = 2
+alignment = 2
+
+[node name="Open" type="Button" parent="Margin/Column/ButtonRow"]
+custom_minimum_size = Vector2(130, 38)
+layout_mode = 2
+text = "Abrir"

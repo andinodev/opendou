@@ -71,6 +71,13 @@ const COMPOSITION: Array[Dictionary] = [
 			"opendou_music_player.gd", "opendou_event_player.gd", "opendou_room_3d.gd",
 		],
 	},
+	# La interfaz tambien se compone: el hub construia sus botones en codigo y la guarda
+	# no lo veia porque solo miraba las demos.
+	{"scene": "res://scenes/demos/demo_hub.tscn", "min_nodes": 12, "requires": []},
+	{"scene": "res://scenes/shared/demo_card.tscn", "min_nodes": 6, "requires": []},
+	{"scene": "res://scenes/shared/demo_hud.tscn", "min_nodes": 12, "requires": []},
+	{"scene": "res://scenes/shared/pause_menu.tscn", "min_nodes": 14, "requires": []},
+	{"scene": "res://scenes/shared/bus_row.tscn", "min_nodes": 5, "requires": []},
 	{
 		"scene": "res://scenes/demos/street/street_demo.tscn",
 		"min_nodes": 200,
