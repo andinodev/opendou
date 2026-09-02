@@ -72,6 +72,7 @@ const TestAccessibilityClass = preload("res://tests/test_accessibility.gd")
 const TestAIHearingClass = preload("res://tests/test_ai_hearing.gd")
 const TestPhysicsImpactClass = preload("res://tests/test_physics_impact.gd")
 const TestDialogueEmitterClass = preload("res://tests/test_dialogue_emitter.gd")
+const TestMeshEmitterClass = preload("res://tests/test_mesh_emitter.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -429,6 +430,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestAIHearingClass.run_all_async(tree))
 	acc.absorb(await TestPhysicsImpactClass.run_all_async(tree))
 	acc.absorb(await TestDialogueEmitterClass.run_all_async(tree))
+	acc.absorb(await TestMeshEmitterClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

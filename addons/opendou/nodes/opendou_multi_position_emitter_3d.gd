@@ -29,6 +29,16 @@ enum RenderingMode {
 		_update_cached_aabb()
 
 @export var rendering_mode: RenderingMode = RenderingMode.CLOSEST_POINT_TRACKING
+
+enum SourceMode { POINTS, MESH }
+@export_group("Mesh Source")
+## MESH (Fase 11): el punto mas cercano SOBRE los triangulos del MeshInstance3D (BVH), no un
+## vertice muestreado. POINTS es el comportamiento de siempre.
+@export var source_mode: SourceMode = SourceMode.POINTS
+@export_node_path("MeshInstance3D") var mesh_path: NodePath = NodePath("")
+## El origen no se mueve si el nuevo punto esta mas cerca que esto (evita el temblor).
+@export_range(0.0, 5.0, 0.01) var mesh_hysteresis_m: float = 0.25
+@export_group("")
 @export_range(0.0, 1.0, 0.01) var smooth_position_lag: float = 0.1
 
 @export_group("Acoustic Phase & Envelopment")
@@ -44,6 +54,9 @@ enum RenderingMode {
 # ==============================================================================
 
 var _current_render_pos: Vector3 = Vector3.ZERO
+var _bvh = null
+var _mesh_point: Vector3 = Vector3.ZERO
+var _mesh_point_valid: bool = false
 var _active_vertex_idx: int = 0
 var _listener_node: Node3D = null
 var _is_inside_volume: bool = false
@@ -54,6 +67,8 @@ var _cached_aabb: AABB = AABB()
 # ==============================================================================
 
 func _ready() -> void:
+	if not Engine.is_editor_hint() and source_mode == SourceMode.MESH:
+		rebuild_mesh()
 	_update_cached_aabb()
 	if emission_points.is_empty():
 		emission_points = [Vector3.ZERO]
@@ -74,11 +89,14 @@ func _process(delta: float) -> void:
 		pass # AudioStreamPlayer3D handles proximity panning automatically
 
 	var target_render_pos: Vector3 = Vector3.ZERO
-	match rendering_mode:
-		RenderingMode.CLOSEST_POINT_TRACKING:
-			target_render_pos = get_closest_point_to(listener_pos)
-		RenderingMode.MULTI_POINT_BLENDED:
-			target_render_pos = calculate_blended_position(listener_pos)
+	if source_mode == SourceMode.MESH:
+		target_render_pos = get_mesh_closest_point(listener_pos)
+	else:
+		match rendering_mode:
+			RenderingMode.CLOSEST_POINT_TRACKING:
+				target_render_pos = get_closest_point_to(listener_pos)
+			RenderingMode.MULTI_POINT_BLENDED:
+				target_render_pos = calculate_blended_position(listener_pos)
 
 	# Smooth lag interpolation to prevent spatial clicks
 	if smooth_position_lag <= 0.001:
@@ -93,6 +111,35 @@ func _process(delta: float) -> void:
 # ==============================================================================
 # SPATIAL TRACKING & GEOMETRY
 # ==============================================================================
+
+## Reconstruye el BVH desde el MeshInstance3D, en espacio mundo con su transformacion actual.
+func rebuild_mesh() -> void:
+	_bvh = null
+	_mesh_point_valid = false
+	if mesh_path.is_empty():
+		return
+	var mi = get_node_or_null(mesh_path) as MeshInstance3D
+	if mi == null or mi.mesh == null:
+		return
+	var faces: PackedVector3Array = mi.mesh.get_faces()
+	var world := PackedVector3Array()
+	world.resize(faces.size())
+	var xf: Transform3D = mi.global_transform if mi.is_inside_tree() else mi.transform
+	for i in range(faces.size()):
+		world[i] = xf * faces[i]
+	_bvh = preload("res://addons/opendou/runtime/spatial/triangle_bvh.gd").new()
+	_bvh.build(world)
+
+## Punto de la malla mas cercano al objetivo, con histeresis.
+func get_mesh_closest_point(global_target: Vector3) -> Vector3:
+	if _bvh == null:
+		return TransformUtilsClass.world_position_of(self)
+	var q: Vector3 = _bvh.closest_point(global_target)
+	if _mesh_point_valid and q.distance_to(_mesh_point) < mesh_hysteresis_m:
+		return _mesh_point
+	_mesh_point = q
+	_mesh_point_valid = true
+	return q
 
 ## Returns the global coordinate of the emission vertex closest to the target position.
 func get_closest_point_to(global_target: Vector3) -> Vector3:
