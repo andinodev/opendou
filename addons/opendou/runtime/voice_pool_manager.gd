@@ -129,6 +129,15 @@ func devirtualize(instance: EventInstance) -> void:
 		return
 
 	var player: Node = instance.get_bound_player()
+	var position_node: Node3D = null
+	# Backend steam_audio: un emisor de nodo 3D NO es la voz fisica. Aporta posicion y
+	# atenuacion, y la voz sale por un reproductor binaural del pool. Asi el origen aparente
+	# del grafo de salas relocaliza tambien a las voces de nodo. El bus lo sigue decidiendo
+	# la definicion del evento, como en el backend godot.
+	if spatial_backend == &"steam_audio" and player is AudioStreamPlayer3D and not player.stream is Object or (spatial_backend == &"steam_audio" and player is AudioStreamPlayer3D and (player.stream == null or player.stream.get_class() != "OpenDouSpatialStream")):
+		position_node = player
+		instance.copy_attenuation_from_player(player)
+		player = null
 	var owned_by_node: bool = player != null
 
 	# Un reproductor de nodo solo puede hospedar UNA voz: es un unico
@@ -181,6 +190,11 @@ func devirtualize(instance: EventInstance) -> void:
 	var ch: PhysicalVoiceChannel = channels[free_ch_id]
 	ch.assigned_instance_ref = weakref(instance)
 	ch.bind(player, owned_by_node)
+	ch.position_node_ref = weakref(position_node) if position_node != null else null
+	if position_node != null and player is AudioStreamPlayer3D:
+		# El anfitrion hereda la mascara de areas del emisor: es lo que decide que sala lo
+		# envia a su reverb, y es autoria del nodo.
+		player.area_mask = position_node.area_mask
 
 	# La senal `finished` es la unica fuente fiable del fin de reproduccion. Va en
 	# ONE_SHOT para que no se acumulen conexiones al virtualizar y desvirtualizar

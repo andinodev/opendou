@@ -23,6 +23,11 @@ var assigned_instance_ref: WeakRef = null
 ## Verdadero si el reproductor pertenece a un nodo del usuario y no al pool.
 var owned_by_node: bool = false
 
+## Nodo 3D cuya posicion global es la de la voz cada frame, sin ser su reproductor. Es
+## como suenan los OpenDouEventPlayer3D en steam_audio: el nodo dice DONDE, el pool dice
+## COMO. Null en las voces anonimas y en el backend godot.
+var position_node_ref: WeakRef = null
+
 # Bus de mezcla destino en el AudioServer de Godot.
 var target_bus: StringName = &"Master"
 
@@ -49,6 +54,16 @@ func _init(p_channel_id: int = -1) -> void:
 func bind(player: Node, p_owned_by_node: bool) -> void:
 	_player = player
 	owned_by_node = p_owned_by_node
+	position_node_ref = null
+
+## Nodo que aporta la posicion de la voz, o null si no hay o dejo de ser valido.
+func get_position_node() -> Node3D:
+	if position_node_ref == null:
+		return null
+	var n = position_node_ref.get_ref()
+	if n != null and is_instance_valid(n) and n is Node3D and n.is_inside_tree():
+		return n
+	return null
 
 ## Reproductor vinculado, o null si no hay o dejo de ser valido.
 func get_player() -> Node:
@@ -81,7 +96,7 @@ func play_stream(stream: AudioStream, start_offset: float = 0.0, volume_db: floa
 	if not player.is_inside_tree():
 		return
 
-	if player is AudioStreamPlayer and player.stream != null and player.stream.get_class() == "OpenDouSpatialStream":
+	if _has_spatial_stream(player):
 		# Backend steam_audio: el stream del reproductor es el envoltorio nativo permanente.
 		player.stream.source = stream
 	else:
@@ -133,20 +148,17 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 	var gain_db: float = linear_to_db(maxf(current_fade_gain, 0.0001))
 	player.pitch_scale = clampf(pitch, 0.01, 4.0)
 
-	if player is AudioStreamPlayer3D:
-		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
-		player.attenuation_filter_cutoff_hz = clampf(minf(cutoff_hz, instance.attenuation_filter_cutoff_hz), 20.0, 20000.0)
-		if not owned_by_node:
-			player.global_position = instance.current_apparent_position
-	elif player is AudioStreamPlayer2D:
-		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
-		if not owned_by_node:
-			player.global_position = Vector2(instance.current_apparent_position.x, instance.current_apparent_position.y)
-	elif player is AudioStreamPlayer and player.stream != null and player.stream.get_class() == "OpenDouSpatialStream":
+	if _has_spatial_stream(player):
 		# Backend steam_audio: OpenDou calcula lo que Godot calculaba por su cuenta, con las
-		# mismas formulas (OpenDouDistanceModel), y lo empuja al stream nativo.
+		# mismas formulas (OpenDouDistanceModel), y lo empuja al stream nativo. El anfitrion
+		# es un AudioStreamPlayer3D neutralizado y su posicion solo sirve para que el Area3D
+		# de la sala lo envie a su bus de reverb: va en la posicion REAL del emisor, igual que
+		# el nodo en el backend godot. La direccion que se OYE sale del stream, con la
+		# posicion aparente (el portal cuando el grafo gobierna).
 		var s = player.stream
 		var p: Vector3 = instance.current_apparent_position
+		if player is Node3D and not owned_by_node:
+			player.global_position = instance.emitter_position
 		var distance: float = p.distance_to(listener_position)
 		var v_total: float = volume_db + instance.emitter_volume_db
 		player.volume_db = clampf(v_total + gain_db, -80.0, 24.0)
@@ -156,9 +168,33 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		s.shelf_db = DistanceModelClass.shelf_db(mult, instance.attenuation_filter_db)
 		s.shelf_cutoff_hz = instance.attenuation_filter_cutoff_hz
 		s.cutoff_hz = clampf(cutoff_hz, 20.0, 20000.0)
+	elif player is AudioStreamPlayer3D:
+		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
+		player.attenuation_filter_cutoff_hz = clampf(minf(cutoff_hz, instance.attenuation_filter_cutoff_hz), 20.0, 20000.0)
+		if not owned_by_node:
+			player.global_position = instance.current_apparent_position
+	elif player is AudioStreamPlayer2D:
+		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
+		if not owned_by_node:
+			player.global_position = Vector2(instance.current_apparent_position.x, instance.current_apparent_position.y)
 	else:
 		# Reproductor estereo plano sin stream nativo: suena centrado y sin atenuacion.
 		player.volume_db = clampf(volume_db + gain_db, -80.0, 24.0)
+
+## Corte de paso-bajo que de verdad llega al mezclador para esta voz, sea cual sea el
+## backend: el del stream nativo, o el filtro de atenuacion del reproductor 3D de Godot.
+func get_effective_cutoff_hz() -> float:
+	var player := get_player()
+	if player == null:
+		return 20000.0
+	if _has_spatial_stream(player):
+		return player.stream.cutoff_hz
+	if player is AudioStreamPlayer3D:
+		return player.attenuation_filter_cutoff_hz
+	return 20000.0
+
+static func _has_spatial_stream(player: Node) -> bool:
+	return (player is AudioStreamPlayer3D or player is AudioStreamPlayer) and player.stream != null and player.stream.get_class() == "OpenDouSpatialStream"
 
 ## Inicia un micro-fade de salida antes de liberar el canal.
 func stop_with_fade(fade_time_sec: float = 0.015) -> void:

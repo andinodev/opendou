@@ -318,6 +318,9 @@ static func run_pool_async(tree: SceneTree) -> OpenDouAssert:
 	ParityClass.ensure_bus()
 	var probe = OpenDouAudioProbeClass.new()
 	probe.attach_to_existing_bus(ParityClass.BUS, 2.0)
+	# El anfitrion del pool es un AudioStreamPlayer3D, y un reproductor 3D NO EMITE NADA sin
+	# un oyente en el viewport (medido: 0.0000 sin camara, 0.91 con ella).
+	var cam: Camera3D = ParityClass.make_listener_camera(tree)
 	var manager = ParityClass.make_manager(tree, "steam_audio")
 	await tree.process_frame
 	a.eq(manager.spatial_backend, &"steam_audio", "el manager quedo en steam_audio")
@@ -334,7 +337,8 @@ static func run_pool_async(tree: SceneTree) -> OpenDouAssert:
 	inst.set_position(Vector3(10, 0, 0))
 	var right := await _capture(tree, probe)
 	var ch = manager.voice_pool.get_channel(inst.assigned_channel_id)
-	a.ok(ch != null and ch.get_player() is AudioStreamPlayer and not (ch.get_player() is AudioStreamPlayer3D), "la voz salio por un AudioStreamPlayer estereo del pool")
+	a.ok(ch != null and ch.get_player() is AudioStreamPlayer3D and ch.get_player().stream.get_class() == "OpenDouSpatialStream", "la voz salio por un anfitrion del pool con el stream nativo")
+	a.approx(ch.get_player().panning_strength, 0.0, "y el anfitrion no panea")
 	a.gt(_ild_db(right.left, right.right), 3.0, "a la derecha del oyente: ILD positivo")
 	var lag_r: int = _itd_lag(right.left, right.right)
 	a.gt(float(lag_r), 10.0, "y el oido izquierdo va por detras")
@@ -354,6 +358,103 @@ static func run_pool_async(tree: SceneTree) -> OpenDouAssert:
 	manager.stop_all()
 	tree.root.remove_child(manager)
 	manager.free()
+	tree.root.remove_child(cam)
+	cam.free()
+	probe.teardown()
+	ProjectSettings.set_setting(BackendClass.SETTING, previous)
+	return a
+
+## Un OpenDouEventPlayer3D dentro de una sala, con dos portales en el muro: uno DETRAS del
+## oyente y otro DELANTE. Se abre uno u otro y la voz de nodo tiene que sonar desde el que
+## esta abierto (coloracion delante/detras distinta): es lo que el spike no podia hacer. Con
+## godot el nodo suena el mismo y no se mueve: la limitacion conocida, afirmada para que
+## quede escrita.
+static func run_node_emitter_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("binaural_node_emitter")
+	if not ClassDB.class_exists("OpenDouSpatialStream"):
+		print("[OpenDou] extension nativa AUSENTE: suite binaural_node_emitter omitida")
+		return a
+	var ParityClass = load("res://tests/test_backend_parity.gd")
+	var BackendClass = load("res://addons/opendou/runtime/spatial/spatial_backend.gd")
+	var AudioRoomClass = load("res://addons/opendou/runtime/spatial/audio_room.gd")
+	var AudioPortalClass = load("res://addons/opendou/runtime/spatial/audio_portal.gd")
+	var EmitterScript = load("res://addons/opendou/nodes/opendou_event_player_3d.gd")
+	var previous: String = str(ProjectSettings.get_setting(BackendClass.SETTING, "auto"))
+	ParityClass.ensure_bus()
+	var probe = OpenDouAudioProbeClass.new()
+	probe.attach_to_existing_bus(ParityClass.BUS, 2.0)
+	var mix_rate: float = AudioServer.get_mix_rate()
+	var cam: Camera3D = ParityClass.make_listener_camera(tree)
+	cam.global_position = Vector3(-6, 1.5, 0)
+
+	for backend in ["steam_audio", "godot"]:
+		var manager = ParityClass.make_manager(tree, backend)
+		await tree.process_frame
+		# Oyente en Fuera (x < 0) en (-6, 1.5, 0) mirando a -Z; emisor en Dentro (x > 0). El
+		# muro es x = 0: portal trasero en z = +6 (detras-derecha), delantero en z = -12.
+		var ac = manager.spatial_acoustics
+		var outside = AudioRoomClass.new()
+		outside.room_name = &"Fuera"
+		outside.set_bounds(AABB(Vector3(-40, -5, -40), Vector3(40, 10, 80)))
+		ac.register_room(outside)
+		var inside = AudioRoomClass.new()
+		inside.room_name = &"Dentro"
+		inside.set_bounds(AABB(Vector3(0, -5, -40), Vector3(40, 10, 80)))
+		ac.register_room(inside)
+		var back_portal = AudioPortalClass.new(&"Trasero", &"Fuera", &"Dentro", Vector3(0, 1.5, 6), 1.0)
+		var front_portal = AudioPortalClass.new(&"Delantero", &"Fuera", &"Dentro", Vector3(0, 1.5, -12), 0.0)
+		ac.register_portal(back_portal)
+		ac.register_portal(front_portal)
+		manager.set_listener_position(Vector3(-6, 1.5, 0))
+
+		var noise := _periodic_noise(int(mix_rate))
+		var def = AudioEventDefClass.new(&"NodeVoice", noise)
+		def.is_looping = true
+		def.stream_length = 1.0
+		def.target_bus = ParityClass.BUS
+		manager.register_event_definition(def)
+
+		var emitter = EmitterScript.new()
+		emitter.event_def = def
+		emitter.bus = String(ParityClass.BUS)
+		emitter.position = Vector3(6, 1.5, -3)
+		tree.root.add_child(emitter)
+		emitter.set_event_manager(manager)
+		emitter.play_event()
+		var inst = emitter.active_instance
+		a.ok(inst != null, "%s: el emisor de nodo tiene instancia" % backend)
+		if inst != null:
+			inst.apparent_smoothing_speed = 200.0
+		var cap_back := await _capture(tree, probe)
+		a.ok(inst.room_path_active, "%s: la voz esta gobernada por el grafo de salas" % backend)
+		a.approx(inst.target_apparent_position.z, 6.0, "%s: el origen aparente es el portal trasero" % backend, 0.05)
+		var ch = manager.voice_pool.get_channel(inst.assigned_channel_id)
+
+		# Se cierra el trasero y se abre el delantero: el digest cambia, la cache se invalida.
+		back_portal.open_factor = 0.0
+		front_portal.open_factor = 1.0
+		var cap_front := await _capture(tree, probe)
+		a.approx(inst.target_apparent_position.z, -12.0, "%s: ahora el origen aparente es el portal delantero" % backend, 0.05)
+		var ratio_back: float = _pinna_band_ratio(cap_back, mix_rate)
+		var ratio_front: float = _pinna_band_ratio(cap_front, mix_rate)
+		var pct: float = 100.0 * absf(ratio_front - ratio_back) / maxf(ratio_back, 1e-9)
+		print("[OpenDou] emisor de nodo (%s): ratio por el portal trasero %.3f | delantero %.3f (%.1f %%)" % [backend, ratio_back, ratio_front, pct])
+		if backend == "steam_audio":
+			a.ok(ch != null and ch.get_player() != emitter and ch.get_position_node() == emitter, "steam_audio: el nodo aporta posicion y la voz sale por el pool")
+			a.ok(not emitter.playing, "steam_audio: el AudioStreamPlayer3D del nodo no suena por si mismo")
+			a.gt(pct, 10.0, "steam_audio: la voz de nodo suena distinta desde el portal de detras que desde el de delante")
+		else:
+			a.ok(ch != null and ch.get_player() == emitter, "godot: el nodo sigue siendo la voz fisica")
+			a.approx(emitter.global_position.z, -3.0, "godot: el nodo no se mueve al portal (limitacion conocida)", 0.001)
+		emitter.stop_event()
+		tree.root.remove_child(emitter)
+		emitter.free()
+		await probe.await_silence(tree, 0.002, 30)
+		manager.stop_all()
+		tree.root.remove_child(manager)
+		manager.free()
+	tree.root.remove_child(cam)
+	cam.free()
 	probe.teardown()
 	ProjectSettings.set_setting(BackendClass.SETTING, previous)
 	return a

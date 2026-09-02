@@ -320,6 +320,10 @@ func _apply_voices() -> void:
 		var ch = voice_pool.get_channel(instance.assigned_channel_id)
 		if ch == null or not ch.is_busy:
 			continue
+		# Emisor de nodo en steam_audio: el nodo dice donde esta la voz cada frame.
+		var pos_node: Node3D = ch.get_position_node()
+		if pos_node != null:
+			instance.set_position(pos_node.global_position)
 		var volume_db: float = instance.calculated_volume_db
 		# calculate_voice_gain_db() devuelve el nivel de salida relativo a la
 		# ventana, siempre <= 0, asi que funciona como atenuacion. Su entrada es la

@@ -452,3 +452,17 @@ Por escrito, con su destino:
 4. **El estimador de ITD devuelve 0 con un canal mudo.** Con paneo duro a 90° la ganancia
    del canal lejano es exactamente cero y la correlación es cero en todo el barrido; el
    máximo caía en el primer retardo. Los altavoces se miden a 45°.
+5. **El anfitrión del stream nativo es un `AudioStreamPlayer3D` neutralizado, no un
+   `AudioStreamPlayer` plano (§3, §4).** El reverb por sala de la Fase 2 vive en el mecanismo
+   `Area3D.reverb_bus` de Godot, que solo alimentan los reproductores 3D, y GDExtension no
+   expone el mapa de volúmenes por bus con el que Godot lo hace (`AudioServer` publica solo la
+   velocidad de reproducción). Con un reproductor plano, la válvula de «Bajo la quilla» dejaba
+   de alimentar el reverb de su sala. El anfitrión lleva `panning_strength = 0`, atenuación
+   desactivada, filtro a 0 dB y `max_db = 24`: Godot no toca el estéreo binaural (medido: la
+   ILD y el ITD del pool se conservan), pero lo envía al bus de reverb del `Area3D` en el que
+   está el origen aparente. Consecuencia que hay que saber: un reproductor 3D **no emite nada
+   sin un oyente en el viewport** (0.0000 sin cámara, 0.91 con ella), así que los tests del
+   backend nativo ponen una `Camera3D`, igual que los de paridad.
+6. **El bus lo sigue decidiendo la definición del evento**, también para emisores de nodo en
+   `steam_audio`: es la precedencia que ya tenía el backend `godot`. Una primera versión
+   tomaba el bus del nodo y dejó mudas las pisadas del rig, cuyo test enruta por la definición.

@@ -663,17 +663,26 @@ static func run_keel_async(tree: SceneTree) -> OpenDouAssert:
 		"con el jugador en el pasillo la valvula la gobierna el grafo de salas")
 	a.approx(valve_instance.target_apparent_position.x, 6.5,
 		"y su origen aparente es la escotilla, no el fondo de la sala de maquinas", 0.01)
-	var cutoff_open: float = demo.valve_emitter.attenuation_filter_cutoff_hz
+	# El corte se lee donde de verdad llega al mezclador: en godot es el filtro del nodo, en
+	# steam_audio es el stream nativo del anfitrion del pool.
+	var valve_channel = manager.voice_pool.get_channel(valve_instance.assigned_channel_id)
+	var cutoff_open: float = valve_channel.get_effective_cutoff_hz()
 	# Observacion 42 (Fase 7B): sin oclusion, el corte que se escribe ya no es 20 kHz sino el
 	# filtro de distancia de Godot que el propio emisor declara (5 kHz por defecto). Antes
 	# OpenDou lo pisaba con 20 kHz y anulaba el oscurecimiento por distancia.
-	a.approx(cutoff_open, demo.valve_emitter.attenuation_filter_cutoff_hz, "con la escotilla abierta el corte es el filtro de distancia del emisor", 1.0)
-	a.gt(cutoff_open, 4900.0, "que vale 5 kHz por defecto, no 20 kHz")
+	if manager.is_steam_audio_backend():
+		# En steam_audio el LPF del stream es SOLO oclusion (la distancia va en un shelf
+		# aparte): con la escotilla abierta esta abierto del todo.
+		a.gt(cutoff_open, 15000.0, "steam_audio: con la escotilla abierta el LPF de oclusion esta abierto")
+	else:
+		a.approx(cutoff_open, demo.valve_emitter.attenuation_filter_cutoff_hz, "godot: con la escotilla abierta el corte es el filtro de distancia del emisor", 1.0)
+		a.gt(cutoff_open, 4900.0, "que vale 5 kHz por defecto, no 20 kHz")
 
 	demo.hatch_open_factor = 0.0
 	for i in range(60):
 		await tree.process_frame
-	var cutoff_closed: float = demo.valve_emitter.attenuation_filter_cutoff_hz
+	valve_channel = manager.voice_pool.get_channel(valve_instance.assigned_channel_id)
+	var cutoff_closed: float = valve_channel.get_effective_cutoff_hz()
 	a.lt(cutoff_closed, cutoff_open * 0.1,
 		"y cerrarla lo desploma: la tecla E llega hasta el mezclador")
 	a.lt(valve_instance.occlusion_attenuation_db, -1.0,

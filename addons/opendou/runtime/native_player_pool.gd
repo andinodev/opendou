@@ -15,7 +15,7 @@ enum PlayerKind {
 	NON_SPATIAL, ## AudioStreamPlayer: UI, musica, narracion
 	SPATIAL_2D,  ## AudioStreamPlayer2D
 	SPATIAL_3D,  ## AudioStreamPlayer3D (backend godot)
-	BINAURAL_3D, ## AudioStreamPlayer estereo con OpenDouSpatialStream (backend steam_audio)
+	BINAURAL_3D, ## AudioStreamPlayer3D NEUTRALIZADO con OpenDouSpatialStream (backend steam_audio)
 }
 
 ## Cupo maximo de reproductores por tipo.
@@ -95,6 +95,10 @@ func _instantiate(kind: int) -> Node:
 			# Doppler nativo desactivado por defecto: OpenDou controla el pitch y
 			# dejarlo activo produciria doble modulacion.
 			p3.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_DISABLED
+			# Sin mascara de areas el reproductor no encuentra ninguna sala y no alimenta
+			# su bus de reverb (medido en la Fase 7B: un reproductor creado por codigo puede
+			# nacer con area_mask = 0). La capa 1 es la de los OpenDouRoom3D por defecto.
+			p3.area_mask = 1
 			return p3
 		PlayerKind.SPATIAL_2D:
 			return AudioStreamPlayer2D.new()
@@ -102,7 +106,20 @@ func _instantiate(kind: int) -> Node:
 			if not ClassDB.class_exists("OpenDouSpatialStream"):
 				push_error("[OpenDou] se pidio un reproductor binaural sin la extension nativa cargada")
 				return null
-			var p := AudioStreamPlayer.new()
+			# El anfitrion es un AudioStreamPlayer3D con su espacializacion APAGADA: sin paneo,
+			# sin atenuacion, sin filtro. Godot no toca el estereo binaural que produce el
+			# stream, pero si lo ENVIA al bus de reverb del Area3D de la sala, que es un
+			# mecanismo exclusivo de los reproductores 3D y que GDExtension no expone de otra
+			# forma (AudioServer solo publica la velocidad de reproduccion). Un
+			# AudioStreamPlayer plano perdia el reverb por sala de la Fase 2.
+			var p := AudioStreamPlayer3D.new()
+			p.panning_strength = 0.0
+			p.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
+			p.attenuation_filter_db = 0.0
+			p.max_db = 24.0
+			p.max_distance = 0.0
+			p.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_DISABLED
+			p.area_mask = 1
 			# El stream nativo es PERMANENTE: por voz solo cambia su fuente. Crear uno por voz
 			# seria crear y destruir efectos de Steam Audio a cada disparo.
 			p.stream = ClassDB.instantiate("OpenDouSpatialStream")
@@ -111,15 +128,15 @@ func _instantiate(kind: int) -> Node:
 			return AudioStreamPlayer.new()
 
 static func _is_binaural(player: Node) -> bool:
-	return player is AudioStreamPlayer and player.stream != null and player.stream.get_class() == "OpenDouSpatialStream"
+	return (player is AudioStreamPlayer3D or player is AudioStreamPlayer) and player.stream != null and player.stream.get_class() == "OpenDouSpatialStream"
 
 func _kind_of(player: Node) -> int:
+	if _is_binaural(player):
+		return PlayerKind.BINAURAL_3D
 	if player is AudioStreamPlayer3D:
 		return PlayerKind.SPATIAL_3D
 	if player is AudioStreamPlayer2D:
 		return PlayerKind.SPATIAL_2D
-	if _is_binaural(player):
-		return PlayerKind.BINAURAL_3D
 	if player is AudioStreamPlayer:
 		return PlayerKind.NON_SPATIAL
 	return -1

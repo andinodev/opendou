@@ -47,7 +47,11 @@ static func run_all() -> OpenDouAssert:
 	# no se entera.
 	var b1 = pool.acquire(K.BINAURAL_3D)
 	if ClassDB.class_exists("OpenDouSpatialStream"):
-		a.ok(b1 is AudioStreamPlayer and b1.stream != null and b1.stream.get_class() == "OpenDouSpatialStream", "acquire binaural devuelve un AudioStreamPlayer con OpenDouSpatialStream")
+		a.ok(b1 is AudioStreamPlayer3D and b1.stream != null and b1.stream.get_class() == "OpenDouSpatialStream", "acquire binaural devuelve un AudioStreamPlayer3D anfitrion con OpenDouSpatialStream")
+		a.approx(b1.panning_strength, 0.0, "el anfitrion no panea: el estereo binaural pasa intacto")
+		a.eq(int(b1.attenuation_model), int(AudioStreamPlayer3D.ATTENUATION_DISABLED), "ni atenua: eso lo hace el stream")
+		a.approx(b1.attenuation_filter_db, 0.0, "ni filtra por distancia")
+		a.eq(pool.busy_count(K.SPATIAL_3D), 3, "y no cuenta como reproductor 3D normal")
 		var pool_stream = b1.stream
 		var fake := AudioStreamWAV.new()
 		b1.stream.source = fake
