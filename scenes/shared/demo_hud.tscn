@@ -1,0 +1,43 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/shared/demo_hud.gd" id="1_hud"]
+
+[node name="DemoHud" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="Panel" type="PanelContainer" parent="."]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 470.0
+offset_bottom = 460.0
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Column" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Panel/Margin/Column"]
+layout_mode = 2
+text = "OpenDou"
+
+[node name="Thesis" type="Label" parent="Panel/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Controls" type="Label" parent="Panel/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Exercises" type="Label" parent="Panel/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Hint" type="Label" parent="Panel/Margin/Column"]
+layout_mode = 2

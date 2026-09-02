@@ -1,6 +1,226 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://scenes/demos/keel/keel_demo.gd" id="1_keel"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_room_3d.gd" id="2_room"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_portal_3d.gd" id="3_portal"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_reflector_3d.gd" id="4_reflector"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_parameter_area_3d.gd" id="5_area"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_acoustic_geometry_bake.gd" id="6_bake"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd" id="7_debug"]
+[ext_resource type="Script" path="res://addons/opendou/nodes/opendou_event_player_3d.gd" id="8_emitter"]
+[ext_resource type="PackedScene" path="res://scenes/shared/player.tscn" id="9_player"]
+[ext_resource type="PackedScene" path="res://scenes/shared/npc.tscn" id="10_npc"]
+[ext_resource type="PackedScene" path="res://scenes/shared/demo_hud.tscn" id="11_hud"]
+
+[sub_resource type="BoxShape3D" id="Box_engine"]
+size = Vector3(12, 5, 12)
+
+[sub_resource type="BoxShape3D" id="Box_corridor"]
+size = Vector3(14, 4, 4)
+
+[sub_resource type="BoxShape3D" id="Box_bay"]
+size = Vector3(12, 4, 12)
+
+[sub_resource type="BoxShape3D" id="Box_floor_engine"]
+size = Vector3(12, 1, 12)
+
+[sub_resource type="BoxMesh" id="Mesh_floor_engine"]
+size = Vector3(12, 1, 12)
+
+[sub_resource type="BoxShape3D" id="Box_floor_corridor"]
+size = Vector3(14, 1, 4)
+
+[sub_resource type="BoxMesh" id="Mesh_floor_corridor"]
+size = Vector3(14, 1, 4)
+
+[sub_resource type="BoxShape3D" id="Box_floor_bay"]
+size = Vector3(12, 1, 12)
+
+[sub_resource type="BoxMesh" id="Mesh_floor_bay"]
+size = Vector3(12, 1, 12)
+
+[sub_resource type="BoxShape3D" id="Box_bulkhead_a"]
+size = Vector3(1, 5, 12)
+
+[sub_resource type="BoxMesh" id="Mesh_bulkhead_a"]
+size = Vector3(1, 5, 12)
+
+[sub_resource type="BoxShape3D" id="Box_bulkhead_b"]
+size = Vector3(1, 4, 12)
+
+[sub_resource type="BoxMesh" id="Mesh_bulkhead_b"]
+size = Vector3(1, 4, 12)
+
+[sub_resource type="StandardMaterial3D" id="Mat_metal"]
+albedo_color = Color(0.62, 0.66, 0.72, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_concrete"]
+albedo_color = Color(0.55, 0.55, 0.53, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_water"]
+albedo_color = Color(0.16, 0.35, 0.52, 1)
 
 [node name="KeelDemo" type="Node3D"]
 script = ExtResource("1_keel")
+
+[node name="EngineRoom" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+script = ExtResource("2_room")
+room_name = &"EngineRoom"
+material_preset = "Metal"
+floor_surface = &"Metal"
+reverb_send_amount = 0.8
+reverb_uniformity = 0.6
+
+[node name="Shape" type="CollisionShape3D" parent="EngineRoom"]
+shape = SubResource("Box_engine")
+
+[node name="Corridor" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 2, 0)
+script = ExtResource("2_room")
+room_name = &"Corridor"
+material_preset = "Concrete"
+floor_surface = &"Concrete"
+reverb_send_amount = 0.8
+reverb_uniformity = 0.6
+
+[node name="Shape" type="CollisionShape3D" parent="Corridor"]
+shape = SubResource("Box_corridor")
+
+[node name="FloodedBay" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 1, 0)
+script = ExtResource("2_room")
+room_name = &"FloodedBay"
+material_preset = "Water"
+floor_surface = &"Water"
+reverb_send_amount = 0.8
+reverb_uniformity = 0.6
+
+[node name="Shape" type="CollisionShape3D" parent="FloodedBay"]
+shape = SubResource("Box_bay")
+
+[node name="Floor_EngineRoom" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+metadata/surface_type = &"Metal"
+
+[node name="Collision" type="CollisionShape3D" parent="Floor_EngineRoom"]
+shape = SubResource("Box_floor_engine")
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor_EngineRoom"]
+mesh = SubResource("Mesh_floor_engine")
+material_override = SubResource("Mat_metal")
+
+[node name="Floor_Corridor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, -0.5, 0)
+metadata/surface_type = &"Concrete"
+
+[node name="Collision" type="CollisionShape3D" parent="Floor_Corridor"]
+shape = SubResource("Box_floor_corridor")
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor_Corridor"]
+mesh = SubResource("Mesh_floor_corridor")
+material_override = SubResource("Mat_concrete")
+
+[node name="Floor_FloodedBay" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, -1.5, 0)
+metadata/surface_type = &"Water"
+
+[node name="Collision" type="CollisionShape3D" parent="Floor_FloodedBay"]
+shape = SubResource("Box_floor_bay")
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor_FloodedBay"]
+mesh = SubResource("Mesh_floor_bay")
+material_override = SubResource("Mat_water")
+
+[node name="Bulkhead_0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 2, 0)
+metadata/surface_type = &"Metal"
+
+[node name="Collision" type="CollisionShape3D" parent="Bulkhead_0"]
+shape = SubResource("Box_bulkhead_a")
+
+[node name="Mesh" type="MeshInstance3D" parent="Bulkhead_0" groups=["AcousticObstacle"]]
+mesh = SubResource("Mesh_bulkhead_a")
+material_override = SubResource("Mat_metal")
+
+[node name="Bulkhead_1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 2, 0)
+metadata/surface_type = &"Metal"
+
+[node name="Collision" type="CollisionShape3D" parent="Bulkhead_1"]
+shape = SubResource("Box_bulkhead_b")
+
+[node name="Mesh" type="MeshInstance3D" parent="Bulkhead_1" groups=["AcousticObstacle"]]
+mesh = SubResource("Mesh_bulkhead_b")
+material_override = SubResource("Mat_metal")
+
+[node name="Hatch" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 1.5, 0)
+script = ExtResource("3_portal")
+portal_name = &"EngineHatch"
+room_a_name = &"EngineRoom"
+room_b_name = &"Corridor"
+portal_size = Vector2(1.4, 2)
+open_factor = 1.0
+
+[node name="Reflector_0" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 2, 0)
+script = ExtResource("4_reflector")
+reflector_name = &"Bulkhead_0"
+plane_normal = Vector3(-1, 0, 0)
+absorption = 0.05
+
+[node name="Reflector_1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 2, 0)
+script = ExtResource("4_reflector")
+reflector_name = &"Bulkhead_1"
+plane_normal = Vector3(1, 0, 0)
+absorption = 0.05
+
+[node name="WaterDepth" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 1, 0)
+script = ExtResource("5_area")
+parameter_name = &"WaterDepth"
+min_value = 0.0
+max_value = 1.0
+fade_in_time = 0.4
+fade_out_time = 0.9
+
+[node name="Shape" type="CollisionShape3D" parent="WaterDepth"]
+shape = SubResource("Box_bay")
+
+[node name="AcousticBake" type="Node3D" parent="."]
+script = ExtResource("6_bake")
+target_group = &"AcousticObstacle"
+auto_bake_on_ready = true
+
+[node name="AcousticDebugger" type="Node3D" parent="."]
+script = ExtResource("7_debug")
+enabled = false
+display_mode = 2
+
+[node name="BrokenValve" type="AudioStreamPlayer3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 1.2, -4)
+unit_size = 8.0
+area_mask = 1
+script = ExtResource("8_emitter")
+auto_play_event = false
+enable_early_reflections = true
+enable_dynamic_occlusion = true
+
+[node name="Player" parent="." instance=ExtResource("9_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 3)
+
+[node name="Crewman" parent="." instance=ExtResource("10_npc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1, 0)
+waypoints = Array[Vector3]([Vector3(2, 1, 0), Vector3(14, 1, 0), Vector3(2, 1, 0)])
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.906308, -0.383022, 0.176777, 0, 0.422618, 0.906308, -0.422618, -0.821394, 0.383022, 0, 10, 0)
+light_energy = 0.4
+
+[node name="Hud" parent="." instance=ExtResource("11_hud")]
+demo_title = "Bajo la quilla"
+thesis = "El MISMO emisor sin tocar suena de cuatro maneras distintas solo por geometria: directo por la escotilla, difractado al cerrarla, como cola de reverb desde el pasillo, y opaco desde la bahia inundada."
+controls = Array[String](["Flechas — caminar", "Raton — mirar", "E — abrir y cerrar la escotilla", "F9 — depurador acustico", "F1 — mostrar u ocultar este cartel"])
+exercises = Array[String](["OpenDouRoom3D — tres recintos con perfiles acusticos distintos", "OpenDouPortal3D — la escotilla, con difraccion segun su apertura", "OpenDouReflector3D — reflexiones en los dos mamparos", "OpenDouParameterArea3D — RTPC WaterDepth en la bahia", "OpenDouAcousticGeometryBake — geometria acustica de los mamparos", "OpenDouAcousticDebugger3D — visualizacion del campo sonoro", "OpenDouEventPlayer3D — la valvula, creada una vez y nunca tocada", "Pool de buses de reverb — un bus por escalon de RT60"])

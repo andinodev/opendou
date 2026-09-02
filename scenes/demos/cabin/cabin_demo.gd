@@ -13,18 +13,19 @@ extends Node3D
 ##
 ## Nota de vocabulario: el diseno hablaba de moqueta. Carpet no existe entre las ocho
 ## superficies, y usarlo daria pisadas sin acustica. La cabina tiene Wood y Metal.
+##
+## LA ESCENA lleva la sala con su colisionador, la tarima y la rejilla con su metadata,
+## el reproductor de musica, la radio, el operador, la luz y el cartel. Este script solo
+## hace lo dinamico: crear los buses, autorar los eventos -sus streams se sintetizan-,
+## arrancar musica y radio DESPUES de que existan los buses, y las teclas.
+## Ver .agents/rules/04_scene_composition.md.
 
-const SurfacePatchClass = preload("res://scenes/shared/surface_patch.gd")
 const FootstepEventsClass = preload("res://scenes/shared/footstep_events.gd")
-const PlayerControllerClass = preload("res://scenes/shared/player_controller.gd")
 const DemoAudioClass = preload("res://scenes/shared/demo_audio.gd")
 const RadioEventsClass = preload("res://scenes/demos/cabin/radio_events.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
 const AudioPlaybackContextClass = preload("res://addons/opendou/runtime/audio_playback_context.gd")
 const RTPCBindingClass = preload("res://addons/opendou/resources/rtpc_binding.gd")
-const OpenDouMusicPlayerClass = preload("res://addons/opendou/nodes/opendou_music_player.gd")
-const OpenDouEventPlayerClass = preload("res://addons/opendou/nodes/opendou_event_player.gd")
-const OpenDouRoom3DClass = preload("res://addons/opendou/nodes/opendou_room_3d.gd")
 const AudioDialogueTableClass = preload("res://addons/opendou/core/dialogue/audio_dialogue_table.gd")
 const AudioDialogueManagerClass = preload("res://addons/opendou/core/dialogue/audio_dialogue_manager.gd")
 
@@ -45,25 +46,20 @@ const TENSION: StringName = &"Tension"
 const SEND_CALM: float = 0.55
 const SEND_TENSE: float = 0.12
 
+@onready var music: OpenDouMusicPlayer = $Music
+@onready var radio_player: OpenDouEventPlayer = $Radio
+@onready var cabin_room: OpenDouRoom3D = $Cabin
+
 var event_manager = null
-var music: OpenDouMusicPlayer = null
-var radio_player: OpenDouEventPlayer = null
 var radio_def: AudioEventDef = null
-var cabin_room: OpenDouRoom3D = null
 var dialogue: AudioDialogueManager = null
 var bank_loaded: bool = false
 
-var _built: bool = false
 
 func _ready() -> void:
-	build()
-
-## Construye la escena. Idempotente.
-func build() -> void:
-	if _built:
-		return
-	_built = true
-
+	# Los buses PRIMERO: los hijos ya hicieron su _ready, y por eso la escena deja el
+	# reproductor de musica y la radio en auto_play = false. Si arrancaran solos,
+	# intentarian usar buses que todavia no existen y Godot daria error al cargar.
 	DemoAudioClass.ensure_bus(MUSIC_BUS)
 	DemoAudioClass.ensure_bus(RADIO_BUS)
 	# Los stems envian a Master y NO a Music, para que el bus de stingers -que es Music,
@@ -71,64 +67,24 @@ func build() -> void:
 	for bus in STEM_BUSES:
 		DemoAudioClass.ensure_bus(bus)
 
-	# El autoload, no una copia. Ver DemoAudio.manager().
 	event_manager = DemoAudioClass.manager(self)
 	if event_manager == null:
 		push_error("[CabinDemo] no hay autoload OpenDou: la escena no puede sonar")
 		return
 	FootstepEventsClass.register(event_manager)
 
-	_build_cabin()
-	_build_music()
+	music.load_suite(SUITE_NAME)
+	music.play()
+
 	_build_radio()
 	_build_bank_and_dialogue()
 	_build_triggers()
-	_build_operator()
 
 	# Estado inicial explicito: sin esto, el primer escalate() no tendria de donde
 	# cruzar y la transicion arrancaria desde un estado vacio.
 	event_manager.set_state(&"Situation", &"Routine", 0.0)
 	set_tension(0.0)
 
-	var light := DirectionalLight3D.new()
-	light.rotation_degrees = Vector3(-35.0, 20.0, 0.0)
-	light.light_energy = 0.2
-	light.light_color = Color(0.7, 0.75, 0.95)
-	add_child(light)
-
-## La cabina: una sala con su reverb, tarima de madera y una pasarela de rejilla.
-func _build_cabin() -> void:
-	cabin_room = OpenDouRoom3DClass.new()
-	cabin_room.name = "Cabin"
-	cabin_room.room_name = &"Cabin"
-	cabin_room.material_preset = "Glass"
-	cabin_room.floor_surface = &"Wood"
-	cabin_room.reverb_send_amount = SEND_CALM
-	cabin_room.position = Vector3(0.0, 1.8, 0.0)
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(10.0, 3.5, 10.0)
-	shape.shape = box
-	cabin_room.add_child(shape)
-	add_child(cabin_room)
-
-	# Tarima de madera en la cabina y rejilla metalica en la pasarela de salida.
-	add_child(SurfacePatchClass.make(&"Wood", Vector3(10.0, 0.4, 10.0), Vector3(0.0, -0.2, 0.0)))
-	add_child(SurfacePatchClass.make(&"Metal", Vector3(3.0, 0.4, 8.0), Vector3(0.0, -0.2, 9.0)))
-
-func _build_music() -> void:
-	music = OpenDouMusicPlayerClass.new()
-	music.name = "Music"
-	# Las propiedades van ANTES de add_child: _ready() carga la suite y arranca.
-	music.suite_name = SUITE_NAME
-	music.master_bus = MUSIC_BUS
-	music.auto_play = true
-	music.enable_ducking = false
-	music.combat_intensity = 0.0
-	add_child(music)
-
-## La radio: un OpenDouEventPlayer NO espacial, porque suena en el altavoz de la mesa,
-## no en un punto del mundo.
 func _build_radio() -> void:
 	radio_def = RadioEventsClass.register(event_manager, RADIO_BUS)
 
@@ -144,16 +100,12 @@ func _build_radio() -> void:
 	binding.bake_lut()
 	radio_def.add_rtpc_binding(binding)
 
-	radio_player = OpenDouEventPlayerClass.new()
-	radio_player.name = "Radio"
-	radio_player.event_def = radio_def
-	radio_player.auto_play_event = true
-	# El enrutado real lo hace def.target_bus: PhysicalVoiceChannel.play_stream() asigna
+	# El nodo ya esta en la escena; aqui solo recibe su definicion y arranca. El
+	# enrutado real lo hace def.target_bus: PhysicalVoiceChannel.play_stream() asigna
 	# player.bus desde ahi cada vez que la instancia se desvirtualiza, y eso ocurre
-	# DESPUES de que play_event() aplique bus_category. Se deja en Master para que las
-	# dos fuentes digan lo mismo.
-	radio_player.bus_category = "Master"
-	add_child(radio_player)
+	# DESPUES de que play_event() aplique bus_category.
+	radio_player.event_def = radio_def
+	radio_player.play_event()
 
 ## Escribe y carga el banco de locuciones, y monta la tabla de dialogo sobre el.
 ##
@@ -187,13 +139,6 @@ func _build_triggers() -> void:
 			music.trigger_stinger(&"Fanfare")
 	)
 
-func _build_operator() -> void:
-	var player = PlayerControllerClass.new()
-	player.name = "Operator"
-	player.position = Vector3(0.0, 1.0, 0.0)
-	add_child(player)
-
-## Mueve la tension. UN valor, TRES efectos.
 func set_tension(value: float) -> void:
 	var t := clampf(value, 0.0, 1.0)
 	if event_manager != null:

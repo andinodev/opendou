@@ -6,8 +6,6 @@ extends CharacterBody3D
 ## Es andamio, no un sistema de personaje: caminar y mirar. Ni salto, ni escalada, ni
 ## maquina de estados de combate, que no es trabajo de audio.
 
-const CharacterAudioRigClass = preload("res://scenes/shared/character_audio_rig.gd")
-
 @export var move_speed: float = 4.0
 @export var look_sensitivity: float = 0.0025
 
@@ -17,25 +15,14 @@ var camera: Camera3D = null
 var rig: CharacterAudioRig = null
 
 func _ready() -> void:
-	var shape := CollisionShape3D.new()
-	var capsule := CapsuleShape3D.new()
-	capsule.height = 1.8
-	capsule.radius = 0.35
-	shape.shape = capsule
-	add_child(shape)
+	# Los nodos vienen de la ESCENA. Ver .agents/rules/04_scene_composition.md.
+	camera = $Camera
+	listener = $Listener
+	rig = $CharacterAudioRig
 
-	camera = Camera3D.new()
-	camera.position = Vector3(0.0, 1.6, 0.0)
-	add_child(camera)
-	camera.make_current()
-
-	listener = AudioListener3D.new()
-	listener.position = Vector3(0.0, 1.6, 0.0)
-	add_child(listener)
+	# make_current() se llama aqui y no se marca en la escena porque AudioListener3D no
+	# expone `current` como propiedad guardable: solo tiene el metodo.
 	listener.make_current()
-
-	rig = CharacterAudioRigClass.new()
-	add_child(rig)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and camera != null:

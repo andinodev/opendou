@@ -268,6 +268,10 @@ static func run_suite() -> Dictionary:
 	total_tests += guards_res.assertions_run
 	all_failures.append_array(guards_res.failures)
 
+	var composition_res = TestSceneGuardsClass.run_composition()
+	total_tests += composition_res.assertions_run
+	all_failures.append_array(composition_res.failures)
+
 	var room_path_res = TestRoomPathDispatcherClass.run_all()
 	total_tests += room_path_res.assertions_run
 	all_failures.append_array(room_path_res.failures)

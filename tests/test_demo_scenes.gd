@@ -49,9 +49,10 @@ static func run_hub() -> OpenDouAssert:
 static func run_cabin_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("cabin_demo")
 
-	var CabinClass = load("res://scenes/demos/cabin/cabin_demo.gd")
 	var RadioEventsClass = load("res://scenes/demos/cabin/radio_events.gd")
-	var demo = CabinClass.new()
+	var packed: PackedScene = load("res://scenes/demos/cabin/cabin_demo.tscn")
+	a.ok(packed != null, "la escena de la cabina carga")
+	var demo = packed.instantiate()
 	tree.root.add_child(demo)
 	await tree.process_frame
 	await tree.physics_frame
@@ -194,10 +195,9 @@ static func run_cabin_async(tree: SceneTree) -> OpenDouAssert:
 	a.ok("Metal" in declared, "y rejilla metalica")
 	a.ok(not ("Carpet" in declared), "no hay 'Carpet': no esta en el vocabulario")
 
-	# build() idempotente.
-	var before: int = demo.get_child_count()
-	demo.build()
-	a.eq(demo.get_child_count(), before, "build() es idempotente")
+	# La escena declara sus nodos en el .tscn, no en un build().
+	a.gt(float(packed.get_state().get_node_count()), 10.0,
+		"la escena declara sus nodos, no los fabrica un build()")
 
 	_release_current(demo)
 	tree.root.remove_child(demo)
@@ -217,8 +217,9 @@ static func run_monsoon_async(tree: SceneTree) -> OpenDouAssert:
 	a.ok(autoload_manager != null, "el autoload OpenDou existe")
 	var budget_before: int = autoload_manager.voice_pool.max_physical_voices
 
-	var MonsoonClass = load("res://scenes/demos/monsoon/monsoon_demo.gd")
-	var demo = MonsoonClass.new()
+	var packed: PackedScene = load("res://scenes/demos/monsoon/monsoon_demo.tscn")
+	a.ok(packed != null, "la escena del monzon carga")
+	var demo = packed.instantiate()
 	# Menos emisores que en la escena real: 200 instancias por suite multiplican el
 	# tiempo del runner sin cambiar lo que se afirma. El presupuesto es el mismo.
 	demo.emitter_count = 120
@@ -335,10 +336,9 @@ static func run_monsoon_async(tree: SceneTree) -> OpenDouAssert:
 			governed_count += 1
 	a.eq(governed_count, 0, "y ninguna de sus voces queda gobernada por el grafo")
 
-	# build() idempotente.
-	var before: int = demo.get_child_count()
-	demo.build()
-	a.eq(demo.get_child_count(), before, "build() es idempotente")
+	# La escena declara sus nodos en el .tscn, no en un build().
+	a.gt(float(packed.get_state().get_node_count()), 10.0,
+		"la escena declara sus nodos, no los fabrica un build()")
 
 	_release_current(demo)
 	tree.root.remove_child(demo)
@@ -363,8 +363,12 @@ static func run_keel_async(tree: SceneTree) -> OpenDouAssert:
 	var manager = tree.root.get_node_or_null("OpenDou")
 	a.ok(manager != null, "el autoload OpenDou existe")
 
-	var KeelClass = load("res://scenes/demos/keel/keel_demo.gd")
-	var demo = KeelClass.new()
+	# Se instancia la ESCENA: las demos son arboles de nodos, y crear el script con
+	# .new() dejaria todos sus @onready en null. Ver
+	# .agents/rules/04_scene_composition.md.
+	var packed: PackedScene = load("res://scenes/demos/keel/keel_demo.tscn")
+	a.ok(packed != null, "la escena de la quilla carga")
+	var demo = packed.instantiate()
 	tree.root.add_child(demo)
 	await tree.process_frame
 	await tree.physics_frame
@@ -464,10 +468,9 @@ static func run_keel_async(tree: SceneTree) -> OpenDouAssert:
 	a.ok(demo.toggle_debugger(), "el depurador se activa")
 	a.ok(not demo.toggle_debugger(), "y se desactiva")
 
-	# build() idempotente.
-	var before: int = demo.get_child_count()
-	demo.build()
-	a.eq(demo.get_child_count(), before, "build() es idempotente")
+	# La escena declara sus nodos en el .tscn, no en un build().
+	a.gt(float(packed.get_state().get_node_count()), 10.0,
+		"la escena declara sus nodos, no los fabrica un build()")
 
 	_release_current(demo)
 	tree.root.remove_child(demo)

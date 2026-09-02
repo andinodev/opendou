@@ -10,8 +10,6 @@ extends Node3D
 ## No sabe si lo mueve un humano o una IA. Los controladores le notifican distancia
 ## recorrida y el decide cuando hay un paso.
 
-const OpenDouEventPlayer3DClass = preload("res://addons/opendou/nodes/opendou_event_player_3d.gd")
-const OpenDouAnimationSyncClass = preload("res://addons/opendou/nodes/opendou_animation_sync.gd")
 const FootstepEventsClass = preload("res://scenes/shared/footstep_events.gd")
 
 ## Metros recorridos entre pisada y pisada.
@@ -26,23 +24,17 @@ var animation_sync: OpenDouAnimationSync = null
 var _distance_accumulator: float = 0.0
 
 func _ready() -> void:
-	name = "CharacterAudioRig"
+	# Los nodos vienen de la ESCENA, no se fabrican aqui. Ver
+	# .agents/rules/04_scene_composition.md.
+	rig_emitter = $RigEmitter
+	animation_sync = $FootstepSync
 
-	# El emisor existe para que las pisadas tengan una posicion 3D propia y hereden
-	# las propiedades nativas del inspector: unit_size, atenuacion, area_mask.
-	rig_emitter = OpenDouEventPlayer3DClass.new()
-	rig_emitter.name = "RigEmitter"
-	rig_emitter.event_name = FootstepEventsClass.EVENT_NAME
-	rig_emitter.unit_size = 6.0
-	rig_emitter.area_mask = 1
-	add_child(rig_emitter)
-
-	animation_sync = OpenDouAnimationSyncClass.new()
-	animation_sync.name = "FootstepSync"
-	animation_sync.default_footstep_event = FootstepEventsClass.EVENT_NAME
-	animation_sync.auto_detect_surface = true
-	add_child(animation_sync)
-	animation_sync.bind_target_emitter(rig_emitter)
+	# El nombre del evento vive en FootstepEvents y se escribe tambien en la escena, que
+	# es donde un disenador lo veria. Si alguna vez divergen, este aviso lo dice en lugar
+	# de dejar pisadas mudas sin explicacion.
+	if rig_emitter.event_name != FootstepEventsClass.EVENT_NAME:
+		push_warning("[CharacterAudioRig] la escena dice event_name='%s' y FootstepEvents dice '%s'." % [
+			str(rig_emitter.event_name), str(FootstepEventsClass.EVENT_NAME)])
 
 ## Acumula distancia y dispara un paso cada stride_meters.
 ##

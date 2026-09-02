@@ -35,6 +35,86 @@ const EXPECTED_UNCOVERED: String = "opendou_event_player_2d.gd"
 ## Extensiones de audio que no puede referenciar ningun archivo de scenes/.
 const AUDIO_EXTENSIONS: Array[String] = [".wav", ".ogg", ".mp3"]
 
+## Lo que cada escena tiene que DECLARAR en su .tscn.
+##
+## Se lee el estado empaquetado, no el arbol instanciado, y es deliberado: lo que se
+## quiere afirmar es que los nodos estan EN LA ESCENA, no que un _ready() los fabrico.
+## Ver .agents/rules/04_scene_composition.md.
+const COMPOSITION: Array[Dictionary] = [
+	{
+		"scene": "res://scenes/rig_bench/rig_bench.tscn",
+		"min_nodes": 8,
+		"requires": [],
+	},
+	{
+		"scene": "res://scenes/demos/keel/keel_demo.tscn",
+		"min_nodes": 20,
+		"requires": [
+			"opendou_room_3d.gd", "opendou_portal_3d.gd", "opendou_reflector_3d.gd",
+			"opendou_parameter_area_3d.gd", "opendou_acoustic_geometry_bake.gd",
+			"opendou_acoustic_debugger_3d.gd", "opendou_event_player_3d.gd",
+		],
+	},
+	{
+		"scene": "res://scenes/demos/monsoon/monsoon_demo.tscn",
+		"min_nodes": 10,
+		"requires": [
+			"opendou_multi_position_emitter_3d.gd", "opendou_spline_emitter_3d.gd",
+			"opendou_granular_emitter_3d.gd", "opendou_audible_monitor.gd",
+		],
+	},
+	{
+		"scene": "res://scenes/demos/cabin/cabin_demo.tscn",
+		"min_nodes": 10,
+		"requires": [
+			"opendou_music_player.gd", "opendou_event_player.gd", "opendou_room_3d.gd",
+		],
+	},
+]
+
+## Criterio de composicion: los nodos van en la escena, no en un build().
+static func run_composition() -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("scene_composition")
+
+	for entry in COMPOSITION:
+		var path: String = str(entry["scene"])
+		var packed: PackedScene = load(path)
+		a.ok(packed != null, "la escena '%s' carga" % path)
+		if packed == null:
+			continue
+		var state: SceneState = packed.get_state()
+
+		# Una escena con un solo nodo es un script disfrazado de escena.
+		a.gt(float(state.get_node_count()), 1.0,
+			"'%s' declara mas de un nodo: una raiz sola es un build() disfrazado" % path)
+		a.gt(float(state.get_node_count()), float(entry["min_nodes"]) - 0.5,
+			"'%s' declara al menos %d nodos, y declara %d" % [path, int(entry["min_nodes"]), state.get_node_count()])
+
+		var declared: Dictionary = _declared_opendou_scripts(state)
+		for required in entry["requires"]:
+			a.ok(declared.has(required),
+				"'%s' declara %s en la escena, no lo fabrica en codigo" % [path, required])
+
+	return a
+
+## Nombres de archivo de los scripts de addons/opendou/nodes/ declarados en la escena.
+##
+## SceneState.get_node_type() devuelve el tipo BASE -Node3D, Area3D-, no el class_name,
+## asi que hay que mirar la propiedad `script` de cada nodo.
+static func _declared_opendou_scripts(state: SceneState) -> Dictionary:
+	var out: Dictionary = {}
+	for i in range(state.get_node_count()):
+		for p in range(state.get_node_property_count(i)):
+			if state.get_node_property_name(i, p) != &"script":
+				continue
+			var value = state.get_node_property_value(i, p)
+			if value == null:
+				continue
+			var script_path: String = str(value.resource_path)
+			if script_path.begins_with("res://addons/opendou/nodes/"):
+				out[script_path.get_file()] = true
+	return out
+
 ## Guardas estaticas de los criterios 2 y 3.
 static func run_all() -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("scene_guards")
@@ -47,13 +127,25 @@ static func run_all() -> OpenDouAssert:
 	var play_offenders: Array[String] = []
 	for path in scripts:
 		var text: String = _read(path)
+		# Los nodos de OpenDou tienen su propio play(): el MusicPlayer arranca su suite,
+		# el granular sus granos. Llamarlos NO es saltarse el plugin, es usarlo. Se
+		# permiten leyendo el TIPO DECLARADO de cada variable del archivo, que es una
+		# comprobacion real y no una excepcion escrita a dedo.
+		var opendou_vars: Dictionary = _opendou_typed_vars(text)
 		for line in text.split("\n"):
 			var l: String = line.strip_edges()
 			if l.begins_with("#"):
 				continue
 			# ".play(" NO coincide con ".play_event(" ni con ".play_granular(", que son
 			# los caminos permitidos. autoplay y auto_play_event son propiedades.
-			if l.contains(".play("):
+			if not l.contains(".play("):
+				continue
+			var allowed: bool = false
+			for var_name in opendou_vars:
+				if l.contains("%s.play(" % var_name):
+					allowed = true
+					break
+			if not allowed:
 				play_offenders.append("%s: %s" % [path, l])
 	a.eq(play_offenders.size(), 0,
 		"ningun script de scenes/ llama a .play() nativo, sobran: %s" % str(play_offenders))
@@ -72,6 +164,17 @@ static func run_all() -> OpenDouAssert:
 		"ningun archivo de scenes/ referencia audio pregrabado, sobran: %s" % str(asset_offenders))
 
 	return a
+
+## Nombres de variables declaradas con un tipo de nodo de OpenDou en este archivo.
+##
+## Reconoce `var x: OpenDouAlgo`, `@onready var x: OpenDouAlgo` y `var x := OpenDouAlgo`.
+static func _opendou_typed_vars(text: String) -> Dictionary:
+	var out: Dictionary = {}
+	var pattern := RegEx.new()
+	pattern.compile("var\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*:=?\\s*:?\\s*(OpenDou[A-Za-z0-9_]*)")
+	for m in pattern.search_all(text):
+		out[m.get_string(1)] = m.get_string(2)
+	return out
 
 ## Criterios 10 y 4: recorre el arbol REAL de las cuatro escenas.
 static func run_coverage_async(tree: SceneTree) -> OpenDouAssert:

@@ -211,3 +211,6 @@ Para directivas detalladas, consulta:
 * [Reglas de Estilo y Código](.agents/rules/01_code_style.md)
 * [Reglas de Arquitectura y Patrones](.agents/rules/02_architecture.md)
 * [Flujo de Trabajo y Commits](.agents/rules/03_workflow.md)
+* [Composición de Escenas](.agents/rules/04_scene_composition.md) — **todo lo que una
+  escena necesita se compone como nodos dentro de la escena**; el código solo para lo
+  dinámico

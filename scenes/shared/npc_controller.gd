@@ -6,8 +6,6 @@ extends CharacterBody3D
 ## Sus pisadas son emisores como cualquier otro, asi que en las demos presionan el
 ## pool de voces y se oyen a traves de portales y oclusion.
 
-const CharacterAudioRigClass = preload("res://scenes/shared/character_audio_rig.gd")
-
 @export var waypoints: Array[Vector3] = []
 @export var move_speed: float = 2.2
 @export var arrive_radius: float = 0.4
@@ -17,15 +15,8 @@ var rig: CharacterAudioRig = null
 var _target_index: int = 0
 
 func _ready() -> void:
-	var shape := CollisionShape3D.new()
-	var capsule := CapsuleShape3D.new()
-	capsule.height = 1.8
-	capsule.radius = 0.35
-	shape.shape = capsule
-	add_child(shape)
-
-	rig = CharacterAudioRigClass.new()
-	add_child(rig)
+	# El rig viene de la ESCENA. Ver .agents/rules/04_scene_composition.md.
+	rig = $CharacterAudioRig
 
 func _physics_process(delta: float) -> void:
 	if waypoints.is_empty():

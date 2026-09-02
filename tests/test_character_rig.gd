@@ -9,8 +9,6 @@ const AudioEventManagerClass = preload("res://addons/opendou/runtime/audio_event
 const SurfacePatchClass = preload("res://scenes/shared/surface_patch.gd")
 const FootstepEventsClass = preload("res://scenes/shared/footstep_events.gd")
 const CharacterAudioRigClass = preload("res://scenes/shared/character_audio_rig.gd")
-const PlayerControllerClass = preload("res://scenes/shared/player_controller.gd")
-const NpcControllerClass = preload("res://scenes/shared/npc_controller.gd")
 
 static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("character_rig")
@@ -34,12 +32,19 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 
 	# El jugador lleva oyente; el NPC no. Con dos oyentes activos el resolutor de la
 	# Fase 1 tendria dos candidatos y el resultado dependeria del orden del arbol.
-	var player = PlayerControllerClass.new()
+	# Se instancian las ESCENAS: el jugador y el NPC son arboles de nodos, y crear sus
+	# scripts con .new() dejaria camara, oyente y rig en null.
+	# Ver .agents/rules/04_scene_composition.md.
+	var player_packed: PackedScene = load("res://scenes/shared/player.tscn")
+	a.ok(player_packed != null, "la escena del jugador carga")
+	var player = player_packed.instantiate()
 	tree.root.add_child(player)
 	await tree.process_frame
 	a.ok(player.listener != null, "el jugador expone un AudioListener3D")
 
-	var npc = NpcControllerClass.new()
+	var npc_packed: PackedScene = load("res://scenes/shared/npc.tscn")
+	a.ok(npc_packed != null, "la escena del NPC carga")
+	var npc = npc_packed.instantiate()
 	tree.root.add_child(npc)
 	await tree.process_frame
 	var npc_has_listener := false
@@ -122,9 +127,14 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 static func run_bench_async(tree: SceneTree) -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("rig_bench")
 
-	var BenchClass = load("res://scenes/rig_bench/rig_bench.gd")
-	a.ok(BenchClass != null, "el script del banco existe")
-	var bench = BenchClass.new()
+	# Se instancia la ESCENA, no el script: el banco es un arbol de nodos y lo que hay
+	# que comprobar es que ese arbol trae lo que dice. Ver
+	# .agents/rules/04_scene_composition.md.
+	var packed: PackedScene = load("res://scenes/rig_bench/rig_bench.tscn")
+	a.ok(packed != null, "la escena del banco carga")
+	a.gt(float(packed.get_state().get_node_count()), 10.0,
+		"y declara sus nodos en la escena, no en un build()")
+	var bench = packed.instantiate()
 	tree.root.add_child(bench)
 	await tree.process_frame
 	await tree.physics_frame
@@ -155,10 +165,21 @@ static func run_bench_async(tree: SceneTree) -> OpenDouAssert:
 	if player != null:
 		a.ok(player.listener != null, "el jugador del banco lleva oyente")
 
-	# build() es idempotente: llamarlo dos veces no duplica los parches.
-	var children_before: int = bench.get_child_count()
-	bench.build()
-	a.eq(bench.get_child_count(), children_before, "build() es idempotente")
+	# Las superficies salen de la METADATA de la escena, no de una constante del script:
+	# si alguien cambia un parche en el editor, patch_surfaces lo refleja.
+	var from_scene: Array[StringName] = []
+	for child in bench.get_children():
+		if child is StaticBody3D and child.has_meta("surface_type"):
+			from_scene.append(StringName(child.get_meta("surface_type")))
+	a.eq(bench.patch_surfaces, from_scene,
+		"patch_surfaces se lee de la escena y no de una constante del script")
+
+	# Y el cartel viene instanciado con su tesis puesta desde la escena.
+	var hud = bench.get_node_or_null("Hud")
+	a.ok(hud != null, "el banco trae su cartel")
+	if hud != null:
+		a.ok(not str(hud.thesis).is_empty(), "y el cartel declara la tesis del banco")
+		a.gt(float(hud.exercises.size()), 0.0, "y lo que la escena ejercita")
 
 	# El autoload sobrevive a la escena: si el banco dejara instancias, la suite
 	# siguiente mediria las pisadas de un banco que ya no existe.

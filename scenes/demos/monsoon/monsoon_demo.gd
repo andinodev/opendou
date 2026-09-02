@@ -11,20 +11,19 @@ extends Node3D
 ## existe para poner esa cifra bajo presion.
 ##
 ## El ambiente va a un bus propio y EL TRUENO VA A MASTER. Es la leccion de la Fase 3:
-## si el trueno sonara en el bus medido, su propia energia tapria el ducking que se
+## si el trueno sonara en el bus medido, su propia energia taparia el ducking que se
 ## quiere demostrar.
+##
+## LA ESCENA lleva las tres terrazas con su metadata, el canal, la linea de arboles con
+## su curva, el enjambre, el jugador, la telemetria, el monitor, la luz y el cartel. Este
+## script solo hace lo dinamico: autorar los eventos -sus streams se sintetizan y no
+## pueden vivir en un .tscn-, postear el campo de emisores, y las teclas.
+## Ver .agents/rules/04_scene_composition.md.
 
-const SurfacePatchClass = preload("res://scenes/shared/surface_patch.gd")
 const FootstepEventsClass = preload("res://scenes/shared/footstep_events.gd")
-const PlayerControllerClass = preload("res://scenes/shared/player_controller.gd")
 const DemoAudioClass = preload("res://scenes/shared/demo_audio.gd")
-const MonsoonTelemetryClass = preload("res://scenes/demos/monsoon/monsoon_telemetry.gd")
 const AudioSynthesizerClass = preload("res://addons/opendou/runtime/audio_synthesizer.gd")
 const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
-const OpenDouMultiPositionEmitter3DClass = preload("res://addons/opendou/nodes/opendou_multi_position_emitter_3d.gd")
-const OpenDouSplineEmitter3DClass = preload("res://addons/opendou/nodes/opendou_spline_emitter_3d.gd")
-const OpenDouGranularEmitter3DClass = preload("res://addons/opendou/nodes/opendou_granular_emitter_3d.gd")
-const OpenDouAudibleMonitorClass = preload("res://addons/opendou/nodes/opendou_audible_monitor.gd")
 
 ## Bus del campo de emisores posteados: lluvia, viento, ranas y goteo.
 const AMBIENCE_BUS: StringName = &"MonsoonAmbience"
@@ -38,11 +37,10 @@ const AMBIENCE_BUS: StringName = &"MonsoonAmbience"
 ## motor a quien lea la escena.
 const NATURE_BUS: StringName = &"MonsoonNature"
 
-## Las tres superficies sobre las que cae la lluvia. Las tres del vocabulario.
-const TERRACE_SURFACES: Array[StringName] = [&"Water", &"Stone", &"Foliage"]
-
-const TERRACE_SIZE: Vector3 = Vector3(40.0, 1.0, 24.0)
+## Reparto del campo de emisores. Tiene que coincidir con las terrazas de la escena.
 const TERRACE_STEP: Vector3 = Vector3(0.0, -2.0, 26.0)
+const TERRACE_SIZE: Vector3 = Vector3(40.0, 1.0, 24.0)
+const TERRACE_COUNT: int = 3
 
 ## Cuantos emisores de ambiente se postean.
 @export var emitter_count: int = 200
@@ -55,30 +53,24 @@ const TERRACE_STEP: Vector3 = Vector3(0.0, -2.0, 26.0)
 ## logico cuesta decenas de miles de frames.
 @export var thunder_seconds: float = 4.0
 
+@onready var telemetry: MonsoonTelemetry = $Telemetry
+
 var event_manager = null
-var telemetry: MonsoonTelemetry = null
 var ambience_bus: StringName = AMBIENCE_BUS
 var nature_bus: StringName = NATURE_BUS
 
 var _thunder_def: AudioEventDef = null
 var _ambience_defs: Array[AudioEventDef] = []
 var _previous_voice_budget: int = -1
-var _built: bool = false
 var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
-	build()
-
-## Construye la escena. Idempotente.
-func build() -> void:
-	if _built:
-		return
-	_built = true
 	# Semilla fija: la escena tiene que sonar y medirse igual en cada arranque.
 	_rng.seed = 20260901
 
 	ambience_bus = DemoAudioClass.ensure_bus(AMBIENCE_BUS)
 	nature_bus = DemoAudioClass.ensure_bus(NATURE_BUS)
+	_wire_geometric_emitters()
 
 	# El manager es el AUTOLOAD, no una copia: es el mismo que resuelven los emisores
 	# del rig en _get_manager(). Dos managers dejarian el estado partido en dos.
@@ -90,26 +82,28 @@ func build() -> void:
 	event_manager.set_max_physical_voices(physical_voice_budget)
 	FootstepEventsClass.register(event_manager)
 
-	_build_terraces()
 	_build_ambience_defs()
 	_build_thunder_def()
 	_build_emitter_field()
-	_build_canal()
-	_build_treeline()
-	_build_swarm()
-	_build_player()
-	_build_overlays()
+	telemetry.bind_demo(self)
 
-	var light := DirectionalLight3D.new()
-	light.rotation_degrees = Vector3(-70.0, 140.0, 0.0)
-	light.light_energy = 0.15
-	light.light_color = Color(0.6, 0.68, 0.85)
-	add_child(light)
+## Da su stream y su bus a los tres emisores que la escena ya declara.
+##
+## El bus se asigna aqui y no en el .tscn porque no existe hasta que alguien lo crea, y
+## un bus inexistente en una escena produce un error del motor al cargarla. Los streams,
+## porque se sintetizan.
+func _wire_geometric_emitters() -> void:
+	var canal: OpenDouMultiPositionEmitter3D = $IrrigationCanal
+	canal.bus = String(nature_bus)
+	canal.stream = AudioSynthesizerClass.create_water_stream_ambient_loop(4.0)
 
-func _build_terraces() -> void:
-	for i in range(TERRACE_SURFACES.size()):
-		var pos: Vector3 = TERRACE_STEP * float(i) + Vector3(0.0, -0.5, 0.0)
-		add_child(SurfacePatchClass.make(TERRACE_SURFACES[i], TERRACE_SIZE, pos))
+	var treeline: OpenDouSplineEmitter3D = $Treeline
+	treeline.bus = String(nature_bus)
+	treeline.stream = AudioSynthesizerClass.create_canopy_wind_loop(4.0)
+
+	var swarm: OpenDouGranularEmitter3D = $CicadaSwarm
+	swarm.bus = String(nature_bus)
+	swarm.source_stream = AudioSynthesizerClass.create_cicada_swarm_loop(2.0)
 
 ## Cuatro fuentes de ambiente con prioridades distintas.
 ##
@@ -124,7 +118,7 @@ func _build_ambience_defs() -> void:
 			"stream": AudioSynthesizerClass.create_canopy_wind_loop(4.0)},
 		{"name": &"FrogCroak", "priority": 22.0, "loudness": -20.0,
 			"stream": AudioSynthesizerClass.create_frog_croak(1.2)},
-		# create_water_droplet toma PITCH en Hz, no duracion.
+		# create_water_droplet toma PITCH en Hz, no duracion: 0.8 daria 0.8 Hz.
 		{"name": &"WaterDroplet", "priority": 18.0, "loudness": -24.0,
 			"stream": AudioSynthesizerClass.create_water_droplet(1200.0)},
 	]
@@ -162,7 +156,7 @@ func _build_emitter_field() -> void:
 	var half := Vector3(TERRACE_SIZE.x * 0.5, 0.0, TERRACE_SIZE.z * 0.5)
 	for i in range(emitter_count):
 		var def: AudioEventDef = _ambience_defs[i % _ambience_defs.size()]
-		var terrace: int = i % TERRACE_SURFACES.size()
+		var terrace: int = i % TERRACE_COUNT
 		var base: Vector3 = TERRACE_STEP * float(terrace)
 		var pos := base + Vector3(
 			_rng.randf_range(-half.x, half.x),
@@ -176,80 +170,6 @@ func _build_emitter_field() -> void:
 		var instance = event_manager.post_event(def, null)
 		if instance != null:
 			instance.set_position(pos)
-
-## El canal de riego: un objeto grande, no un punto.
-func _build_canal() -> void:
-	var canal = OpenDouMultiPositionEmitter3DClass.new()
-	canal.name = "IrrigationCanal"
-	canal.stream = AudioSynthesizerClass.create_water_stream_ambient_loop(4.0)
-	canal.bus = String(nature_bus)
-	canal.unit_size = 12.0
-	canal.rendering_mode = OpenDouMultiPositionEmitter3DClass.RenderingMode.CLOSEST_POINT_TRACKING
-	canal.cull_distance = 90.0
-	# Local TIPADO: emission_points es Array[Vector3] y un literal sin tipar aborta.
-	var points: Array[Vector3] = []
-	for i in range(13):
-		var t: float = float(i) / 12.0
-		points.append(Vector3(-20.0 + t * 40.0, 0.4, 12.0 + sin(t * TAU) * 2.0))
-	canal.emission_points = points
-	# autoplay es una propiedad de AudioStreamPlayer3D, no una llamada a play().
-	canal.autoplay = true
-	add_child(canal)
-
-## El viento en la linea de arboles: una fuente lineal con absorcion de aire y doppler.
-func _build_treeline() -> void:
-	var treeline = OpenDouSplineEmitter3DClass.new()
-	treeline.name = "Treeline"
-	treeline.stream = AudioSynthesizerClass.create_canopy_wind_loop(4.0)
-	treeline.bus = String(nature_bus)
-	treeline.unit_size = 14.0
-	treeline.enable_air_absorption = true
-	treeline.enable_doppler = true
-	treeline.max_virtual_distance = 120.0
-
-	var curve := Curve3D.new()
-	# La curva NO pasa por el origen del nodo: si el punto mas cercano coincidiera con
-	# la posicion del nodo, el emisor no se moveria.
-	for i in range(7):
-		var t: float = float(i) / 6.0
-		curve.add_point(Vector3(-24.0 + t * 48.0, 6.0, -14.0 - sin(t * PI) * 6.0))
-	treeline.curve = curve
-	treeline.autoplay = true
-	add_child(treeline)
-
-## El enjambre de cigarras: granular sobre una textura sintetizada.
-func _build_swarm() -> void:
-	var swarm = OpenDouGranularEmitter3DClass.new()
-	swarm.name = "CicadaSwarm"
-	swarm.source_stream = AudioSynthesizerClass.create_cicada_swarm_loop(2.0)
-	swarm.bus = String(nature_bus)
-	swarm.unit_size = 10.0
-	swarm.grain_size_ms = 35.0
-	swarm.grain_rate_hz = 60.0
-	swarm.position_jitter_ms = 25.0
-	swarm.pitch_jitter_semitones = 4.0
-	swarm.max_concurrent_grains = 24
-	swarm.auto_play_emitter = true
-	swarm.position = Vector3(10.0, 4.0, -8.0)
-	add_child(swarm)
-
-func _build_player() -> void:
-	var player = PlayerControllerClass.new()
-	player.name = "Player"
-	player.position = Vector3(0.0, 1.0, 0.0)
-	add_child(player)
-
-func _build_overlays() -> void:
-	telemetry = MonsoonTelemetryClass.new()
-	telemetry.name = "Telemetry"
-	add_child(telemetry)
-	telemetry.bind_demo(self)
-
-	var monitor = OpenDouAudibleMonitorClass.new()
-	monitor.name = "AudibleMonitor"
-	monitor.enabled = true
-	monitor.max_items_displayed = 8
-	add_child(monitor)
 
 ## Lanza un trueno. Sube la ventana HDR y hunde el ambiente.
 func strike_thunder() -> void:
