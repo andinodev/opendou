@@ -12,4 +12,7 @@ techo, puertas con hoja, ventanas con cristal— y la calle como sala `Outdoor`.
 primera escena que luce el grafo de salas de la Fase 6: la música sale por la ventana
 entreabierta, y dentro de las casas dormidas la calle llega cortada a 300 Hz.
 
-**Siguiente:** Fase 4B — prefijar con `OpenDou` las clases del addon que no lo llevan.
+**Siguiente:** Fase 7 — Steam Audio. Análisis previo en
+[`docs/superpowers/specs/2026-09-01-fase7-steam-audio-analisis.md`](../superpowers/specs/2026-09-01-fase7-steam-audio-analisis.md);
+el spec de 7A (el spike) es lo que toca escribir. La Fase 4B (prefijado `OpenDou`) queda
+pendiente detrás.
