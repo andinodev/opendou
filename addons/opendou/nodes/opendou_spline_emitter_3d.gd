@@ -33,6 +33,10 @@ const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spati
 ## Base pitch scale multiplier.
 @export var base_pitch_scale: float = 1.0
 
+## Velocidad del flujo a lo largo de la curva, en m/s (rios, cintas). Positiva en el sentido
+## de la curva. Entra en el doppler: un rio que corre hacia el oyente sube el tono (Fase 9).
+@export var flow_speed_mps: float = 0.0
+
 ## Physics collision mask for acoustic line-of-sight checks.
 @export_flags_3d_physics var acoustic_collision_mask: int = 1
 
@@ -96,6 +100,17 @@ func get_closest_virtual_point(listener_pos: Vector3) -> Vector3:
 	var closest_local: Vector3 = curve.get_closest_point(local_listener)
 	return anchor * closest_local
 
+## Velocidad del flujo en el punto de la curva mas cercano al oyente: tangente x velocidad.
+func get_flow_velocity_at(listener_pos: Vector3) -> Vector3:
+	if curve == null or curve.point_count < 2 or is_zero_approx(flow_speed_mps):
+		return Vector3.ZERO
+	var anchor: Transform3D = get_curve_anchor()
+	var local_listener: Vector3 = anchor.affine_inverse() * listener_pos
+	var offset: float = curve.get_closest_offset(local_listener)
+	var sample: Transform3D = curve.sample_baked_with_rotation(offset, false, true)
+	var tangent_local: Vector3 = -sample.basis.z
+	return (anchor.basis * tangent_local).normalized() * flow_speed_mps
+
 ## Updates the virtual emitter transform, air absorption, and Doppler pitch based on listener state.
 func update_spline_acoustics(listener_pos: Vector3, listener_vel: Vector3 = Vector3.ZERO, delta: float = 0.016) -> void:
 	if curve == null or curve.point_count < 2:
@@ -121,7 +136,7 @@ func update_spline_acoustics(listener_pos: Vector3, listener_vel: Vector3 = Vect
 	
 	# Doppler frequency modulation
 	if enable_doppler:
-		var emitter_vel = (global_position - _prev_emitter_pos) / maxf(0.001, delta)
+		var emitter_vel = (global_position - _prev_emitter_pos) / maxf(0.001, delta) + get_flow_velocity_at(listener_pos)
 		var rel_pos = listener_pos - global_position
 		var doppler_factor = _acoustics_manager.calculate_doppler_pitch(emitter_vel, listener_vel, rel_pos)
 		pitch_scale = base_pitch_scale * doppler_factor
