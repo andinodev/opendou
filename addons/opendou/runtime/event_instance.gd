@@ -50,6 +50,16 @@ var calculated_properties: Dictionary = {} # StringName -> float
 var voice_state: VoiceState = VoiceState.STATE_STOPPED
 var virtualization_mode: AudioEventDef.VirtualizationMode = AudioEventDef.VirtualizationMode.VIRTUAL_ELAPSED_TIME
 var assigned_channel_id: int = -1
+## Capas del arbol de contenedores (Fase 11): indice 0 = la voz principal (assigned_channel_id),
+## las demas en layer_channel_ids. Hasta la Fase 11 el runtime reproducia solo voices[0] y
+## tiraba los desplazamientos: un AudioBlendContainer no cruzaba nada.
+var layer_channel_ids: Array[int] = []
+var voice_streams: Array = []
+var voice_offsets_db: Array[float] = []
+var voice_pitch_mods: Array[float] = []
+## True si el arbol es determinista y hay mas de una capa: los desplazamientos se
+## re-resuelven cada cuadro (cruce en vivo por RTPC).
+var live_blend: bool = false
 var current_weight: float = 0.0
 var logical_playback_position: float = 0.0
 var max_distance: float = 100.0
@@ -340,6 +350,11 @@ func set_parameter(param_name: StringName, value: float, immediate: bool = false
 		if immediate:
 			rtpc.set_value_immediate(value)
 		else:
+			# La velocidad escala con el salto: a 10 unidades por segundo fijas, un RPM de 900 a
+			# 5000 tardaba siete minutos en llegar. Un RTPC local asienta en un cuarto de segundo.
+			var speed: float = maxf(10.0, absf(value - rtpc.current_value) * 4.0)
+			rtpc.attack_speed = speed
+			rtpc.release_speed = speed
 			rtpc.set_target(value)
 
 ## Gets the current parameter value, checking local first, then falling back to global.

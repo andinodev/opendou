@@ -54,3 +54,9 @@ func resolve(context: AudioPlaybackContext, out_voices: Array[ResolvedVoice]) ->
 			resolved_any = true
 			
 	return resolved_any
+
+func is_deterministic() -> bool:
+	for layer in layers:
+		if layer != null and layer.node != null and not layer.node.is_deterministic():
+			return false
+	return true

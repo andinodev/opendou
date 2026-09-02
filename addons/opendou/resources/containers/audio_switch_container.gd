@@ -38,3 +38,10 @@ func resolve(context: AudioPlaybackContext, out_voices: Array[ResolvedVoice]) ->
 		return target_node.resolve(context, out_voices)
 		
 	return false
+
+func is_deterministic() -> bool:
+	for k in state_mappings:
+		var n = state_mappings[k]
+		if n != null and not n.is_deterministic():
+			return false
+	return true

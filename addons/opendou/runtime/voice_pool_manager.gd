@@ -12,6 +12,8 @@ var max_physical_voices: int = 64
 var channels: Array[PhysicalVoiceChannel] = []
 ## Velocidad del sonido del medio (Fase 10); el manager la fija y llega a cada canal.
 var speed_of_sound: float = 343.0
+## Capas adicionales por voz (Fase 11): un blend de cuatro capas ocupa cuatro canales.
+var max_layers_per_voice: int = 4
 
 # Anti-thrashing hysteresis bonus for currently physical voices
 var hysteresis_bonus: float = 1.05
@@ -120,6 +122,17 @@ func virtualize(instance: EventInstance) -> void:
 		if not was_owned and player != null and player_pool != null:
 			player_pool.release(player)
 		instance.assigned_channel_id = -1
+	# Las capas del contenedor sueltan sus canales con la principal.
+	for lid in instance.layer_channel_ids:
+		if lid >= 0 and lid < channels.size():
+			var lch: PhysicalVoiceChannel = channels[lid]
+			var lplayer: Node = lch.get_player()
+			lch.stop_immediate()
+			lch.bind(null, false)
+			if lplayer != null and player_pool != null:
+				player_pool.release(lplayer)
+	instance.layer_channel_ids.clear()
+	instance.live_blend = false
 
 	# Una voz que deja de ser fisica deja de estar gobernada por el grafo de salas: aqui
 	# es donde se sabe, y por eso el dispatcher no tiene que recorrer todas las
@@ -232,7 +245,37 @@ func devirtualize(instance: EventInstance) -> void:
 			player.stream.propagation_delay_sec = delay_sec
 		else:
 			start_delay = delay_sec
-	ch.play_stream(stream, start_offset, instance.calculated_volume_db, instance.calculated_pitch_scale, bus_name, start_delay)
+	var primary_offset: float = voices[0].volume_offset_db if not voices.is_empty() else 0.0
+	var primary_pitch: float = voices[0].pitch_modifier if not voices.is_empty() else 1.0
+	ch.play_stream(stream, start_offset, instance.calculated_volume_db + primary_offset, instance.calculated_pitch_scale * primary_pitch, bus_name, start_delay)
+
+	# Capas del contenedor (Fase 11): las voces resueltas mas alla de la primera van a canales
+	# propios con su desplazamiento. Si el arbol es determinista, el manager re-resuelve los
+	# desplazamientos cada cuadro (cruce en vivo); si no (aleatorio), quedan fijos.
+	instance.voice_streams = [stream]
+	instance.voice_offsets_db = [primary_offset]
+	instance.voice_pitch_mods = [primary_pitch]
+	instance.layer_channel_ids.clear()
+	for i in range(1, mini(voices.size(), 1 + max_layers_per_voice)):
+		var lid: int = find_free_channel()
+		if lid < 0 or player_pool == null:
+			break
+		var lplayer: Node = player_pool.acquire(_kind_for_instance(instance))
+		if lplayer == null:
+			break
+		var lch: PhysicalVoiceChannel = channels[lid]
+		lch.assigned_instance_ref = weakref(instance)
+		lch.bind(lplayer, false)
+		lch.position_node_ref = null
+		if position_node != null and lplayer is AudioStreamPlayer3D:
+			lplayer.area_mask = position_node.area_mask
+		lch.play_stream(voices[i].stream, start_offset, instance.calculated_volume_db + voices[i].volume_offset_db, instance.calculated_pitch_scale * voices[i].pitch_modifier, bus_name, start_delay)
+		instance.layer_channel_ids.append(lid)
+		instance.voice_streams.append(voices[i].stream)
+		instance.voice_offsets_db.append(voices[i].volume_offset_db)
+		instance.voice_pitch_mods.append(voices[i].pitch_modifier)
+	instance.live_blend = instance.definition != null and instance.definition.root_container != null \
+		and instance.voice_streams.size() > 1 and instance.definition.root_container.is_deterministic()
 
 ## Returns the number of active physical voices.
 func get_active_physical_count() -> int:

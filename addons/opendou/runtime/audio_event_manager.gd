@@ -647,12 +647,38 @@ func _apply_voices(delta: float) -> void:
 				if headwind > 0.0:
 					volume_db -= minf(12.0, 0.3 * headwind)
 					cutoff *= 1.0 - 0.5 * clampf(headwind / 20.0, 0.0, 1.0)
+		# Capas del contenedor (Fase 11): con un arbol determinista los desplazamientos se
+		# re-resuelven cada cuadro, y asi un blend por RTPC cruza de verdad.
+		if instance.live_blend and instance.definition != null:
+			var voices = instance.definition.resolve_voices(instance.playback_context)
+			for k in range(instance.voice_streams.size()):
+				var off: float = -80.0
+				var pm: float = 1.0
+				for v in voices:
+					if v.stream == instance.voice_streams[k]:
+						off = v.volume_offset_db
+						pm = v.pitch_modifier
+						break
+				instance.voice_offsets_db[k] = off
+				instance.voice_pitch_mods[k] = pm
+		var primary_offset: float = instance.voice_offsets_db[0] if not instance.voice_offsets_db.is_empty() else 0.0
+		var primary_pitch: float = instance.voice_pitch_mods[0] if not instance.voice_pitch_mods.is_empty() else 1.0
 		# La posicion aparente es igual a la del emisor salvo cuando el grafo de salas
 		# gobierna la voz, asi que aqui no hace falta ninguna rama.
 		if instance.has_spatial_position:
-			ch.apply_spatial(instance, volume_db, pitch, cutoff, active_listener_position, active_listener_basis)
+			ch.apply_spatial(instance, volume_db + primary_offset, pitch * primary_pitch, cutoff, active_listener_position, active_listener_basis)
 		else:
-			ch.apply(volume_db, pitch, cutoff, instance.current_apparent_position)
+			ch.apply(volume_db + primary_offset, pitch * primary_pitch, cutoff, instance.current_apparent_position)
+		for k in range(instance.layer_channel_ids.size()):
+			var lch = voice_pool.get_channel(instance.layer_channel_ids[k])
+			if lch == null or not lch.is_busy:
+				continue
+			var lv: float = volume_db + instance.voice_offsets_db[k + 1]
+			var lp: float = pitch * instance.voice_pitch_mods[k + 1]
+			if instance.has_spatial_position:
+				lch.apply_spatial(instance, lv, lp, cutoff, active_listener_position, active_listener_basis)
+			else:
+				lch.apply(lv, lp, cutoff, instance.current_apparent_position)
 
 ## Emite las reflexiones tempranas de las voces cuyo emisor las tenga activadas.
 func _dispatch_reflections() -> void:

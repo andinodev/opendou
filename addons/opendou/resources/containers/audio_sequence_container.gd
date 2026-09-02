@@ -21,3 +21,6 @@ func resolve(context: AudioPlaybackContext, out_voices: Array[ResolvedVoice]) ->
 		if child and child.resolve(context, out_voices):
 			resolved_any = true
 	return resolved_any
+
+func is_deterministic() -> bool:
+	return false

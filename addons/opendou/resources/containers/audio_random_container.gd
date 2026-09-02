@@ -88,3 +88,6 @@ func resolve(context: AudioPlaybackContext, out_voices: Array[ResolvedVoice]) ->
 		return true
 		
 	return false
+
+func is_deterministic() -> bool:
+	return false
