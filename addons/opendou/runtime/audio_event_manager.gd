@@ -686,7 +686,8 @@ func _apply_voices(delta: float) -> void:
 	if voice_pool == null:
 		return
 	var probes_ready: bool = pathing_enabled and occlusion_scheduler != null and occlusion_scheduler.probes_ready
-	var native_send: bool = spatial_acoustics != null and spatial_acoustics.native_send_allowed
+	# Sin salas no hay envio que resolver: se salta la consulta por voz (cuesta en el banco).
+	var native_send: bool = spatial_acoustics != null and spatial_acoustics.native_send_allowed and not spatial_acoustics.rooms.is_empty()
 	for instance in active_instances:
 		if instance == null or instance.assigned_channel_id < 0:
 			continue
@@ -763,7 +764,7 @@ func _apply_voices(delta: float) -> void:
 			var send_room = spatial_acoustics.get_room_at_position(instance.emitter_position) if instance.has_spatial_position else null
 			if send_room != null and send_room.send_id >= 0:
 				ch.set_send(send_room.send_id, send_room.reverb_send_amount)
-			else:
+			elif ch.send_id >= 0:
 				ch.set_send(-1, 0.0)
 		# Capas del contenedor (Fase 11): con un arbol determinista los desplazamientos se
 		# re-resuelven cada cuadro, y asi un blend por RTPC cruza de verdad.

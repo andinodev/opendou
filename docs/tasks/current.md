@@ -1,4 +1,4 @@
-# ⚡ Tarea Activa: Fases 12–14 implementadas — el sprint AAA nativo está completo
+# ⚡ Tarea Activa: Fase 15 (deudas) implementada — siguiente, Fase 16 (la escena grande)
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
 * **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
@@ -132,6 +132,10 @@ camino (el grafo autorado manda), ocluidores dinámicos como `IPLInstancedMesh` 
 el depurador dibuja los caminos reales, `EdgeDiffractionEngine` y `RoomCouplingEngine` retirados.
 Observación 53 y trampas en `AGENTS.md`; §11 del spec; B10–B13 resueltas.
 
-**Siguiente:** deudas C1–C5 (`observaciones-fases-12-14.md` §C): la observación 49 (envío propio
-de reverb), la demo de los nodos de la Fase 10, spline y multiposición en el sistema de voces, el
-LUFS nativo, la latencia del altavoz de mundo. Luego CI y plataformas.
+**Fase 15, implementada (2026-09-03):** 1560 aserciones. Envío propio de reverb en `steam_audio`
+(la voz vuelve a su `target_bus`; obs 49 acotada a `godot`), spline y multiposición como proveedores
+de posición del pool, `OpenDouLoudnessTap` nativo, latencia del altavoz de mundo 107 ms afirmada.
+Observación 54 y trampas en `AGENTS.md`; §11 del spec; C1, C3, C4, C5 pagadas; C2 pasa a la 16.
+
+**Siguiente:** Fase 16, la escena grande y con vida que usa todo lo construido (y cubre los nodos
+de la Fase 10). Luego CI y plataformas.

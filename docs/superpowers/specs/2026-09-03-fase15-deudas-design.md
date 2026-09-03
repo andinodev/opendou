@@ -1,7 +1,7 @@
 # Fase 15 — Deudas C1–C5
 
 **Fecha:** 2026-09-03
-**Estado:** Diseñado sin intervención del usuario (flujo acordado); correcciones en §11.
+**Estado:** Implementado (2026-09-03); correcciones en §11.
 **Rama:** `main`
 **Godot verificado:** 4.7.2 · **Steam Audio:** 4.8.1
 **Origen:** [`docs/tasks/observaciones-fases-12-14.md`](../../tasks/observaciones-fases-12-14.md) §C
@@ -205,6 +205,29 @@ el envío propio; la observación 49 queda acotada al backend `godot`), `current
 Ducking y snapshots dentro de salas quedan cubiertos **de rebote** por C1 (la voz vuelve a su
 bus); no se les añade test propio en esta fase más allá del nivel en el bus destino.
 
-## 11. Correcciones que la ejecución obligue a hacer
+## 11. Correcciones que la ejecución obligó a hacer
 
-Se anotan aquí, numeradas.
+1. **C1, el mecanismo (§3).** El efecto de entrada (`OpenDouReverbSendInput`) no sirve: un bus sin
+   reproductores está inactivo para Godot (no llega a Master, no limpia su búfer, el efecto
+   realimenta y explota). El envío sale por `OpenDouSendStream` reproducido por un
+   `AudioStreamPlayer` hijo del manager en el bus de reverb. Los ids de envío son estáticos del
+   pool; el manager libera sus reproductores en `_exit_tree`.
+2. **C1, la afirmación «6 dB por debajo» (§3)** era falsa: el reverb temprano de una caja de 6 m
+   iguala al seco. Se afirma «no lleva seco» con `wet = 0` y envío 1 (−180 dB).
+3. **C1, tests que asumían el `Area3D`**: `room_reverb` usa una voz del manager y la sala se
+   registra en ese manager; el taller mide el motor en el bus `Engine`; el presupuesto de la
+   calle sube a [−33, −19] (las voces en salas vuelven a sonar en seco + envío) y el del taller
+   baja a [−33, −18] (la lona pasa por el pool).
+4. **C3, la caché de caminos (§4).** Por par de salas, la primera voz fijaba el portal de todas;
+   la clave lleva la celda de 4 m del emisor. `post_event(def, self)` pisa la posición cada
+   cuadro: los proveedores publican con `caller = null`.
+5. **C3, tests del spline y la malla**: el doppler ya no está en el nodo; `spline_flow` mide el
+   `doppler_pitch` de la voz (1.057 / 0.953 / 0.997) y `mesh_emitter` el punto resuelto.
+6. **C4 (§5).** El tap vive en la instancia del efecto y el recurso guarda la última instancia;
+   `reset()` se aplica en el hilo de audio con una bandera. Medido: −23.26 LUFS en ambos
+   caminos; 0.81 ms/s nativo frente a 72.9 GDScript.
+7. **C5 (§6).** 107.3 ms, idéntica en cuatro clicks; bajo los 120 ms del recorte: búferes sin cambio.
+8. **Suite.** El driver headless corre a 0.84 s de audio por segundo bajo carga: `loudness_meter`
+   espera por `processed_seconds`, el retardo `godot` se afirma con el reloj de pared, y
+   `_band_energy_stereo` promedia por periodo (dos medidas del mismo sonido diferían 3 dB).
+   1560 aserciones, 527 objetos vivos de 540; banco a 200 voces: godot 3.45–3.48, steam_audio 3.57–3.69 µs por voz (techo 4.3).

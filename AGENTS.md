@@ -454,6 +454,41 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
 * **`near_field` (Fase 9) fluctua a veces** (+2.5 dB por +3.6 pedidos, una corrida de ~10):
   candidato a alinear como la convolucion. Anotado, no corregido.
 
+**Observaciones y trampas de la Fase 15 (deudas C1-C5):**
+
+* **Observacion 54.** El envio propio de reverb (`OpenDouSendBus` + `OpenDouSendStream`) sustituye
+  al `reverb_bus` del `Area3D` en `steam_audio`: la voz vuelve a su `target_bus` y solo las voces
+  de OpenDou (del manager que conoce la sala) reciben el reverb de la sala. La observacion 49
+  queda acotada al backend `godot`.
+* **Un bus sin reproductores esta INACTIVO para Godot**: sus efectos procesan (con
+  `process_silence`) pero su salida no llega a Master (pico -200) y su bufer no se limpia entre
+  pasos, asi que un efecto que sume algo al `src` realimenta el residuo y explota (+400 dB en
+  segundos). El envio sale por un `AudioStream` reproducido en el bus, no por un `AudioEffect`.
+* **Los reproductores de envio del autoload siguen sonando al cerrar**: sus playbacks quedan
+  vivos en el AudioServer y el trinquete de fugas los cuenta (+8, dos objetos por envio). El
+  manager los libera en `_exit_tree` y el runner los para 300 ms antes del recuento.
+* **Los buses del pool sobreviven al manager, los reproductores no**: los ids de envio viven
+  en un `static var` del pool; un manager nuevo crea su reproductor con el id existente.
+* **La cache de caminos por par de salas ignoraba la posicion del emisor**: la primera voz
+  fijaba el portal de todas (desde el fondo de la casa gana la puerta cerrada). La clave lleva
+  ahora la celda de 4 m del emisor. Aparecio al cambiar el orden de las voces (C3).
+* **`post_event(def, caller)` con un `Node3D` como caller fija la posicion del emisor CADA
+  cuadro desde `caller.global_position`**: un proveedor de posicion tiene que publicar con
+  `caller = null` y fijar `position_provider` en la instancia.
+* **`scan_child_meshes` y los grupos: una malla dinamica no puede estar tambien en la
+  estatica** (Fase 14); analogamente un `AudioStreamPlayer3D` proveedor no puede ser a la vez
+  el reproductor de su voz: `_provider_tick()` lo para si alguien llamo a `play()`.
+* **El driver de audio headless corre mas lento que el reloj de pared bajo carga** (0.84 s de
+  audio por segundo en la suite completa). Todo lo que espere «N segundos de audio» tiene que
+  contar muestras o `processed_seconds`, no `Time.get_ticks_msec()`; y un retardo descontado con
+  `delta` (backend godot) se afirma con el reloj, no en muestras.
+* **`_band_energy_stereo` sumaba periodos completos**: la captura trae 1 o 2 periodos segun
+  caigan los bloques y dos medidas del mismo sonido diferian 3 dB. Ahora promedia por periodo.
+* **El tono del test de convolucion llega al bus de reverb recortado por delante** (Godot
+  enruta el `Area3D` con hasta un bloque de retraso): las ventanas se alinean al FINAL del tono.
+* **`AudioServer.get_bus_effect(idx, 0)` ya no es necesariamente el reverb** del pool: se
+  busca por tipo (`is AudioEffectReverb`) o por marca (`resource_name`).
+
 ---
 
 ## 6. Reglas Modulares de Referencia
