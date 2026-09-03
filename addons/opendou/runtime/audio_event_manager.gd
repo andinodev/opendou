@@ -105,6 +105,8 @@ var _reflections_started: bool = false
 var _listener_room_name: StringName = &""
 ## Camas ambisonicas registradas (Fase 13): reciben la orientacion del oyente cada cuadro.
 var _ambisonic_beds: Array = []
+## Fase 13: el dispositivo tiene mas de dos canales. Los tests lo fuerzan para afirmar la decision.
+var surround_available: bool = AudioServer.get_speaker_mode() != AudioServer.SPEAKER_MODE_STEREO
 var _warned_hrtf_override: String = ""
 
 ## Programador unico de raycasts de oclusion, con presupuesto por frame.
@@ -189,13 +191,18 @@ func _apply_spatial_settings() -> void:
 		ClassDB.class_call_static("OpenDouSpatialStream", "configure_listener", node.head_radius_m if node != null else 0.0875, c)
 	if spatial_settings == null or not is_steam_audio_backend():
 		return
-	var mode: int = 1 if spatial_settings.output == "speakers" else 0
+	var speakers: bool = spatial_settings.output == "speakers"
 	if node != null and node.output_mode != 0:
-		mode = 1 if node.output_mode == 2 else 0
+		speakers = node.output_mode == 2
+	# Altavoces: estereo con nuestro paneo (1); surround real, mono procesado y Godot panea (2).
+	var mode: int = 0
+	if speakers:
+		mode = 2 if surround_available else 1
 	var blend: float = spatial_settings.blend
 	if player_pool != null:
 		player_pool.default_spatial_blend = blend
 		player_pool.default_output_mode = mode
+		player_pool.set_host_panning(1.0 if mode == 2 else 0.0)
 		# Se escribe en todos los streams; en los ocupados el canal lo sobreescribe cada frame
 		# como factor por voz (default_spatial_blend x (1 - spread), Fase 9), que sin spread
 		# es el mismo valor.
@@ -743,6 +750,16 @@ func _apply_voices(delta: float) -> void:
 			else:
 				lch.apply(lv, lp, cutoff, instance.current_apparent_position)
 
+## Las reflexiones autoradas (reflectores) no se emiten donde la sala ya trae la IR real
+## (CONVOLUTION con extension): quedan como ajuste artistico en salas Sabine (Fase 13).
+func reflections_allowed_for(instance) -> bool:
+	if reflection_dispatcher != null and not reflection_dispatcher.enabled:
+		return false
+	if spatial_acoustics == null or not spatial_acoustics.convolution_allowed or instance == null:
+		return true
+	var room = spatial_acoustics.get_room_at_position(instance.emitter_position)
+	return room == null or room.reverb_mode != 2
+
 ## Emite las reflexiones tempranas de las voces cuyo emisor las tenga activadas.
 func _dispatch_reflections() -> void:
 	if reflection_dispatcher == null or not is_inside_tree():
@@ -756,7 +773,7 @@ func _dispatch_reflections() -> void:
 		if instance == null or instance.assigned_channel_id < 0:
 			continue
 		var node = instance.get_bound_player()
-		if node != null and "enable_early_reflections" in node and node.enable_early_reflections:
+		if node != null and "enable_early_reflections" in node and node.enable_early_reflections and reflections_allowed_for(instance):
 			reflection_dispatcher.dispatch(instance, active_listener_position, w3d)
 
 ## Resuelve el oyente del frame y actualiza la posicion cacheada.

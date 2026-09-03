@@ -58,7 +58,7 @@ void OpenDouSpatialStream::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_output_mode", "mode"), &OpenDouSpatialStream::set_output_mode);
 	ClassDB::bind_method(D_METHOD("get_output_mode"), &OpenDouSpatialStream::get_output_mode);
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "output_mode", PROPERTY_HINT_ENUM, "Headphones,Speakers"), "set_output_mode", "get_output_mode");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "output_mode", PROPERTY_HINT_ENUM, "Headphones,Speakers,MonoPass"), "set_output_mode", "get_output_mode");
 	ClassDB::bind_method(D_METHOD("set_near_field_bass_db", "db"), &OpenDouSpatialStream::set_near_field_bass_db);
 	ClassDB::bind_method(D_METHOD("get_near_field_bass_db"), &OpenDouSpatialStream::get_near_field_bass_db);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "near_field_bass_db", PROPERTY_HINT_RANGE, "0,12,0.1"), "set_near_field_bass_db", "get_near_field_bass_db");
@@ -76,6 +76,7 @@ void OpenDouSpatialStream::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouSpatialStream", D_METHOD("get_speed_of_sound_mps"), &OpenDouSpatialStream::get_speed_of_sound_mps);
 	BIND_ENUM_CONSTANT(OUTPUT_HEADPHONES);
 	BIND_ENUM_CONSTANT(OUTPUT_SPEAKERS);
+	BIND_ENUM_CONSTANT(OUTPUT_MONO_PASS);
 
 	ClassDB::bind_method(D_METHOD("get_last_peak_delays"), &OpenDouSpatialStream::get_last_peak_delays);
 	ClassDB::bind_method(D_METHOD("get_last_applied_itd_ms"), &OpenDouSpatialStream::get_last_applied_itd_ms);
@@ -122,7 +123,7 @@ void OpenDouSpatialStream::set_shelf_db(float p_db) { shelf_db_.store(std::clamp
 float OpenDouSpatialStream::get_shelf_db() const { return shelf_db_.load(); }
 void OpenDouSpatialStream::set_shelf_cutoff_hz(float p_hz) { shelf_cutoff_hz_.store(std::clamp(p_hz, 100.0f, 20000.0f)); }
 float OpenDouSpatialStream::get_shelf_cutoff_hz() const { return shelf_cutoff_hz_.load(); }
-void OpenDouSpatialStream::set_output_mode(int p_mode) { output_mode_.store(p_mode == OUTPUT_SPEAKERS ? OUTPUT_SPEAKERS : OUTPUT_HEADPHONES); }
+void OpenDouSpatialStream::set_output_mode(int p_mode) { output_mode_.store(std::clamp(p_mode, static_cast<int>(OUTPUT_HEADPHONES), static_cast<int>(OUTPUT_MONO_PASS))); }
 int OpenDouSpatialStream::get_output_mode() const { return output_mode_.load(); }
 void OpenDouSpatialStream::set_near_field_bass_db(float p_db) { near_field_bass_db_.store(std::clamp(p_db, 0.0f, 12.0f)); }
 float OpenDouSpatialStream::get_near_field_bass_db() const { return near_field_bass_db_.load(); }
@@ -506,7 +507,15 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 
 	const float dx = stream_->dir_x_.load(), dy = stream_->dir_y_.load(), dz = stream_->dir_z_.load();
 
-	if (stream_->output_mode_.load() == OpenDouSpatialStream::OUTPUT_SPEAKERS) {
+	const int out_mode = stream_->output_mode_.load();
+	if (out_mode == OpenDouSpatialStream::OUTPUT_MONO_PASS) {
+		// 3c. Surround por el dispositivo (Fase 13): la senal procesada en mono a los dos canales;
+		// el AudioStreamPlayer3D anfitrion, sin neutralizar, la panea a los altavoces reales.
+		for (int i = 0; i < frame_size; i++) {
+			interleaved_[2 * i] = mono[i];
+			interleaved_[2 * i + 1] = mono[i];
+		}
+	} else if (out_mode == OpenDouSpatialStream::OUTPUT_SPEAKERS) {
 		// 3a. Altavoces: paneo de potencia constante, sin HRTF ni ITD. Pasa igualmente por el
 		// anillo para que la latencia sea la misma y el conmutador en vivo no salte.
 		float gl, gr;

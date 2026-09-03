@@ -24,6 +24,9 @@ var max_players_per_kind: int = 64
 ## Ajustes vigentes con los que nace cada stream nativo nuevo (los fija el manager).
 var default_spatial_blend: float = 1.0
 var default_output_mode: int = 0
+## Paneo del anfitrion (Fase 13): 0 = neutralizado (el stream panea); 1 = Godot panea al
+## dispositivo (surround, con el stream en MONO_PASS).
+var default_panning_strength: float = 0.0
 
 var _free: Dictionary = {}
 var _busy: Dictionary = {}
@@ -117,7 +120,7 @@ func _instantiate(kind: int) -> Node:
 			# forma (AudioServer solo publica la velocidad de reproduccion). Un
 			# AudioStreamPlayer plano perdia el reverb por sala de la Fase 2.
 			var p := AudioStreamPlayer3D.new()
-			p.panning_strength = 0.0
+			p.panning_strength = default_panning_strength
 			p.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
 			p.attenuation_filter_db = 0.0
 			p.max_db = 24.0
@@ -149,6 +152,22 @@ func _kind_of(player: Node) -> int:
 
 ## Recorre los streams nativos de todos los reproductores binaurales, libres y ocupados.
 ## Es lo que aplica en vivo la mezcla, la salida y el HRTF (ajustes del jugador).
+## Fija el paneo de TODOS los anfitriones binaurales, libres y ocupados.
+func set_host_panning(strength: float) -> void:
+	default_panning_strength = strength
+	for kind in [_free, _busy]:
+		for k in kind:
+			for p in kind[k]:
+				if p is AudioStreamPlayer3D and p.stream != null and p.stream.get_class() == "OpenDouSpatialStream":
+					p.panning_strength = strength
+
+func for_each_host(callable: Callable) -> void:
+	for kind in [_free, _busy]:
+		for k in kind:
+			for p in kind[k]:
+				if p is AudioStreamPlayer3D and p.stream != null and p.stream.get_class() == "OpenDouSpatialStream":
+					callable.call(p)
+
 func for_each_spatial_stream(callable: Callable) -> void:
 	for p in (_free[PlayerKind.BINAURAL_3D] as Array) + (_busy[PlayerKind.BINAURAL_3D] as Array):
 		if is_instance_valid(p) and p.stream != null:

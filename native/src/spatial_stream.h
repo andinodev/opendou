@@ -30,6 +30,7 @@ public:
 	enum OutputMode {
 		OUTPUT_HEADPHONES = 0,
 		OUTPUT_SPEAKERS = 1,
+		OUTPUT_MONO_PASS = 2, // Fase 13: mono procesado sin HRTF ni paneo; Godot panea al dispositivo
 	};
 
 	OpenDouSpatialStream();
