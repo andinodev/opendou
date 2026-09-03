@@ -55,6 +55,9 @@ const DEFAULT_MATERIALS: Dictionary = {
 
 ## Registered materials (loaded defaults + custom user materials).
 var _materials: Dictionary = {}
+## Materiales por banda (Fase 12): nombre -> AcousticMaterial. Los ocho presets al arrancar.
+var _acoustic: Dictionary = {}
+const AcousticMaterialClass = preload("res://addons/opendou/resources/acoustic_material.gd")
 
 func _init() -> void:
 	_reset_to_defaults()
@@ -73,6 +76,40 @@ func _reset_to_defaults() -> void:
 	_materials.clear()
 	for k in DEFAULT_MATERIALS.keys():
 		_materials[k] = DEFAULT_MATERIALS[k].duplicate(true)
+	_acoustic.clear()
+	for k in AcousticMaterialClass.PRESETS.keys():
+		_acoustic[k] = AcousticMaterialClass.from_preset(k)
+
+## Material por banda registrado o preset; null si no existe.
+func get_acoustic_material(mat_name: StringName) -> AcousticMaterial:
+	if _acoustic.has(mat_name):
+		return _acoustic[mat_name]
+	return AcousticMaterialClass.from_preset(mat_name)
+
+## Registra un material por banda y actualiza el fallback escalar con sus numeros.
+func register_acoustic_material(mat: AcousticMaterial) -> void:
+	if mat == null:
+		return
+	_acoustic[mat.material_name] = mat
+	register_custom_material(mat.material_name, mat.density_kg_m3, mat.resonance_lpf_hz, mat.absorption_mid)
+
+func acoustic_material_names() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for k in _acoustic:
+		out.append(k)
+	return out
+
+## Guarda todos los materiales por banda en JSON (los presets tambien: el archivo es completo).
+func save_to_json(path: String) -> Error:
+	var data: Dictionary = {}
+	for k in _acoustic:
+		data[String(k)] = (_acoustic[k] as AcousticMaterial).to_dict()
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		return FileAccess.get_open_error()
+	f.store_string(JSON.stringify(data, "\t"))
+	f.close()
+	return OK
 
 ## Returns material property dictionary copy, or default (Concrete) if not found.
 func get_material(mat_name: StringName) -> Dictionary:
@@ -153,3 +190,5 @@ func load_from_json(path: String = "") -> void:
 				var resonance = float(item.get("resonance_lpf", 350.0))
 				var absorption = float(item.get("absorption", 0.05))
 				register_custom_material(StringName(str(k)), density, resonance, absorption)
+				# Bandas (Fase 12): si el JSON las trae, el material por banda tambien.
+				_acoustic[StringName(str(k))] = AcousticMaterialClass.from_dict(StringName(str(k)), item)

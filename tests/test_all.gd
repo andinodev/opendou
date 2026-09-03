@@ -76,6 +76,7 @@ const TestMeshEmitterClass = preload("res://tests/test_mesh_emitter.gd")
 const TestWorldBusClass = preload("res://tests/test_world_bus.gd")
 const TestAreaTriggerClass = preload("res://tests/test_area_trigger.gd")
 const TestBlendLayersClass = preload("res://tests/test_blend_layers.gd")
+const TestAcousticMaterialClass = preload("res://tests/test_acoustic_material.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -368,6 +369,10 @@ static func run_suite() -> Dictionary:
 	var distance_res = TestDistanceModelClass.run_all()
 	total_tests += distance_res.assertions_run
 	all_failures.append_array(distance_res.failures)
+
+	var material_res = TestAcousticMaterialClass.run_all()
+	total_tests += material_res.assertions_run
+	all_failures.append_array(material_res.failures)
 
 	return {
 		"total": total_tests,
