@@ -103,6 +103,8 @@ var _had_culled: bool = false
 var _room_listener_sources: Dictionary = {}
 var _reflections_started: bool = false
 var _listener_room_name: StringName = &""
+## Camas ambisonicas registradas (Fase 13): reciben la orientacion del oyente cada cuadro.
+var _ambisonic_beds: Array = []
 var _warned_hrtf_override: String = ""
 
 ## Programador unico de raycasts de oclusion, con presupuesto por frame.
@@ -291,6 +293,13 @@ func _update_environment(delta: float) -> void:
 		if environment.medium_snapshot != &"":
 			push_snapshot(environment.medium_snapshot)
 		_active_medium_snapshot = environment.medium_snapshot
+
+func register_ambisonic_bed(bed: Node) -> void:
+	if not _ambisonic_beds.has(bed):
+		_ambisonic_beds.append(bed)
+
+func unregister_ambisonic_bed(bed: Node) -> void:
+	_ambisonic_beds.erase(bed)
 
 ## Fuente de oyente para una sala (la crea si no existe). -1 sin simulador con reflexiones.
 func listener_source_for_room(room_name: StringName) -> int:
@@ -770,6 +779,10 @@ func _process(delta: float) -> void:
 	_update_environment(delta)
 	# 1c. Sala del oyente (Fase 13): fuente de oyente, hilo de reflexiones y convolucion.
 	_update_listener_room()
+	# 1d. Camas ambisonicas (Fase 13): la orientacion del oyente a cada una.
+	for bed in _ambisonic_beds:
+		if bed != null and is_instance_valid(bed):
+			bed.set_listener_basis(active_listener_basis)
 
 	# 2. Live Update remoto.
 	if live_update_server and live_update_server.is_server_running:
