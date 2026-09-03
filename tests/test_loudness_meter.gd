@@ -50,9 +50,11 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	var idx: int = AudioServer.get_bus_index("LufsProbe")
 	var captures: int = 0
 	for e in range(AudioServer.get_bus_effect_count(idx)):
-		if AudioServer.get_bus_effect(idx, e).resource_name == "OpenDou_LoudnessMeter_Capture":
+		var rn: String = AudioServer.get_bus_effect(idx, e).resource_name
+		if rn == "OpenDou_LoudnessMeter_Capture" or rn == "OpenDou_LoudnessMeter_Tap":
 			captures += 1
-	a.eq(captures, 1, "y deja una sola captura marcada")
+	a.eq(captures, 1, "y deja un solo efecto marcado (%s)" % ("tap nativo" if meter.use_native else "captura GDScript"))
+	a.eq(meter.use_native, ClassDB.class_exists("OpenDouLoudnessTap"), "con extension mide el tap nativo; sin ella, GDScript")
 
 	# Silencio: 1 s medido, la compuerta absoluta no deja bloques.
 	await _wait_ms(tree, 1000, meter)
@@ -93,8 +95,37 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 
 	tree.root.remove_child(player)
 	player.free()
+	var native_cost_ms: float = float(total_usec) / 1000.0 / maxf(meter.processed_seconds, 0.001)
+	var native_integrated: float = integrated_tone
 	meter.detach()
 	a.ok(not meter.is_attached(), "detach quita la captura")
+
+	# Equivalencia (Fase 15): el camino GDScript forzado da la misma integrada sobre el mismo tono,
+	# y el nativo cuesta menos de 5 ms por segundo de audio (el GDScript, 91).
+	if ClassDB.class_exists("OpenDouLoudnessTap"):
+		var gd = MeterClass.new()
+		gd.force_gdscript = true
+		a.ok(gd.attach(&"LufsProbe") and not gd.use_native, "el medidor forzado a GDScript se engancha con captura")
+		var p2 := AudioStreamPlayer.new()
+		p2.stream = _sine_db(-23.0, 4.0)
+		p2.bus = "LufsProbe"
+		tree.root.add_child(p2)
+		p2.play()
+		var gd_usec: int = 0
+		var t1: int = Time.get_ticks_msec()
+		while gd.processed_seconds < 3.4 and Time.get_ticks_msec() - t1 < 6000:
+			await tree.process_frame
+			gd.process()
+			gd_usec += gd.last_process_usec
+		var gd_cost_ms: float = float(gd_usec) / 1000.0 / maxf(gd.processed_seconds, 0.001)
+		print("[OpenDou] LUFS nativo frente a GDScript: integrada %.2f / %.2f LUFS; coste %.2f / %.1f ms por segundo de audio" % [native_integrated, gd.integrated_lufs, native_cost_ms, gd_cost_ms])
+		a.approx(gd.integrated_lufs, native_integrated, "el GDScript forzado da la misma integrada (+-0.2 LU)", 0.2)
+		a.lt(native_cost_ms, 5.0, "el tap nativo cuesta menos de 5 ms por segundo de audio")
+		a.gt(gd_cost_ms, native_cost_ms * 3.0, "y el GDScript al menos el triple")
+		p2.stop()
+		tree.root.remove_child(p2)
+		p2.free()
+		gd.detach()
 	return a
 
 ## Presupuesto de sonoridad por demo (tests/loudness_budget.txt). Lo llaman los tests de las

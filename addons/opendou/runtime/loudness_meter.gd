@@ -12,6 +12,13 @@ extends RefCounted
 ## last_process_usec deja el coste a la vista.
 
 const MARK: String = "OpenDou_LoudnessMeter_Capture"
+const MARK_TAP: String = "OpenDou_LoudnessMeter_Tap"
+## Fase 15 (C4): con la extension, el filtro K y los bloques los hace OpenDouLoudnessTap en el
+## hilo de audio y aqui solo quedan la compuerta y las ventanas (10 numeros por segundo).
+var use_native: bool = false
+## Fuerza el camino GDScript aunque exista la extension (tests de equivalencia).
+var force_gdscript: bool = false
+var _tap = null
 const BLOCK_SEC: float = 0.1
 const ABS_GATE: float = -70.0
 const REL_GATE: float = -10.0
@@ -38,18 +45,29 @@ func attach(bus: StringName) -> bool:
 	var idx: int = AudioServer.get_bus_index(String(bus))
 	if idx < 0:
 		return false
-	if _capture != null and _bus_index == idx:
+	if (_capture != null or _tap != null) and _bus_index == idx:
 		return true
 	detach()
-	for e in range(AudioServer.get_bus_effect_count(idx)):
-		var fx := AudioServer.get_bus_effect(idx, e)
-		if fx != null and fx.resource_name == MARK:
-			_capture = fx
-	if _capture == null:
-		_capture = AudioEffectCapture.new()
-		_capture.resource_name = MARK
-		_capture.buffer_length = 2.0
-		AudioServer.add_bus_effect(idx, _capture)
+	use_native = ClassDB.class_exists("OpenDouLoudnessTap") and not force_gdscript
+	if use_native:
+		for e in range(AudioServer.get_bus_effect_count(idx)):
+			var fx := AudioServer.get_bus_effect(idx, e)
+			if fx != null and fx.resource_name == MARK_TAP:
+				_tap = fx
+		if _tap == null:
+			_tap = ClassDB.instantiate("OpenDouLoudnessTap")
+			_tap.resource_name = MARK_TAP
+			AudioServer.add_bus_effect(idx, _tap)
+	else:
+		for e in range(AudioServer.get_bus_effect_count(idx)):
+			var fx := AudioServer.get_bus_effect(idx, e)
+			if fx != null and fx.resource_name == MARK:
+				_capture = fx
+		if _capture == null:
+			_capture = AudioEffectCapture.new()
+			_capture.resource_name = MARK
+			_capture.buffer_length = 2.0
+			AudioServer.add_bus_effect(idx, _capture)
 	_bus_index = idx
 	_rate = AudioServer.get_mix_rate()
 	_block_samples = int(_rate * BLOCK_SEC)
@@ -58,15 +76,17 @@ func attach(bus: StringName) -> bool:
 	return true
 
 func detach() -> void:
-	if _capture != null and _bus_index >= 0 and _bus_index < AudioServer.bus_count:
+	if (_capture != null or _tap != null) and _bus_index >= 0 and _bus_index < AudioServer.bus_count:
 		for e in range(AudioServer.get_bus_effect_count(_bus_index) - 1, -1, -1):
-			if AudioServer.get_bus_effect(_bus_index, e) == _capture:
+			var fx := AudioServer.get_bus_effect(_bus_index, e)
+			if fx == _capture or fx == _tap:
 				AudioServer.remove_bus_effect(_bus_index, e)
 	_capture = null
+	_tap = null
 	_bus_index = -1
 
 func is_attached() -> bool:
-	return _capture != null
+	return _capture != null or _tap != null
 
 func reset() -> void:
 	_blocks.clear()
@@ -79,9 +99,24 @@ func reset() -> void:
 	integrated_lufs = -INF
 	sample_peak_db = -INF
 	processed_seconds = 0.0
+	if _tap != null:
+		_tap.reset()
 
 ## Drena la captura y actualiza las medidas. Llamar una vez por frame.
 func process() -> void:
+	if _tap != null:
+		var t0n: int = Time.get_ticks_usec()
+		var blocks: PackedFloat32Array = _tap.take_blocks()
+		for p in blocks:
+			_blocks.append(p)
+			_after_block()
+		var pk: float = _tap.take_peak()
+		if pk > _peak:
+			_peak = pk
+		processed_seconds += float(blocks.size()) * BLOCK_SEC
+		sample_peak_db = linear_to_db(_peak) if _peak > 0.0 else -INF
+		last_process_usec = Time.get_ticks_usec() - t0n
+		return
 	if _capture == null:
 		return
 	var t0: int = Time.get_ticks_usec()
@@ -143,6 +178,10 @@ func _close_block() -> void:
 	_blocks.append(_block_acc[0] / n + _block_acc[1] / n)
 	_block_acc = [0.0, 0.0]
 	_block_count = 0
+	_after_block()
+
+## Ventanas y compuerta tras anadir un bloque (camino GDScript y nativo).
+func _after_block() -> void:
 	momentary_lufs = _lufs_of_last(4)
 	short_term_lufs = _lufs_of_last(30)
 	integrated_lufs = _gated_integrated()

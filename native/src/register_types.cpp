@@ -5,6 +5,7 @@
 #include "ambisonic_stream.h"
 #include "convolution_reverb.h"
 #include "gain_effect.h"
+#include "loudness_tap.h"
 #include "send_stream.h"
 #include "send_bus.h"
 #include "simulator.h"
@@ -34,6 +35,8 @@ void initialize_opendou_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(opendou::OpenDouSendBus);
 	GDREGISTER_CLASS(opendou::OpenDouSendStream);
 	GDREGISTER_CLASS(opendou::OpenDouSendStreamPlayback);
+	GDREGISTER_CLASS(opendou::OpenDouLoudnessTap);
+	GDREGISTER_CLASS(opendou::OpenDouLoudnessTapInstance);
 }
 
 void uninitialize_opendou_native(ModuleInitializationLevel p_level) {
