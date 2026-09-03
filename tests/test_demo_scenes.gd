@@ -16,6 +16,7 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.absorb(await run_cabin_async(tree))
 	a.absorb(await run_street_async(tree))
 	a.absorb(await run_workshop_async(tree))
+	a.absorb(await run_presa_async(tree))
 	a.absorb(run_hub())
 	a.absorb(await run_pause_menu_async(tree))
 	return a
@@ -842,4 +843,311 @@ static func run_workshop_async(tree: SceneTree) -> OpenDouAssert:
 	_release_current(demo)
 	tree.root.remove_child(demo)
 	demo.free()
+	return a
+
+
+## «La presa»: un valle entero suena por geometria. Diez tesis, cada una medida con un control.
+static func run_presa_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("presa_demo")
+	var manager = tree.root.get_node_or_null("OpenDou")
+	a.ok(manager != null, "el autoload OpenDou existe")
+	var packed: PackedScene = load("res://scenes/demos/presa/presa_demo.tscn")
+	a.ok(packed != null, "la escena de la presa carga")
+	if packed == null or manager == null:
+		return a
+	a.gt(float(packed.get_state().get_node_count()), 299.0, "y declara al menos 300 nodos (%d)" % packed.get_state().get_node_count())
+	var demo = packed.instantiate()
+	demo.rubble_interval_sec = 0.0
+	demo.auto_lightning = false   # los rayos los dispara el test, para medir el retardo del trueno
+	tree.root.add_child(demo)
+	var lufs_meter = TestLoudnessMeterClass.start_master_meter(tree)
+	await tree.process_frame
+	await tree.physics_frame
+	await tree.process_frame
+	var steam: bool = manager.is_steam_audio_backend()
+	var rate: float = AudioServer.get_mix_rate()
+	# Vigilantes quietos: sus rondas cambiarian las distancias que se afirman.
+	var no_waypoints: Array[Vector3] = []
+	for gd in demo.guards:
+		gd.waypoints = no_waypoints
+	# ---- Composicion acustica
+	var ac = manager.spatial_acoustics
+	for room_name in ["Nave", "Galeria", "Inundada", "Valle"]:
+		a.ok(ac.rooms.has(StringName(room_name)), "la sala '%s' esta registrada" % room_name)
+	var bake = demo.get_node("AcousticBake")
+	a.gt(float(bake.get_baked_triangle_count()), 900.0, "el bake tiene cientos de triangulos (%d)" % bake.get_baked_triangle_count())
+	a.eq(int(bake.stats.get("dynamic_count", 0)), 1, "la compuerta es el ocluidor dinamico")
+	if steam:
+		a.ok(bool(ClassDB.class_call_static("OpenDouAcousticScene", "has_probes")), "las sondas precocinadas se cargaron (%d)" % int(ClassDB.class_call_static("OpenDouAcousticScene", "probe_count")))
+	# ---- Z2: nave de turbinas. RT60 trazado y ducking dentro de la sala.
+	demo.player.global_position = Vector3(-4, -15.5, 12)
+	var t0: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 3000 and manager.get_room_reverb_times(&"Nave").y <= 0.0 and steam:
+		await tree.process_frame
+	var rt60: Vector3 = manager.get_room_reverb_times(&"Nave")
+	print("[OpenDou] presa: RT60 trazado de la nave %s" % str(rt60))
+	if steam:
+		a.gt(rt60.y, 0.8, "la nave de metal tiene un RT60 real largo (%.2f s)" % rt60.y)
+	var music_idx: int = AudioServer.get_bus_index("Music")
+	var music_before: float = AudioServer.get_bus_volume_db(music_idx)
+	var hall_voice = demo.get_node("GuardHall/Voice")
+	hall_voice.speak(&"halt")
+	var t1: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t1 < 600:
+		await tree.process_frame
+	var music_during: float = AudioServer.get_bus_volume_db(music_idx)
+	print("[OpenDou] presa: Music %.1f dB antes, %.1f dB con el vigilante hablando" % [music_before, music_during])
+	a.ok(hall_voice.is_speaking(), "el vigilante de la nave habla")
+	a.lt(music_during, music_before - 6.0, "y su voz duckea la musica al menos 6 dB (dentro de la sala: envio propio)")
+	# ---- Z3: cristal frente a hormigon (misma sala: efecto directo). Turbina 0 en (-8, -12.5, 12).
+	# Sin caminos durante la medida: la propagacion por sondas rodearia la cabina por la puerta y
+	# relajaria la oclusion en ambas posiciones (esa es la tesis de Z4, no la de Z3).
+	if steam:
+		manager.pathing_enabled = false
+		var probe_t = OpenDouAudioProbeClass.new()
+		probe_t.attach_to_existing_bus(&"Turbines", 2.0)
+		var tb_inst = demo.turbines[0].active_instance
+		print("[OpenDou] presa: turbina 0 voz %s, canal %s, vol %.1f, bus %s, voces %d" % [str(tb_inst != null and tb_inst.is_playing()), str(tb_inst.assigned_channel_id) if tb_inst != null else "-", tb_inst.calculated_volume_db if tb_inst != null else 0.0, str(tb_inst.definition.target_bus) if tb_inst != null else "-", tb_inst.voice_streams.size() if tb_inst != null else -1])
+		demo.player.global_position = Vector3(-14, -15.5, 11)     # dentro de la nave, sin obstaculo
+		for i in range(30):
+			await tree.process_frame
+		probe_t.drain()
+		var open_t: Dictionary = await TestBinauralClass._capture(tree, probe_t)
+		var open_lo: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo_windowed(open_t, rate, 100.0, 700.0), 1e-12))
+		var t0_inst = demo.turbines[0].active_instance
+		var t0_ch = manager.voice_pool.get_channel(t0_inst.assigned_channel_id) if t0_inst != null and t0_inst.assigned_channel_id >= 0 else null
+		var t0_open = ClassDB.class_call_static("OpenDouSimulator", "get_direct", t0_ch.sim_source) if t0_ch != null and t0_ch.sim_source >= 0 else PackedFloat32Array()
+		demo.player.global_position = Vector3(-21, -15.5, 11)     # cabina: tras el cristal
+		for i in range(30):
+			await tree.process_frame
+		probe_t.drain()
+		var glass: Dictionary = await TestBinauralClass._capture(tree, probe_t)
+		var t0_glass = ClassDB.class_call_static("OpenDouSimulator", "get_direct", t0_ch.sim_source) if t0_ch != null and t0_ch.sim_source >= 0 else PackedFloat32Array()
+		demo.player.global_position = Vector3(-21, -15.5, 5.5)    # tras el muro de hormigon
+		for i in range(30):
+			await tree.process_frame
+		probe_t.drain()
+		var concrete: Dictionary = await TestBinauralClass._capture(tree, probe_t)
+		var t0_concrete = ClassDB.class_call_static("OpenDouSimulator", "get_direct", t0_ch.sim_source) if t0_ch != null and t0_ch.sim_source >= 0 else PackedFloat32Array()
+		# El zumbido vive por debajo de 700 Hz: se compara la banda que tiene energia. Transmision
+		# del registro en esa banda: Glass 0.06 frente a Concrete 0.015 (+12 dB).
+		var glass_lo: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo_windowed(glass, rate, 100.0, 700.0), 1e-12))
+		var concrete_lo: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo_windowed(concrete, rate, 100.0, 700.0), 1e-12))
+		print("[OpenDou] presa: turbina sin obstaculo %.1f dB, tras el cristal %.1f, tras el hormigon %.1f (banda 100-700 Hz) | directo: libre %s, cristal %s, hormigon %s" % [open_lo, glass_lo, concrete_lo, str(t0_open), str(t0_glass), str(t0_concrete)])
+		a.gt(glass_lo, concrete_lo + 8.0, "el cristal deja pasar al menos 8 dB mas que el hormigon (transmision por material)")
+		probe_t.teardown()
+		manager.pathing_enabled = true
+	# ---- Z4: el goteo tras el codo de la galeria (sondas, sin portal). Goteo en (38.5, -14.5, -8).
+	if steam:
+		demo.player.global_position = Vector3(24, -15.5, 11.5)
+		var drip_inst = demo.drip.active_instance
+		var valid: bool = false
+		var t2: int = Time.get_ticks_msec()
+		while Time.get_ticks_msec() - t2 < 2500 and not valid:
+			await tree.process_frame
+			if drip_inst != null and drip_inst.assigned_channel_id >= 0:
+				var ch = manager.voice_pool.get_channel(drip_inst.assigned_channel_id)
+				if ch != null and ch.sim_source >= 0:
+					valid = bool(ClassDB.class_call_static("OpenDouSimulator", "get_pathing", ch.sim_source).valid)
+		# El manager aplica el camino en su _process: un par de cuadros tras el primer resultado.
+		for i in range(6):
+			await tree.process_frame
+		var listener: Vector3 = manager.active_listener_position
+		var apparent: Vector3 = drip_inst.target_apparent_position - listener if drip_inst != null else Vector3.ZERO
+		var to_corner: Vector3 = Vector3(38.5, -14.5, 11.5) - listener
+		var to_real: Vector3 = Vector3(38.5, -14.5, -8) - listener
+		var ang_corner: float = rad_to_deg(apparent.angle_to(to_corner)) if apparent.length() > 0.01 else 180.0
+		var ang_real: float = rad_to_deg(apparent.angle_to(to_real)) if apparent.length() > 0.01 else 180.0
+		var drip_ch = manager.voice_pool.get_channel(drip_inst.assigned_channel_id) if drip_inst != null and drip_inst.assigned_channel_id >= 0 else null
+		print("[OpenDou] presa: goteo tras el codo: camino %s, aparente a %.1f grados del codo y %.1f del goteo | voz %s canal %s sim %s | sondas listas %s, adjuntas %s, con caminos %d, hilo %s, corridas %d, dist %.1f, pool planificador == pool manager: %s | pathing_active %s, pathing_gain %.2f, manager.pathing_enabled %s, get_pathing %s" % [str(valid), ang_corner, ang_real, str(drip_inst != null and drip_inst.is_playing()), str(drip_inst.assigned_channel_id) if drip_inst != null else "-", str(drip_ch.sim_source) if drip_ch != null else "-", str(manager.occlusion_scheduler.probes_ready), str(ClassDB.class_call_static("OpenDouSimulator", "probes_attached")), int(ClassDB.class_call_static("OpenDouSimulator", "pathing_source_count")), str(ClassDB.class_call_static("OpenDouSimulator", "is_reflections_running")), int(ClassDB.class_call_static("OpenDouSimulator", "pathing_runs")), drip_inst.emitter_position.distance_to(listener) if drip_inst != null else 0.0, str(manager.occlusion_scheduler.voice_pool == manager.voice_pool), str(drip_inst.pathing_active) if drip_inst != null else "-", drip_ch.pathing_gain if drip_ch != null else -1.0, str(manager.pathing_enabled), str(ClassDB.class_call_static("OpenDouSimulator", "get_pathing", drip_ch.sim_source)) if drip_ch != null and drip_ch.sim_source >= 0 else "-"])
+		a.ok(valid, "el goteo tiene camino por las sondas")
+		a.lt(ang_corner, 25.0, "y su origen aparente apunta al codo, no a traves del hormigon")
+	# ---- Z5: la compuerta tapa el aliviadero al bajar. Oyente en el hueco entre la galeria y la
+	# compuerta (41.1, -15.5, 6): mas al oeste, los muros de la galeria ya taparian el aliviadero.
+	var probe_w = OpenDouAudioProbeClass.new()
+	probe_w.attach_to_existing_bus(&"Spillway", 2.0)
+	demo.player.global_position = Vector3(41.1, -15.5, 10)
+	demo.set_gate_open(true, true)
+	for i in range(4):
+		await tree.physics_frame
+	for i in range(30):
+		await tree.process_frame
+	probe_w.drain()
+	var open_cap: Dictionary = await TestBinauralClass._capture(tree, probe_w)
+	demo.set_gate_open(false, true)
+	for i in range(4):
+		await tree.physics_frame
+	for i in range(30):
+		await tree.process_frame
+	probe_w.drain()
+	var closed_cap: Dictionary = await TestBinauralClass._capture(tree, probe_w)
+	var open_hi: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo_windowed(open_cap, rate, 2000.0, 8000.0), 1e-12))
+	var closed_hi: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo_windowed(closed_cap, rate, 2000.0, 8000.0), 1e-12))
+	var sp_inst = demo.spillway.active_instance
+	var sp_ch = manager.voice_pool.get_channel(sp_inst.assigned_channel_id) if sp_inst != null and sp_inst.assigned_channel_id >= 0 else null
+	var sp_direct = ClassDB.class_call_static("OpenDouSimulator", "get_direct", sp_ch.sim_source) if sp_ch != null and sp_ch.sim_source >= 0 else PackedFloat32Array()
+	print("[OpenDou] presa: planificador: simuladas %d, rayos %d, simulador %s, alcance directo %.0f m, fuentes %d de %d, voces fisicas max %d" % [manager.occlusion_scheduler.simulated_this_frame, manager.occlusion_scheduler.raycasts_this_frame, str(manager.occlusion_scheduler.ensure_simulator()), manager.occlusion_scheduler.lod_controller.direct_simulation_max_distance(), int(ClassDB.class_call_static("OpenDouSimulator", "source_count")), int(ClassDB.class_call_static("OpenDouSimulator", "capacity")), manager.voice_pool.max_physical_voices])
+	var probe_src: int = int(ClassDB.class_call_static("OpenDouSimulator", "create_source"))
+	print("[OpenDou] presa: create_source directo -> %d (rayos por cuadro %d, alcance fisica %.0f m)" % [probe_src, manager.occlusion_scheduler.raycasts_per_frame, manager.occlusion_scheduler.lod_controller.physics_occlusion_max_distance()])
+	if probe_src >= 0:
+		ClassDB.class_call_static("OpenDouSimulator", "release_source", probe_src)
+	for vi in manager.active_instances:
+		if vi == null or vi.definition == null or not vi.has_spatial_position:
+			continue
+		var vch = manager.voice_pool.get_channel(vi.assigned_channel_id) if vi.assigned_channel_id >= 0 else null
+		print("[OpenDou] presa:   voz %s dist %.1f canal %d sim %d room_path %s culled %s estado %s" % [String(vi.definition.event_name), vi.emitter_position.distance_to(manager.active_listener_position), vi.assigned_channel_id, vch.sim_source if vch != null else -9, str(vi.room_path_active), str(vi.culled), str(vi.voice_state)])
+	print("[OpenDou] presa: aliviadero: pathing_gain %.2f, pathing_active %s, camino %s" % [sp_ch.pathing_gain if sp_ch != null else -1.0, str(sp_inst.pathing_active) if sp_inst != null else "-", str(ClassDB.class_call_static("OpenDouSimulator", "get_pathing", sp_ch.sim_source)) if sp_ch != null and sp_ch.sim_source >= 0 else "-"])
+	print("[OpenDou] presa: aliviadero con la compuerta abierta %.1f dB de agudos, cerrada %.1f | voz %s en %s, canal %s sim %s, directo %s, oyente %s, sala oyente %s" % [open_hi, closed_hi, str(sp_inst != null and sp_inst.is_playing()), str(sp_inst.emitter_position) if sp_inst != null else "-", str(sp_inst.assigned_channel_id) if sp_inst != null else "-", str(sp_ch.sim_source) if sp_ch != null else "-", str(sp_direct), str(manager.active_listener_position), str(ac.get_room_at_position(manager.active_listener_position).room_name) if ac.get_room_at_position(manager.active_listener_position) != null else "ninguna"])
+	if steam:
+		a.gt(open_hi, closed_hi + 8.0, "al bajar la compuerta el aliviadero pierde al menos 8 dB de agudos sin rehacer el bake")
+	probe_w.teardown()
+	demo.set_gate_open(true, true)
+	# ---- Z6: bajo el agua. Master pierde la banda alta.
+	var probe_m = OpenDouAudioProbeClass.new()
+	probe_m.attach_to_existing_bus(&"Master", 2.0)
+	demo.player.global_position = Vector3(31, -15.5, 11.5)     # galeria, fuera del agua
+	for i in range(30):
+		await tree.process_frame
+	probe_m.drain()
+	var dry_cap: Dictionary = await TestBinauralClass._capture(tree, probe_m)
+	demo.player.global_position = Vector3(31, -18.5, 17)       # cuenco inundado (oyente sumergido)
+	for i in range(40):
+		await tree.process_frame
+	probe_m.drain()
+	var wet_cap: Dictionary = await TestBinauralClass._capture(tree, probe_m)
+	var master_fx: Array = []
+	var midx: int = AudioServer.get_bus_index("Master")
+	for e in range(AudioServer.get_bus_effect_count(midx)):
+		var fx = AudioServer.get_bus_effect(midx, e)
+		master_fx.append("%s(%s%s)" % [fx.get_class(), fx.resource_name, (" %.0f Hz" % fx.cutoff_hz) if fx is AudioEffectLowPassFilter else ""])
+	print("[OpenDou] presa: cadena de Master: %s" % str(master_fx))
+	var env = manager.environment
+	print("[OpenDou] presa: sumergido -> paso-bajo %.0f Hz, c = %.0f m/s, volumenes dentro %d; filtro en Master %s; oyente %s" % [env.medium_lowpass_hz, env.speed_of_sound, env.inside.size(), str(load("res://addons/opendou/runtime/spatial/medium_filter_installer.gd").is_installed()), str(manager.active_listener_position)])
+	var dry_hi: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo_windowed(dry_cap, rate, 2000.0, 8000.0), 1e-12))
+	var wet_hi: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo_windowed(wet_cap, rate, 2000.0, 8000.0), 1e-12))
+	var dry_lo: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo_windowed(dry_cap, rate, 100.0, 400.0), 1e-12))
+	var wet_lo: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo_windowed(wet_cap, rate, 100.0, 400.0), 1e-12))
+	print("[OpenDou] presa: Master fuera del agua agudos %.1f / graves %.1f; sumergido %.1f / %.1f" % [dry_hi, dry_lo, wet_hi, wet_lo])
+	a.lt(wet_hi - wet_lo, dry_hi - dry_lo - 10.0, "sumergido, la banda alta cae al menos 10 dB respecto a la grave (medio del volumen)")
+	probe_m.teardown()
+	# ---- Z7: el rio sigue al oyente y el flujo a favor sube el tono.
+	demo.player.global_position = Vector3(28, -15.5, 47)
+	for i in range(40):
+		await tree.process_frame
+	var river_inst = demo.river.active_instance
+	a.ok(river_inst != null and river_inst.is_playing(), "el rio suena como voz del pool")
+	if river_inst != null:
+		var d_river: float = river_inst.emitter_position.distance_to(Vector3(36, -16.2, 45))
+		print("[OpenDou] presa: el rio suena en %s (a %.1f m del oyente), doppler %.3f" % [str(river_inst.emitter_position), d_river, river_inst.doppler_pitch])
+		a.lt(d_river, 3.0, "el punto que suena es el final del rio, el mas cercano al oyente")
+		a.gt(river_inst.doppler_pitch, 1.01, "y el flujo a favor sube el tono (%.3f)" % river_inst.doppler_pitch)
+	# ---- Z8: el camion se acerca y se aleja. Oyente junto a la carretera norte (z = 27).
+	demo.player.global_position = Vector3(-8, -15.5, 30)
+	demo.truck_follow.progress = 28.0   # x = -30 en el tramo norte, hacia +x: se acerca
+	for i in range(40):
+		await tree.process_frame
+	var truck_inst = demo.truck.active_instance
+	var pitch_in: float = truck_inst.doppler_pitch if truck_inst != null else 1.0
+	demo.truck_follow.progress = 72.0   # x = +14: ya paso, se aleja
+	for i in range(40):
+		await tree.process_frame
+	var pitch_out: float = truck_inst.doppler_pitch if truck_inst != null else 1.0
+	print("[OpenDou] presa: camion acercandose %.3f, alejandose %.3f | voz %s, fisica %s, doppler %s, velocidad %s, pos %s" % [pitch_in, pitch_out, str(truck_inst != null), str(truck_inst.assigned_channel_id >= 0) if truck_inst != null else "-", str(truck_inst.doppler_enabled) if truck_inst != null else "-", str(truck_inst.emitter_velocity) if truck_inst != null else "-", str(truck_inst.emitter_position) if truck_inst != null else "-"])
+	a.gt(pitch_in, 1.02, "el camion sube de tono al acercarse")
+	a.lt(pitch_out, 0.98, "y baja al alejarse")
+	# ---- Z9: tormenta. El trueno tarda lo que tarda el sonido; la musica sube.
+	demo.advance_storm()
+	demo.advance_storm()
+	a.eq(int(demo.storm), 2, "T avanza la tormenta hasta STORM")
+	var probe_th = OpenDouAudioProbeClass.new()
+	probe_th.attach_to_existing_bus(&"Thunder", 3.0)
+	probe_th.drain()
+	demo.thunder.global_position = Vector3(0, 60, -343)
+	demo.thunder.play_event()
+	var th_frames := PackedVector2Array()
+	var t3: int = Time.get_ticks_msec()
+	var onset: float = -1.0
+	while Time.get_ticks_msec() - t3 < 2500 and onset < 0.0:
+		await tree.process_frame
+		var avail: int = probe_th._capture.get_frames_available()
+		if avail > 0:
+			var buf: PackedVector2Array = probe_th._capture.get_buffer(avail)
+			for i in range(buf.size()):
+				if absf(buf[i].x) + absf(buf[i].y) > 0.02:
+					onset = float(th_frames.size() + i) / rate
+					break
+			th_frames.append_array(buf)
+	var th_inst = demo.thunder.active_instance
+	print("[OpenDou] presa: el trueno a 343 m llega a %.2f s (audio); intensidad musical %.2f | voz %s canal %s vol %.1f dist %.0f" % [onset, demo.music.combat_intensity, str(th_inst != null and th_inst.is_playing()), str(th_inst.assigned_channel_id) if th_inst != null else "-", th_inst.calculated_volume_db if th_inst != null else 0.0, th_inst.emitter_position.distance_to(manager.active_listener_position) if th_inst != null else 0.0])
+	if steam:
+		a.gt(onset, 0.85, "el trueno a 343 m tarda al menos 0.85 s en llegar")
+	a.gt(demo.music.combat_intensity, 0.3, "la tormenta sube la intensidad de la musica")
+	probe_th.teardown()
+	# ---- Z10: los vigilantes oyen tus pisadas segun distancia y geometria.
+	var yard = demo.get_node("GuardYard")
+	yard.global_position = Vector3(0, -15.5, 27)
+	demo.heard_log.clear()
+	demo.player.global_position = Vector3(4, -15.5, 27)          # a 4 m, al aire libre
+	for i in range(3):
+		await tree.process_frame
+	for k in range(3):
+		demo.player.rig.step()
+		for i in range(8):
+			await tree.process_frame
+	var heard_near: int = 0
+	var near_db: Array = []
+	for h in demo.heard_log:
+		if h.guard == "GuardYard" and h.event == &"Footstep":
+			heard_near += 1
+			near_db.append(snappedf(h.db, 0.1))
+	demo.heard_log.clear()
+	demo.player.global_position = Vector3(12, -15.5, 8)          # dentro de la nave, tras el muro sur
+	for i in range(3):
+		await tree.process_frame
+	for k in range(3):
+		demo.player.rig.step()
+		for i in range(8):
+			await tree.process_frame
+	var heard_far: int = 0
+	for h in demo.heard_log:
+		if h.guard == "GuardYard" and h.event == &"Footstep":
+			heard_far += 1
+	# Control: a la misma distancia al aire libre si las oye (la diferencia es la geometria).
+	demo.heard_log.clear()
+	demo.player.global_position = Vector3(-22, -15.5, 27)
+	for i in range(3):
+		await tree.process_frame
+	for k in range(3):
+		demo.player.rig.step()
+		for i in range(8):
+			await tree.process_frame
+	var heard_open: int = 0
+	for h in demo.heard_log:
+		if h.guard == "GuardYard" and h.event == &"Footstep":
+			heard_open += 1
+	var far_db: Array = []
+	for h in demo.heard_log:
+		if h.guard == "GuardYard":
+			far_db.append(snappedf(h.db, 0.1))
+	print("[OpenDou] presa: el vigilante del patio oyo %d pisadas a 4 m y %d a 22 m tras el muro (dB cerca: %s, lejos: %s), %d al aire libre" % [heard_near, heard_far, str(near_db), str(far_db), heard_open])
+	a.gt(float(heard_near), 0.0, "el vigilante oye las pisadas a 4 m")
+	a.gt(float(heard_open), 0.0, "y a 22 m al aire libre (%d)" % heard_open)
+	a.eq(heard_far, 0, "pero no a 22 m dentro de la nave, tras el muro y la turbina")
+	# ---- HUD y megafonia
+	var indicator = demo.get_node("Accessibility/SoundIndicator")
+	for i in range(10):
+		await tree.process_frame
+	a.gt(float(indicator.get_indicators().size()), 0.0, "el indicador de sonidos lista lo que suena (%d)" % indicator.get_indicators().size())
+	var horn_inst = demo.horn.active_instance
+	print("[OpenDou] presa: bocina voz %s, estado %s, canal %s; radio fuente %s; bus Radio %.1f dB" % [str(horn_inst != null), str(horn_inst.voice_state) if horn_inst != null else "-", str(horn_inst.assigned_channel_id) if horn_inst != null else "-", str(demo.radio_source.active_instance != null and demo.radio_source.active_instance.is_playing()), AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Radio"))])
+	a.ok(demo.horn.active_instance != null and demo.horn.active_instance.is_playing(), "la bocina de megafonia tiene voz (BUS_CAPTURE)")
+	a.lt(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Radio")), -79.0, "el bus Radio calla en directo: suena por la bocina")
+	# ---- Sonoridad y limpieza
+	TestLoudnessMeterClass.check_budget(a, "presa", TestLoudnessMeterClass.finish_master_meter(lufs_meter))
+	manager.stop_all()
+	_release_current(demo)
+	tree.root.remove_child(demo)
+	demo.free()
+	await tree.process_frame
+	a.eq(manager.active_instances.size(), 0, "la presa no deja instancias en el autoload")
 	return a

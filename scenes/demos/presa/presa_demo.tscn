@@ -1,4 +1,4 @@
-[gd_scene load_steps=157 format=3]
+[gd_scene load_steps=160 format=3]
 
 [ext_resource type="Script" path="res://scenes/demos/presa/presa_demo.gd" id="1_demo"]
 [ext_resource type="Script" path="res://addons/opendou/nodes/opendou_room_3d.gd" id="2_room"]
@@ -95,16 +95,13 @@ _data = {
 point_count = 5
 
 [sub_resource type="BoxShape3D" id="Shape_room_nave"]
-size = Vector3(36, 14, 18)
-
-[sub_resource type="BoxShape3D" id="Shape_room_control"]
-size = Vector3(8, 4, 6)
+size = Vector3(46, 14, 18)
 
 [sub_resource type="BoxShape3D" id="Shape_room_galeria"]
-size = Vector3(22, 2.5, 23)
+size = Vector3(22, 4.5, 23)
 
 [sub_resource type="BoxShape3D" id="Shape_room_inundada"]
-size = Vector3(6, 4.5, 6)
+size = Vector3(6, 6.5, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_room_valle"]
 size = Vector3(140, 30, 48)
@@ -140,309 +137,321 @@ size = Vector3(140, 1, 48)
 size = Vector3(140, 1, 48)
 
 [sub_resource type="BoxShape3D" id="Shape_1"]
-size = Vector3(140, 20, 6)
+size = Vector3(106.5, 20, 6)
 
 [sub_resource type="BoxMesh" id="Mesh_1"]
-size = Vector3(140, 20, 6)
+size = Vector3(106.5, 20, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_2"]
-size = Vector3(6, 20, 48)
+size = Vector3(29.5, 20, 6)
 
 [sub_resource type="BoxMesh" id="Mesh_2"]
-size = Vector3(6, 20, 48)
+size = Vector3(29.5, 20, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_3"]
-size = Vector3(120, 0.02, 6)
+size = Vector3(4, 16.5, 6)
 
 [sub_resource type="BoxMesh" id="Mesh_3"]
-size = Vector3(120, 0.02, 6)
+size = Vector3(4, 16.5, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_4"]
-size = Vector3(6, 0.02, 8)
+size = Vector3(6, 20, 48)
 
 [sub_resource type="BoxMesh" id="Mesh_4"]
-size = Vector3(6, 0.02, 8)
+size = Vector3(6, 20, 48)
 
 [sub_resource type="BoxShape3D" id="Shape_5"]
-size = Vector3(10, 0.4, 34)
+size = Vector3(120, 0.02, 6)
 
 [sub_resource type="BoxMesh" id="Mesh_5"]
-size = Vector3(10, 0.4, 34)
+size = Vector3(120, 0.02, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_6"]
-size = Vector3(24, 0.02, 15)
+size = Vector3(6, 0.02, 8)
 
 [sub_resource type="BoxMesh" id="Mesh_6"]
-size = Vector3(24, 0.02, 15)
+size = Vector3(6, 0.02, 8)
 
 [sub_resource type="BoxShape3D" id="Shape_7"]
-size = Vector3(0.5, 3, 0.5)
+size = Vector3(10, 0.4, 34)
 
 [sub_resource type="BoxMesh" id="Mesh_7"]
-size = Vector3(0.5, 3, 0.5)
+size = Vector3(10, 0.4, 34)
 
 [sub_resource type="BoxShape3D" id="Shape_8"]
-size = Vector3(3, 3, 3)
+size = Vector3(24, 0.02, 15)
 
 [sub_resource type="BoxMesh" id="Mesh_8"]
-size = Vector3(3, 3, 3)
+size = Vector3(24, 0.02, 15)
 
 [sub_resource type="BoxShape3D" id="Shape_9"]
-size = Vector3(36, 0.5, 18)
+size = Vector3(0.5, 3, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_9"]
-size = Vector3(36, 0.5, 18)
+size = Vector3(0.5, 3, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_10"]
-size = Vector3(37, 0.5, 19)
+size = Vector3(3, 3, 3)
 
 [sub_resource type="BoxMesh" id="Mesh_10"]
-size = Vector3(37, 0.5, 19)
+size = Vector3(3, 3, 3)
 
 [sub_resource type="BoxShape3D" id="Shape_11"]
-size = Vector3(0.5, 14, 6)
+size = Vector3(36, 0.5, 18)
 
 [sub_resource type="BoxMesh" id="Mesh_11"]
-size = Vector3(0.5, 14, 6)
+size = Vector3(36, 0.5, 18)
 
 [sub_resource type="BoxShape3D" id="Shape_12"]
-size = Vector3(0.5, 14, 2)
+size = Vector3(37, 0.5, 19)
 
 [sub_resource type="BoxMesh" id="Mesh_12"]
-size = Vector3(0.5, 14, 2)
+size = Vector3(37, 0.5, 19)
 
 [sub_resource type="BoxShape3D" id="Shape_13"]
-size = Vector3(0.5, 14, 4)
+size = Vector3(0.5, 14, 6)
 
 [sub_resource type="BoxMesh" id="Mesh_13"]
-size = Vector3(0.5, 14, 4)
+size = Vector3(0.5, 14, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_14"]
-size = Vector3(0.5, 11.5, 2)
+size = Vector3(0.5, 14, 2)
 
 [sub_resource type="BoxMesh" id="Mesh_14"]
-size = Vector3(0.5, 11.5, 2)
+size = Vector3(0.5, 14, 2)
 
 [sub_resource type="BoxShape3D" id="Shape_15"]
-size = Vector3(0.5, 1.5, 4)
+size = Vector3(0.5, 14, 4)
 
 [sub_resource type="BoxMesh" id="Mesh_15"]
-size = Vector3(0.5, 1.5, 4)
+size = Vector3(0.5, 14, 4)
 
 [sub_resource type="BoxShape3D" id="Shape_16"]
-size = Vector3(0.5, 10.5, 4)
+size = Vector3(0.5, 11.5, 2)
 
 [sub_resource type="BoxMesh" id="Mesh_16"]
-size = Vector3(0.5, 10.5, 4)
+size = Vector3(0.5, 11.5, 2)
 
 [sub_resource type="BoxShape3D" id="Shape_17"]
-size = Vector3(0.3, 2, 4)
+size = Vector3(0.5, 1.5, 4)
 
 [sub_resource type="BoxMesh" id="Mesh_17"]
-size = Vector3(0.3, 2, 4)
+size = Vector3(0.5, 1.5, 4)
 
 [sub_resource type="BoxShape3D" id="Shape_18"]
-size = Vector3(0.5, 14, 7)
+size = Vector3(0.5, 10.5, 4)
 
 [sub_resource type="BoxMesh" id="Mesh_18"]
-size = Vector3(0.5, 14, 7)
+size = Vector3(0.5, 10.5, 4)
 
 [sub_resource type="BoxShape3D" id="Shape_19"]
-size = Vector3(0.5, 14, 8)
+size = Vector3(0.3, 2, 4)
 
 [sub_resource type="BoxMesh" id="Mesh_19"]
-size = Vector3(0.5, 14, 8)
+size = Vector3(0.3, 2, 4)
 
 [sub_resource type="BoxShape3D" id="Shape_20"]
-size = Vector3(0.5, 11.5, 3)
+size = Vector3(0.5, 14, 7)
 
 [sub_resource type="BoxMesh" id="Mesh_20"]
-size = Vector3(0.5, 11.5, 3)
+size = Vector3(0.5, 14, 7)
 
 [sub_resource type="BoxShape3D" id="Shape_21"]
-size = Vector3(15.5, 14, 0.5)
+size = Vector3(0.5, 14, 8)
 
 [sub_resource type="BoxMesh" id="Mesh_21"]
-size = Vector3(15.5, 14, 0.5)
+size = Vector3(0.5, 14, 8)
 
 [sub_resource type="BoxShape3D" id="Shape_22"]
-size = Vector3(6, 10, 0.5)
+size = Vector3(0.5, 10.5, 3)
 
 [sub_resource type="BoxMesh" id="Mesh_22"]
-size = Vector3(6, 10, 0.5)
+size = Vector3(0.5, 10.5, 3)
 
 [sub_resource type="BoxShape3D" id="Shape_23"]
-size = Vector3(34, 0.2, 2)
+size = Vector3(15.5, 14, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_23"]
-size = Vector3(34, 0.2, 2)
+size = Vector3(15.5, 14, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_24"]
-size = Vector3(0.4, 8, 0.4)
+size = Vector3(6, 10, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_24"]
-size = Vector3(0.4, 8, 0.4)
+size = Vector3(6, 10, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_25"]
-size = Vector3(4, 3, 4)
+size = Vector3(34, 0.2, 2)
 
 [sub_resource type="BoxMesh" id="Mesh_25"]
-size = Vector3(4, 3, 4)
+size = Vector3(34, 0.2, 2)
 
 [sub_resource type="BoxShape3D" id="Shape_26"]
-size = Vector3(8, 0.5, 6)
+size = Vector3(0.4, 8, 0.4)
 
 [sub_resource type="BoxMesh" id="Mesh_26"]
-size = Vector3(8, 0.5, 6)
+size = Vector3(0.4, 8, 0.4)
 
 [sub_resource type="BoxShape3D" id="Shape_27"]
-size = Vector3(9, 0.5, 7)
+size = Vector3(4, 3, 4)
 
 [sub_resource type="BoxMesh" id="Mesh_27"]
-size = Vector3(9, 0.5, 7)
+size = Vector3(4, 3, 4)
 
 [sub_resource type="BoxShape3D" id="Shape_28"]
-size = Vector3(0.5, 4, 6)
+size = Vector3(8, 0.5, 6)
 
 [sub_resource type="BoxMesh" id="Mesh_28"]
-size = Vector3(0.5, 4, 6)
+size = Vector3(8, 0.5, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_29"]
-size = Vector3(9, 4, 0.5)
+size = Vector3(9, 0.5, 7)
 
 [sub_resource type="BoxMesh" id="Mesh_29"]
-size = Vector3(9, 4, 0.5)
+size = Vector3(9, 0.5, 7)
 
 [sub_resource type="BoxShape3D" id="Shape_30"]
-size = Vector3(3.5, 4, 0.5)
+size = Vector3(0.5, 4, 6)
 
 [sub_resource type="BoxMesh" id="Mesh_30"]
-size = Vector3(3.5, 4, 0.5)
+size = Vector3(0.5, 4, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_31"]
-size = Vector3(2, 1.5, 0.5)
+size = Vector3(9, 4, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_31"]
-size = Vector3(2, 1.5, 0.5)
+size = Vector3(9, 4, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_32"]
-size = Vector3(12, 0.5, 4)
+size = Vector3(3.5, 4, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_32"]
-size = Vector3(12, 0.5, 4)
+size = Vector3(3.5, 4, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_33"]
-size = Vector3(22, 0.5, 3)
+size = Vector3(2, 1.5, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_33"]
-size = Vector3(22, 0.5, 3)
+size = Vector3(2, 1.5, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_34"]
-size = Vector3(22, 0.5, 3.5)
+size = Vector3(12, 0.5, 4)
 
 [sub_resource type="BoxMesh" id="Mesh_34"]
-size = Vector3(22, 0.5, 3.5)
+size = Vector3(12, 0.5, 4)
 
 [sub_resource type="BoxShape3D" id="Shape_35"]
-size = Vector3(19, 2.5, 0.5)
+size = Vector3(22, 0.5, 3)
 
 [sub_resource type="BoxMesh" id="Mesh_35"]
-size = Vector3(19, 2.5, 0.5)
+size = Vector3(22, 0.5, 3)
 
 [sub_resource type="BoxShape3D" id="Shape_36"]
-size = Vector3(10, 2.5, 0.5)
+size = Vector3(22, 0.5, 3.5)
 
 [sub_resource type="BoxMesh" id="Mesh_36"]
-size = Vector3(10, 2.5, 0.5)
+size = Vector3(22, 0.5, 3.5)
 
 [sub_resource type="BoxShape3D" id="Shape_37"]
-size = Vector3(6.25, 2.5, 0.5)
+size = Vector3(19, 3.5, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_37"]
-size = Vector3(6.25, 2.5, 0.5)
+size = Vector3(19, 3.5, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_38"]
-size = Vector3(3, 0.5, 20)
+size = Vector3(10, 3.5, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_38"]
-size = Vector3(3, 0.5, 20)
+size = Vector3(10, 3.5, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_39"]
-size = Vector3(3.5, 0.5, 20)
+size = Vector3(6.25, 3.5, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_39"]
-size = Vector3(3.5, 0.5, 20)
+size = Vector3(6.25, 3.5, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_40"]
-size = Vector3(0.5, 2.5, 20)
+size = Vector3(3, 0.5, 20)
 
 [sub_resource type="BoxMesh" id="Mesh_40"]
-size = Vector3(0.5, 2.5, 20)
+size = Vector3(3, 0.5, 20)
 
 [sub_resource type="BoxShape3D" id="Shape_41"]
-size = Vector3(0.5, 2.5, 23.25)
+size = Vector3(3.5, 0.5, 20)
 
 [sub_resource type="BoxMesh" id="Mesh_41"]
-size = Vector3(0.5, 2.5, 23.25)
+size = Vector3(3.5, 0.5, 20)
 
 [sub_resource type="BoxShape3D" id="Shape_42"]
-size = Vector3(4, 2.5, 0.5)
+size = Vector3(0.5, 3.5, 20)
 
 [sub_resource type="BoxMesh" id="Mesh_42"]
-size = Vector3(4, 2.5, 0.5)
+size = Vector3(0.5, 3.5, 20)
 
 [sub_resource type="BoxShape3D" id="Shape_43"]
-size = Vector3(6, 0.5, 6)
+size = Vector3(0.5, 3.5, 23.25)
 
 [sub_resource type="BoxMesh" id="Mesh_43"]
-size = Vector3(6, 0.5, 6)
+size = Vector3(0.5, 3.5, 23.25)
 
 [sub_resource type="BoxShape3D" id="Shape_44"]
-size = Vector3(0.5, 5.5, 6)
+size = Vector3(4, 3.5, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_44"]
-size = Vector3(0.5, 5.5, 6)
+size = Vector3(4, 3.5, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_45"]
-size = Vector3(7, 5.5, 0.5)
+size = Vector3(6, 0.5, 6)
 
 [sub_resource type="BoxMesh" id="Mesh_45"]
-size = Vector3(7, 5.5, 0.5)
+size = Vector3(6, 0.5, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_46"]
-size = Vector3(7, 0.5, 6.5)
+size = Vector3(0.5, 6.5, 6)
 
 [sub_resource type="BoxMesh" id="Mesh_46"]
-size = Vector3(7, 0.5, 6.5)
+size = Vector3(0.5, 6.5, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_47"]
-size = Vector3(4, 0.3, 4.2)
+size = Vector3(7, 6.5, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_47"]
-size = Vector3(4, 0.3, 4.2)
+size = Vector3(7, 6.5, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_48"]
-size = Vector3(16, 0.4, 12)
+size = Vector3(7, 0.5, 6.5)
 
 [sub_resource type="BoxMesh" id="Mesh_48"]
-size = Vector3(16, 0.4, 12)
+size = Vector3(7, 0.5, 6.5)
 
 [sub_resource type="BoxShape3D" id="Shape_49"]
-size = Vector3(16, 8, 0.5)
+size = Vector3(4, 0.3, 4.2)
 
 [sub_resource type="BoxMesh" id="Mesh_49"]
-size = Vector3(16, 8, 0.5)
+size = Vector3(4, 0.3, 4.2)
 
 [sub_resource type="BoxShape3D" id="Shape_50"]
-size = Vector3(0.4, 8, 12)
+size = Vector3(16, 0.4, 11.5)
 
 [sub_resource type="BoxMesh" id="Mesh_50"]
-size = Vector3(0.4, 8, 12)
+size = Vector3(16, 0.4, 11.5)
 
 [sub_resource type="BoxShape3D" id="Shape_51"]
-size = Vector3(1, 8, 1)
+size = Vector3(16, 8, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_51"]
+size = Vector3(16, 8, 0.5)
+
+[sub_resource type="BoxShape3D" id="Shape_52"]
+size = Vector3(0.4, 8, 12)
+
+[sub_resource type="BoxMesh" id="Mesh_52"]
+size = Vector3(0.4, 8, 12)
+
+[sub_resource type="BoxShape3D" id="Shape_53"]
+size = Vector3(1, 8, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_53"]
 size = Vector3(1, 8, 1)
 
 [node name="PresaDemo" type="Node3D"]
@@ -460,14 +469,36 @@ mesh = SubResource("Mesh_0")
 material_override = SubResource("Mat_Stone")
 metadata/acoustic_material = &"Stone"
 
-[node name="DamWall" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -6, 0)
+[node name="DamWall_West" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.75, -6, 0)
 
-[node name="Collision" type="CollisionShape3D" parent="DamWall"]
+[node name="Collision" type="CollisionShape3D" parent="DamWall_West"]
 shape = SubResource("Shape_1")
 
-[node name="Mesh" type="MeshInstance3D" parent="DamWall" groups=["AcousticObstacle"]]
+[node name="Mesh" type="MeshInstance3D" parent="DamWall_West" groups=["AcousticObstacle"]]
 mesh = SubResource("Mesh_1")
+material_override = SubResource("Mat_Concrete")
+metadata/acoustic_material = &"Concrete"
+
+[node name="DamWall_East" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.25, -6, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="DamWall_East"]
+shape = SubResource("Shape_2")
+
+[node name="Mesh" type="MeshInstance3D" parent="DamWall_East" groups=["AcousticObstacle"]]
+mesh = SubResource("Mesh_2")
+material_override = SubResource("Mat_Concrete")
+metadata/acoustic_material = &"Concrete"
+
+[node name="DamWall_Over" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, -4.25, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="DamWall_Over"]
+shape = SubResource("Shape_3")
+
+[node name="Mesh" type="MeshInstance3D" parent="DamWall_Over" groups=["AcousticObstacle"]]
+mesh = SubResource("Mesh_3")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -475,10 +506,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -73, -6, 24)
 
 [node name="Collision" type="CollisionShape3D" parent="HillWest"]
-shape = SubResource("Shape_2")
+shape = SubResource("Shape_4")
 
 [node name="Mesh" type="MeshInstance3D" parent="HillWest" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_2")
+mesh = SubResource("Mesh_4")
 material_override = SubResource("Mat_Stone")
 metadata/acoustic_material = &"Stone"
 
@@ -486,10 +517,10 @@ metadata/acoustic_material = &"Stone"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73, -6, 24)
 
 [node name="Collision" type="CollisionShape3D" parent="HillEast"]
-shape = SubResource("Shape_2")
+shape = SubResource("Shape_4")
 
 [node name="Mesh" type="MeshInstance3D" parent="HillEast" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_2")
+mesh = SubResource("Mesh_4")
 material_override = SubResource("Mat_Stone")
 metadata/acoustic_material = &"Stone"
 
@@ -498,10 +529,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -15.99, 41)
 metadata/surface_type = &"Asphalt"
 
 [node name="Collision" type="CollisionShape3D" parent="Road_S"]
-shape = SubResource("Shape_3")
+shape = SubResource("Shape_5")
 
 [node name="Mesh" type="MeshInstance3D" parent="Road_S"]
-mesh = SubResource("Mesh_3")
+mesh = SubResource("Mesh_5")
 material_override = SubResource("Mat_Asphalt")
 metadata/acoustic_material = &"Asphalt"
 
@@ -510,10 +541,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -15.99, 27)
 metadata/surface_type = &"Asphalt"
 
 [node name="Collision" type="CollisionShape3D" parent="Road_N"]
-shape = SubResource("Shape_3")
+shape = SubResource("Shape_5")
 
 [node name="Mesh" type="MeshInstance3D" parent="Road_N"]
-mesh = SubResource("Mesh_3")
+mesh = SubResource("Mesh_5")
 material_override = SubResource("Mat_Asphalt")
 metadata/acoustic_material = &"Asphalt"
 
@@ -522,10 +553,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58, -15.99, 34)
 metadata/surface_type = &"Asphalt"
 
 [node name="Collision" type="CollisionShape3D" parent="Road_W"]
-shape = SubResource("Shape_4")
+shape = SubResource("Shape_6")
 
 [node name="Mesh" type="MeshInstance3D" parent="Road_W"]
-mesh = SubResource("Mesh_4")
+mesh = SubResource("Mesh_6")
 material_override = SubResource("Mat_Asphalt")
 metadata/acoustic_material = &"Asphalt"
 
@@ -534,10 +565,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58, -15.99, 34)
 metadata/surface_type = &"Asphalt"
 
 [node name="Collision" type="CollisionShape3D" parent="Road_E"]
-shape = SubResource("Shape_4")
+shape = SubResource("Shape_6")
 
 [node name="Mesh" type="MeshInstance3D" parent="Road_E"]
-mesh = SubResource("Mesh_4")
+mesh = SubResource("Mesh_6")
 material_override = SubResource("Mat_Asphalt")
 metadata/acoustic_material = &"Asphalt"
 
@@ -546,10 +577,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, -16.2, 29)
 metadata/surface_type = &"Water"
 
 [node name="Collision" type="CollisionShape3D" parent="Riverbed"]
-shape = SubResource("Shape_5")
+shape = SubResource("Shape_7")
 
 [node name="Mesh" type="MeshInstance3D" parent="Riverbed"]
-mesh = SubResource("Mesh_5")
+mesh = SubResource("Mesh_7")
 material_override = SubResource("Mat_Water")
 metadata/acoustic_material = &"Water"
 
@@ -558,10 +589,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, -15.99, 37.5)
 metadata/surface_type = &"Foliage"
 
 [node name="Collision" type="CollisionShape3D" parent="ForestGround"]
-shape = SubResource("Shape_6")
+shape = SubResource("Shape_8")
 
 [node name="Mesh" type="MeshInstance3D" parent="ForestGround"]
-mesh = SubResource("Mesh_6")
+mesh = SubResource("Mesh_8")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -569,10 +600,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.9535, -14.5, 37.2462)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_0"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -580,10 +611,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.9535, -11.5, 37.2462)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_0"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -591,10 +622,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.173, -14.5, 36.8079)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_1"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_1" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -602,10 +633,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.173, -11.5, 36.8079)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_1"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_1" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -613,10 +644,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.0093, -14.5, 39.5502)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_2"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_2" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -624,10 +655,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.0093, -11.5, 39.5502)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_2"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_2" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -635,10 +666,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.6948, -14.5, 39.2549)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_3"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_3" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -646,10 +677,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.6948, -11.5, 39.2549)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_3"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_3" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -657,10 +688,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.2228, -14.5, 34.9266)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_4"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_4" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -668,10 +699,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.2228, -11.5, 34.9266)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_4"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_4" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -679,10 +710,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.3714, -14.5, 32.8454)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_5"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_5" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -690,10 +721,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.3714, -11.5, 32.8454)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_5"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_5" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -701,10 +732,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.3551, -14.5, 35.0314)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_6"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_6" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -712,10 +743,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.3551, -11.5, 35.0314)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_6"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_6" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -723,10 +754,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.3633, -14.5, 43.4307)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_7"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_7" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -734,10 +765,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.3633, -11.5, 43.4307)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_7"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_7" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -745,10 +776,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.5771, -14.5, 42.616)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_8"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_8" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -756,10 +787,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.5771, -11.5, 42.616)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_8"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_8" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -767,10 +798,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.768, -14.5, 39.6764)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_9"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_9" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -778,10 +809,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.768, -11.5, 39.6764)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_9"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_9" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -789,10 +820,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.6021, -14.5, 36.9382)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_10"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_10" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -800,10 +831,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.6021, -11.5, 36.9382)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_10"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_10" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -811,10 +842,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.7885, -14.5, 34.8509)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_11"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_11" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -822,10 +853,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.7885, -11.5, 34.8509)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_11"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_11" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -833,10 +864,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.9354, -14.5, 35.0273)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_12"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_12" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -844,10 +875,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.9354, -11.5, 35.0273)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_12"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_12" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -855,10 +886,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.6812, -14.5, 41.2417)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_13"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_13" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -866,10 +897,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.6812, -11.5, 41.2417)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_13"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_13" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -877,10 +908,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.6512, -14.5, 36.5006)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_14"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_14" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -888,10 +919,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.6512, -11.5, 36.5006)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_14"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_14" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -899,10 +930,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.1465, -14.5, 43.329)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_15"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_15" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -910,10 +941,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.1465, -11.5, 43.329)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_15"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_15" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -921,10 +952,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.4465, -14.5, 31.5721)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_16"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_16" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -932,10 +963,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.4465, -11.5, 31.5721)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_16"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_16" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -943,10 +974,10 @@ metadata/acoustic_material = &"Foliage"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.4255, -14.5, 41.8234)
 
 [node name="Collision" type="CollisionShape3D" parent="Trunk_17"]
-shape = SubResource("Shape_7")
+shape = SubResource("Shape_9")
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk_17" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_7")
+mesh = SubResource("Mesh_9")
 material_override = SubResource("Mat_Wood")
 metadata/acoustic_material = &"Wood"
 
@@ -954,10 +985,10 @@ metadata/acoustic_material = &"Wood"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.4255, -11.5, 41.8234)
 
 [node name="Collision" type="CollisionShape3D" parent="Canopy_17"]
-shape = SubResource("Shape_8")
+shape = SubResource("Shape_10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Canopy_17" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_8")
+mesh = SubResource("Mesh_10")
 material_override = SubResource("Mat_Foliage")
 metadata/acoustic_material = &"Foliage"
 
@@ -966,10 +997,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -16.25, 12)
 metadata/surface_type = &"Metal"
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_Floor"]
-shape = SubResource("Shape_9")
+shape = SubResource("Shape_11")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_Floor" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_9")
+mesh = SubResource("Mesh_11")
 material_override = SubResource("Mat_Metal")
 metadata/acoustic_material = &"Metal"
 
@@ -977,10 +1008,10 @@ metadata/acoustic_material = &"Metal"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 12)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_Roof"]
-shape = SubResource("Shape_10")
+shape = SubResource("Shape_12")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_Roof" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_10")
+mesh = SubResource("Mesh_12")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -988,10 +1019,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.25, -9, 6)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_West_0"]
-shape = SubResource("Shape_11")
+shape = SubResource("Shape_13")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_West_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_11")
+mesh = SubResource("Mesh_13")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -999,10 +1030,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.25, -9, 14)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_West_1"]
-shape = SubResource("Shape_12")
+shape = SubResource("Shape_14")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_West_1" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_12")
+mesh = SubResource("Mesh_14")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1010,10 +1041,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.25, -9, 19)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_West_2"]
-shape = SubResource("Shape_13")
+shape = SubResource("Shape_15")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_West_2" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_13")
+mesh = SubResource("Mesh_15")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1021,10 +1052,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.25, -7.75, 16)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_West_3"]
-shape = SubResource("Shape_14")
+shape = SubResource("Shape_16")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_West_3" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_14")
+mesh = SubResource("Mesh_16")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1032,10 +1063,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.25, -15.25, 11)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_West_4"]
-shape = SubResource("Shape_15")
+shape = SubResource("Shape_17")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_West_4" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_15")
+mesh = SubResource("Mesh_17")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1043,10 +1074,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.25, -7.25, 11)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_West_5"]
-shape = SubResource("Shape_16")
+shape = SubResource("Shape_18")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_West_5" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_16")
+mesh = SubResource("Mesh_18")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1054,10 +1085,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.25, -13.5, 11)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_Window"]
-shape = SubResource("Shape_17")
+shape = SubResource("Shape_19")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_Window" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_17")
+mesh = SubResource("Mesh_19")
 material_override = SubResource("Mat_Glass")
 metadata/acoustic_material = &"Glass"
 
@@ -1065,10 +1096,10 @@ metadata/acoustic_material = &"Glass"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.25, -9, 6.5)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_East_0"]
-shape = SubResource("Shape_18")
+shape = SubResource("Shape_20")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_East_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_18")
+mesh = SubResource("Mesh_20")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1076,21 +1107,21 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.25, -9, 17)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_East_1"]
-shape = SubResource("Shape_19")
+shape = SubResource("Shape_21")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_East_1" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_19")
+mesh = SubResource("Mesh_21")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Nave_East_2" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.25, -7.75, 11.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.25, -7.25, 11.5)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_East_2"]
-shape = SubResource("Shape_20")
+shape = SubResource("Shape_22")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_East_2" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_20")
+mesh = SubResource("Mesh_22")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1098,10 +1129,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.75, -9, 21.25)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_South_0"]
-shape = SubResource("Shape_21")
+shape = SubResource("Shape_23")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_South_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_21")
+mesh = SubResource("Mesh_23")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1109,10 +1140,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.75, -9, 21.25)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_South_1"]
-shape = SubResource("Shape_21")
+shape = SubResource("Shape_23")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_South_1" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_21")
+mesh = SubResource("Mesh_23")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1120,10 +1151,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -7, 21.25)
 
 [node name="Collision" type="CollisionShape3D" parent="Nave_South_2"]
-shape = SubResource("Shape_22")
+shape = SubResource("Shape_24")
 
 [node name="Mesh" type="MeshInstance3D" parent="Nave_South_2" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_22")
+mesh = SubResource("Mesh_24")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1132,10 +1163,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -8, 6)
 metadata/surface_type = &"Metal"
 
 [node name="Collision" type="CollisionShape3D" parent="Catwalk"]
-shape = SubResource("Shape_23")
+shape = SubResource("Shape_25")
 
 [node name="Mesh" type="MeshInstance3D" parent="Catwalk" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_23")
+mesh = SubResource("Mesh_25")
 material_override = SubResource("Mat_Metal")
 metadata/acoustic_material = &"Metal"
 
@@ -1143,10 +1174,10 @@ metadata/acoustic_material = &"Metal"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -12, 5)
 
 [node name="Collision" type="CollisionShape3D" parent="Pillar_0"]
-shape = SubResource("Shape_24")
+shape = SubResource("Shape_26")
 
 [node name="Mesh" type="MeshInstance3D" parent="Pillar_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_24")
+mesh = SubResource("Mesh_26")
 material_override = SubResource("Mat_Metal")
 metadata/acoustic_material = &"Metal"
 
@@ -1154,10 +1185,10 @@ metadata/acoustic_material = &"Metal"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, -12, 5)
 
 [node name="Collision" type="CollisionShape3D" parent="Pillar_1"]
-shape = SubResource("Shape_24")
+shape = SubResource("Shape_26")
 
 [node name="Mesh" type="MeshInstance3D" parent="Pillar_1" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_24")
+mesh = SubResource("Mesh_26")
 material_override = SubResource("Mat_Metal")
 metadata/acoustic_material = &"Metal"
 
@@ -1165,10 +1196,10 @@ metadata/acoustic_material = &"Metal"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, -12, 5)
 
 [node name="Collision" type="CollisionShape3D" parent="Pillar_2"]
-shape = SubResource("Shape_24")
+shape = SubResource("Shape_26")
 
 [node name="Mesh" type="MeshInstance3D" parent="Pillar_2" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_24")
+mesh = SubResource("Mesh_26")
 material_override = SubResource("Mat_Metal")
 metadata/acoustic_material = &"Metal"
 
@@ -1176,10 +1207,10 @@ metadata/acoustic_material = &"Metal"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, -12, 5)
 
 [node name="Collision" type="CollisionShape3D" parent="Pillar_3"]
-shape = SubResource("Shape_24")
+shape = SubResource("Shape_26")
 
 [node name="Mesh" type="MeshInstance3D" parent="Pillar_3" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_24")
+mesh = SubResource("Mesh_26")
 material_override = SubResource("Mat_Metal")
 metadata/acoustic_material = &"Metal"
 
@@ -1187,10 +1218,10 @@ metadata/acoustic_material = &"Metal"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -14.5, 12)
 
 [node name="Collision" type="CollisionShape3D" parent="Turbine_Housing_0"]
-shape = SubResource("Shape_25")
+shape = SubResource("Shape_27")
 
 [node name="Mesh" type="MeshInstance3D" parent="Turbine_Housing_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_25")
+mesh = SubResource("Mesh_27")
 material_override = SubResource("Mat_Metal")
 metadata/acoustic_material = &"Metal"
 
@@ -1198,10 +1229,10 @@ metadata/acoustic_material = &"Metal"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, -14.5, 12)
 
 [node name="Collision" type="CollisionShape3D" parent="Turbine_Housing_1"]
-shape = SubResource("Shape_25")
+shape = SubResource("Shape_27")
 
 [node name="Mesh" type="MeshInstance3D" parent="Turbine_Housing_1" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_25")
+mesh = SubResource("Mesh_27")
 material_override = SubResource("Mat_Metal")
 metadata/acoustic_material = &"Metal"
 
@@ -1264,10 +1295,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, -16.25, 11)
 metadata/surface_type = &"Concrete"
 
 [node name="Collision" type="CollisionShape3D" parent="Control_Floor"]
-shape = SubResource("Shape_26")
+shape = SubResource("Shape_28")
 
 [node name="Mesh" type="MeshInstance3D" parent="Control_Floor" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_26")
+mesh = SubResource("Mesh_28")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1275,10 +1306,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, -11.75, 11)
 
 [node name="Collision" type="CollisionShape3D" parent="Control_Roof"]
-shape = SubResource("Shape_27")
+shape = SubResource("Shape_29")
 
 [node name="Mesh" type="MeshInstance3D" parent="Control_Roof" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_27")
+mesh = SubResource("Mesh_29")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1286,10 +1317,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.25, -14, 11)
 
 [node name="Collision" type="CollisionShape3D" parent="Control_West_0"]
-shape = SubResource("Shape_28")
+shape = SubResource("Shape_30")
 
 [node name="Mesh" type="MeshInstance3D" parent="Control_West_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_28")
+mesh = SubResource("Mesh_30")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1297,10 +1328,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, -14, 7.75)
 
 [node name="Collision" type="CollisionShape3D" parent="Control_North_0"]
-shape = SubResource("Shape_29")
+shape = SubResource("Shape_31")
 
 [node name="Mesh" type="MeshInstance3D" parent="Control_North_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_29")
+mesh = SubResource("Mesh_31")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1308,10 +1339,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.75, -14, 14.25)
 
 [node name="Collision" type="CollisionShape3D" parent="Control_South_0"]
-shape = SubResource("Shape_30")
+shape = SubResource("Shape_32")
 
 [node name="Mesh" type="MeshInstance3D" parent="Control_South_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_30")
+mesh = SubResource("Mesh_32")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1319,10 +1350,10 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.25, -14, 14.25)
 
 [node name="Collision" type="CollisionShape3D" parent="Control_South_1"]
-shape = SubResource("Shape_30")
+shape = SubResource("Shape_32")
 
 [node name="Mesh" type="MeshInstance3D" parent="Control_South_1" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_30")
+mesh = SubResource("Mesh_32")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1330,21 +1361,21 @@ metadata/acoustic_material = &"Concrete"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, -12.75, 14.25)
 
 [node name="Collision" type="CollisionShape3D" parent="Control_South_2"]
-shape = SubResource("Shape_31")
+shape = SubResource("Shape_33")
 
 [node name="Mesh" type="MeshInstance3D" parent="Control_South_2" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_31")
+mesh = SubResource("Mesh_33")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Control_Corridor_Roof" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21, -13.25, 16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21, -12.25, 16)
 
 [node name="Collision" type="CollisionShape3D" parent="Control_Corridor_Roof"]
-shape = SubResource("Shape_32")
+shape = SubResource("Shape_34")
 
 [node name="Mesh" type="MeshInstance3D" parent="Control_Corridor_Roof" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_32")
+mesh = SubResource("Mesh_34")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1353,54 +1384,54 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, -16.25, 11.5)
 metadata/surface_type = &"Concrete"
 
 [node name="Collision" type="CollisionShape3D" parent="Gal_A_Floor"]
-shape = SubResource("Shape_33")
-
-[node name="Mesh" type="MeshInstance3D" parent="Gal_A_Floor" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_33")
-material_override = SubResource("Mat_Concrete")
-metadata/acoustic_material = &"Concrete"
-
-[node name="Gal_A_Roof" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, -13.25, 11.5)
-
-[node name="Collision" type="CollisionShape3D" parent="Gal_A_Roof"]
-shape = SubResource("Shape_34")
-
-[node name="Mesh" type="MeshInstance3D" parent="Gal_A_Roof" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_34")
-material_override = SubResource("Mat_Concrete")
-metadata/acoustic_material = &"Concrete"
-
-[node name="Gal_A_North_0" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.5, -14.75, 9.75)
-
-[node name="Collision" type="CollisionShape3D" parent="Gal_A_North_0"]
 shape = SubResource("Shape_35")
 
-[node name="Mesh" type="MeshInstance3D" parent="Gal_A_North_0" groups=["AcousticObstacle"]]
+[node name="Mesh" type="MeshInstance3D" parent="Gal_A_Floor" groups=["AcousticObstacle"]]
 mesh = SubResource("Mesh_35")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
-[node name="Gal_A_South_0" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, -14.75, 13.25)
+[node name="Gal_A_Roof" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, -12.25, 11.5)
 
-[node name="Collision" type="CollisionShape3D" parent="Gal_A_South_0"]
+[node name="Collision" type="CollisionShape3D" parent="Gal_A_Roof"]
 shape = SubResource("Shape_36")
 
-[node name="Mesh" type="MeshInstance3D" parent="Gal_A_South_0" groups=["AcousticObstacle"]]
+[node name="Mesh" type="MeshInstance3D" parent="Gal_A_Roof" groups=["AcousticObstacle"]]
 mesh = SubResource("Mesh_36")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
-[node name="Gal_A_South2_0" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.125, -14.75, 13.25)
+[node name="Gal_A_North_0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.5, -14.25, 9.75)
 
-[node name="Collision" type="CollisionShape3D" parent="Gal_A_South2_0"]
+[node name="Collision" type="CollisionShape3D" parent="Gal_A_North_0"]
 shape = SubResource("Shape_37")
 
-[node name="Mesh" type="MeshInstance3D" parent="Gal_A_South2_0" groups=["AcousticObstacle"]]
+[node name="Mesh" type="MeshInstance3D" parent="Gal_A_North_0" groups=["AcousticObstacle"]]
 mesh = SubResource("Mesh_37")
+material_override = SubResource("Mat_Concrete")
+metadata/acoustic_material = &"Concrete"
+
+[node name="Gal_A_South_0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, -14.25, 13.25)
+
+[node name="Collision" type="CollisionShape3D" parent="Gal_A_South_0"]
+shape = SubResource("Shape_38")
+
+[node name="Mesh" type="MeshInstance3D" parent="Gal_A_South_0" groups=["AcousticObstacle"]]
+mesh = SubResource("Mesh_38")
+material_override = SubResource("Mat_Concrete")
+metadata/acoustic_material = &"Concrete"
+
+[node name="Gal_A_South2_0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.125, -14.25, 13.25)
+
+[node name="Collision" type="CollisionShape3D" parent="Gal_A_South2_0"]
+shape = SubResource("Shape_39")
+
+[node name="Mesh" type="MeshInstance3D" parent="Gal_A_South2_0" groups=["AcousticObstacle"]]
+mesh = SubResource("Mesh_39")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1409,54 +1440,54 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, -16.25, 0)
 metadata/surface_type = &"Concrete"
 
 [node name="Collision" type="CollisionShape3D" parent="Gal_B_Floor"]
-shape = SubResource("Shape_38")
-
-[node name="Mesh" type="MeshInstance3D" parent="Gal_B_Floor" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_38")
-material_override = SubResource("Mat_Concrete")
-metadata/acoustic_material = &"Concrete"
-
-[node name="Gal_B_Roof" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, -13.25, 0)
-
-[node name="Collision" type="CollisionShape3D" parent="Gal_B_Roof"]
-shape = SubResource("Shape_39")
-
-[node name="Mesh" type="MeshInstance3D" parent="Gal_B_Roof" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_39")
-material_override = SubResource("Mat_Concrete")
-metadata/acoustic_material = &"Concrete"
-
-[node name="Gal_B_West_0" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.75, -14.75, 0)
-
-[node name="Collision" type="CollisionShape3D" parent="Gal_B_West_0"]
 shape = SubResource("Shape_40")
 
-[node name="Mesh" type="MeshInstance3D" parent="Gal_B_West_0" groups=["AcousticObstacle"]]
+[node name="Mesh" type="MeshInstance3D" parent="Gal_B_Floor" groups=["AcousticObstacle"]]
 mesh = SubResource("Mesh_40")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
-[node name="Gal_B_East_0" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, -14.75, 1.625)
+[node name="Gal_B_Roof" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, -12.25, 0)
 
-[node name="Collision" type="CollisionShape3D" parent="Gal_B_East_0"]
+[node name="Collision" type="CollisionShape3D" parent="Gal_B_Roof"]
 shape = SubResource("Shape_41")
 
-[node name="Mesh" type="MeshInstance3D" parent="Gal_B_East_0" groups=["AcousticObstacle"]]
+[node name="Mesh" type="MeshInstance3D" parent="Gal_B_Roof" groups=["AcousticObstacle"]]
 mesh = SubResource("Mesh_41")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
-[node name="Gal_B_End_0" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, -14.75, -10.25)
+[node name="Gal_B_West_0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.75, -14.25, 0)
 
-[node name="Collision" type="CollisionShape3D" parent="Gal_B_End_0"]
+[node name="Collision" type="CollisionShape3D" parent="Gal_B_West_0"]
 shape = SubResource("Shape_42")
 
-[node name="Mesh" type="MeshInstance3D" parent="Gal_B_End_0" groups=["AcousticObstacle"]]
+[node name="Mesh" type="MeshInstance3D" parent="Gal_B_West_0" groups=["AcousticObstacle"]]
 mesh = SubResource("Mesh_42")
+material_override = SubResource("Mat_Concrete")
+metadata/acoustic_material = &"Concrete"
+
+[node name="Gal_B_East_0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, -14.25, 1.625)
+
+[node name="Collision" type="CollisionShape3D" parent="Gal_B_East_0"]
+shape = SubResource("Shape_43")
+
+[node name="Mesh" type="MeshInstance3D" parent="Gal_B_East_0" groups=["AcousticObstacle"]]
+mesh = SubResource("Mesh_43")
+material_override = SubResource("Mat_Concrete")
+metadata/acoustic_material = &"Concrete"
+
+[node name="Gal_B_End_0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, -14.25, -10.25)
+
+[node name="Collision" type="CollisionShape3D" parent="Gal_B_End_0"]
+shape = SubResource("Shape_44")
+
+[node name="Mesh" type="MeshInstance3D" parent="Gal_B_End_0" groups=["AcousticObstacle"]]
+mesh = SubResource("Mesh_44")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1465,54 +1496,54 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, -19.25, 17)
 metadata/surface_type = &"Water"
 
 [node name="Collision" type="CollisionShape3D" parent="Inundada_Floor"]
-shape = SubResource("Shape_43")
+shape = SubResource("Shape_45")
 
 [node name="Mesh" type="MeshInstance3D" parent="Inundada_Floor" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_43")
+mesh = SubResource("Mesh_45")
 material_override = SubResource("Mat_Water")
 metadata/acoustic_material = &"Water"
 
 [node name="Inundada_West_0" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.75, -16.25, 17)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.75, -15.75, 17)
 
 [node name="Collision" type="CollisionShape3D" parent="Inundada_West_0"]
-shape = SubResource("Shape_44")
+shape = SubResource("Shape_46")
 
 [node name="Mesh" type="MeshInstance3D" parent="Inundada_West_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_44")
+mesh = SubResource("Mesh_46")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Inundada_East_0" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.25, -16.25, 17)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.25, -15.75, 17)
 
 [node name="Collision" type="CollisionShape3D" parent="Inundada_East_0"]
-shape = SubResource("Shape_44")
+shape = SubResource("Shape_46")
 
 [node name="Mesh" type="MeshInstance3D" parent="Inundada_East_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_44")
+mesh = SubResource("Mesh_46")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Inundada_South_0" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, -16.25, 20.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, -15.75, 20.25)
 
 [node name="Collision" type="CollisionShape3D" parent="Inundada_South_0"]
-shape = SubResource("Shape_45")
+shape = SubResource("Shape_47")
 
 [node name="Mesh" type="MeshInstance3D" parent="Inundada_South_0" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_45")
+mesh = SubResource("Mesh_47")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Inundada_Roof" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, -13.25, 17)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, -12.25, 17)
 
 [node name="Collision" type="CollisionShape3D" parent="Inundada_Roof"]
-shape = SubResource("Shape_46")
+shape = SubResource("Shape_48")
 
 [node name="Mesh" type="MeshInstance3D" parent="Inundada_Roof" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_46")
+mesh = SubResource("Mesh_48")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
@@ -1521,112 +1552,100 @@ transform = Transform3D(1, 0, 0, 0, 0.866, 0.5, 0, -0.5, 0.866, 31, -17.6, 14.9)
 metadata/surface_type = &"Concrete"
 
 [node name="Collision" type="CollisionShape3D" parent="Inundada_Ramp"]
-shape = SubResource("Shape_47")
+shape = SubResource("Shape_49")
 
 [node name="Mesh" type="MeshInstance3D" parent="Inundada_Ramp" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_47")
+mesh = SubResource("Mesh_49")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Spillway_Water" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -16.2, 6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -16.2, 9.75)
 metadata/surface_type = &"Water"
 
 [node name="Collision" type="CollisionShape3D" parent="Spillway_Water"]
-shape = SubResource("Shape_48")
+shape = SubResource("Shape_50")
 
 [node name="Mesh" type="MeshInstance3D" parent="Spillway_Water"]
-mesh = SubResource("Mesh_48")
+mesh = SubResource("Mesh_50")
 material_override = SubResource("Mat_Water")
 metadata/acoustic_material = &"Water"
 
 [node name="Spillway_WallN" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -12, -0.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -12, 3.75)
 
 [node name="Collision" type="CollisionShape3D" parent="Spillway_WallN"]
-shape = SubResource("Shape_49")
+shape = SubResource("Shape_51")
 
 [node name="Mesh" type="MeshInstance3D" parent="Spillway_WallN" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_49")
+mesh = SubResource("Mesh_51")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Spillway_WallS" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -12, 12.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -12, 15.75)
 
 [node name="Collision" type="CollisionShape3D" parent="Spillway_WallS"]
-shape = SubResource("Shape_49")
+shape = SubResource("Shape_51")
 
 [node name="Mesh" type="MeshInstance3D" parent="Spillway_WallS" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_49")
+mesh = SubResource("Mesh_51")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Spillway_Gate" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, -12, 6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, -12, 10)
 
 [node name="Collision" type="CollisionShape3D" parent="Spillway_Gate"]
-shape = SubResource("Shape_50")
+shape = SubResource("Shape_52")
 
 [node name="Mesh" type="MeshInstance3D" parent="Spillway_Gate" groups=["AcousticObstacleDynamic"]]
-mesh = SubResource("Mesh_50")
+mesh = SubResource("Mesh_52")
 material_override = SubResource("Mat_Metal")
 metadata/acoustic_material = &"Metal"
 
 [node name="Gate_Frame_N" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, -12, -0.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, -12, 3.5)
 
 [node name="Collision" type="CollisionShape3D" parent="Gate_Frame_N"]
-shape = SubResource("Shape_51")
+shape = SubResource("Shape_53")
 
 [node name="Mesh" type="MeshInstance3D" parent="Gate_Frame_N" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_51")
+mesh = SubResource("Mesh_53")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Gate_Frame_S" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, -12, 12.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, -12, 16.5)
 
 [node name="Collision" type="CollisionShape3D" parent="Gate_Frame_S"]
-shape = SubResource("Shape_51")
+shape = SubResource("Shape_53")
 
 [node name="Mesh" type="MeshInstance3D" parent="Gate_Frame_S" groups=["AcousticObstacle"]]
-mesh = SubResource("Mesh_51")
+mesh = SubResource("Mesh_53")
 material_override = SubResource("Mat_Concrete")
 metadata/acoustic_material = &"Concrete"
 
 [node name="Nave" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -9, 12)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, -9, 12)
 script = ExtResource("2_room")
 room_name = &"Nave"
 material_preset = "Metal"
 floor_surface = &"Metal"
-reverb_send_amount = 0.8
+reverb_send_amount = 0.15
 reverb_uniformity = 0.6
 reverb_mode = 2
 
 [node name="Shape" type="CollisionShape3D" parent="Nave"]
 shape = SubResource("Shape_room_nave")
 
-[node name="Control" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, -14, 11)
-script = ExtResource("2_room")
-room_name = &"Control"
-material_preset = "Glass"
-floor_surface = &"Concrete"
-reverb_send_amount = 0.4
-reverb_uniformity = 0.6
-
-[node name="Shape" type="CollisionShape3D" parent="Control"]
-shape = SubResource("Shape_room_control")
-
 [node name="Galeria" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, -14.75, 1.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, -14.25, 1.5)
 script = ExtResource("2_room")
 room_name = &"Galeria"
 material_preset = "Concrete"
 floor_surface = &"Concrete"
-reverb_send_amount = 0.7
+reverb_send_amount = 0.35
 reverb_uniformity = 0.6
 reverb_mode = 2
 
@@ -1634,7 +1653,7 @@ reverb_mode = 2
 shape = SubResource("Shape_room_galeria")
 
 [node name="Inundada" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, -16.75, 17)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, -15.75, 17)
 script = ExtResource("2_room")
 room_name = &"Inundada"
 material_preset = "Water"
@@ -1657,22 +1676,13 @@ reverb_uniformity = 0.6
 [node name="Shape" type="CollisionShape3D" parent="Valle"]
 shape = SubResource("Shape_room_valle")
 
-[node name="Door_Nave_Control" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.25, -14.75, 16)
-script = ExtResource("3_portal")
-portal_name = &"Door_Nave_Control"
-room_a_name = &"Nave"
-room_b_name = &"Control"
-portal_size = Vector2(2, 2.5)
-open_factor = 1
-
 [node name="Door_Nave_Galeria" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.25, -14.75, 11.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.25, -14.25, 11.5)
 script = ExtResource("3_portal")
 portal_name = &"Door_Nave_Galeria"
 room_a_name = &"Nave"
 room_b_name = &"Galeria"
-portal_size = Vector2(3, 2.5)
+portal_size = Vector2(3, 3.5)
 open_factor = 1
 
 [node name="Gate_Nave_Valle" type="Node3D" parent="."]
@@ -1786,7 +1796,7 @@ feed_steam_audio = true
 dynamic_group = &"AcousticObstacleDynamic"
 probe_spacing_m = 2.0
 probe_height_m = 1.5
-probe_bounds = AABB(-30, -16, 3, 72, 3, 18)
+probe_bounds = AABB(-30, -16, -11, 72, 3.4, 32)
 probes_path = "res://scenes/demos/presa/presa_demo.probes"
 auto_load_probes = true
 
@@ -1798,6 +1808,7 @@ show_paths = true
 
 [node name="Turbine_0" type="AudioStreamPlayer3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -12.5, 12)
+script = ExtResource("8_emitter")
 unit_size = 8.0
 area_mask = 1
 event_name = &"Turbine"
@@ -1805,10 +1816,10 @@ auto_play_event = false
 base_priority = 70.0
 cull_distance = 80.0
 bus_category = "Turbines"
-script = ExtResource("8_emitter")
 
 [node name="Turbine_1" type="AudioStreamPlayer3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, -12.5, 12)
+script = ExtResource("8_emitter")
 unit_size = 8.0
 area_mask = 1
 event_name = &"Turbine"
@@ -1816,10 +1827,10 @@ auto_play_event = false
 base_priority = 70.0
 cull_distance = 80.0
 bus_category = "Turbines"
-script = ExtResource("8_emitter")
 
 [node name="Horn" type="AudioStreamPlayer3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -6, 3.6)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -6, 3.6)
+script = ExtResource("8_emitter")
 unit_size = 10.0
 area_mask = 1
 source = 1
@@ -1829,21 +1840,20 @@ directivity_dipole_weight = 0.8
 directivity_power = 2.0
 cull_distance = 120.0
 base_priority = 60.0
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -6, 3.6)
-script = ExtResource("8_emitter")
 
 [node name="Drip" type="AudioStreamPlayer3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, -14.5, -8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, -14.5, -2)
+script = ExtResource("8_emitter")
 unit_size = 3.0
 area_mask = 1
 event_name = &"Drip"
 auto_play_event = false
 cull_distance = 60.0
 bus_category = "Water"
-script = ExtResource("8_emitter")
 
 [node name="Birds" type="AudioStreamPlayer3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, -8, 36)
+script = ExtResource("8_emitter")
 unit_size = 12.0
 area_mask = 1
 event_name = &"Bird"
@@ -1851,10 +1861,10 @@ auto_play_event = false
 cull_distance = 90.0
 bus_category = "Wildlife"
 base_priority = 20.0
-script = ExtResource("8_emitter")
 
 [node name="Thunder" type="AudioStreamPlayer3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 60, -340)
+script = ExtResource("8_emitter")
 unit_size = 200.0
 max_distance = 800.0
 area_mask = 1
@@ -1864,7 +1874,6 @@ propagation_delay_enabled = true
 cull_distance = 800.0
 base_priority = 80.0
 bus_category = "Ambience"
-script = ExtResource("8_emitter")
 
 [node name="RadioSource" type="AudioStreamPlayer" parent="."]
 script = ExtResource("9_player1d")
@@ -1896,17 +1905,17 @@ unit_size = 10.0
 bus = &"Water"
 script = ExtResource("12_spline")
 curve = SubResource("Curve_River")
-flow_speed_mps = 2.0
+flow_speed_mps = 8.0
 enable_doppler = true
 max_virtual_distance = 70.0
 auto_play_event = true
 
 [node name="Spillway" type="AudioStreamPlayer3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -14, 6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, -14, 9.75)
 unit_size = 12.0
-bus = &"Water"
+bus = &"Spillway"
 script = ExtResource("13_multi")
-emission_points = Array[Vector3]([Vector3(-6, 0, -4), Vector3(0, 0, 0), Vector3(6, 0, 4)])
+emission_points = Array[Vector3]([Vector3(-6, 0, -3), Vector3(0, 0, 0), Vector3(6, 0, 3)])
 smooth_position_lag = 0.15
 cull_distance = 90.0
 auto_play_event = true
@@ -1944,16 +1953,16 @@ rotation_mode = 3
 
 [node name="Truck" type="AudioStreamPlayer3D" parent="RoadPath/TruckFollow"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+script = ExtResource("8_emitter")
 unit_size = 9.0
 area_mask = 1
 event_name = &"TruckEngine"
 auto_play_event = false
 doppler_enabled = true
-propagation_delay_enabled = true
+propagation_delay_enabled = false
 cull_distance = 150.0
 base_priority = 60.0
 bus_category = "Vehicle"
-script = ExtResource("8_emitter")
 
 [node name="Player" parent="." instance=ExtResource("23_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -15.5, 30)
@@ -1983,7 +1992,7 @@ subtitles = {
 [node name="Ear" type="Node3D" parent="GuardHall"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 script = ExtResource("20_ear")
-threshold_db = -30.0
+threshold_db = -25.0
 poll_interval_sec = 0.1
 use_raycasts = true
 
@@ -2007,7 +2016,7 @@ subtitles = {
 [node name="Ear" type="Node3D" parent="GuardYard"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 script = ExtResource("20_ear")
-threshold_db = -30.0
+threshold_db = -25.0
 poll_interval_sec = 0.1
 use_raycasts = true
 
@@ -2019,7 +2028,7 @@ light_energy = 0.35
 demo_title = "La presa"
 thesis = "Un valle entero suena por geometria: la nave de turbinas reverbera de verdad, el cristal deja pasar agudos donde el hormigon no, el goteo dobla la esquina del tunel sin portales, la compuerta tapa el aliviadero al bajar, el agua te cubre el oido, el rio te sigue, el camion se acerca y se aleja, el trueno tarda un segundo, y los vigilantes te oyen."
 controls = Array[String](["Flechas — caminar", "Raton — mirar", "G — bajar o subir la compuerta", "T — avanzar la tormenta", "E — abrir o cerrar la puerta mas cercana", "F9 — depurador acustico (caminos en verde)", "F8 — monitor de voces", "F1 — mostrar u ocultar este cartel", "Esc — pausa"])
-exercises = Array[String](["OpenDouRoom3D x5 con CONVOLUTION en la nave y la galeria", "OpenDouPortal3D x4, OpenDouReflector3D x3", "OpenDouAcousticGeometryBake con sondas y compuerta dinamica", "Efecto directo: cristal frente a hormigon", "Caminos: el goteo tras el codo", "OpenDouAcousticVolume3D x3: agua, viento, bosque", "OpenDouListener3D, OpenDouSoundIndicator, OpenDouAIHearing3D x2, OpenDouAudibleMonitor", "OpenDouAmbisonicBed3D x2, OpenDouSplineEmitter3D, OpenDouMultiPositionEmitter3D, OpenDouGranularEmitter3D x2", "OpenDouPhysicsImpact3D x3, OpenDouDialogueEmitter3D x2, OpenDouParameterArea3D x3", "OpenDouEventPlayer3D (turbinas, bocina BUS_CAPTURE, trueno con retardo, camion con doppler), OpenDouEventPlayer, OpenDouMusicPlayer"])
+exercises = Array[String](["OpenDouRoom3D x4 con CONVOLUTION en la nave y la galeria", "OpenDouPortal3D x3, OpenDouReflector3D x3", "OpenDouAcousticGeometryBake con sondas y compuerta dinamica", "Efecto directo: cristal frente a hormigon", "Caminos: el goteo tras el codo", "OpenDouAcousticVolume3D x3: agua, viento, bosque", "OpenDouListener3D, OpenDouSoundIndicator, OpenDouAIHearing3D x2, OpenDouAudibleMonitor", "OpenDouAmbisonicBed3D x2, OpenDouSplineEmitter3D, OpenDouMultiPositionEmitter3D, OpenDouGranularEmitter3D x2", "OpenDouPhysicsImpact3D x3, OpenDouDialogueEmitter3D x2, OpenDouParameterArea3D x3", "OpenDouEventPlayer3D (turbinas, bocina BUS_CAPTURE, trueno con retardo, camion con doppler), OpenDouEventPlayer, OpenDouMusicPlayer"])
 
 [node name="AudibleMonitor" type="CanvasLayer" parent="."]
 script = ExtResource("21_monitor")
@@ -2031,6 +2040,7 @@ max_items_displayed = 8
 layer = 2
 
 [node name="SoundIndicator" type="Control" parent="Accessibility"]
+script = ExtResource("19_indicator")
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
@@ -2040,7 +2050,6 @@ offset_left = -220.0
 offset_top = -220.0
 offset_right = -20.0
 offset_bottom = -20.0
-script = ExtResource("19_indicator")
 max_items = 8
 min_db_threshold = -45.0
 ring_radius_px = 80.0

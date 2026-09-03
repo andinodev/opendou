@@ -25,13 +25,15 @@ const AudioPhysicalNodeClass = preload("res://addons/opendou/resources/container
 const AmbisonicAudioClass = preload("res://addons/opendou/resources/ambisonic_audio.gd")
 const TableClass = preload("res://addons/opendou/core/dialogue/audio_dialogue_table.gd")
 
-const BUSES: Array[StringName] = [&"Music", &"SFX", &"Voice", &"Ambience", &"Radio", &"Turbines", &"Water", &"Wildlife", &"Vehicle"]
+const BUSES: Array[StringName] = [&"Music", &"SFX", &"Voice", &"Ambience", &"Radio", &"Turbines", &"Water", &"Wildlife", &"Vehicle", &"Thunder", &"Spillway"]
 
 ## Ciclo de tormenta: calma -> nubes -> tormenta -> calma. Segundos por fase (T lo acelera).
 enum Storm { CALM, CLOUDS, STORM, CLEARING }
 @export var storm_phase_sec: Array[float] = [30.0, 15.0, 30.0, 15.0]
 ## Camion: velocidad sobre la carretera (m/s) y rpm por velocidad.
 @export var truck_speed_mps: float = 9.0
+## Rayos al azar durante la tormenta (apagado, solo strike() los dispara).
+@export var auto_lightning: bool = true
 ## Cada cuantos segundos cae un cascote de la pasarela (0 = nunca).
 @export var rubble_interval_sec: float = 12.0
 
@@ -54,7 +56,7 @@ enum Storm { CALM, CLOUDS, STORM, CLEARING }
 @onready var debugger: OpenDouAcousticDebugger3D = $AcousticDebugger
 @onready var player: Node3D = $Player
 @onready var guards: Array[Node3D] = [$GuardHall, $GuardYard]
-@onready var portals: Array[OpenDouPortal3D] = [$Door_Nave_Control, $Door_Nave_Galeria, $Gate_Nave_Valle, $Hatch_Galeria_Inundada]
+@onready var portals: Array[OpenDouPortal3D] = [$Door_Nave_Galeria, $Gate_Nave_Valle, $Hatch_Galeria_Inundada]
 
 var event_manager: AudioEventManager = null
 var storm: Storm = Storm.CALM
@@ -111,18 +113,24 @@ func _ready() -> void:
 
 ## Turbina: mezcla de dos capas por carga (RTPC TurbineLoad del area de la nave).
 func _author_turbine() -> void:
+	# Las curvas del contenedor son OFFSETS EN dB (como las del motor del taller): 0 = la capa
+	# suena, -60 = callada.
 	var blend = AudioBlendContainerClass.new(&"TurbineLoad")
 	var low := Curve.new()
-	low.add_point(Vector2(0.0, 1.0)); low.add_point(Vector2(0.6, 1.0)); low.add_point(Vector2(1.0, 0.3))
+	low.min_value = -60.0
+	low.max_value = 0.0
+	low.add_point(Vector2(0.0, 0.0)); low.add_point(Vector2(0.6, 0.0)); low.add_point(Vector2(1.0, -18.0))
 	var high := Curve.new()
-	high.add_point(Vector2(0.0, 0.0)); high.add_point(Vector2(0.4, 0.0)); high.add_point(Vector2(1.0, 1.0))
+	high.min_value = -60.0
+	high.max_value = 0.0
+	high.add_point(Vector2(0.0, -60.0)); high.add_point(Vector2(0.4, -60.0)); high.add_point(Vector2(1.0, 0.0))
 	blend.add_layer(AudioPhysicalNodeClass.new(AudioSynthesizerClass.create_server_ambient_loop(3.0)), low)
 	blend.add_layer(AudioPhysicalNodeClass.new(AudioSynthesizerClass.create_engine_loop(48.0, 2.0)), high)
 	var def = AudioEventDefClass.new(&"Turbine")
 	def.root_container = blend
 	def.is_looping = true
 	def.stream_length = 2.0
-	def.base_volume_db = -4.0
+	def.base_volume_db = -10.0
 	def.base_priority = 70.0
 	def.hdr_loudness_db = -6.0
 	def.target_bus = &"Turbines"
@@ -146,7 +154,8 @@ func _author_one_shots() -> void:
 	thunder_def.base_volume_db = 4.0
 	thunder_def.base_priority = 85.0
 	thunder_def.hdr_loudness_db = 6.0
-	thunder_def.target_bus = &"Ambience"
+	# Bus propio: para medir su llegada sin el viento ni la lluvia de Ambience.
+	thunder_def.target_bus = &"Thunder"
 	event_manager.register_event_definition(thunder_def)
 	var warn_def = AudioEventDefClass.new(&"GuardWarn", AudioSynthesizerClass.create_tone(660.0, 0.12, 0.25, true))
 	warn_def.stream_length = 0.12
@@ -257,7 +266,7 @@ func _tick_storm(delta: float) -> void:
 	# La fauna calla con la lluvia.
 	frogs.volume_db = lerpf(-4.0, -30.0, storm_intensity)
 	crickets.volume_db = lerpf(-6.0, -30.0, storm_intensity)
-	if storm == Storm.STORM:
+	if storm == Storm.STORM and auto_lightning:
 		_strike_t -= delta
 		if _strike_t <= 0.0:
 			_strike_t = randf_range(6.0, 12.0)

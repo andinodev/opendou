@@ -10,3 +10,5 @@ cabin -26 -14
 street -33 -19
 # workshop: 2026-09-03 (Fase 15) la lona multiposicion pasa por el pool: -30.3.
 workshop -33 -18
+# presa: 2026-09-03 primera medida -21.8 (Fase 16).
+presa -28 -16

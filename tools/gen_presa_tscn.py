@@ -146,10 +146,11 @@ sub_res("Resource", "Env_Forest", ['script = ExtResource("%s")' % S_ENV, "occlud
 # Curvas
 sub_res("Curve3D", "Curve_River", ['_data = {\n"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 52, -16.2, 12, 0, 0, 0, 0, 0, 0, 50, -16.2, 22, 0, 0, 0, 0, 0, 0, 47, -16.2, 32, 0, 0, 0, 0, 0, 0, 42, -16.2, 40, 0, 0, 0, 0, 0, 0, 36, -16.2, 45),\n"tilts": PackedFloat32Array(0, 0, 0, 0, 0)\n}', "point_count = 5"])
 sub_res("Curve3D", "Curve_Road", ['_data = {\n"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -58, -15.9, 27, 0, 0, 0, 0, 0, 0, 58, -15.9, 27, 0, 0, 0, 0, 0, 0, 58, -15.9, 41, 0, 0, 0, 0, 0, 0, -58, -15.9, 41, 0, 0, 0, 0, 0, 0, -58, -15.9, 27),\n"tilts": PackedFloat32Array(0, 0, 0, 0, 0)\n}', "point_count = 5"])
-sub_res("BoxShape3D", "Shape_room_nave", ["size = Vector3(36, 14, 18)"])
-sub_res("BoxShape3D", "Shape_room_control", ["size = Vector3(8, 4, 6)"])
-sub_res("BoxShape3D", "Shape_room_galeria", ["size = Vector3(22, 2.5, 23)"])
-sub_res("BoxShape3D", "Shape_room_inundada", ["size = Vector3(6, 4.5, 6)"])
+sub_res("BoxShape3D", "Shape_room_nave", ["size = Vector3(46, 14, 18)"])
+# La caja de la sala es mas alta que el tunel: el oido del jugador (1.6 m sobre los pies) caia
+# justo en el borde superior y el oyente se resolvia en el Valle.
+sub_res("BoxShape3D", "Shape_room_galeria", ["size = Vector3(22, 4.5, 23)"])
+sub_res("BoxShape3D", "Shape_room_inundada", ["size = Vector3(6, 6.5, 6)"])
 sub_res("BoxShape3D", "Shape_room_valle", ["size = Vector3(140, 30, 48)"])
 sub_res("BoxShape3D", "Shape_vol_water", ["size = Vector3(6, 4, 6)"])
 sub_res("BoxShape3D", "Shape_vol_wind", ["size = Vector3(140, 30, 48)"])
@@ -165,7 +166,11 @@ nodes.append('[node name="PresaDemo" type="Node3D"]\nscript = ExtResource("%s")'
 
 # ---------------- terreno y presa (y = -16 es el suelo del valle; el muro va de -16 a 4)
 body("ValleyFloor", 0, -16.5, 24, 140, 1, 48, "Stone", surface="Stone")
-body("DamWall", 0, -6, 0, 140, 20, 6, "Concrete")               # z in [-3, 3]
+# El muro de la presa (z -3..3) deja el hueco de la galeria de servicio (x 36.5..40.5, y -16..-12.5):
+# como caja unica atravesaba el tunel y el tramo norte quedaba dentro del hormigon.
+body("DamWall_West", -16.75, -6, 0, 106.5, 20, 6, "Concrete")   # x -70..36.5
+body("DamWall_East", 55.25, -6, 0, 29.5, 20, 6, "Concrete")     # x 40.5..70
+body("DamWall_Over", 38.5, -4.25, 0, 4, 16.5, 6, "Concrete")    # sobre la galeria, y -12.5..4
 body("HillWest", -73, -6, 24, 6, 20, 48, "Stone")
 body("HillEast", 73, -6, 24, 6, 20, 48, "Stone")
 body("Road_S", 0, -15.99, 41, 120, 0.02, 6, "Asphalt", surface="Asphalt", obstacle=False)
@@ -190,7 +195,7 @@ body("Nave_Roof", 0, -1.75, 12, 37, 0.5, 19, "Concrete")
 wall_x("Nave_West", -18.25, -16, -2, 3, 21, "Concrete", openings=[(9, 13, -14.5, -12.5), (15, 17, -16, -13.5)])
 body("Nave_Window", -18.25, -13.5, 11, 0.3, 2, 4, "Glass")
 # Muro este: puerta a la galeria (z 10..13, y -16..-13.5)
-wall_x("Nave_East", 18.25, -16, -2, 3, 21, "Concrete", openings=[(10, 13, -16, -13.5)])
+wall_x("Nave_East", 18.25, -16, -2, 3, 21, "Concrete", openings=[(10, 13, -16, -12.5)])
 # Muro sur: porton al valle (x -3..3, y -16..-12)
 wall_z("Nave_South", 21.25, -16, -2, -18.5, 18.5, "Concrete", openings=[(-3, 3, -16, -12)])
 # pasarela metalica y pilares
@@ -214,36 +219,40 @@ wall_x("Control_West", -27.25, -16, -12, 8, 14, "Concrete")
 wall_z("Control_North", 7.75, -16, -12, -27.5, -18.5, "Concrete")
 wall_z("Control_South", 14.25, -16, -12, -27.5, -18.5, "Concrete", openings=[(-24, -22, -16, -13.5)])
 # pasillo exterior control -> nave (puerta oeste de la nave en z 15..17): un techo bajo
-body("Control_Corridor_Roof", -21, -13.25, 16, 12, 0.5, 4, "Concrete")
+body("Control_Corridor_Roof", -21, -12.25, 16, 12, 0.5, 4, "Concrete")
 
-# ---------------- galeria en L (tramo A: x 18..40, z 10..13; tramo B: x 37..40, z -10..10), y -16..-13.5
+# ---------------- galeria en L (tramo A: x 18..40, z 10..13; tramo B: x 37..40, z -10..10), y -16..-12.5
+# (3.5 m libres: el oido del jugador va a 2.6 m del suelo; con 2.5 m quedaba pegado al techo y
+# las sondas no le veian)
 body("Gal_A_Floor", 29, -16.25, 11.5, 22, 0.5, 3, "Concrete", surface="Concrete")
-body("Gal_A_Roof", 29, -13.25, 11.5, 22, 0.5, 3.5, "Concrete")
-wall_z("Gal_A_North", 9.75, -16, -13.5, 18, 37, "Concrete")
-wall_z("Gal_A_South", 13.25, -16, -13.5, 18, 28, "Concrete")
-wall_z("Gal_A_South2", 13.25, -16, -13.5, 34, 40.25, "Concrete")
+body("Gal_A_Roof", 29, -12.25, 11.5, 22, 0.5, 3.5, "Concrete")
+wall_z("Gal_A_North", 9.75, -16, -12.5, 18, 37, "Concrete")
+wall_z("Gal_A_South", 13.25, -16, -12.5, 18, 28, "Concrete")
+wall_z("Gal_A_South2", 13.25, -16, -12.5, 34, 40.25, "Concrete")
 body("Gal_B_Floor", 38.5, -16.25, 0, 3, 0.5, 20, "Concrete", surface="Concrete")
-body("Gal_B_Roof", 38.5, -13.25, 0, 3.5, 0.5, 20, "Concrete")
-wall_x("Gal_B_West", 36.75, -16, -13.5, -10, 10, "Concrete")
-wall_x("Gal_B_East", 40.25, -16, -13.5, -10, 13.25, "Concrete")
-wall_z("Gal_B_End", -10.25, -16, -13.5, 36.5, 40.5, "Concrete")
+body("Gal_B_Roof", 38.5, -12.25, 0, 3.5, 0.5, 20, "Concrete")
+wall_x("Gal_B_West", 36.75, -16, -12.5, -10, 10, "Concrete")
+wall_x("Gal_B_East", 40.25, -16, -12.5, -10, 13.25, "Concrete")
+wall_z("Gal_B_End", -10.25, -16, -12.5, 36.5, 40.5, "Concrete")
 
 # ---------------- galeria inundada (cuenco al sur del tramo A: x 28..34, z 14..20, suelo -19)
 body("Inundada_Floor", 31, -19.25, 17, 6, 0.5, 6, "Water", surface="Water")
-wall_x("Inundada_West", 27.75, -19, -13.5, 14, 20, "Concrete")
-wall_x("Inundada_East", 34.25, -19, -13.5, 14, 20, "Concrete")
-wall_z("Inundada_South", 20.25, -19, -13.5, 27.5, 34.5, "Concrete")
-body("Inundada_Roof", 31, -13.25, 17, 7, 0.5, 6.5, "Concrete")
+wall_x("Inundada_West", 27.75, -19, -12.5, 14, 20, "Concrete")
+wall_x("Inundada_East", 34.25, -19, -12.5, 14, 20, "Concrete")
+wall_z("Inundada_South", 20.25, -19, -12.5, 27.5, 34.5, "Concrete")
+body("Inundada_Roof", 31, -12.25, 17, 7, 0.5, 6.5, "Concrete")
 # rampa de bajada (caja inclinada 30 grados) desde el tramo A hacia el cuenco
 body("Inundada_Ramp", 31, -17.6, 14.9, 4, 0.3, 4.2, "Concrete", surface="Concrete", basis="1, 0, 0, 0, 0.866, 0.5, 0, -0.5, 0.866")
 
 # ---------------- aliviadero (canal x 44..60, z 0..12, agua) y compuerta dinamica en x = 42
-body("Spillway_Water", 52, -16.2, 6, 16, 0.4, 12, "Water", surface="Water", obstacle=False)
-body("Spillway_WallN", 52, -12, -0.25, 16, 8, 0.5, "Concrete")
-body("Spillway_WallS", 52, -12, 12.25, 16, 8, 0.5, "Concrete")
-body("Spillway_Gate", 42, -12, 6, 0.4, 8, 12, "Metal", obstacle=False, dynamic=True)
-body("Gate_Frame_N", 42, -12, -0.5, 1, 8, 1, "Concrete")
-body("Gate_Frame_S", 42, -12, 12.5, 1, 8, 1, "Concrete")
+# El canal empieza en z = 4: el muro de la presa ocupa z -3..3 y un emisor dentro de el
+# quedaria ocluido siempre.
+body("Spillway_Water", 52, -16.2, 9.75, 16, 0.4, 11.5, "Water", surface="Water", obstacle=False)
+body("Spillway_WallN", 52, -12, 3.75, 16, 8, 0.5, "Concrete")
+body("Spillway_WallS", 52, -12, 15.75, 16, 8, 0.5, "Concrete")
+body("Spillway_Gate", 42, -12, 10, 0.4, 8, 12, "Metal", obstacle=False, dynamic=True)
+body("Gate_Frame_N", 42, -12, 3.5, 1, 8, 1, "Concrete")
+body("Gate_Frame_S", 42, -12, 16.5, 1, 8, 1, "Concrete")
 
 # ---------------- salas
 def room(name, cx, cy, cz, shape, material, floor, send=0.6, mode=None, extra=()):
@@ -254,10 +263,13 @@ def room(name, cx, cy, cz, shape, material, floor, send=0.6, mode=None, extra=()
     node(name, "Area3D", ".", props)
     node("Shape", "CollisionShape3D", name, ['shape = SubResource("%s")' % shape])
     count[0] += 2
-room("Nave", 0, -9, 12, "Shape_room_nave", "Metal", "Metal", send=0.8, mode=2)
-room("Control", -23, -14, 11, "Shape_room_control", "Glass", "Concrete", send=0.4)
-room("Galeria", 29, -14.75, 1.5, "Shape_room_galeria", "Concrete", "Concrete", send=0.7, mode=2)
-room("Inundada", 31, -16.75, 17, "Shape_room_inundada", "Water", "Water", send=0.5)
+# La cabina de control es acusticamente parte de la nave (cristal y hormigon los resuelve el
+# efecto directo, no el grafo): la sala abarca x -28..18.
+# El envio manda el nivel del reverb por convolucion: en una nave tan reverberante (RT60 real
+# de casi 3 s) 0.8 saturaba el bus de reverb (+14 dB) y el limitador de Master distorsionaba.
+room("Nave", -5, -9, 12, "Shape_room_nave", "Metal", "Metal", send=0.15, mode=2)
+room("Galeria", 29, -14.25, 1.5, "Shape_room_galeria", "Concrete", "Concrete", send=0.35, mode=2)
+room("Inundada", 31, -15.75, 17, "Shape_room_inundada", "Water", "Water", send=0.5)
 room("Valle", 0, -5, 24, "Shape_room_valle", "Outdoor", "Stone", send=0.2)
 
 def portal(name, x, y, z, a, b, size, open_f=1.0):
@@ -265,8 +277,7 @@ def portal(name, x, y, z, a, b, size, open_f=1.0):
                                 'room_a_name = &"%s"' % a, 'room_b_name = &"%s"' % b, "portal_size = Vector2(%s, %s)" % (g(size[0]), g(size[1])),
                                 "open_factor = %s" % g(open_f)])
     count[0] += 1
-portal("Door_Nave_Control", -18.25, -14.75, 16, "Nave", "Control", (2, 2.5), 1.0)
-portal("Door_Nave_Galeria", 18.25, -14.75, 11.5, "Nave", "Galeria", (3, 2.5), 1.0)
+portal("Door_Nave_Galeria", 18.25, -14.25, 11.5, "Nave", "Galeria", (3, 3.5), 1.0)
 portal("Gate_Nave_Valle", 0, -14, 21.25, "Nave", "Valle", (6, 4), 1.0)
 portal("Hatch_Galeria_Inundada", 31, -14.75, 13.6, "Galeria", "Inundada", (4, 2.5), 1.0)
 
@@ -304,21 +315,24 @@ volume("Vol_Forest", 32, -12, 37.5, "Shape_vol_forest", "Env_Forest", 5)
 # ---------------- bake y depurador
 node("AcousticBake", "Node3D", ".", ['script = ExtResource("%s")' % S_BAKE, 'target_group = &"AcousticObstacle"', "auto_bake_on_ready = true",
                                       "feed_steam_audio = true", 'dynamic_group = &"AcousticObstacleDynamic"', "probe_spacing_m = 2.0",
-                                      "probe_height_m = 1.5", "probe_bounds = AABB(-30, -16, 3, 72, 3, 18)",
+                                      "probe_height_m = 1.5", "probe_bounds = AABB(-30, -16, -11, 72, 3.4, 32)",
                                       'probes_path = "res://scenes/demos/presa/presa_demo.probes"', "auto_load_probes = true"])
 node("AcousticDebugger", "Node3D", ".", ['script = ExtResource("%s")' % S_DEBUG, "enabled = false", "display_mode = 2", "show_paths = true"])
 count[0] += 2
 
 # ---------------- emisores
 def emitter3(name, x, y, z, props):
-    node(name, "AudioStreamPlayer3D", ".", ["transform = %s" % tf(x, y, z)] + props + ['script = ExtResource("%s")' % S_EMIT3])
+    # El script va ANTES de las propiedades que el define: Godot aplica las propiedades en orden
+    # y las que llegan antes del script no existen todavia (se pierden en silencio).
+    node(name, "AudioStreamPlayer3D", ".", ["transform = %s" % tf(x, y, z), 'script = ExtResource("%s")' % S_EMIT3] + props)
     count[0] += 1
 emitter3("Turbine_0", -8, -12.5, 12, ["unit_size = 8.0", "area_mask = 1", 'event_name = &"Turbine"', "auto_play_event = false", "base_priority = 70.0", "cull_distance = 80.0", 'bus_category = "Turbines"'])
 emitter3("Turbine_1", 8, -12.5, 12, ["unit_size = 8.0", "area_mask = 1", 'event_name = &"Turbine"', "auto_play_event = false", "base_priority = 70.0", "cull_distance = 80.0", 'bus_category = "Turbines"'])
-emitter3("Horn", 0, -6, 3.6, ["unit_size = 10.0", "area_mask = 1", "source = 1", 'capture_bus = &"Radio"', 'bus_category = "Voice"',
-                              "directivity_dipole_weight = 0.8", "directivity_power = 2.0", "cull_distance = 120.0", "base_priority = 60.0",
-                              "transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -6, 3.6)"])
-emitter3("Drip", 38.5, -14.5, -8, ["unit_size = 3.0", "area_mask = 1", 'event_name = &"Drip"', "auto_play_event = false", "cull_distance = 60.0", 'bus_category = "Water"'])
+node("Horn", "AudioStreamPlayer3D", ".", ["transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -6, 3.6)", 'script = ExtResource("%s")' % S_EMIT3, "unit_size = 10.0", "area_mask = 1", "source = 1",
+                                          'capture_bus = &"Radio"', 'bus_category = "Voice"', "directivity_dipole_weight = 0.8", "directivity_power = 2.0",
+                                          "cull_distance = 120.0", "base_priority = 60.0"])
+count[0] += 1
+emitter3("Drip", 38.5, -14.5, -2, ["unit_size = 3.0", "area_mask = 1", 'event_name = &"Drip"', "auto_play_event = false", "cull_distance = 60.0", 'bus_category = "Water"'])
 emitter3("Birds", 30, -8, 36, ["unit_size = 12.0", "area_mask = 1", 'event_name = &"Bird"', "auto_play_event = false", "cull_distance = 90.0", 'bus_category = "Wildlife"', "base_priority = 20.0"])
 emitter3("Thunder", 0, 60, -340, ["unit_size = 200.0", "max_distance = 800.0", "area_mask = 1", 'event_name = &"Thunder"', "auto_play_event = false",
                                    "propagation_delay_enabled = true", "cull_distance = 800.0", "base_priority = 80.0", 'bus_category = "Ambience"'])
@@ -334,9 +348,9 @@ node("RainBed", "AudioStreamPlayer", ".", ['script = ExtResource("%s")' % S_BED,
 count[0] += 2
 # rio (spline) y aliviadero (multiposicion)
 node("River", "AudioStreamPlayer3D", ".", ["unit_size = 10.0", 'bus = &"Water"', 'script = ExtResource("%s")' % S_SPLINE, 'curve = SubResource("Curve_River")',
-                                            "flow_speed_mps = 2.0", "enable_doppler = true", "max_virtual_distance = 70.0", "auto_play_event = true"])
-node("Spillway", "AudioStreamPlayer3D", ".", ["transform = %s" % tf(52, -14, 6), "unit_size = 12.0", 'bus = &"Water"', 'script = ExtResource("%s")' % S_MULTI,
-                                               "emission_points = Array[Vector3]([Vector3(-6, 0, -4), Vector3(0, 0, 0), Vector3(6, 0, 4)])",
+                                            "flow_speed_mps = 8.0", "enable_doppler = true", "max_virtual_distance = 70.0", "auto_play_event = true"])
+node("Spillway", "AudioStreamPlayer3D", ".", ["transform = %s" % tf(52, -14, 9.75), "unit_size = 12.0", 'bus = &"Spillway"', 'script = ExtResource("%s")' % S_MULTI,
+                                               "emission_points = Array[Vector3]([Vector3(-6, 0, -3), Vector3(0, 0, 0), Vector3(6, 0, 3)])",
                                                "smooth_position_lag = 0.15", "cull_distance = 90.0", "auto_play_event = true"])
 count[0] += 2
 # fauna granular
@@ -350,10 +364,9 @@ count[0] += 2
 # camion: camino + seguidor + emisor
 node("RoadPath", "Path3D", ".", ['curve = SubResource("Curve_Road")'])
 node("TruckFollow", "PathFollow3D", "RoadPath", ["loop = true", "rotation_mode = 3"])
-node("Truck", "AudioStreamPlayer3D", "RoadPath/TruckFollow", ["transform = %s" % tf(0, 1, 0), "unit_size = 9.0", "area_mask = 1", 'event_name = &"TruckEngine"',
-                                                              "auto_play_event = false", "doppler_enabled = true", "propagation_delay_enabled = true",
-                                                              "cull_distance = 150.0", "base_priority = 60.0", 'bus_category = "Vehicle"',
-                                                              'script = ExtResource("%s")' % S_EMIT3])
+node("Truck", "AudioStreamPlayer3D", "RoadPath/TruckFollow", ["transform = %s" % tf(0, 1, 0), 'script = ExtResource("%s")' % S_EMIT3, "unit_size = 9.0", "area_mask = 1", 'event_name = &"TruckEngine"',
+                                                              "auto_play_event = false", "doppler_enabled = true", "propagation_delay_enabled = false",
+                                                              "cull_distance = 150.0", "base_priority = 60.0", 'bus_category = "Vehicle"'])
 count[0] += 3
 
 # ---------------- jugador, vigilantes
@@ -366,7 +379,7 @@ def guard(name, x, y, z, waypoints, key):
     node("Voice", "Node3D", name, ["transform = %s" % tf(0, 0.6, 0), 'script = ExtResource("%s")' % S_DIALOG, 'language = "es"', 'bus_category = &"Voice"',
                                    'duck_bus = &"Music"', "duck_db = -12.0",
                                    'subtitles = {\n&"%s": {\n"es": "%s"\n}\n}' % (key, {"halt": "¡Eh! ¿Quién anda por la nave?", "warn": "Esto es zona de la presa. Vuelva al camino."}[key])])
-    node("Ear", "Node3D", name, ["transform = %s" % tf(0, 0.8, 0), 'script = ExtResource("%s")' % S_EAR, "threshold_db = -30.0", "poll_interval_sec = 0.1", "use_raycasts = true"])
+    node("Ear", "Node3D", name, ["transform = %s" % tf(0, 0.8, 0), 'script = ExtResource("%s")' % S_EAR, "threshold_db = -25.0", "poll_interval_sec = 0.1", "use_raycasts = true"])
     count[0] += 3
 guard("GuardHall", -12, -15.5, 16, [(-12, -15.5, 16), (12, -15.5, 16), (12, -15.5, 8), (-12, -15.5, 8)], "halt")
 guard("GuardYard", -20, -15.5, 24, [(-20, -15.5, 24), (20, -15.5, 24), (20, -15.5, 36), (-20, -15.5, 36)], "warn")
@@ -376,13 +389,13 @@ node("Sun", "DirectionalLight3D", ".", ["transform = Transform3D(0.866025, -0.35
 node("Hud", None, ".", ['demo_title = "La presa"',
                         'thesis = "Un valle entero suena por geometria: la nave de turbinas reverbera de verdad, el cristal deja pasar agudos donde el hormigon no, el goteo dobla la esquina del tunel sin portales, la compuerta tapa el aliviadero al bajar, el agua te cubre el oido, el rio te sigue, el camion se acerca y se aleja, el trueno tarda un segundo, y los vigilantes te oyen."',
                         'controls = Array[String](["Flechas — caminar", "Raton — mirar", "G — bajar o subir la compuerta", "T — avanzar la tormenta", "E — abrir o cerrar la puerta mas cercana", "F9 — depurador acustico (caminos en verde)", "F8 — monitor de voces", "F1 — mostrar u ocultar este cartel", "Esc — pausa"])',
-                        'exercises = Array[String](["OpenDouRoom3D x5 con CONVOLUTION en la nave y la galeria", "OpenDouPortal3D x4, OpenDouReflector3D x3", "OpenDouAcousticGeometryBake con sondas y compuerta dinamica", "Efecto directo: cristal frente a hormigon", "Caminos: el goteo tras el codo", "OpenDouAcousticVolume3D x3: agua, viento, bosque", "OpenDouListener3D, OpenDouSoundIndicator, OpenDouAIHearing3D x2, OpenDouAudibleMonitor", "OpenDouAmbisonicBed3D x2, OpenDouSplineEmitter3D, OpenDouMultiPositionEmitter3D, OpenDouGranularEmitter3D x2", "OpenDouPhysicsImpact3D x3, OpenDouDialogueEmitter3D x2, OpenDouParameterArea3D x3", "OpenDouEventPlayer3D (turbinas, bocina BUS_CAPTURE, trueno con retardo, camion con doppler), OpenDouEventPlayer, OpenDouMusicPlayer"])'],
+                        'exercises = Array[String](["OpenDouRoom3D x4 con CONVOLUTION en la nave y la galeria", "OpenDouPortal3D x3, OpenDouReflector3D x3", "OpenDouAcousticGeometryBake con sondas y compuerta dinamica", "Efecto directo: cristal frente a hormigon", "Caminos: el goteo tras el codo", "OpenDouAcousticVolume3D x3: agua, viento, bosque", "OpenDouListener3D, OpenDouSoundIndicator, OpenDouAIHearing3D x2, OpenDouAudibleMonitor", "OpenDouAmbisonicBed3D x2, OpenDouSplineEmitter3D, OpenDouMultiPositionEmitter3D, OpenDouGranularEmitter3D x2", "OpenDouPhysicsImpact3D x3, OpenDouDialogueEmitter3D x2, OpenDouParameterArea3D x3", "OpenDouEventPlayer3D (turbinas, bocina BUS_CAPTURE, trueno con retardo, camion con doppler), OpenDouEventPlayer, OpenDouMusicPlayer"])'],
      instance=P_HUD)
 node("AudibleMonitor", "CanvasLayer", ".", ['script = ExtResource("%s")' % S_MONITOR, "enabled = true", "is_overlay_visible = false", "max_items_displayed = 8"])
 node("Accessibility", "CanvasLayer", ".", ["layer = 2"])
-node("SoundIndicator", "Control", "Accessibility", ["anchors_preset = 3", "anchor_left = 1.0", "anchor_top = 1.0", "anchor_right = 1.0", "anchor_bottom = 1.0",
+node("SoundIndicator", "Control", "Accessibility", ['script = ExtResource("%s")' % S_INDICATOR, "anchors_preset = 3", "anchor_left = 1.0", "anchor_top = 1.0", "anchor_right = 1.0", "anchor_bottom = 1.0",
                                                      "offset_left = -220.0", "offset_top = -220.0", "offset_right = -20.0", "offset_bottom = -20.0",
-                                                     'script = ExtResource("%s")' % S_INDICATOR, "max_items = 8", "min_db_threshold = -45.0", "ring_radius_px = 80.0"])
+                                                     "max_items = 8", "min_db_threshold = -45.0", "ring_radius_px = 80.0"])
 node("PauseMenu", None, ".", [], instance=P_MENU)
 count[0] += 5
 
