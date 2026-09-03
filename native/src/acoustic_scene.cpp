@@ -1,5 +1,6 @@
 #include "acoustic_scene.h"
 #include "steam_audio_context.h"
+#include "simulator.h"
 
 #include <godot_cpp/classes/audio_server.hpp>
 #include <godot_cpp/core/class_db.hpp>
@@ -88,6 +89,8 @@ bool OpenDouAcousticScene::build(const PackedVector3Array &vertices, const Packe
 }
 
 void OpenDouAcousticScene::clear() {
+	// El simulador apunta a esta escena: sin escena no hay simulador (las fuentes se invalidan).
+	OpenDouSimulator::shutdown();
 	if (mesh_ != nullptr && scene_ != nullptr) {
 		iplStaticMeshRemove(mesh_, scene_);
 		iplSceneCommit(scene_);

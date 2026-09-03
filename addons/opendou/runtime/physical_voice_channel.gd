@@ -19,6 +19,12 @@ const DistanceModelClass = preload("res://addons/opendou/runtime/spatial/distanc
 var channel_id: int = -1
 ## Velocidad del sonido del medio (Fase 10); la fija el pool.
 var speed_of_sound: float = 343.0
+## Fuente del simulador de Steam Audio (Fase 12); -1 = sin fuente, oclusion por rayo.
+var sim_source: int = -1
+var _direct_was_on: bool = false
+
+func uses_direct_effect() -> bool:
+	return sim_source >= 0
 var is_busy: bool = false
 var assigned_instance_ref: WeakRef = null
 
@@ -203,6 +209,16 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		# El multiplicador se calcula UNA vez: sirve para la ganancia del stream (sin el
 		# volumen, que ya va en el reproductor) y para la profundidad del shelf.
 		var mult: float = DistanceModelClass.multiplier(distance, instance.attenuation_model, instance.unit_size, v_total, DistanceModelClass.MAX_DB, instance.attenuation_max_distance, instance.attenuation_curve, instance.attenuation_curve_distance_m)
+		# Efecto directo (Fase 12): con fuente del simulador, la oclusion, la transmision, el aire
+		# y la directividad las calcula Steam Audio. El corte que llega ya no trae el del rayo (el
+		# planificador no lo lanza para estas voces); trae el del grafo de salas y los volumenes.
+		if sim_source >= 0:
+			var d: PackedFloat32Array = ClassDB.class_call_static("OpenDouSimulator", "get_direct", sim_source)
+			s.set_direct_params(true, d[0], Vector3(d[1], d[2], d[3]), Vector3(d[4], d[5], d[6]), d[7])
+			_direct_was_on = true
+		elif _direct_was_on:
+			s.set_direct_params(false, 1.0, Vector3.ONE, Vector3.ONE, 1.0)
+			_direct_was_on = false
 		# Una sola llamada al nativo por voz y cuadro: nueve escrituras de propiedad costaban
 		# medio microsegundo por voz.
 		s.set_spatial_params(direction, base_blend * (1.0 - spread),
@@ -278,6 +294,10 @@ func stop_with_fade(fade_time_sec: float = 0.015) -> void:
 
 ## Detiene y libera el canal de inmediato.
 func stop_immediate() -> void:
+	if sim_source >= 0 and ClassDB.class_exists("OpenDouSimulator"):
+		ClassDB.class_call_static("OpenDouSimulator", "release_source", sim_source)
+	sim_source = -1
+	_direct_was_on = false
 	var player := get_player()
 	if player != null and player.has_method("stop"):
 		player.stop()

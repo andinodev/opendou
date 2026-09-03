@@ -142,6 +142,8 @@ func _init() -> void:
 	if spatial_acoustics != null:
 		spatial_acoustics.surface_volumes = acoustic_volumes
 	occlusion_scheduler = OcclusionSchedulerClass.new()
+	occlusion_scheduler.voice_pool = voice_pool
+	occlusion_scheduler.use_simulator = is_steam_audio_backend()
 	room_path_dispatcher = RoomPathDispatcherClass.new()
 	room_path_dispatcher.acoustics = spatial_acoustics
 	reflection_dispatcher = ReflectionDispatcherClass.new()
@@ -632,7 +634,8 @@ func _apply_voices(delta: float) -> void:
 		# Fundido de stop(fade): multiplica la ganancia hasta que la instancia termine sola.
 		volume_db += linear_to_db(maxf(instance.stop_fade_gain(), 0.0001))
 		# Directividad (GDScript en ambos backends; la nativa llega en la Fase 12).
-		if instance.has_spatial_position and instance.directivity_dipole_weight > 0.0:
+		# Con fuente del simulador la directividad la aplica el efecto directo: no se suma dos veces.
+		if instance.has_spatial_position and instance.directivity_dipole_weight > 0.0 and not ch.uses_direct_effect():
 			volume_db += DistanceModelClass.directivity_db(instance.emitter_forward, to_listener, instance.directivity_dipole_weight, instance.directivity_power)
 		var pitch: float = instance.calculated_pitch_scale * instance.doppler_pitch
 		if environment.medium_pitch_scale != 1.0:
@@ -734,6 +737,7 @@ func _process(delta: float) -> void:
 	if occlusion_scheduler != null and is_inside_tree():
 		var vp := get_viewport()
 		var w3d: World3D = vp.find_world_3d() if vp != null else null
+		occlusion_scheduler.set_listener_basis(active_listener_basis)
 		occlusion_scheduler.process(active_instances, active_listener_position, w3d, acoustic_volumes)
 
 	# 5. Parametros de instancia y limpieza de las terminadas.

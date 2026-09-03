@@ -50,6 +50,22 @@ func physics_occlusion_max_distance() -> float:
 				AcousticLOD.LOD_2_LOW: best = maxf(best, lod_2_max_distance)
 	return best
 
+## Distancia maxima a la que un LOD pide efecto directo del simulador (Fase 12). Mas alla,
+## rayo de Godot (si enable_physics_occlusion) o nada.
+func direct_simulation_max_distance() -> float:
+	var best: float = 0.0
+	for lod in [AcousticLOD.LOD_0_FULL, AcousticLOD.LOD_1_MEDIUM, AcousticLOD.LOD_2_LOW]:
+		if bool(get_lod_features(lod).get("enable_direct_simulation", false)):
+			match lod:
+				AcousticLOD.LOD_0_FULL: best = maxf(best, lod_0_max_distance)
+				AcousticLOD.LOD_1_MEDIUM: best = maxf(best, lod_1_max_distance)
+				AcousticLOD.LOD_2_LOW: best = maxf(best, lod_2_max_distance)
+	return best
+
+## Muestras de oclusion volumetrica por fuente segun la distancia: 16 cerca, 8 en el LOD medio.
+func occlusion_samples_for(distance: float) -> int:
+	return 16 if distance <= lod_0_max_distance else 8
+
 ## Returns the dictionary of active feature flags for a given Acoustic LOD level.
 func get_lod_features(lod_level: int) -> Dictionary:
 	match lod_level:
@@ -59,6 +75,7 @@ func get_lod_features(lod_level: int) -> Dictionary:
 				"enable_edge_diffraction": true,
 				"enable_mass_law_raycast": true,
 				"enable_physics_occlusion": true,
+				"enable_direct_simulation": true,
 				"enable_air_damping": true,
 				"enable_doppler": true,
 				"is_culled": false
@@ -69,6 +86,7 @@ func get_lod_features(lod_level: int) -> Dictionary:
 				"enable_edge_diffraction": true,
 				"enable_mass_law_raycast": false,
 				"enable_physics_occlusion": true,
+				"enable_direct_simulation": true,
 				"enable_air_damping": true,
 				"enable_doppler": true,
 				"is_culled": false

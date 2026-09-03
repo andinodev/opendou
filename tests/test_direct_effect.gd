@@ -105,6 +105,9 @@ static func run_stream_async(tree: SceneTree) -> OpenDouAssert:
 	tree.root.add_child(player)
 	player.play()
 	var rate: float = AudioServer.get_mix_rate()
+	for i in range(20):
+		await tree.process_frame
+		probe.drain()
 	var base: Dictionary = await TB._capture(tree, probe)
 	var base_hi: float = linear_to_db(maxf(TB._band_energy_stereo(base, rate, 4000.0, 8000.0), 1e-12))
 	var base_lo: float = linear_to_db(maxf(TB._band_energy_stereo(base, rate, 200.0, 800.0), 1e-12))
@@ -126,4 +129,90 @@ static func run_stream_async(tree: SceneTree) -> OpenDouAssert:
 	player.stop()
 	tree.root.remove_child(player); player.free()
 	probe.teardown()
+	return a
+
+## Voz completa en steam_audio: bake en el arbol, muro entre voz y oyente, medida en el bus de sonda.
+static func _voice_band(tree: SceneTree, wall_material: StringName, bake_on: bool, dipole: float = 0.0, forward: Vector3 = Vector3(0, 0, 1)) -> Dictionary:
+	var TP = load("res://tests/test_backend_parity.gd")
+	var TB = load("res://tests/test_binaural.gd")
+	var previous_backend = ProjectSettings.get_setting("opendou/spatial/backend", "auto")
+	var manager = TP.make_manager(tree, "steam_audio")
+	var cam: Camera3D = TP.make_listener_camera(tree)
+	TP.ensure_bus()
+	var wall = null
+	if wall_material != &"":
+		wall = TestSteamSceneClass.make_wall(tree, Vector3(0, 0, -3), wall_material)
+	# Con bake pero sin muro hace falta ALGUNA geometria para que exista la escena: un suelo lejos.
+	var floor = TestSteamSceneClass.make_wall(tree, Vector3(0, -20, 0), &"Concrete") if bake_on else null
+	var bake = null
+	if bake_on:
+		bake = BakeScript.new()
+		bake.auto_bake_on_ready = false
+		tree.root.add_child(bake)
+		bake.bake_geometry(tree.root)
+	var probe = load("res://tests/support/audio_probe.gd").new()
+	probe.attach_to_existing_bus(TP.BUS, 2.0)
+	var def = load("res://addons/opendou/resources/audio_event_def.gd").new(&"DirectVoice", TB._periodic_noise(int(AudioServer.get_mix_rate())))
+	def.is_looping = true
+	def.stream_length = 1.0
+	def.target_bus = TP.BUS
+	manager.register_event_definition(def)
+	var inst = manager.post_event(def, null)
+	inst.set_position(Vector3(0, 0, -6))
+	inst.set_orientation(forward)
+	inst.directivity_dipole_weight = dipole
+	inst.directivity_power = 1.0
+	for i in range(40):
+		await tree.process_frame
+		probe.drain()
+	var ch = manager.voice_pool.get_channel(inst.assigned_channel_id) if inst.assigned_channel_id >= 0 else null
+	var cap: Dictionary = await TB._capture(tree, probe)
+	var rate: float = AudioServer.get_mix_rate()
+	var out := {
+		"hi": linear_to_db(maxf(TB._band_energy_stereo(cap, rate, 4000.0, 8000.0), 1e-12)),
+		"lo": linear_to_db(maxf(TB._band_energy_stereo(cap, rate, 200.0, 800.0), 1e-12)),
+		"rms": TB._rms_db(cap),
+		"direct": ch != null and ch.uses_direct_effect(),
+		"simulated": manager.occlusion_scheduler.simulated_this_frame,
+	}
+	inst.stop()
+	probe.teardown()
+	if bake != null:
+		tree.root.remove_child(bake); bake.free()
+	if wall != null:
+		tree.root.remove_child(wall); wall.free()
+	if floor != null:
+		tree.root.remove_child(floor); floor.free()
+	tree.root.remove_child(cam); cam.free()
+	tree.root.remove_child(manager); manager.free()
+	if ClassDB.class_exists("OpenDouSimulator"):
+		ClassDB.class_call_static("OpenDouSimulator", "shutdown")
+		ClassDB.class_call_static("OpenDouAcousticScene", "clear")
+	ProjectSettings.set_setting("opendou/spatial/backend", previous_backend)
+	return out
+
+static func run_voice_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("direct_voice")
+	if not TestSteamSceneClass._native() or not ClassDB.class_exists("OpenDouSimulator"):
+		return a
+	var glass: Dictionary = await _voice_band(tree, &"Glass", true)
+	var concrete: Dictionary = await _voice_band(tree, &"Concrete", true)
+	var open_bake: Dictionary = await _voice_band(tree, &"", true)
+	var no_bake: Dictionary = await _voice_band(tree, &"", false)
+	print("[OpenDou] voz con efecto directo: cristal hi %.1f lo %.1f | hormigon hi %.1f lo %.1f | sin muro %.1f/%.1f (fuente %s, simuladas %d) | sin bake %.1f/%.1f (fuente %s)" % [glass.hi, glass.lo, concrete.hi, concrete.lo, open_bake.hi, open_bake.lo, str(open_bake.direct), int(open_bake.simulated), no_bake.hi, no_bake.lo, str(no_bake.direct)])
+	a.ok(glass.direct and concrete.direct, "las voces cercanas tienen fuente del simulador")
+	a.eq(int(open_bake.simulated), 1, "una fuente simulada por cuadro")
+	a.gt(glass.hi, concrete.hi + 6.0, "tras el cristal pasan al menos 6 dB mas de agudos que tras el hormigon")
+	a.lt(glass.hi, open_bake.hi - 3.0, "y menos que sin muro")
+	a.ok(not no_bake.direct, "sin bake no hay fuente: rayo de Godot como siempre")
+	# Sin bake, el muro fisico ocluye por rayo; sin muro ni bake, igual que sin muro con bake (+-1.5 dB).
+	a.approx(open_bake.hi, no_bake.hi, "sin muro, con y sin escena suenan igual", 1.5)
+	# Directividad nativa (cardioide, w = 0.5): de espaldas al menos 10 dB menos; de lado ~-6 dB,
+	# no -12: la GDScript no se suma encima.
+	var front: Dictionary = await _voice_band(tree, &"", true, 0.5, Vector3(0, 0, 1))
+	var back: Dictionary = await _voice_band(tree, &"", true, 0.5, Vector3(0, 0, -1))
+	var side: Dictionary = await _voice_band(tree, &"", true, 0.5, Vector3(1, 0, 0))
+	print("[OpenDou] directividad nativa (cardioide): frente %.1f dB, lado %.1f dB, espalda %.1f dB" % [front.rms, side.rms, back.rms])
+	a.lt(back.rms, front.rms - 10.0, "de espaldas, al menos 10 dB menos")
+	a.ok(front.rms - side.rms > 4.0 and front.rms - side.rms < 9.5, "de lado, unos 6 dB menos (una sola directividad, no dos): %.1f" % (front.rms - side.rms))
 	return a

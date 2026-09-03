@@ -447,6 +447,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestSteamSceneClass.run_all_async(tree))
 	acc.absorb(await TestDirectEffectClass.run_simulator_async(tree))
 	acc.absorb(await TestDirectEffectClass.run_stream_async(tree))
+	acc.absorb(await TestDirectEffectClass.run_voice_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

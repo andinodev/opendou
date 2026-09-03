@@ -136,7 +136,7 @@ func bake_geometry(root_node: Node = null) -> Dictionary:
 	stats["total_volume"] = total_bounds.get_volume() if has_first_bound else 0.0
 
 	if feed_steam_audio and total_triangles > 0:
-		export_to_native()
+		_fed_native = export_to_native()
 	return stats
 
 func _collect_child_meshes(parent_node: Node, out_list: Array[MeshInstance3D]) -> void:
@@ -158,6 +158,15 @@ func clear_baked_data() -> void:
 	stats["mesh_count"] = 0
 	stats["triangle_count"] = 0
 	stats["total_volume"] = 0.0
+
+## True si este bake alimento la escena nativa: al salir del arbol la limpia. La escena es
+## una por proceso; si no, la geometria de una demo seguiria ocluyendo en la siguiente.
+var _fed_native: bool = false
+
+func _exit_tree() -> void:
+	if _fed_native and ClassDB.class_exists("OpenDouAcousticScene"):
+		ClassDB.class_call_static("OpenDouAcousticScene", "clear")
+		_fed_native = false
 
 ## Vertices, triangulos e indices de material aplanados, listos para la escena nativa.
 func get_flat_geometry() -> Dictionary:

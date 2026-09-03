@@ -356,7 +356,8 @@ static func run_wiring_async(tree: SceneTree) -> OpenDouAssert:
 	# Y en cuanto deja de estar gobernada, la oclusion vuelve a atenderla.
 	inside.room_path_active = false
 	var raycasts_again: int = scheduler.process([inside], Vector3(14.0, 1.6, 0.0), w3d)
-	a.gt(float(raycasts_again), 0.0, "sin gobierno del grafo, la oclusion la atiende")
+	# Con simulador (Fase 12) la voz se atiende con una fuente en vez de un rayo: cuenta igual.
+	a.gt(float(raycasts_again + scheduler.simulated_this_frame), 0.0, "sin gobierno del grafo, la oclusion la atiende")
 
 	# ---- Observacion 38 con NODOS: liberar una escena da de baja sus salas.
 	var Room3DClass = load("res://addons/opendou/nodes/opendou_room_3d.gd")
