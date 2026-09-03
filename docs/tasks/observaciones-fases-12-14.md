@@ -16,6 +16,8 @@ Planes: [12](../superpowers/plans/2026-09-02-fase12-efecto-directo.md) ·
 
 ## A. Decisiones que necesitan el visto bueno del usuario
 
+**Estado (2026-09-03): A1–A13 aprobadas por el usuario tal como están; se ejecuta con las decisiones provisionales.**
+
 | # | Fase | Decisión provisional | Alternativa | Qué cambia si se elige la alternativa |
 |---|---|---|---|---|
 | A1 | 12 | La **atenuación por distancia sigue siendo la nuestra** (paridad exacta con Godot); el efecto directo solo aplica oclusión, transmisión, aire y directividad | Dejar que Steam Audio atenúe (`APPLYDISTANCEATTENUATION`) | Se pierde la paridad medida entre backends (Fase 7B/9); habría que rehacer `test_backend_parity` |
