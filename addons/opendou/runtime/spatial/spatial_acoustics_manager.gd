@@ -8,8 +8,6 @@ const AudioPortalClass = preload("res://addons/opendou/runtime/spatial/audio_por
 const AcousticPathClass = preload("res://addons/opendou/runtime/spatial/acoustic_path.gd")
 const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spatial/acoustic_material_registry.gd")
 const AcousticReflectorEngineClass = preload("res://addons/opendou/runtime/spatial/acoustic_reflector_engine.gd")
-const EdgeDiffractionEngineClass = preload("res://addons/opendou/runtime/spatial/edge_diffraction_engine.gd")
-const RoomCouplingEngineClass = preload("res://addons/opendou/runtime/spatial/room_coupling_engine.gd")
 const AcousticLODControllerClass = preload("res://addons/opendou/runtime/spatial/acoustic_lod_controller.gd")
 const ReverbBusPoolClass = preload("res://addons/opendou/runtime/spatial/reverb_bus_pool.gd")
 
@@ -20,8 +18,6 @@ var reflectors: Dictionary = {} # StringName -> RefCounted/Node3D
 # Phase 1 & 2 Spatial Engines
 var material_registry: RefCounted
 var reflector_engine: RefCounted
-var diffraction_engine: RefCounted
-var coupling_engine: RefCounted
 var lod_controller: RefCounted
 
 ## Pool compartido de buses de reverb, agrupados por RT60.
@@ -40,8 +36,6 @@ var convolution_allowed: bool = false
 func _init() -> void:
 	material_registry = AcousticMaterialRegistryClass.new()
 	reflector_engine = AcousticReflectorEngineClass.new()
-	diffraction_engine = EdgeDiffractionEngineClass.new()
-	coupling_engine = RoomCouplingEngineClass.new()
 	lod_controller = AcousticLODControllerClass.new()
 	reverb_bus_pool = ReverbBusPoolClass.new()
 

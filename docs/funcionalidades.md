@@ -112,7 +112,7 @@ Todos resuelven el autoload `/root/OpenDou` y admiten un manager inyectado para 
 - **Reverb por sala** por el mecanismo `Area3D.reverb_bus` de Godot, con buses del pool. Desde la Fase 7B alcanza también a las voces anónimas del pool (observación 44). ✅
 - **Nivel de detalle acústico** (`AcousticLODController`): cuatro niveles por distancia que deciden qué voces reciben oclusión y reflexiones. 🟡
 - **Materiales acústicos** (`AcousticMaterialRegistry` + recurso `AcousticMaterial`): ocho presets con absorción, dispersión y transmisión **por banda** (los siete números de `IPLMaterial`, Fase 12) más densidad y resonancia para el fallback por ley de masas; JSON del proyecto con `bands`. ✅
-- **Difracción por aristas** (`EdgeDiffractionEngine`) y **acoplamiento entre salas** (`RoomCouplingEngine`): ⚪ presentes, sin consumidor en el runtime; los sustituye la propagación de Steam Audio en una fase posterior.
+- **Difracción por aristas** y **acoplamiento entre salas** (`EdgeDiffractionEngine`, `RoomCouplingEngine`): **retirados en la Fase 14**. Nunca tuvieron consumidor en el runtime; la propagación por sondas de Steam Audio (caminos con dirección aparente y EQ) los sustituye.
 - **Analizador RT60 de respuestas al impulso** (`OpenDouIRRT60Analyzer`, Schroeder + T20): ✅ el análisis; ⚪ nadie produce todavía las IR que analizaría.
 
 **Ideas de nodos nuevos** (materiales en tres bandas, camas ambisónicas, altavoz de mundo…; doppler, retardo por distancia y campo cercano ya viven en el emisor desde la Fase 9; oyente, medio, viento, oclusión parcial, descarte, superficie, accesibilidad y la IA que oye, desde la Fase 10): [`docs/ideas/nodos-de-escena.md`](ideas/nodos-de-escena.md).
