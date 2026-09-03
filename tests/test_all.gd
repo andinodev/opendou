@@ -85,6 +85,7 @@ const TestReflectionsThreadClass = preload("res://tests/test_reflections_thread.
 const TestConvolutionReverbClass = preload("res://tests/test_convolution_reverb.gd")
 const TestAmbisonicBedClass = preload("res://tests/test_ambisonic_bed.gd")
 const TestSpeakerOutputModeClass = preload("res://tests/test_speaker_output_mode.gd")
+const TestProbesBakeClass = preload("res://tests/test_probes_bake.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -459,6 +460,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestConvolutionReverbClass.run_all_async(tree))
 	acc.absorb(await TestAmbisonicBedClass.run_all_async(tree))
 	acc.absorb(await TestSpeakerOutputModeClass.run_all_async(tree))
+	acc.absorb(await TestProbesBakeClass.run_all_async(tree))
 	acc.absorb(await TestSimBudgetClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,

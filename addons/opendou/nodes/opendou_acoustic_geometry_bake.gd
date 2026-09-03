@@ -25,6 +25,17 @@ const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spat
 ## Alimentar la escena de Steam Audio al terminar el bake (Fase 12). Sin extension no hace nada.
 @export var feed_steam_audio: bool = true
 
+@export_group("Probes")
+## Sondas de propagacion (Fase 14): separacion y altura sobre el suelo, dentro de probe_bounds
+## (vacio = el AABB del bake). El archivo .probes se versiona junto a la escena.
+@export_range(0.5, 20.0, 0.1) var probe_spacing_m: float = 2.0
+@export_range(0.2, 5.0, 0.1) var probe_height_m: float = 1.5
+@export var probe_bounds: AABB = AABB()
+@export_file("*.probes") var probes_path: String = ""
+@export var auto_load_probes: bool = true
+
+signal probe_bake_progress(fraction: float)
+
 # ==============================================================================
 # BAKED DATA STORAGE
 # ==============================================================================
@@ -137,6 +148,8 @@ func bake_geometry(root_node: Node = null) -> Dictionary:
 
 	if feed_steam_audio and total_triangles > 0:
 		_fed_native = export_to_native()
+		if _fed_native and auto_load_probes and not Engine.is_editor_hint():
+			load_probes()
 	return stats
 
 func _collect_child_meshes(parent_node: Node, out_list: Array[MeshInstance3D]) -> void:
@@ -167,6 +180,62 @@ func _exit_tree() -> void:
 	if _fed_native and ClassDB.class_exists("OpenDouAcousticScene"):
 		ClassDB.class_call_static("OpenDouAcousticScene", "clear")
 		_fed_native = false
+
+## Ruta por defecto del archivo de sondas: la de la escena, con extension .probes.
+func default_probes_path() -> String:
+	if not probes_path.is_empty():
+		return probes_path
+	var scene_path: String = ""
+	if is_inside_tree() and get_tree().current_scene != null and not get_tree().current_scene.scene_file_path.is_empty():
+		scene_path = get_tree().current_scene.scene_file_path
+	elif owner != null and not owner.scene_file_path.is_empty():
+		scene_path = owner.scene_file_path
+	if scene_path.is_empty():
+		return "user://%s.probes" % name
+	return scene_path.get_basename() + ".probes"
+
+## AABB del bake en mundo (union de las mallas horneadas).
+func get_baked_bounds() -> AABB:
+	var b := AABB()
+	var first: bool = true
+	for aabb in baked_aabbs:
+		if first:
+			b = aabb
+			first = false
+		else:
+			b = b.merge(aabb)
+	return b
+
+## Genera las sondas sobre la escena nativa, precocina los caminos y guarda el .probes.
+## Devuelve {probe_count, bytes, path}. Vacio sin extension o sin escena.
+func bake_probes() -> Dictionary:
+	if not ClassDB.class_exists("OpenDouAcousticScene"):
+		return {}
+	if not bool(ClassDB.class_call_static("OpenDouAcousticScene", "is_ready")) and not export_to_native():
+		return {}
+	probe_bake_progress.emit(0.0)
+	var bounds: AABB = probe_bounds if probe_bounds.size.length() > 0.0 else get_baked_bounds()
+	var n: int = int(ClassDB.class_call_static("OpenDouAcousticScene", "generate_probes", probe_spacing_m, probe_height_m, bounds))
+	if n <= 0:
+		probe_bake_progress.emit(1.0)
+		return {}
+	probe_bake_progress.emit(0.3)
+	ClassDB.class_call_static("OpenDouAcousticScene", "bake_paths", 1, 1.0, 0.1, 50.0, 100.0, 1)
+	probe_bake_progress.emit(0.9)
+	var path: String = default_probes_path()
+	var ok: bool = bool(ClassDB.class_call_static("OpenDouAcousticScene", "save_probes", path))
+	probe_bake_progress.emit(1.0)
+	var bytes: int = FileAccess.get_file_as_bytes(path).size() if ok else 0
+	return {"probe_count": n, "bytes": bytes, "path": path}
+
+## Carga el .probes (la ruta dada, probes_path o la de la escena). false si no existe.
+func load_probes(path: String = "") -> bool:
+	if not ClassDB.class_exists("OpenDouAcousticScene"):
+		return false
+	var p: String = path if not path.is_empty() else default_probes_path()
+	if not FileAccess.file_exists(p):
+		return false
+	return bool(ClassDB.class_call_static("OpenDouAcousticScene", "load_probes", p))
 
 ## Vertices, triangulos e indices de material aplanados, listos para la escena nativa.
 func get_flat_geometry() -> Dictionary:

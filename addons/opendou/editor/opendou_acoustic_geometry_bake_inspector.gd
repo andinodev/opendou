@@ -55,6 +55,14 @@ func _parse_begin(object: Object) -> void:
 	hbox.add_theme_constant_override("separation", 4)
 	vbox.add_child(hbox)
 
+	var btn_probes = Button.new()
+	btn_probes.text = "◎ Bake Probes"
+	btn_probes.tooltip_text = "Genera las sondas de propagacion sobre la escena de Steam Audio y guarda el .probes junto a la escena (Fase 14)"
+	btn_probes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_probes.pressed.connect(func():
+		var r: Dictionary = bake_node.bake_probes() if bake_node.has_method("bake_probes") else {}
+		lbl_stats.text = "Sondas: %d | %d bytes | %s" % [int(r.get("probe_count", 0)), int(r.get("bytes", 0)), str(r.get("path", "sin extension o sin bake"))]
+	)
 	var btn_bake = Button.new()
 	btn_bake.text = "⚡ Bake Geometry"
 	btn_bake.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -68,6 +76,7 @@ func _parse_begin(object: Object) -> void:
 			]
 	)
 	hbox.add_child(btn_bake)
+	hbox.add_child(btn_probes)
 
 	var btn_clear = Button.new()
 	btn_clear.text = "🗑️ Clear"

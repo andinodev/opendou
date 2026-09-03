@@ -5,6 +5,10 @@
 #include <godot_cpp/classes/audio_server.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/packed_float32_array.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
+#include <godot_cpp/classes/file_access.hpp>
+#include <cstring>
+#include <godot_cpp/variant/utility_functions.hpp>
 #include <vector>
 
 using namespace godot;
@@ -16,6 +20,9 @@ IPLStaticMesh OpenDouAcousticScene::mesh_ = nullptr;
 int OpenDouAcousticScene::triangle_count_ = 0;
 int OpenDouAcousticScene::material_count_ = 0;
 int OpenDouAcousticScene::generation_ = 0;
+IPLProbeBatch OpenDouAcousticScene::probes_ = nullptr;
+int OpenDouAcousticScene::probe_count_ = 0;
+int OpenDouAcousticScene::probes_generation_ = 0;
 
 void OpenDouAcousticScene::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("build", "vertices", "triangles", "material_indices", "materials"), &OpenDouAcousticScene::build);
@@ -24,6 +31,14 @@ void OpenDouAcousticScene::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("triangle_count"), &OpenDouAcousticScene::triangle_count);
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("material_count"), &OpenDouAcousticScene::material_count);
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("generation"), &OpenDouAcousticScene::generation);
+	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("generate_probes", "spacing_m", "height_m", "bounds"), &OpenDouAcousticScene::generate_probes);
+	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("bake_paths", "num_samples", "radius", "threshold", "vis_range", "path_range", "num_threads"), &OpenDouAcousticScene::bake_paths);
+	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("save_probes", "path"), &OpenDouAcousticScene::save_probes);
+	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("load_probes", "path"), &OpenDouAcousticScene::load_probes);
+	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("clear_probes"), &OpenDouAcousticScene::clear_probes);
+	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("probe_count"), &OpenDouAcousticScene::probe_count);
+	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("has_probes"), &OpenDouAcousticScene::has_probes);
+	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("probes_generation"), &OpenDouAcousticScene::probes_generation);
 }
 
 bool OpenDouAcousticScene::build(const PackedVector3Array &vertices, const PackedInt32Array &triangles, const PackedInt32Array &material_indices, const Array &materials) {
@@ -88,7 +103,142 @@ bool OpenDouAcousticScene::build(const PackedVector3Array &vertices, const Packe
 	return true;
 }
 
+// Matriz 4x4 (elements[fila][columna], vectores columna) que lleva el cubo unidad a la caja.
+static IPLMatrix4x4 box_matrix(const AABB &box) {
+	IPLMatrix4x4 m = {};
+	m.elements[0][0] = box.size.x;
+	m.elements[1][1] = box.size.y;
+	m.elements[2][2] = box.size.z;
+	m.elements[0][3] = box.position.x;
+	m.elements[1][3] = box.position.y;
+	m.elements[2][3] = box.position.z;
+	m.elements[3][3] = 1.0f;
+	return m;
+}
+
+static void IPLCALL bake_progress(IPLfloat32 progress, void *) {
+	UtilityFunctions::print(vformat("[OpenDou] bake de caminos %.0f%%", progress * 100.0f));
+}
+
+int OpenDouAcousticScene::generate_probes(float spacing_m, float height_m, const AABB &bounds) {
+	if (!is_ready()) {
+		return 0;
+	}
+	clear_probes();
+	IPLProbeArray arr = nullptr;
+	if (iplProbeArrayCreate(SteamAudioContext::context(), &arr) != IPL_STATUS_SUCCESS) {
+		return 0;
+	}
+	IPLProbeGenerationParams p = {};
+	p.type = IPL_PROBEGENERATIONTYPE_UNIFORMFLOOR;
+	p.spacing = spacing_m;
+	p.height = height_m;
+	p.transform = box_matrix(bounds);
+	iplProbeArrayGenerateProbes(arr, scene_, &p);
+	const int n = iplProbeArrayGetNumProbes(arr);
+	if (n <= 0 || iplProbeBatchCreate(SteamAudioContext::context(), &probes_) != IPL_STATUS_SUCCESS) {
+		iplProbeArrayRelease(&arr);
+		probes_ = nullptr;
+		return 0;
+	}
+	iplProbeBatchAddProbeArray(probes_, arr);
+	iplProbeBatchCommit(probes_);
+	iplProbeArrayRelease(&arr);
+	probe_count_ = n;
+	probes_generation_++;
+	return n;
+}
+
+bool OpenDouAcousticScene::bake_paths(int num_samples, float radius, float threshold, float vis_range, float path_range, int num_threads) {
+	if (!is_ready() || probes_ == nullptr) {
+		return false;
+	}
+	IPLPathBakeParams b = {};
+	b.scene = scene_;
+	b.probeBatch = probes_;
+	b.identifier.type = IPL_BAKEDDATATYPE_PATHING;
+	b.identifier.variation = IPL_BAKEDDATAVARIATION_DYNAMIC;
+	b.numSamples = num_samples;
+	b.radius = radius;
+	b.threshold = threshold;
+	b.visRange = vis_range;
+	b.pathRange = path_range;
+	b.numThreads = num_threads < 1 ? 1 : num_threads;
+	iplPathBakerBake(SteamAudioContext::context(), &b, &bake_progress, nullptr);
+	iplProbeBatchCommit(probes_);
+	probes_generation_++;
+	return true;
+}
+
+bool OpenDouAcousticScene::save_probes(const String &path) {
+	if (probes_ == nullptr) {
+		return false;
+	}
+	IPLSerializedObjectSettings ss = {};
+	IPLSerializedObject obj = nullptr;
+	if (iplSerializedObjectCreate(SteamAudioContext::context(), &ss, &obj) != IPL_STATUS_SUCCESS) {
+		return false;
+	}
+	iplProbeBatchSave(probes_, obj);
+	const IPLsize n = iplSerializedObjectGetSize(obj);
+	PackedByteArray bytes;
+	bytes.resize(static_cast<int64_t>(n));
+	std::memcpy(bytes.ptrw(), iplSerializedObjectGetData(obj), n);
+	iplSerializedObjectRelease(&obj);
+	Ref<FileAccess> f = FileAccess::open(path, FileAccess::WRITE);
+	if (f.is_null()) {
+		return false;
+	}
+	f->store_buffer(bytes);
+	f->close();
+	return true;
+}
+
+bool OpenDouAcousticScene::load_probes(const String &path) {
+	Ref<FileAccess> f = FileAccess::open(path, FileAccess::READ);
+	if (f.is_null()) {
+		return false;
+	}
+	PackedByteArray bytes = f->get_buffer(static_cast<int64_t>(f->get_length()));
+	f->close();
+	if (bytes.size() == 0) {
+		return false;
+	}
+	const int rate = static_cast<int>(AudioServer::get_singleton()->get_mix_rate());
+	if (!SteamAudioContext::ensure(rate)) {
+		return false;
+	}
+	IPLSerializedObjectSettings ss = {};
+	ss.data = reinterpret_cast<IPLbyte *>(bytes.ptrw());
+	ss.size = static_cast<IPLsize>(bytes.size());
+	IPLSerializedObject obj = nullptr;
+	if (iplSerializedObjectCreate(SteamAudioContext::context(), &ss, &obj) != IPL_STATUS_SUCCESS) {
+		return false;
+	}
+	clear_probes();
+	const IPLerror e = iplProbeBatchLoad(SteamAudioContext::context(), obj, &probes_);
+	iplSerializedObjectRelease(&obj);
+	if (e != IPL_STATUS_SUCCESS) {
+		probes_ = nullptr;
+		return false;
+	}
+	iplProbeBatchCommit(probes_);
+	probe_count_ = iplProbeBatchGetNumProbes(probes_);
+	probes_generation_++;
+	return true;
+}
+
+void OpenDouAcousticScene::clear_probes() {
+	if (probes_ != nullptr) {
+		iplProbeBatchRelease(&probes_);
+		probes_ = nullptr;
+	}
+	probe_count_ = 0;
+	probes_generation_++;
+}
+
 void OpenDouAcousticScene::clear() {
+	clear_probes();
 	// El simulador apunta a esta escena: sin escena no hay simulador (las fuentes se invalidan).
 	OpenDouSimulator::shutdown();
 	if (mesh_ != nullptr && scene_ != nullptr) {
