@@ -1,7 +1,50 @@
 # ⚡ Tarea Activa: Fases 15 y 16 implementadas — siguiente, cierre del sprint
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
-* **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
+* **Última fase con spec y plan:** Fase 16 — [spec](../superpowers/specs/2026-09-03-fase16-la-presa-design.md) · [plan](../superpowers/plans/2026-09-03-fase16-la-presa.md); Fase 15 — [spec](../superpowers/specs/2026-09-03-fase15-deudas-design.md) · [plan](../superpowers/plans/2026-09-03-fase15-deudas.md)
+
+## Cómo retomar (para cualquier modelo o persona)
+
+**Dónde está cada cosa.** Qué hace el plugin y qué afirma cada pieza con números: `docs/funcionalidades.md`.
+Por qué se hizo así y qué obligó a corregir la ejecución: cada spec (`docs/superpowers/specs/`, sección
+«Correcciones que la ejecución obligó a hacer») y su plan. Trampas de Godot y Steam Audio descubiertas,
+numeradas por fase (observaciones 1–55): `AGENTS.md`, bloques «Observaciones y trampas de la Fase N».
+Decisiones tomadas sin el usuario y deudas: `docs/tasks/observaciones-fases-12-14.md`. Hoja de ruta:
+`docs/roadmap/2026-09-02-sprint-aaa.md`.
+
+**Cómo se trabaja.** Por fase: spec (brainstorming) → plan (writing-plans) → ejecución inline en `main`,
+un commit por tarea, sin pedir permiso para continuar. El proyecto **solo afirma lo que hace**: cada
+tesis se mide en audio capturado en el bus de sonda (`tests/support/audio_probe.gd`), con un control.
+Documentos en español con acentos; comentarios de código en español sin acentos. Los nodos van en el
+`.tscn` (regla 04); el código solo autora streams (se sintetizan) y lo dinámico.
+
+**Cómo se comprueba.** `./run_tests.sh` (≈150 s; vigilante 240 s con `OPENDOU_TEST_TIMEOUT`); la
+puerta de commit es su **código de salida**, no la línea `STATUS`: también fallan los `SCRIPT ERROR`,
+los `Parse Error` y el trinquete de fugas (`tests/leak_budget.txt`, hoy 540; la suite deja 527–529). Un
+test con nodos va en `run_async_suite`; el último test de la suite espera 300 ms tras parar voces o los
+playbacks quedan vivos al salir. Godot: `/Users/Daniel/Downloads/Godot.app/Contents/MacOS/Godot`;
+nativo: `/Applications/CMake.app/Contents/bin/cmake --build native/build/ext --parallel` (los `.cpp`
+nuevos van en `native/CMakeLists.txt` y las clases en `native/src/register_types.cpp`). Banco:
+`Godot --headless --path . -s tools/bench_control_loop.gd` (200 voces ≈ 3.4–3.7 µs; techo 4.3).
+
+**Cómo se depura (lo que funcionó hoy).**
+1. Un fallo que solo aparece en la suite completa se aísla con un **sondeo** (`tools/probe_*.gd`,
+   `extends SceneTree`, se ejecuta con `Godot --headless --path . --script tools/probe_x.gd`): carga lo
+   mínimo y mide en 10 s en vez de 150. Si en aislamiento funciona, la causa es estado que dejan tests
+   previos (pool de voces, presupuesto, LOD, buses del pool que sobreviven al manager).
+2. Trazas por variable de entorno: `OPENDOU_TRACE_SIM=1` (el planificador: pares, fuentes del
+   simulador, altas y bajas) y `OPENDOU_TRACE_OBS43=1` (el grafo de salas al decidir portal). Se
+   activan al lanzar el runner: `OPENDOU_TRACE_SIM=1 Godot --headless --path . --script tests/test_runner_cli.gd`.
+3. Un crash nativo: `lldb` no puede adjuntarse a Godot en esta máquina; el informe `.ips` de
+   `~/Library/Logs/DiagnosticReports/Godot-*.ips` trae la pila de todos los hilos con el desplazamiento en
+   `libphonon`; `lipo -thin arm64` + `llvm-objdump --start-address` desensambla el punto exacto.
+4. Un error de parse que la suite solo reporta como «Could not preload»: `Godot --headless --path .
+   --check-only --script archivo.gd` da la línea exacta.
+5. Fugas: `Godot --headless --path . --script tests/test_runner_cli.gd --verbose` lista las instancias
+   vivas al salir; las nativas aparecen sin nombre de clase.
+6. Medidas de audio: para el ruido periódico de los tests, `_band_energy_stereo` (rectangular, exacta);
+   para señales arbitrarias (demos), `_band_energy_stereo_windowed` (Hann). El driver headless corre
+   a ~0.84 s de audio por segundo de reloj bajo carga: esperar por muestras, no por milisegundos.
 
 El hub tiene cinco entradas: «Bajo la quilla», «El monzón», «La cabina», «Una casa canta» y
 el banco del rig. Todas se componen como árboles de nodos en su `.tscn`; los scripts solo
