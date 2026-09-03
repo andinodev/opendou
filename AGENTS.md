@@ -489,6 +489,45 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
 * **`AudioServer.get_bus_effect(idx, 0)` ya no es necesariamente el reverb** del pool: se
   busca por tipo (`is AudioEffectReverb`) o por marca (`resource_name`).
 
+**Observaciones y trampas de la Fase 16 («La presa»):**
+
+* **Observacion 55.** Una escena grande destapa lo que las suites unitarias no: el planificador
+  de oclusion guardaba el pool de voces viejo tras `set_max_physical_voices` (ninguna voz recibia
+  efecto directo ni caminos cuando otra demo habia cambiado el presupuesto antes); las capas de
+  un contenedor no heredaban la fuente del simulador (sonaban sin efecto directo); y un camino
+  «a la vista» quedaba congelado al cortarse la linea de vision. Las tres son del plugin, no de
+  la demo, y ahora tienen su regla: el pool se reapunta, las capas comparten fuente/camino/envio,
+  y solo gobiernan los caminos que desvian mas de 10 grados.
+* **En un `.tscn`, `script = ExtResource(...)` va ANTES de las propiedades que el script
+  define**: las que llegan antes no existen todavia y Godot las descarta en silencio (turbinas,
+  goteo, bocina y camion mudos; `doppler_enabled` ignorado).
+* **La geometria «de relleno» es real para el trazador**: el muro de la presa como caja unica
+  cruzaba la galeria (el goteo estaba dentro del hormigon) y el canal del aliviadero nacia dentro
+  del muro. Los tuneles se abren en el volumen que atraviesan.
+* **La caja de sondas mapea un cubo CENTRADO** (traslacion = centro) y los rayos bajan desde su
+  techo: si el techo coincide con una losa, no hay sondas dentro. El oido del jugador va a 2.6 m
+  del suelo (capsula + camara): un tunel de 2.5 m lo dejaba fuera de la sala y pegado al techo.
+* **Steam Audio no borra la salida de pathing cuando no encuentra camino**: la fuente fuera de
+  las sondas conserva su ultimo resultado (el «a la vista»); con `pathing_gain = 1` la compuerta
+  no ocluia nada. De ahi la regla de los 10 grados en el manager.
+* **La transmision del efecto directo aplica el coeficiente al CUADRADO**: cristal 0.06 da
+  -49 dB, hormigon 0.015 da -77, 0.5 plano da -12. Las bandas son < 800 Hz, 800-8k, > 8k: hay
+  que medir donde la fuente tiene energia (un zumbido, en 100-700 Hz).
+* **Un bus de reverb por convolucion en una nave lisa de 36 m satura** (+14 dB con envio 0.8):
+  el envio es el fader del reverb y salas grandes piden 0.15-0.3; si el limitador de Master
+  recorta, sus armonicos parecen «agudos» que ningun filtro quita.
+* **La ventana rectangular del analizador de bandas se fuga desde los graves** (-46 dB por
+  lobulos): con graves 70 dB por encima, cualquier filtro «desaparece». Para senales
+  arbitrarias, `_band_energy_stereo_windowed` (Hann); para el ruido periodico de los tests, la
+  rectangular es exacta y Hann mezclaria bins.
+* **Las curvas de un `AudioBlendContainer` son dB** (0 suena, -60 calla), no pesos 0..1.
+* **`OpenDouEventPlayer3D` en `BUS_CAPTURE` y `OpenDouEventPlayer`: el bus de la fuente baja a
+  -80 y otra regla puede sumarle mas** (-90 medido): se afirma `<= -79`, no igual a -80.
+* **Herramientas que se quedan**: `tools/probe_presa*.gd` (la demo cargada, medidas por zona),
+  `tools/probe_transmission.gd` (transmision por material en el stream),
+  `tools/probe_master_lpf.gd` / `probe_subbus_lpf.gd` (filtros de Master), `tools/gen_presa_tscn.py`
+  (genera la escena UNA vez) y `tools/bake_presa_probes.gd` (rehornea el `.probes`).
+
 ---
 
 ## 6. Reglas Modulares de Referencia

@@ -153,6 +153,18 @@ sus parámetros; la IA al final porque es lo único que no cambia lo que el juga
 | 15.2 | **`docs/funcionalidades.md` al día** con todo lo nuevo y sus marcas de estado reales, y el diagrama de arquitectura con el efecto directo, las reflexiones y las sondas |
 | 15.3 | **Notas de versión** y actualización de `README.md`, `AGENTS.md` (observaciones acumuladas) y `docs/tasks/current.md` |
 
+**Estado (2026-09-03):** 15.2 y 15.3 al día en `funcionalidades.md`, `AGENTS.md` y `current.md`;
+15.1 (prefijado) y las notas de versión / `README.md` siguen pendientes.
+
+---
+
+## Fases añadidas al sprint (2026-09-03)
+
+| Fase | Entrega | Estado |
+|---|---|---|
+| **15 (deudas)** | C1 envío propio de reverb en `steam_audio`, C3 spline y multiposición en el sistema de voces, C4 LUFS nativo, C5 latencia del altavoz de mundo (107 ms). Spec [`fase15`](../superpowers/specs/2026-09-03-fase15-deudas-design.md) | ✅ |
+| **16 («La presa»)** | La escena grande: valle, presa, nave `CONVOLUTION`, cabina de cristal, galería en L con sondas, galería inundada, compuerta dinámica, río, camión, tormenta, vigilantes que oyen; los 21 tipos de nodo salvo el 2D (C2). Spec [`fase16`](../superpowers/specs/2026-09-03-fase16-la-presa-design.md) | ✅ |
+
 ---
 
 ## Fuera de este sprint, por escrito

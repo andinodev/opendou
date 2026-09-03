@@ -1,7 +1,7 @@
 # Fase 16 — «La presa»: la escena grande
 
 **Fecha:** 2026-09-03
-**Estado:** Diseñado sin intervención del usuario (flujo acordado); correcciones en §12.
+**Estado:** Implementado (2026-09-03); correcciones en §12.
 **Rama:** `main`
 **Godot verificado:** 4.7.2 · **Steam Audio:** 4.8.1
 **Fase anterior:** [15](2026-09-03-fase15-deudas-design.md)
@@ -86,10 +86,10 @@ el mirador del muro. El plugin se demuestra caminando: cada zona tiene una **tes
 
 ### 2.2 Nodos (todos los del plugin salvo el 2D)
 
-`OpenDouListener3D` (hijo del jugador, radio de cabeza 0.09), `OpenDouRoom3D` ×5 (Nave
-`CONVOLUTION`/Metal, Control/Glass, Galería/Concrete, Inundada/Water, Valle/Outdoor),
-`OpenDouPortal3D` ×4 (puerta nave–control, puerta nave–galería, boca galería–valle, escotilla
-inundada), `OpenDouReflector3D` ×3 (muro de la presa, dos laderas), `OpenDouAcousticGeometryBake`
+`OpenDouListener3D` (hijo del jugador, radio de cabeza 0.09), `OpenDouRoom3D` ×4 (Nave
+`CONVOLUTION`/Metal —la cabina de control es acústicamente parte de la nave—, Galería/Concrete
+`CONVOLUTION`, Inundada/Water, Valle/Outdoor), `OpenDouPortal3D` ×3 (puerta nave–galería,
+portón nave–valle, escotilla inundada), `OpenDouReflector3D` ×3 (muro de la presa, dos laderas), `OpenDouAcousticGeometryBake`
 (con `probe_spacing_m = 2`, `probes_path` junto a la escena, `dynamic_group`),
 `OpenDouAcousticDebugger3D` (`show_paths`), `OpenDouEventPlayer3D` (turbinas ×2, bocina de
 megafonía con `source = BUS_CAPTURE`, goteo, pájaros, trueno, camión), `OpenDouEventPlayer`
@@ -155,6 +155,28 @@ segundos; se limita `probe_bounds` a la galería y la nave (donde hacen falta) y
 
 ## 6–11. (Reservados: no aplican.)
 
-## 12. Correcciones que la ejecución obligue a hacer
+## 12. Correcciones que la ejecución obligó a hacer
 
-Se anotan aquí, numeradas.
+1. **Cabina de control (§2.1 Z3).** Como sala aparte, el grafo gobernaba la turbina y anulaba el
+   efecto directo; es una cabina dentro de la nave (una sala, 4 salas en total, 3 portales).
+2. **Geometría (§2).** El muro de la presa se abre donde pasa la galería; el canal del aliviadero
+   nace en z = 4 (fuera del muro); la galería mide 3.5 m de alto (el oído del jugador va a 2.6 m).
+3. **`.tscn` generado (§3).** `script` antes de las propiedades del script (Godot descarta las
+   anteriores); el generador lo hace en todos los emisores.
+4. **Sondas (§2.1 Z4).** Caja explícita `AABB(-30, -16, -11, 72, 3.4, 32)`: nave, cabina y las
+   dos ramas de la galería; 482 sondas, 1.1 MB, 84 ms. El `.probes` se versiona.
+5. **Envíos (§2.4).** Nave 0.15 y galería 0.35: con 0.8 el bus de reverb picaba +14 dB.
+6. **Río (§2.1 Z7).** Flujo 8 m/s: con 2 m/s el doppler era 1.006, inafirmable.
+7. **Camión (§2.1 Z8).** Sin retardo por distancia: en steam_audio el doppler iría por la línea
+   de retardo y no sería afirmable por `doppler_pitch`; con el tono, 1.026 / 0.976 en ambos.
+8. **Trueno (§2.1 Z9).** Bus propio `Thunder` (Ambience lleva viento y lluvia); rayos automáticos
+   apagables (`auto_lightning`) para medir el retardo: 1.11 s a 381 m.
+9. **Vigilantes (§2.1 Z10).** Umbral −25 dB: a 4 m −6.5, a 22 m al aire libre −21.3 (se oye), tras
+   el muro y la turbina −27.7 (no). La oclusión por rayo vale −6 dB.
+10. **Plugin (obs. 55).** Pool del planificador tras `set_max_physical_voices`; capas con fuente
+    compartida; caminos solo si desvían > 10°; proveedores sin publicación duplicada; simulador
+    rehecho si su capacidad no llega.
+11. **Medidas.** Ventana de Hann para la demo; cristal −3.3 dB frente a hormigón −34.2 (banda
+    100–700 Hz); compuerta 28.9 → −35.1 dB; sumergido −59 dB de agudos; RT60 1.8 s; ducking −12.
+12. **Suite.** 1624 aserciones, 529 objetos vivos de 540; watchdog 240 s; presupuesto de la presa
+    [−28, −16] LUFS (medida −22.0). Banco a 200 voces: godot 3.37–3.40, steam_audio 3.57–3.66 µs.

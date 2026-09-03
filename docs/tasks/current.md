@@ -1,4 +1,4 @@
-# ⚡ Tarea Activa: Fase 15 (deudas) implementada — siguiente, Fase 16 (la escena grande)
+# ⚡ Tarea Activa: Fases 15 y 16 implementadas — siguiente, cierre del sprint
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
 * **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
@@ -137,5 +137,12 @@ Observación 53 y trampas en `AGENTS.md`; §11 del spec; B10–B13 resueltas.
 de posición del pool, `OpenDouLoudnessTap` nativo, latencia del altavoz de mundo 107 ms afirmada.
 Observación 54 y trampas en `AGENTS.md`; §11 del spec; C1, C3, C4, C5 pagadas; C2 pasa a la 16.
 
-**Siguiente:** Fase 16, la escena grande y con vida que usa todo lo construido (y cubre los nodos
-de la Fase 10). Luego CI y plataformas.
+**Fase 16, implementada (2026-09-03):** 1624 aserciones. «La presa» (`scenes/demos/presa/`): 372 nodos
+declarados, los 21 tipos de nodo salvo el 2D, sondas precocinadas, diez tesis afirmadas con audio
+medido (spec §12). Destapó y arregló tres huecos del plugin (observación 55): el pool del
+planificador tras cambiar el presupuesto, las capas sin efecto directo, y los caminos «a la vista»
+congelados.
+
+**Siguiente:** el cierre del sprint que quedó en la hoja de ruta (15.1 prefijado `OpenDou` de las
+clases sin prefijo, 15.3 notas de versión y `README.md`), y después CI y plataformas. Candidatos a
+estabilizar: `near_field` (Fase 9) fluctúa a veces.
