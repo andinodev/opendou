@@ -424,6 +424,36 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
 * **Con `--check-only --script` Godot da el error de parse exacto** de un test que la suite solo
   reporta como «Could not preload». Una variable `shape` repetida en el mismo ambito lo era.
 
+**Observaciones y trampas de la Fase 14 (sondas, caminos, geometria dinamica):**
+
+* **Observacion 53.** El grafo autorado manda sobre las sondas: una voz gobernada por un portal
+  (`room_path_active`) no pide caminos, y `pathing_active` respeta el mismo contrato en
+  `update_parameters`. Sin salas, el hilo de simulacion arranca igual cuando hay sondas y voces
+  simuladas (`_update_listener_room`).
+* **`iplPathBakerBake` con `progressCallback` nulo salta a la direccion 0** en Steam Audio 4.8.1
+  (la documentacion dice «puede ser NULL»; el lambda interno no lo comprueba). Siempre un
+  callback vacio. El crash aparecia «intermitente» solo porque se alternaron compilaciones con
+  y sin callback; el informe de macOS (`~/Library/Logs/DiagnosticReports`) dio el hilo real.
+* **`IPLProbeGenerationParams.transform` lleva un cubo CENTRADO en el origen** ([-0.5, 0.5]^3,
+  como el cubo de Unity), no [0, 1]^3: la traslacion es el centro de la caja. Con la esquina
+  salian 8 sondas en vez de 28. `IPLMatrix4x4.elements[fila][columna]` con vectores columna.
+* **Convencion de los SH de pathing (B10):** ACN orden 1 = W, Y, Z, X ambisonicos, donde Y es
+  IZQUIERDA (-x), Z arriba (+y) y X FRENTE (-z); direccion = (-sh[1], sh[2], -sh[3]). W trae la
+  amplitud del camino ya con su 1/d y el factor 1/sqrt(4 pi): a 6 m a la vista, W = 0.047 =
+  (1/6) / 3.545. La ganancia relativa a la distancia directa es W * sqrt(4 pi) * d (1 a la vista).
+* **Las mallas dinamicas NO deben entrar en la malla estatica**: `scan_child_meshes` recorre
+  todo el arbol y horneaba la puerta cerrada para siempre (oclusion 0 a cualquier angulo).
+* **La oclusion volumetrica muestrea una esfera de radio 0.5 en la fuente**: una hoja a 45
+  grados aun la tapa entera; para «a medias» hace falta que el borde parta la esfera (60 grados).
+* **Godot enruta la voz al bus de reverb del `Area3D` con hasta un bloque de retraso** (obs 49):
+  el tono llega al bus recortado por delante en algunas corridas. Las ventanas de medida se
+  alinean al FINAL del tono (bloques de 10 ms, ultimo a -3 dB del mas fuerte), no al inicio.
+* **`lldb` no puede adjuntarse a Godot en esta maquina** (macOS lo niega); el `.ips` de
+  DiagnosticReports trae la pila de todos los hilos con el desplazamiento en `libphonon`, y
+  `lipo -thin arm64` + `llvm-objdump --start-address` desensambla el punto exacto.
+* **`near_field` (Fase 9) fluctua a veces** (+2.5 dB por +3.6 pedidos, una corrida de ~10):
+  candidato a alinear como la convolucion. Anotado, no corregido.
+
 ---
 
 ## 6. Reglas Modulares de Referencia

@@ -47,10 +47,10 @@ Planes: [12](../superpowers/plans/2026-09-02-fase12-efecto-directo.md) ·
 | B7 | 13 | `iplSimulatorCommit` **no** puede llamarse mientras corre `RunReflections`/`RunPathing` en otro hilo | Bandera `running_` + cola de altas/bajas aplicada en el hilo principal entre corridas — **Resuelta: `commit_mutex_` + `running_`; altas y bajas marcan `dirty_commit_`** |
 | B8 | 13 | La decodificación binaural ambisónica dentro del efecto de bus usa el HRTF activo: cambiar de HRTF en vivo tiene que respetar el contador de referencias de `SteamAudioContext` | Reusar `acquire_hrtf/release_hrtf` por bloque, como el binaural — **Resuelta: `acquire_hrtf/release_hrtf` por bloque en el efecto y en la cama** |
 | B9 | 13 | En headless, `AudioServer.get_speaker_mode()` es estéreo: la decisión surround se afirma por estado, no por audio | Ninguna acción; queda escrito en el spec §6 — **Resuelta: se afirma la decisión (paneo 1, `MONO_PASS`)** |
-| B10 | 14 | Convención de los coeficientes SH de orden 1 en `IPLPathEffectParams.shCoeffs` (ACN/SN3D: W, Y, Z, X) para derivar la dirección | El test «fuente a la vista» compara con la dirección real; se permuta si sale espejada |
-| B11 | 14 | Tiempo del bake de caminos en la suite (`iplPathBakerBake`) | La escena de test es pequeña (≈20 sondas); si pasa de 5 s, bajar `numSamples` |
-| B12 | 14 | El botón «Bake probes» en el inspector reutiliza `OpenDouAcousticGeometryBakeInspectorPlugin` (existe) | Añadir el segundo botón y una barra de progreso por señal |
-| B13 | 12–14 | El techo de fugas de la suite está a 13 objetos (527 de 540): las fases nativas crean recursos (streams, efectos) que hay que liberar | Revisar el contador tras cada tarea; subir el techo solo con justificación |
+| B10 | 14 | Convención de los coeficientes SH de orden 1 en `IPLPathEffectParams.shCoeffs` (ACN/SN3D: W, Y, Z, X) para derivar la dirección | El test «fuente a la vista» compara con la dirección real; se permuta si sale espejada — **Resuelta: Y = izquierda (-x), Z = arriba, X = frente (-z); `direction = (-sh[1], sh[2], -sh[3])`** |
+| B11 | 14 | Tiempo del bake de caminos en la suite (`iplPathBakerBake`) | La escena de test es pequeña (≈20 sondas); si pasa de 5 s, bajar `numSamples` — **Resuelta: 1 ms con 28–91 sondas; el crash era el callback nulo, no el tiempo** |
+| B12 | 14 | El botón «Bake probes» en el inspector reutiliza `OpenDouAcousticGeometryBakeInspectorPlugin` (existe) | Añadir el segundo botón y una barra de progreso por señal — **Resuelta: segundo botón «Bake Probes» en el mismo inspector; progreso por señal `probe_bake_progress`** |
+| B13 | 12–14 | El techo de fugas de la suite está a 13 objetos (527 de 540): las fases nativas crean recursos (streams, efectos) que hay que liberar | Revisar el contador tras cada tarea; subir el techo solo con justificación — **Resuelta: 527 de 540 tras las tres fases; ningún techo subido** |
 
 ## C. Deudas heredadas que estas fases tocan
 

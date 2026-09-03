@@ -100,6 +100,8 @@ sus parámetros; la IA al final porque es lo único que no cambia lo que el juga
 
 ## Fase 12 — Efecto directo de Steam Audio (la antigua 7C)
 
+**Estado:** ✅ implementada (2026-09-03); correcciones en §11 de su spec.
+
 **Tamaño:** XL · **Depende de:** Fase 10 (10.2: el recurso `AcousticEnvironment` y el volumen son el sitio natural de los materiales; 10.1: el oyente) y Fase 9 (9.5: la directividad nativa sustituye a la aproximación) · **Nativo**
 
 | # | Entrega | Detalle | Se afirma |
@@ -113,6 +115,8 @@ sus parámetros; la IA al final porque es lo único que no cambia lo que el juga
 
 ## Fase 13 — Reflexiones y ambisonics (la antigua 7D)
 
+**Estado:** ✅ implementada (2026-09-03); correcciones en §11 de su spec.
+
 **Tamaño:** XL · **Depende de:** Fase 12 (la escena de Steam Audio y los materiales) · **Nativo**
 
 | # | Entrega | Detalle | Se afirma |
@@ -125,6 +129,8 @@ sus parámetros; la IA al final porque es lo único que no cambia lo que el juga
 ---
 
 ## Fase 14 — Propagación y geometría dinámica (la antigua 7E)
+
+**Estado:** ✅ implementada (2026-09-03); correcciones en §11 de su spec.
 
 **Tamaño:** XL · **Depende de:** Fase 12 (escena estática) y Fase 13 (el hilo de simulación) · **Nativo**
 

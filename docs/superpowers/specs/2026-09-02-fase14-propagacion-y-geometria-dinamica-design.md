@@ -1,7 +1,7 @@
 # Fase 14 — Propagación por sondas y geometría dinámica
 
 **Fecha:** 2026-09-02
-**Estado:** Diseñado sin intervención del usuario; **dudas abiertas en [`docs/tasks/observaciones-fases-12-14.md`](../../tasks/observaciones-fases-12-14.md)**. Pendiente de resolverlas antes de ejecutar.
+**Estado:** Implementado (2026-09-03); correcciones en §11.
 **Rama:** `main`
 **Godot verificado:** 4.7.2 · **Steam Audio:** 4.8.1
 **Hoja de ruta:** [`docs/roadmap/2026-09-02-sprint-aaa.md`](../../roadmap/2026-09-02-sprint-aaa.md), Fase 14
@@ -182,6 +182,21 @@ los saca de la tabla (⚪ → retirado, con el porqué).
 - **Un hilo para reflexiones y caminos**: alternar puede bajar la frecuencia de cada uno a 5 Hz;
   aceptable para reverb y caminos (el origen aparente se suaviza con `apparent_smoothing_speed`).
 
-## 11. Correcciones que la ejecución obligue a hacer
+## 11. Correcciones que la ejecución obligó a hacer
 
-Se anotan aquí, numeradas.
+1. **Crash del baker (§3, B11).** `iplPathBakerBake` con callback de progreso nulo salta a 0 en
+   4.8.1; siempre un callback vacío. Bake de caminos de la L: 1 ms (28 sondas a 2 m, 91 a 1 m).
+2. **Matriz de las sondas (§3).** El generador mapea un cubo centrado en el origen; la traslación
+   es el centro. La caja automática recorta medio metro por arriba (los rayos bajan desde el techo).
+3. **Convención SH (§4, B10).** `direction = (-sh[1], sh[2], -sh[3])`; W lleva 1/d y 1/√(4π).
+   La ganancia del camino relativa a la distancia directa es `W·√(4π)·d` y relaja la oclusión.
+4. **El hilo sin salas (§4).** `_update_listener_room` arranca las reflexiones también cuando
+   hay sondas y voces simuladas; antes solo con el oyente en una sala `CONVOLUTION`.
+5. **Fuentes `DIRECT | PATHING` (§4).** Las banderas se fijan al crear la fuente: nacen con
+   ambos bits cuando el simulador tiene reflexiones y el pathing se activa por fuente.
+6. **Malla estática vs dinámica (§5).** Las mallas del grupo dinámico se excluyen del bake
+   estático. Medido: oclusión 0.00 / 0.38 (60°) / 1.00; a 45° la hoja aún tapa la esfera entera.
+7. **Depurador (§6).** Solo segmentos no ocluidos (`get_path_segments`, pares); 11 en la L.
+8. **Medido (§4):** a la vista 0° de error; tras el tabique 0° al hueco y 53° al emisor; EQ
+   0.67/0.31/0.18; RMS −23.8 / −10.2 / −62.6 dB (camino / vista / solo oclusión).
+9. **Suite:** 1516 aserciones, 527 objetos vivos de 540; banco a 200 voces sin regresión (ver tools/bench_control_loop.gd).
