@@ -5,7 +5,9 @@
 #include <godot_cpp/variant/packed_vector3_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/array.hpp>
+#include <vector>
 #include <godot_cpp/variant/aabb.hpp>
+#include <godot_cpp/variant/transform3d.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <phonon.h>
 
@@ -31,6 +33,13 @@ public:
 	static bool has_probes() { return probes_ != nullptr; }
 	static int probes_generation() { return probes_generation_; }
 	static IPLProbeBatch probes() { return probes_; }
+	// Ocluidores dinamicos (Fase 14): mallas instanciadas con transformacion propia.
+	static int add_instanced(const godot::PackedVector3Array &vertices, const godot::PackedInt32Array &triangles, const godot::PackedInt32Array &material_indices, const godot::Array &materials, const godot::Transform3D &transform);
+	static void update_instanced_transform(int id, const godot::Transform3D &transform);
+	static void remove_instanced(int id);
+	static void commit();
+	static int instanced_count();
+	static int instanced_updates() { return instanced_updates_; }
 
 protected:
 	static void _bind_methods();
@@ -44,6 +53,17 @@ private:
 	static IPLProbeBatch probes_;
 	static int probe_count_;
 	static int probes_generation_;
+	struct Instanced {
+		IPLScene sub = nullptr;
+		IPLStaticMesh mesh = nullptr;
+		IPLInstancedMesh instance = nullptr;
+	};
+	static std::vector<Instanced> instanced_;
+	static bool dirty_;
+	static int instanced_updates_;
+	static bool make_static_mesh(IPLScene scene, const godot::PackedVector3Array &vertices, const godot::PackedInt32Array &triangles, const godot::PackedInt32Array &material_indices, const godot::Array &materials, IPLStaticMesh *out);
+	static bool ensure_scene();
+	static void release_instanced(Instanced &it);
 };
 
 } // namespace opendou

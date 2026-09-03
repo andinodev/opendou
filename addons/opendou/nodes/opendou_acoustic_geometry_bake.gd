@@ -25,6 +25,16 @@ const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spat
 ## Alimentar la escena de Steam Audio al terminar el bake (Fase 12). Sin extension no hace nada.
 @export var feed_steam_audio: bool = true
 
+@export_group("Dynamic occluders")
+## Mallas que se mueven (puertas, compuertas): van a la escena de Steam Audio como instancias
+## con su transformacion, seguidas en _physics_process cuando superan los umbrales (Fase 14).
+@export var dynamic_group: StringName = &"AcousticObstacleDynamic"
+@export_range(0.0, 1.0, 0.005) var dynamic_position_threshold_m: float = 0.02
+@export_range(0.0, 45.0, 0.1) var dynamic_angle_threshold_deg: float = 1.0
+## Cuantas veces se ha recomiteado la escena por movimiento de ocluidores dinamicos.
+var dynamic_update_count: int = 0
+var _dynamic: Array[Dictionary] = []
+
 @export_group("Probes")
 ## Sondas de propagacion (Fase 14): separacion y altura sobre el suelo, dentro de probe_bounds
 ## (vacio = el AABB del bake). El archivo .probes se versiona junto a la escena.
@@ -84,6 +94,16 @@ func bake_geometry(root_node: Node = null) -> Dictionary:
 					_collect_child_meshes(node, candidate_meshes)
 		elif scan_root != null:
 			_collect_group_meshes(scan_root, target_group, candidate_meshes)
+
+	# 2b. Las mallas del grupo dinamico NO van a la malla estatica: son instancias que se mueven
+	# (Fase 14). Si se hornearan tambien fijas, la puerta cerrada taparia para siempre.
+	var dynamic_meshes: Array[MeshInstance3D] = _collect_dynamic_meshes()
+	if not dynamic_meshes.is_empty():
+		var filtered: Array[MeshInstance3D] = []
+		for m in candidate_meshes:
+			if not dynamic_meshes.has(m):
+				filtered.append(m)
+		candidate_meshes = filtered
 
 	# 3. Extract and simplify geometry
 	var total_triangles: int = 0
@@ -148,6 +168,8 @@ func bake_geometry(root_node: Node = null) -> Dictionary:
 
 	if feed_steam_audio and total_triangles > 0:
 		_fed_native = export_to_native()
+	if feed_steam_audio:
+		_register_dynamic_occluders(dynamic_meshes)
 		if _fed_native and auto_load_probes and not Engine.is_editor_hint():
 			load_probes()
 	return stats
@@ -166,6 +188,7 @@ func _collect_group_meshes(parent_node: Node, group: StringName, out_list: Array
 
 ## Clears all currently baked geometry data and resets stats.
 func clear_baked_data() -> void:
+	_release_dynamic_occluders()
 	baked_triangles.clear()
 	baked_aabbs.clear()
 	stats["mesh_count"] = 0
@@ -177,6 +200,7 @@ func clear_baked_data() -> void:
 var _fed_native: bool = false
 
 func _exit_tree() -> void:
+	_release_dynamic_occluders()
 	if _fed_native and ClassDB.class_exists("OpenDouAcousticScene"):
 		ClassDB.class_call_static("OpenDouAcousticScene", "clear")
 		_fed_native = false
@@ -269,14 +293,100 @@ func export_to_native() -> bool:
 	var g: Dictionary = get_flat_geometry()
 	if (g.triangles as PackedInt32Array).is_empty():
 		return false
+	return bool(ClassDB.class_call_static("OpenDouAcousticScene", "build", g.vertices, g.triangles, g.material_indices, _ipl_materials(g.material_names)))
+
+## Materiales por banda (registro) para una lista de nombres; sin registro, hormigon.
+func _ipl_materials(names: Array) -> Array:
 	var registry = AcousticMaterialRegistryClass.get_singleton()
 	var materials: Array = []
-	for n in g.material_names:
+	for n in names:
 		var m = registry.get_acoustic_material(n) if registry != null else null
 		if m == null:
 			m = registry.get_acoustic_material(&"Concrete") if registry != null else null
 		materials.append(m.to_ipl() if m != null else PackedFloat32Array([0.05, 0.07, 0.08, 0.05, 0.015, 0.002, 0.001]))
-	return bool(ClassDB.class_call_static("OpenDouAcousticScene", "build", g.vertices, g.triangles, g.material_indices, materials))
+	return materials
+
+## Nombre del material acustico de una malla (meta propia, del padre o el de por defecto).
+func _material_of(mesh_inst: MeshInstance3D) -> StringName:
+	if mesh_inst.has_meta(&"acoustic_material"):
+		return StringName(str(mesh_inst.get_meta(&"acoustic_material")))
+	if mesh_inst.get_parent() and mesh_inst.get_parent().has_meta(&"acoustic_material"):
+		return StringName(str(mesh_inst.get_parent().get_meta(&"acoustic_material")))
+	return default_acoustic_material
+
+## Mallas del grupo dinamico (la malla misma o los hijos de un Node3D del grupo).
+func _collect_dynamic_meshes() -> Array[MeshInstance3D]:
+	var meshes: Array[MeshInstance3D] = []
+	if dynamic_group.is_empty() or not is_inside_tree():
+		return meshes
+	for node in get_tree().get_nodes_in_group(dynamic_group):
+		if node is MeshInstance3D and not meshes.has(node):
+			meshes.append(node)
+		elif node is Node3D:
+			_collect_child_meshes(node, meshes)
+	return meshes
+
+## Ocluidores dinamicos: cada malla del grupo es una instancia con su geometria LOCAL.
+func _register_dynamic_occluders(meshes: Array[MeshInstance3D]) -> void:
+	_release_dynamic_occluders()
+	if not ClassDB.class_exists("OpenDouAcousticScene"):
+		return
+	for mesh_inst in meshes:
+		if mesh_inst == null or mesh_inst.mesh == null:
+			continue
+		var faces: PackedVector3Array = mesh_inst.mesh.get_faces()
+		if faces.is_empty():
+			continue
+		var vertices := PackedVector3Array()
+		var triangles := PackedInt32Array()
+		var indices := PackedInt32Array()
+		var step: int = maxi(1, simplification_step) * 3
+		for i in range(0, faces.size(), step):
+			if i + 2 < faces.size():
+				for k in range(3):
+					triangles.append(vertices.size())
+					vertices.append(faces[i + k])
+				indices.append(0)
+		var xf: Transform3D = mesh_inst.global_transform
+		var id: int = int(ClassDB.class_call_static("OpenDouAcousticScene", "add_instanced", vertices, triangles, indices, _ipl_materials([_material_of(mesh_inst)]), xf))
+		if id >= 0:
+			_dynamic.append({"id": id, "node": mesh_inst, "xform": xf})
+			_fed_native = true
+	if not _dynamic.is_empty():
+		ClassDB.class_call_static("OpenDouAcousticScene", "commit")
+	stats["dynamic_count"] = _dynamic.size()
+
+func _release_dynamic_occluders() -> void:
+	if ClassDB.class_exists("OpenDouAcousticScene"):
+		for d in _dynamic:
+			ClassDB.class_call_static("OpenDouAcousticScene", "remove_instanced", int(d.id))
+		if not _dynamic.is_empty():
+			ClassDB.class_call_static("OpenDouAcousticScene", "commit")
+	_dynamic.clear()
+
+## Sigue las mallas dinamicas: solo recomitea la escena si alguna supero los umbrales.
+func _physics_process(_delta: float) -> void:
+	if _dynamic.is_empty() or Engine.is_editor_hint():
+		return
+	var changed: bool = false
+	var pos_t: float = dynamic_position_threshold_m
+	var ang_t: float = deg_to_rad(dynamic_angle_threshold_deg)
+	for d in _dynamic:
+		var node: MeshInstance3D = d.node
+		if node == null or not is_instance_valid(node) or not node.is_inside_tree():
+			continue
+		var xf: Transform3D = node.global_transform
+		var old: Transform3D = d.xform
+		var moved: bool = xf.origin.distance_to(old.origin) > pos_t
+		if not moved:
+			moved = xf.basis.get_rotation_quaternion().angle_to(old.basis.get_rotation_quaternion()) > ang_t
+		if moved:
+			ClassDB.class_call_static("OpenDouAcousticScene", "update_instanced_transform", int(d.id), xf)
+			d.xform = xf
+			changed = true
+	if changed:
+		ClassDB.class_call_static("OpenDouAcousticScene", "commit")
+		dynamic_update_count += 1
 
 func get_baked_triangle_count() -> int:
 	return baked_triangles.size()
