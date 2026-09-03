@@ -90,6 +90,7 @@ const TestPathingApparentClass = preload("res://tests/test_pathing_apparent.gd")
 const TestDynamicOccluderClass = preload("res://tests/test_dynamic_occluder.gd")
 const TestReverbSendClass = preload("res://tests/test_reverb_send.gd")
 const TestPositionProviderClass = preload("res://tests/test_position_provider.gd")
+const TestWorldSpeakerLatencyClass = preload("res://tests/test_world_speaker_latency.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -469,6 +470,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestDynamicOccluderClass.run_all_async(tree))
 	acc.absorb(await TestReverbSendClass.run_all_async(tree))
 	acc.absorb(await TestPositionProviderClass.run_all_async(tree))
+	acc.absorb(await TestWorldSpeakerLatencyClass.run_all_async(tree))
 	acc.absorb(await TestSimBudgetClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
