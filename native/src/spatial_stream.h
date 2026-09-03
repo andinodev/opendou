@@ -81,6 +81,7 @@ public:
 	// lo que un emisor en movimiento produce doppler FISICO (el canal no suma el de tono).
 	void set_propagation_delay_sec(float p_sec);
 	// Todo lo que el canal escribe por voz y cuadro, en una sola llamada (deuda de coste).
+	void set_direct_params(bool p_enabled, float p_occlusion, const godot::Vector3 &p_transmission, const godot::Vector3 &p_air, float p_directivity);
 	void set_spatial_params(const godot::Vector3 &p_direction, float p_spatial_blend, float p_distance_gain, float p_cutoff_hz, float p_shelf_db, float p_shelf_cutoff_hz, float p_near_field_bass_db, float p_near_field_ild_db, float p_propagation_delay_sec);
 	float get_propagation_delay_sec() const;
 	// Tope de memoria por voz. Solo antes de crear playbacks con retardo.
@@ -143,6 +144,13 @@ private:
 	std::atomic<float> near_field_bass_db_{ 0.0f };
 	std::atomic<float> near_field_ild_db_{ 0.0f };
 	std::atomic<float> propagation_delay_{ 0.0f };
+	// Efecto directo (Fase 12): lo empuja el canal desde el simulador. Con enabled = false no
+	// cuesta nada.
+	std::atomic<bool> direct_enabled_{ false };
+	std::atomic<float> direct_occlusion_{ 1.0f };
+	std::atomic<float> direct_tr_[3]{ 1.0f, 1.0f, 1.0f };
+	std::atomic<float> direct_air_[3]{ 1.0f, 1.0f, 1.0f };
+	std::atomic<float> direct_dir_{ 1.0f };
 	std::atomic<float> peak_left_{ 0.0f };
 	std::atomic<float> peak_right_{ 0.0f };
 	std::atomic<float> applied_itd_{ 0.0f };
@@ -182,6 +190,7 @@ private:
 	godot::Ref<godot::AudioStreamPlayback> inner_;
 	bool active_ = false;
 
+	IPLDirectEffect direct_ = nullptr;
 	IPLBinauralEffect effect_ = nullptr;
 	IPLAudioBuffer in_buffer_ = {};
 	IPLAudioBuffer out_buffer_ = {};

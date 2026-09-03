@@ -66,6 +66,7 @@ void OpenDouSpatialStream::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_near_field_ild_db"), &OpenDouSpatialStream::get_near_field_ild_db);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "near_field_ild_db", PROPERTY_HINT_RANGE, "0,12,0.1"), "set_near_field_ild_db", "get_near_field_ild_db");
 	ClassDB::bind_method(D_METHOD("set_propagation_delay_sec", "sec"), &OpenDouSpatialStream::set_propagation_delay_sec);
+	ClassDB::bind_method(D_METHOD("set_direct_params", "enabled", "occlusion", "transmission", "air", "directivity"), &OpenDouSpatialStream::set_direct_params);
 	ClassDB::bind_method(D_METHOD("set_spatial_params", "direction", "spatial_blend", "distance_gain", "cutoff_hz", "shelf_db", "shelf_cutoff_hz", "near_field_bass_db", "near_field_ild_db", "propagation_delay_sec"), &OpenDouSpatialStream::set_spatial_params);
 	ClassDB::bind_method(D_METHOD("get_propagation_delay_sec"), &OpenDouSpatialStream::get_propagation_delay_sec);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "propagation_delay_sec", PROPERTY_HINT_RANGE, "0,10,0.001"), "set_propagation_delay_sec", "get_propagation_delay_sec");
@@ -144,6 +145,18 @@ bool OpenDouSpatialStream::configure_listener(float p_head_radius_m, float p_spe
 	head_radius_m_.store(p_head_radius_m);
 	speed_of_sound_mps_.store(p_speed_of_sound_mps);
 	return true;
+}
+
+void OpenDouSpatialStream::set_direct_params(bool p_enabled, float p_occlusion, const godot::Vector3 &p_transmission, const godot::Vector3 &p_air, float p_directivity) {
+	direct_enabled_.store(p_enabled);
+	direct_occlusion_.store(std::clamp(p_occlusion, 0.0f, 1.0f));
+	direct_tr_[0].store(std::clamp(p_transmission.x, 0.0f, 1.0f));
+	direct_tr_[1].store(std::clamp(p_transmission.y, 0.0f, 1.0f));
+	direct_tr_[2].store(std::clamp(p_transmission.z, 0.0f, 1.0f));
+	direct_air_[0].store(std::clamp(p_air.x, 0.0f, 1.0f));
+	direct_air_[1].store(std::clamp(p_air.y, 0.0f, 1.0f));
+	direct_air_[2].store(std::clamp(p_air.z, 0.0f, 1.0f));
+	direct_dir_.store(std::clamp(p_directivity, 0.0f, 1.0f));
 }
 
 void OpenDouSpatialStream::set_spatial_params(const godot::Vector3 &p_direction, float p_spatial_blend, float p_distance_gain, float p_cutoff_hz, float p_shelf_db, float p_shelf_cutoff_hz, float p_near_field_bass_db, float p_near_field_ild_db, float p_propagation_delay_sec) {
@@ -296,6 +309,11 @@ bool OpenDouSpatialStreamPlayback::create_effect() {
 		effect_ = nullptr;
 		return false;
 	}
+	IPLDirectEffectSettings ds = {};
+	ds.numChannels = 1;
+	if (iplDirectEffectCreate(ctx, &audio, &ds, &direct_) != IPL_STATUS_SUCCESS) {
+		direct_ = nullptr;
+	}
 	if (iplAudioBufferAllocate(ctx, 1, audio.frameSize, &in_buffer_) != IPL_STATUS_SUCCESS) {
 		release_effect();
 		return false;
@@ -324,6 +342,10 @@ bool OpenDouSpatialStreamPlayback::create_effect() {
 
 void OpenDouSpatialStreamPlayback::release_effect() {
 	IPLContext ctx = SteamAudioContext::context();
+	if (direct_ != nullptr) {
+		iplDirectEffectRelease(&direct_);
+		direct_ = nullptr;
+	}
 	if (effect_ != nullptr) {
 		iplBinauralEffectRelease(&effect_);
 		effect_ = nullptr;
@@ -424,6 +446,22 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 		}
 		x = shelf_.process(x);
 		mono[i] = x;
+	}
+
+	// Efecto directo (Fase 12): oclusion, transmision por banda, aire y directividad, en mono
+	// y antes del retardo y del HRTF. La atenuacion por distancia sigue siendo la nuestra.
+	if (stream_->direct_enabled_.load() && direct_ != nullptr) {
+		IPLDirectEffectParams dp = {};
+		dp.flags = static_cast<IPLDirectEffectFlags>(IPL_DIRECTEFFECTFLAGS_APPLYOCCLUSION | IPL_DIRECTEFFECTFLAGS_APPLYTRANSMISSION | IPL_DIRECTEFFECTFLAGS_APPLYAIRABSORPTION | IPL_DIRECTEFFECTFLAGS_APPLYDIRECTIVITY);
+		dp.transmissionType = IPL_TRANSMISSIONTYPE_FREQDEPENDENT;
+		dp.distanceAttenuation = 1.0f;
+		dp.occlusion = stream_->direct_occlusion_.load();
+		for (int b = 0; b < 3; b++) {
+			dp.transmission[b] = stream_->direct_tr_[b].load();
+			dp.airAbsorption[b] = stream_->direct_air_[b].load();
+		}
+		dp.directivity = stream_->direct_dir_.load();
+		iplDirectEffectApply(direct_, &dp, &in_buffer_, &in_buffer_);
 	}
 
 	// Retardo por distancia, en mono y antes del HRTF. La linea se reserva la primera vez que

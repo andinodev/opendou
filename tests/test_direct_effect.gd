@@ -77,3 +77,53 @@ static func run_simulator_async(tree: SceneTree) -> OpenDouAssert:
 	tree.root.remove_child(floor); floor.free()
 	_scene("clear")
 	return a
+
+static func run_stream_async(tree: SceneTree) -> OpenDouAssert:
+	var a := OpenDouAssertClass.new("direct_stream")
+	if not TestSteamSceneClass._native():
+		return a
+	var TB = load("res://tests/test_binaural.gd")
+	var probe = load("res://tests/support/audio_probe.gd").new()
+	var bus := &"DirectProbe"
+	if AudioServer.get_bus_index(String(bus)) < 0:
+		var idx: int = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, String(bus))
+		AudioServer.set_bus_send(idx, "Master")
+	probe.attach_to_existing_bus(bus, 2.0)
+	var stream = ClassDB.instantiate("OpenDouSpatialStream")
+	stream.source = TB._periodic_noise(int(AudioServer.get_mix_rate()))
+	# spatialize = false salta toda la cadena (tambien el efecto): se pasa por ella con la mezcla
+	# HRTF a 0, que no colorea, y la misma direccion en todas las medidas.
+	stream.spatialize = true
+	stream.spatial_blend = 0.0
+	stream.direction = Vector3(0, 0, -1)
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.bus = String(bus)
+	player.volume_db = -6.0
+	tree.root.add_child(player)
+	player.play()
+	var rate: float = AudioServer.get_mix_rate()
+	var base: Dictionary = await TB._capture(tree, probe)
+	var base_hi: float = linear_to_db(maxf(TB._band_energy_stereo(base, rate, 4000.0, 8000.0), 1e-12))
+	var base_lo: float = linear_to_db(maxf(TB._band_energy_stereo(base, rate, 200.0, 800.0), 1e-12))
+	# Cristal: oclusion parcial, y de lo que pasa, pasa mas la banda alta que en el hormigon.
+	stream.set_direct_params(true, 0.2, Vector3(0.06, 0.044, 0.5), Vector3(1, 1, 1), 1.0)
+	var glass: Dictionary = await TB._capture(tree, probe)
+	var glass_hi: float = linear_to_db(maxf(TB._band_energy_stereo(glass, rate, 4000.0, 8000.0), 1e-12))
+	var glass_lo: float = linear_to_db(maxf(TB._band_energy_stereo(glass, rate, 200.0, 800.0), 1e-12))
+	stream.set_direct_params(true, 0.2, Vector3(0.015, 0.002, 0.001), Vector3(1, 1, 1), 1.0)
+	var concrete: Dictionary = await TB._capture(tree, probe)
+	var concrete_hi: float = linear_to_db(maxf(TB._band_energy_stereo(concrete, rate, 4000.0, 8000.0), 1e-12))
+	stream.set_direct_params(false, 1.0, Vector3(1, 1, 1), Vector3(1, 1, 1), 1.0)
+	var off: Dictionary = await TB._capture(tree, probe)
+	var off_hi: float = linear_to_db(maxf(TB._band_energy_stereo(off, rate, 4000.0, 8000.0), 1e-12))
+	print("[OpenDou] efecto directo en el stream: base %.1f/%.1f, cristal %.1f/%.1f, hormigon agudos %.1f, apagado %.1f" % [base_lo, base_hi, glass_lo, glass_hi, concrete_hi, off_hi])
+	a.lt(glass_hi, base_hi - 3.0, "tras el cristal (occl 0.2) cae la banda alta")
+	a.gt(glass_hi, concrete_hi + 6.0, "el cristal deja pasar al menos 6 dB mas de agudos que el hormigon")
+	a.approx(off_hi, base_hi, "apagado, igual que sin efecto", 1.0)
+	player.stop()
+	tree.root.remove_child(player); player.free()
+	probe.teardown()
+	return a
