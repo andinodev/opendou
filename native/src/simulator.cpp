@@ -29,6 +29,7 @@ IPLProbeBatch OpenDouSimulator::attached_probes_ = nullptr;
 int OpenDouSimulator::probes_generation_seen_ = -1;
 std::atomic<int> OpenDouSimulator::pathing_runs_{0};
 std::atomic<bool> OpenDouSimulator::visualize_paths_{false};
+std::atomic<bool> OpenDouSimulator::validate_paths_{true};
 std::vector<godot::Vector3> OpenDouSimulator::segments_building_;
 std::vector<godot::Vector3> OpenDouSimulator::segments_;
 std::vector<int> OpenDouSimulator::source_flags_;
@@ -57,6 +58,9 @@ void OpenDouSimulator::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("get_pathing", "handle"), &OpenDouSimulator::get_pathing);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("pathing_generation", "handle"), &OpenDouSimulator::pathing_generation);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("pathing_runs"), &OpenDouSimulator::pathing_runs);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("pathing_source_count"), &OpenDouSimulator::pathing_source_count);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("probes_attached"), &OpenDouSimulator::probes_attached);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("set_path_validation", "enabled"), &OpenDouSimulator::set_path_validation);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("set_path_visualization", "enabled"), &OpenDouSimulator::set_path_visualization);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("get_path_segments"), &OpenDouSimulator::get_path_segments);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("reflection_runs"), &OpenDouSimulator::reflection_runs);
@@ -71,6 +75,7 @@ void OpenDouSimulator::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("run_direct"), &OpenDouSimulator::run_direct);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("get_direct", "handle"), &OpenDouSimulator::get_direct);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("source_count"), &OpenDouSimulator::source_count);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("capacity"), &OpenDouSimulator::capacity);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("last_run_usec"), &OpenDouSimulator::last_run_usec);
 }
 
@@ -377,7 +382,7 @@ void OpenDouSimulator::set_source_inputs(int h, const Vector3 &pos, const Vector
 		pin.visThreshold = 0.1f;
 		pin.visRange = 50.0f;
 		pin.pathingOrder = pathing_order_[h];
-		pin.enableValidation = IPL_TRUE;
+		pin.enableValidation = validate_paths_.load() ? IPL_TRUE : IPL_FALSE;
 		pin.findAlternatePaths = IPL_FALSE;
 		iplSourceSetInputs(sources_[h], IPL_SIMULATIONFLAGS_PATHING, &pin);
 	}
@@ -520,6 +525,16 @@ Dictionary OpenDouSimulator::get_pathing(int h) {
 	d["gain"] = valid_path ? std::fabs(sh[0]) * 3.5449077f : 0.0f;
 	d["sh"] = packed;
 	return d;
+}
+
+int OpenDouSimulator::pathing_source_count() {
+	int n = 0;
+	for (size_t i = 0; i < sources_.size(); i++) {
+		if (sources_[i] != nullptr && pathing_on_[i]) {
+			n++;
+		}
+	}
+	return n;
 }
 
 int OpenDouSimulator::pathing_generation(int h) {

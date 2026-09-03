@@ -177,7 +177,7 @@ func _get_manager() -> AudioEventManager:
 
 ## Publica el evento por el manager con este nodo como proveedor de posicion.
 func play_event() -> bool:
-	if active_instance != null and active_instance.is_playing():
+	if active_instance != null and not active_instance.is_finished():
 		return true
 	var manager: AudioEventManager = _get_manager()
 	if manager == null:
@@ -215,7 +215,8 @@ func _provider_tick() -> void:
 	# voz sale por el pool.
 	if playing:
 		stop()
-	if auto_play_event and (active_instance == null or not active_instance.is_playing()) and (event_def != null or stream != null):
+	# Solo si no hay instancia o termino: una voz VIRTUAL sigue viva y volver a publicar la duplicaria.
+	if auto_play_event and (active_instance == null or active_instance.is_finished()) and (event_def != null or stream != null):
 		play_event()
 
 func _notification(what: int) -> void:

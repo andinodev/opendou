@@ -615,19 +615,50 @@ static func _pinna_band_ratio(cap: Dictionary, mix_rate: float) -> float:
 ## dentro de la banda: con la fuente periodica, estas magnitudes no dependen de la fase de
 ## la captura.
 static func _band_energy(x: PackedFloat32Array, mix_rate: float, f_lo: float, f_hi: float) -> float:
+	return _band_energy_impl(x, mix_rate, f_lo, f_hi, false)
+
+## Energia de banda con ventana de Hann: para senales ARBITRARIAS (demos), donde un grave 70 dB
+## por encima se fuga a los bins de 2-8 kHz con la ventana rectangular (-46 dB por lobulos).
+## El ruido periodico de los tests (periodo = PERIOD) NO la necesita: sus lineas caen en el
+## centro de cada bin y la rectangular es exacta; con Hann se mezclarian bins vecinos.
+static func _band_energy_windowed(x: PackedFloat32Array, mix_rate: float, f_lo: float, f_hi: float) -> float:
+	return _band_energy_impl(x, mix_rate, f_lo, f_hi, true)
+
+static func _band_energy_impl(x: PackedFloat32Array, mix_rate: float, f_lo: float, f_hi: float, hann: bool) -> float:
 	var n: int = x.size()
 	var energy: float = 0.0
 	var k_lo: int = int(ceil(f_lo * PERIOD / mix_rate))
 	var k_hi: int = int(floor(f_hi * PERIOD / mix_rate))
+	var win := PackedFloat32Array()
+	win.resize(n)
+	for i in range(n):
+		win[i] = (0.5 - 0.5 * cos(TAU * float(i) / float(maxi(n - 1, 1)))) if hann else 1.0
 	for k in range(k_lo, k_hi + 1, 4):
 		var w: float = TAU * float(k) / float(PERIOD)
 		var re: float = 0.0
 		var im: float = 0.0
 		for i in range(n):
-			re += x[i] * cos(w * i)
-			im -= x[i] * sin(w * i)
+			var xi: float = x[i] * win[i]
+			re += xi * cos(w * i)
+			im -= xi * sin(w * i)
 		energy += re * re + im * im
 	return energy
+
+static func _band_energy_stereo_windowed(cap: Dictionary, mix_rate: float, f_lo: float, f_hi: float) -> float:
+	var l: PackedFloat32Array = cap["left"]
+	var r: PackedFloat32Array = cap["right"]
+	var n: int = mini(l.size(), r.size())
+	var total: float = 0.0
+	var periods: int = 0
+	var offset: int = 0
+	while offset + PERIOD <= n:
+		var mono := PackedFloat32Array()
+		for i in range(offset, offset + PERIOD):
+			mono.append(l[i] + r[i])
+		total += _band_energy_windowed(mono, mix_rate, f_lo, f_hi)
+		periods += 1
+		offset += PERIOD
+	return total / float(periods) if periods > 0 else 0.0
 
 ## Centroide de los dos canales sumados sobre toda la captura. Solo informativo.
 static func _spectral_centroid_stereo(cap: Dictionary, mix_rate: float) -> float:

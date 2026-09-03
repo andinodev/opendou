@@ -38,6 +38,11 @@ public:
 	static godot::Dictionary get_pathing(int handle);
 	static int pathing_generation(int handle);
 	static int pathing_runs() { return pathing_runs_.load(); }
+	static int pathing_source_count();
+	static bool probes_attached() { return attached_probes_ != nullptr; }
+	// Validacion de los caminos precocinados contra la escena actual (rayos). true por defecto.
+	static void set_path_validation(bool enabled) { validate_paths_.store(enabled); }
+	static std::atomic<bool> validate_paths_;
 	static void set_path_visualization(bool enabled) { visualize_paths_.store(enabled); }
 	static godot::PackedVector3Array get_path_segments();
 	static void shutdown();
@@ -49,6 +54,7 @@ public:
 	static int run_direct();
 	static godot::PackedFloat32Array get_direct(int handle);
 	static int source_count();
+	static int capacity() { return static_cast<int>(sources_.size()); }
 	static int last_run_usec() { return last_run_usec_; }
 
 protected:

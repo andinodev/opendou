@@ -42,6 +42,7 @@ void OpenDouAcousticScene::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("probe_count"), &OpenDouAcousticScene::probe_count);
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("has_probes"), &OpenDouAcousticScene::has_probes);
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("probes_generation"), &OpenDouAcousticScene::probes_generation);
+	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("baked_path_data_size"), &OpenDouAcousticScene::baked_path_data_size);
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("add_instanced", "vertices", "triangles", "material_indices", "materials", "transform"), &OpenDouAcousticScene::add_instanced);
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("update_instanced_transform", "id", "transform"), &OpenDouAcousticScene::update_instanced_transform);
 	ClassDB::bind_static_method("OpenDouAcousticScene", D_METHOD("remove_instanced", "id"), &OpenDouAcousticScene::remove_instanced);
@@ -366,6 +367,16 @@ int OpenDouAcousticScene::instanced_count() {
 		}
 	}
 	return n;
+}
+
+int OpenDouAcousticScene::baked_path_data_size() {
+	if (probes_ == nullptr) {
+		return 0;
+	}
+	IPLBakedDataIdentifier id = {};
+	id.type = IPL_BAKEDDATATYPE_PATHING;
+	id.variation = IPL_BAKEDDATAVARIATION_DYNAMIC;
+	return static_cast<int>(iplProbeBatchGetDataSize(probes_, &id));
 }
 
 void OpenDouAcousticScene::clear_probes() {

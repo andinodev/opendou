@@ -21,6 +21,9 @@ var channel_id: int = -1
 var speed_of_sound: float = 343.0
 ## Fuente del simulador de Steam Audio (Fase 12); -1 = sin fuente, oclusion por rayo.
 var sim_source: int = -1
+## Capa de un contenedor (Fase 16): comparte la fuente del simulador del canal principal de su
+## instancia (misma posicion, misma oclusion y transmision); sin esto la capa sonaba sin efecto directo.
+var shared_sim_source: int = -1
 ## Ganancia del camino (W de Steam Audio, 0 = sin camino): relaja la oclusion directa (Fase 14).
 var pathing_gain: float = 0.0
 ## Envio de reverb propio (Fase 15): acumulador del bus de la sala y ganancia; se empuja al
@@ -36,7 +39,7 @@ func set_send(p_id: int, p_gain: float) -> void:
 var _direct_was_on: bool = false
 
 func uses_direct_effect() -> bool:
-	return sim_source >= 0
+	return sim_source >= 0 or shared_sim_source >= 0
 var is_busy: bool = false
 var assigned_instance_ref: WeakRef = null
 
@@ -224,8 +227,9 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		# Efecto directo (Fase 12): con fuente del simulador, la oclusion, la transmision, el aire
 		# y la directividad las calcula Steam Audio. El corte que llega ya no trae el del rayo (el
 		# planificador no lo lanza para estas voces); trae el del grafo de salas y los volumenes.
-		if sim_source >= 0:
-			var d: PackedFloat32Array = ClassDB.class_call_static("OpenDouSimulator", "get_direct", sim_source)
+		var direct_src: int = sim_source if sim_source >= 0 else shared_sim_source
+		if direct_src >= 0:
+			var d: PackedFloat32Array = ClassDB.class_call_static("OpenDouSimulator", "get_direct", direct_src)
 			# Con un camino valido la voz llega rodeando: la oclusion no baja de la ganancia del camino.
 			s.set_direct_params(true, maxf(d[0], clampf(pathing_gain, 0.0, 1.0)), Vector3(d[1], d[2], d[3]), Vector3(d[4], d[5], d[6]), d[7])
 			_direct_was_on = true
@@ -311,7 +315,10 @@ func stop_with_fade(fade_time_sec: float = 0.015) -> void:
 
 ## Detiene y libera el canal de inmediato.
 func stop_immediate() -> void:
+	if sim_source >= 0 and OS.has_environment("OPENDOU_TRACE_SIM"):
+		print("[sim] canal %d suelta fuente %d (stop_immediate)" % [channel_id, sim_source])
 	pathing_gain = 0.0
+	shared_sim_source = -1
 	send_id = -1
 	send_gain = 0.0
 	_send_pushed_id = -1

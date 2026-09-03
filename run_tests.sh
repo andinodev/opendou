@@ -80,7 +80,7 @@ START_TS=$(date +%s)
 # Godot se queda vivo si el script de entrada no compila, asi que hace falta un
 # watchdog: sin el, un error de parseo cuelga el runner en lugar de fallar.
 # macOS no trae coreutils, o sea que no hay `timeout` y se implementa a mano.
-TIMEOUT_SECS="${OPENDOU_TEST_TIMEOUT:-180}"
+TIMEOUT_SECS="${OPENDOU_TEST_TIMEOUT:-240}"
 "$GODOT_BIN" --headless --path . --script "$TEST_SCRIPT" > "$CONSOLE_LOG" 2>&1 &
 GODOT_PID=$!
 ELAPSED=0

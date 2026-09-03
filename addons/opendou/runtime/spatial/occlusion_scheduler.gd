@@ -50,9 +50,14 @@ func ensure_simulator() -> bool:
 		return false
 	if not bool(ClassDB.class_call_static("OpenDouAcousticScene", "is_ready")):
 		return false
+	var needed: int = voice_pool.max_physical_voices + 8
+	# Un simulador que dejo otro dueno (un test, otro manager) puede ser demasiado pequeno para
+	# este pool: se rehace con la capacidad que hace falta.
+	if bool(ClassDB.class_call_static("OpenDouSimulator", "is_ready")) and int(ClassDB.class_call_static("OpenDouSimulator", "capacity")) < needed:
+		ClassDB.class_call_static("OpenDouSimulator", "shutdown")
 	if not bool(ClassDB.class_call_static("OpenDouSimulator", "is_ready")):
 		# Con reflexiones (Fase 13): el hilo solo corre si alguna sala lo pide.
-		if not bool(ClassDB.class_call_static("OpenDouSimulator", "configure", voice_pool.max_physical_voices + 8, 16, 2, true, 2.0, 4096)):
+		if not bool(ClassDB.class_call_static("OpenDouSimulator", "configure", needed, 16, 2, true, 2.0, 4096)):
 			if not _warned_no_sim:
 				_warned_no_sim = true
 				push_warning("[OpenDou] el simulador de Steam Audio no se pudo configurar: oclusion por rayo")
@@ -78,8 +83,12 @@ func _assign_source(inst, ch, within_direct: bool) -> bool:
 	if within_direct:
 		if ch.sim_source < 0:
 			ch.sim_source = int(ClassDB.class_call_static("OpenDouSimulator", "create_source"))
+			if OS.has_environment("OPENDOU_TRACE_SIM"):
+				print("[sim] %s canal %d -> fuente %d" % [String(inst.definition.event_name) if inst.definition else "?", ch.channel_id, ch.sim_source])
 		return ch.sim_source >= 0
 	if ch.sim_source >= 0:
+		if OS.has_environment("OPENDOU_TRACE_SIM"):
+			print("[sim] %s canal %d suelta fuente %d (fuera de alcance)" % [String(inst.definition.event_name) if inst.definition else "?", ch.channel_id, ch.sim_source])
 		ClassDB.class_call_static("OpenDouSimulator", "release_source", ch.sim_source)
 		ch.sim_source = -1
 	return false
@@ -95,6 +104,7 @@ var _listener_basis: Basis = Basis.IDENTITY
 ## Fase 14: pedir caminos a las fuentes simuladas cuando la escena tiene sondas (lo fija el manager).
 var pathing_enabled: bool = true
 var probes_ready: bool = false
+var _trace_frames: int = 0
 
 func set_listener_basis(b: Basis) -> void:
 	_listener_basis = b
@@ -140,6 +150,8 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D, occlude
 		# Sin simulador (la escena se fue), ninguna voz conserva una fuente rancia.
 		for ch in voice_pool.channels:
 			if ch.sim_source >= 0:
+				if OS.has_environment("OPENDOU_TRACE_SIM"):
+					print("[sim] canal %d suelta fuente %d (sin simulador)" % [ch.channel_id, ch.sim_source])
 				if ClassDB.class_exists("OpenDouSimulator"):
 					ClassDB.class_call_static("OpenDouSimulator", "release_source", ch.sim_source)
 				ch.sim_source = -1
@@ -163,6 +175,15 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D, occlude
 				simulated_this_frame += 1
 				continue
 		eligible.append(inst)
+	if OS.has_environment("OPENDOU_TRACE_SIM"):
+		_trace_frames += 1
+		if _trace_frames % 90 == 0:
+			var names: Array = []
+			for pr in pairs:
+				var ci = pr[1]
+				var cch = voice_pool.get_channel(ci.assigned_channel_id) if ci.assigned_channel_id >= 0 else null
+				names.append("%s@%.0fm:c%d:s%d" % [String(ci.definition.event_name) if ci.definition else "?", sqrt(float(pr[0])), ci.assigned_channel_id, cch.sim_source if cch != null else -9])
+			print("[sim] process: %d instancias, %d pares, sim %s, alcance %.0f/%.0f m, simuladas %d, elegibles %d: %s" % [instances.size(), pairs.size(), str(sim), max_d, sqrt(direct_d2), simulated_this_frame, eligible.size(), str(names)])
 	if simulated_this_frame > 0:
 		ClassDB.class_call_static("OpenDouSimulator", "set_listener", listener_pos, -_listener_basis.z, _listener_basis.y)
 		ClassDB.class_call_static("OpenDouSimulator", "run_direct")

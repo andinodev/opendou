@@ -136,6 +136,8 @@ var hdr_engine: AudioHDREngine = null
 var hdr_enabled: bool = true
 ## Fase 14: los caminos de Steam Audio (sondas) mueven el origen aparente de las voces simuladas.
 var pathing_enabled: bool = true
+## Desviacion minima (10 grados) entre el camino y la direccion real para que el camino gobierne.
+const PATHING_MIN_DEVIATION_RAD: float = 0.1745
 
 func _init() -> void:
 	spatial_backend = SpatialBackendClass.resolve(SpatialBackendClass.read_setting(), SpatialBackendClass.native_available())
@@ -528,6 +530,11 @@ func set_max_physical_voices(count: int) -> void:
 	voice_pool = VoicePoolManagerClass.new(target)
 	voice_pool.set_player_pool(player_pool)
 	voice_pool.spatial_backend = spatial_backend
+	# El planificador de oclusion guarda su propia referencia al pool: con el pool viejo escribia
+	# las fuentes del simulador en canales huerfanos y ninguna voz recibia efecto directo ni
+	# caminos (aparecio al cambiar el presupuesto en una demo y cargar otra despues).
+	if occlusion_scheduler != null:
+		occlusion_scheduler.voice_pool = voice_pool
 
 ## Fija una posicion fija de oyente, con prioridad sobre la regla automatica.
 func set_listener_position(pos: Vector3) -> void:
@@ -749,8 +756,14 @@ func _apply_voices(delta: float) -> void:
 		ch.pathing_gain = 0.0
 		if probes_ready and instance.has_spatial_position and not instance.room_path_active and ch.sim_source >= 0:
 			var path: Dictionary = ClassDB.class_call_static("OpenDouSimulator", "get_pathing", ch.sim_source)
-			if bool(path.get("valid", false)):
-				var dist: float = instance.emitter_position.distance_to(active_listener_position)
+			# Un camino que coincide con la direccion real (a la vista) no aporta nada que el efecto
+			# directo no modele ya, y Steam Audio no borra esa salida cuando la linea de vision se
+			# corta (una compuerta que baja dejaria la oclusion clavada en 1). Solo cuentan los
+			# caminos que DESVIAN el origen.
+			var to_emitter: Vector3 = instance.emitter_position - active_listener_position
+			var deflected: bool = bool(path.get("valid", false)) and to_emitter.length() > 0.01 and Vector3(path["direction"]).angle_to(to_emitter) > PATHING_MIN_DEVIATION_RAD
+			if deflected:
+				var dist: float = to_emitter.length()
 				instance.target_apparent_position = active_listener_position + Vector3(path["direction"]) * dist
 				instance.pathing_active = true
 				var eq: Vector3 = path["eq"]
@@ -794,6 +807,10 @@ func _apply_voices(delta: float) -> void:
 				continue
 			var lv: float = volume_db + instance.voice_offsets_db[k + 1]
 			var lp: float = pitch * instance.voice_pitch_mods[k + 1]
+			# La capa comparte con el canal principal la fuente del simulador, el camino y el envio.
+			lch.shared_sim_source = ch.sim_source
+			lch.pathing_gain = ch.pathing_gain
+			lch.set_send(ch.send_id, ch.send_gain)
 			if instance.has_spatial_position:
 				lch.apply_spatial(instance, lv, lp, cutoff, active_listener_position, active_listener_basis)
 			else:

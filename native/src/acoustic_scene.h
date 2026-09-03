@@ -32,6 +32,8 @@ public:
 	static int probe_count() { return probe_count_; }
 	static bool has_probes() { return probes_ != nullptr; }
 	static int probes_generation() { return probes_generation_; }
+	// Bytes de datos de caminos precocinados en el lote (0 = sin bake de caminos).
+	static int baked_path_data_size();
 	static IPLProbeBatch probes() { return probes_; }
 	// Ocluidores dinamicos (Fase 14): mallas instanciadas con transformacion propia.
 	static int add_instanced(const godot::PackedVector3Array &vertices, const godot::PackedInt32Array &triangles, const godot::PackedInt32Array &material_indices, const godot::Array &materials, const godot::Transform3D &transform);
