@@ -74,20 +74,17 @@ func _ready() -> void:
 		emission_points = [Vector3.ZERO]
 	_current_render_pos = global_position if is_inside_tree() else position
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
-		
-	var listener_pos = _get_listener_position()
-	if should_cull_at_distance(listener_pos):
-		return
+	_provider_tick()
 
+## Punto que suena para un oyente: el mas cercano (o el mezclado, o el de la malla), suavizado.
+## Desde la Fase 15 el nodo NO se mueve (mover el nodo desplazaba sus propios puntos): la voz
+## del pool toma esta posicion cada cuadro.
+func resolve_emitter_position(listener_pos: Vector3) -> Vector3:
+	var delta: float = maxf(get_process_delta_time(), 0.001)
 	_is_inside_volume = is_position_inside_emission_volume(listener_pos)
-	
-	# Envelopment handling (spread expands to 180 degrees / diffuse when inside)
-	if envelopment_on_inside and _is_inside_volume:
-		pass # AudioStreamPlayer3D handles proximity panning automatically
-
 	var target_render_pos: Vector3 = Vector3.ZERO
 	if source_mode == SourceMode.MESH:
 		target_render_pos = get_mesh_closest_point(listener_pos)
@@ -99,14 +96,21 @@ func _process(delta: float) -> void:
 				target_render_pos = calculate_blended_position(listener_pos)
 
 	# Smooth lag interpolation to prevent spatial clicks
-	if smooth_position_lag <= 0.001:
+	if smooth_position_lag <= 0.001 or not _render_pos_valid:
 		_current_render_pos = target_render_pos
+		_render_pos_valid = true
 	else:
 		var alpha = delta / maxf(0.001, smooth_position_lag + delta)
 		_current_render_pos = _current_render_pos.lerp(target_render_pos, alpha)
-		
-	if is_inside_tree():
-		global_position = _current_render_pos
+	return _current_render_pos
+
+var _render_pos_valid: bool = false
+
+func _provider_doppler_enabled() -> bool:
+	return false
+
+func _provider_max_distance() -> float:
+	return cull_distance
 
 # ==============================================================================
 # SPATIAL TRACKING & GEOMETRY
@@ -268,3 +272,84 @@ func _get_listener_position() -> Vector3:
 		if cam != null:
 			return cam.global_position
 	return Vector3.ZERO
+
+# ==============================================================================
+# SISTEMA DE VOCES (Fase 15, C3)
+# ==============================================================================
+
+const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
+
+@export_group("Event")
+## Evento que suena en el punto resuelto. Sin el, el `stream` del nodo se envuelve en una
+## definicion propia (en bucle) con el bus del nodo.
+@export var event_def: AudioEventDef = null
+## Arranca la voz al entrar al arbol (o en cuanto haya stream o evento). El nodo NO suena por
+## si mismo: la voz es del pool (robo de voces, salas, backend binaural) y este nodo solo
+## aporta la posicion cada cuadro.
+@export var auto_play_event: bool = true
+@export_group("")
+
+var active_instance: EventInstance = null
+var _event_manager: AudioEventManager = null
+var _own_def: AudioEventDef = null
+
+func set_event_manager(m: AudioEventManager) -> void:
+	_event_manager = m
+
+func _get_manager() -> AudioEventManager:
+	if _event_manager != null and is_instance_valid(_event_manager):
+		return _event_manager
+	if is_inside_tree():
+		var root_node = get_tree().root
+		if root_node != null and root_node.has_node("OpenDou"):
+			var node = root_node.get_node("OpenDou")
+			if node is AudioEventManager:
+				return node
+	return null
+
+## Publica el evento por el manager con este nodo como proveedor de posicion.
+func play_event() -> bool:
+	if active_instance != null and active_instance.is_playing():
+		return true
+	var manager: AudioEventManager = _get_manager()
+	if manager == null:
+		return false
+	var def: AudioEventDef = event_def
+	if def == null:
+		if stream == null:
+			return false
+		if _own_def == null or _own_def.base_stream != stream:
+			_own_def = AudioEventDefClass.new(StringName("%s_%d" % [name, get_instance_id()]), stream)
+			_own_def.is_looping = true
+			_own_def.stream_length = maxf(float(stream.get_length()), 0.1)
+		_own_def.target_bus = StringName(bus)
+		def = _own_def
+	manager.register_event_definition(def)
+	active_instance = manager.post_event(def, null)
+	if active_instance == null:
+		return false
+	active_instance.position_provider = self
+	active_instance.copy_attenuation_from_player(self)
+	active_instance.doppler_enabled = _provider_doppler_enabled()
+	active_instance.max_distance = _provider_max_distance()
+	active_instance.set_position(resolve_emitter_position(manager.active_listener_position))
+	return true
+
+func stop_event() -> void:
+	if active_instance != null:
+		active_instance.stop()
+	active_instance = null
+
+func _provider_tick() -> void:
+	if Engine.is_editor_hint():
+		return
+	# El reproductor nativo del nodo no debe sonar: si alguien llamo a play(), se para y la
+	# voz sale por el pool.
+	if playing:
+		stop()
+	if auto_play_event and (active_instance == null or not active_instance.is_playing()) and (event_def != null or stream != null):
+		play_event()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_EXIT_TREE:
+		stop_event()

@@ -89,6 +89,10 @@ var emitter_forward: Vector3 = Vector3(0, 0, -1)
 ## velocidad de flujo que quien quiera (el spline) puede sumar.
 var emitter_velocity: Vector3 = Vector3.ZERO
 var flow_velocity: Vector3 = Vector3.ZERO
+## Fase 15 (C3): objeto que dice donde esta la voz cada cuadro segun el oyente (spline,
+## multiposicion). Contrato: resolve_emitter_position(listener_pos) -> Vector3 y, opcional,
+## resolve_flow_velocity(listener_pos) -> Vector3. Sustituye al emisor de nodo: la voz es del pool.
+var position_provider: Object = null
 ## Factor de tono por doppler, suavizado. 1.0 sin doppler.
 var doppler_pitch: float = 1.0
 var _prev_motion_position: Vector3 = Vector3.ZERO

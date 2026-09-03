@@ -8,4 +8,5 @@ monsoon -30 -18
 cabin -26 -14
 # street: 2026-09-03 (Fase 15) las voces dentro de salas vuelven a su bus (seco + envio): -22.1.
 street -33 -19
-workshop -30 -18
+# workshop: 2026-09-03 (Fase 15) la lona multiposicion pasa por el pool: -30.3.
+workshop -33 -18

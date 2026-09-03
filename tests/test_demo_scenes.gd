@@ -70,9 +70,17 @@ static func run_street_async(tree: SceneTree) -> OpenDouAssert:
 		var portals_dbg: Dictionary = {}
 		for p_name in ac_dbg.portals:
 			portals_dbg[p_name] = snappedf(ac_dbg.portals[p_name].open_factor, 0.01)
-		print("[obs43] al decidir: salas=%s portales=%s aparente=%s digest=%s cache=%s" % [
+		print("[obs43] al decidir: salas=%s portales=%s aparente=%s digest=%s cache=%s oyente=%s sala_oyente=%s emisor=%s" % [
 			ac_dbg.rooms.keys(), portals_dbg, music_instance.target_apparent_position,
-			manager.room_path_dispatcher._portal_digest, manager.room_path_dispatcher._cache.keys()])
+			manager.room_path_dispatcher._portal_digest, manager.room_path_dispatcher._cache,
+			manager.active_listener_position, str(ac_dbg.get_room_at_position(manager.active_listener_position).room_name) if ac_dbg.get_room_at_position(manager.active_listener_position) != null else "ninguna",
+			music_instance.emitter_position])
+		for rn in ["HouseA", "Street"]:
+			if ac_dbg.rooms.has(StringName(rn)):
+				var names: Array = []
+				for pp in ac_dbg.rooms[StringName(rn)].connected_portals:
+					names.append("%s(%s-%s %.2f)" % [String(pp.portal_name), String(pp.room_a_name), String(pp.room_b_name), pp.open_factor])
+				print("[obs43] %s conectada a %s (gen %d, sala #%d)" % [rn, str(names), ac_dbg.graph_generation, ac_dbg.rooms[StringName(rn)].get_instance_id()])
 	a.approx(music_instance.target_apparent_position.x, -4.0,
 		"y su origen aparente es la VENTANA entreabierta, no la puerta cerrada", 0.05)
 	var lpf_ajar: float = music_instance.current_spatial_lpf

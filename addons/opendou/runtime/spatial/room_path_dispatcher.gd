@@ -48,6 +48,8 @@ var max_attenuation_db: float = -40.0
 ## voces fisicas eran 16 formateos por frame, y se notaban en el presupuesto.
 var _cache: Dictionary = {}
 var _portal_digest: float = -1.0
+## Tamano de la celda de posicion del emisor en la clave de la cache.
+const CELL_M: float = 4.0
 var _graph_generation: int = -1
 
 ## Array reutilizado para las voces fisicas. Reservar uno nuevo cada frame es basura que
@@ -165,10 +167,16 @@ func process(instances: Array, listener_pos: Vector3) -> int:
 ##   exit_pos      posicion del ultimo portal: el origen aparente
 ##   sealed        true si no hay camino de portales entre las dos salas
 func chain_for(emitter_room: StringName, listener_room: StringName, emitter_pos: Vector3, listener_pos: Vector3) -> Dictionary:
+	# La clave lleva una celda gruesa (4 m) de la posicion del emisor: el portal mas barato
+	# depende de donde esta la voz dentro de la sala (desde el fondo de la casa la puerta
+	# cerrada gana a la ventana entreabierta; desde el frente, al reves). Cachear solo por par
+	# de salas hacia que la primera voz en calcular fijara el portal de todas (Fase 15).
+	var cell: Vector3i = Vector3i((emitter_pos / CELL_M).floor())
+	var key: String = "%s|%d,%d,%d" % [String(listener_room), cell.x, cell.y, cell.z]
 	var by_listener: Dictionary = _cache.get(emitter_room, {})
-	if by_listener.has(listener_room):
+	if by_listener.has(key):
 		cache_hits_this_frame += 1
-		return by_listener[listener_room]
+		return by_listener[key]
 
 	traversals_this_frame += 1
 	var path = acoustics.calculate_acoustic_path(emitter_pos, listener_pos, emitter_room, listener_room)
@@ -192,7 +200,7 @@ func chain_for(emitter_room: StringName, listener_room: StringName, emitter_pos:
 		"exit_pos": exit,
 		"sealed": sealed,
 	}
-	by_listener[listener_room] = entry_data
+	by_listener[key] = entry_data
 	_cache[emitter_room] = by_listener
 	return entry_data
 

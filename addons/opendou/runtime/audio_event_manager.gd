@@ -693,6 +693,15 @@ func _apply_voices(delta: float) -> void:
 		var ch = voice_pool.get_channel(instance.assigned_channel_id)
 		if ch == null or not ch.is_busy:
 			continue
+		# Proveedor de posicion (Fase 15): el objeto resuelve el punto que suena segun el oyente.
+		if instance.position_provider != null:
+			var prov = instance.position_provider
+			if is_instance_valid(prov) and prov.has_method("resolve_emitter_position"):
+				instance.set_position(prov.resolve_emitter_position(active_listener_position))
+				if prov.has_method("resolve_flow_velocity"):
+					instance.flow_velocity = prov.resolve_flow_velocity(active_listener_position)
+			else:
+				instance.position_provider = null
 		# Emisor de nodo en steam_audio: el nodo dice donde esta la voz cada frame.
 		var pos_node: Node3D = ch.get_position_node()
 		if pos_node != null:

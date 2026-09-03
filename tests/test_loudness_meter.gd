@@ -70,7 +70,9 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	player.play()
 	var total_usec: int = 0
 	var t0: int = Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t0 < 3500:
+	# Se espera por AUDIO procesado (3.4 s), no por reloj: el driver headless corre mas lento
+	# que el reloj bajo carga, y con 3.5 s de reloj la ventana de 3 s del corto plazo no llenaba.
+	while meter.processed_seconds < 3.4 and Time.get_ticks_msec() - t0 < 6000:
 		await tree.process_frame
 		meter.process()
 		total_usec += meter.last_process_usec

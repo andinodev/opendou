@@ -6,8 +6,6 @@ extends AudioStreamPlayer3D
 ## Continuous volumetric 3D spline audio emitter (for rivers, powerlines, wide barriers, and roads).
 ## Projects sound smoothly from the closest point along a Curve3D to the listener in real-time.
 
-const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spatial/spatial_acoustics_manager.gd")
-
 ## 3D Curve geometry defining the continuous sound path.
 @export var curve: Curve3D:
 	set(val):
@@ -40,8 +38,6 @@ const SpatialAcousticsManagerClass = preload("res://addons/opendou/runtime/spati
 ## Physics collision mask for acoustic line-of-sight checks.
 @export_flags_3d_physics var acoustic_collision_mask: int = 1
 
-var _acoustics_manager: SpatialAcousticsManager
-
 ## Transform que define el espacio en el que vive la curva.
 ##
 ## Se captura en _ready() y NO sigue al nodo. El nodo se mueve como cabeza de
@@ -57,7 +53,6 @@ var _prev_listener_pos: Vector3 = Vector3.ZERO
 var _prev_emitter_pos: Vector3 = Vector3.ZERO
 
 func _init() -> void:
-	_acoustics_manager = SpatialAcousticsManagerClass.new()
 	if sound_spread_curve == null:
 		sound_spread_curve = Curve.new()
 		sound_spread_curve.add_point(Vector2(0.0, 0.0))  # Far: 0 spread
@@ -125,26 +120,16 @@ func update_spline_acoustics(listener_pos: Vector3, listener_vel: Vector3 = Vect
 	
 	_virtual_target_pos = closest_pt
 	
-	# Smoothly position virtual emitter at closest point
+	# El nodo se mueve como cabeza de reproduccion VISUAL (depurador, tests de anclaje). Desde
+	# la Fase 15 no suena: la voz es del pool y toma la posicion de resolve_emitter_position();
+	# doppler, aire y flujo los hace el sistema de voces.
 	global_position = global_position.lerp(_virtual_target_pos, clampf(delta * 20.0, 0.0, 1.0))
-	
-	# Atmospheric Air Absorption
-	if enable_air_absorption:
-		_current_air_cutoff = _acoustics_manager.calculate_air_absorption(dist_to_closest)
-	else:
-		_current_air_cutoff = 20000.0
-	
-	# Doppler frequency modulation
-	if enable_doppler:
-		var emitter_vel = (global_position - _prev_emitter_pos) / maxf(0.001, delta) + get_flow_velocity_at(listener_pos)
-		var rel_pos = listener_pos - global_position
-		var doppler_factor = _acoustics_manager.calculate_doppler_pitch(emitter_vel, listener_vel, rel_pos)
-		pitch_scale = base_pitch_scale * doppler_factor
-		_prev_emitter_pos = global_position
+	_prev_emitter_pos = global_position
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
+	_provider_tick()
 	
 	# Retrieve active listener
 	var viewport = get_viewport()
@@ -155,3 +140,98 @@ func _physics_process(delta: float) -> void:
 			var listener_vel = (listener_pos - _prev_listener_pos) / maxf(0.001, delta)
 			_prev_listener_pos = listener_pos
 			update_spline_acoustics(listener_pos, listener_vel, delta)
+
+# ==============================================================================
+# SISTEMA DE VOCES (Fase 15, C3)
+# ==============================================================================
+
+const AudioEventDefClass = preload("res://addons/opendou/resources/audio_event_def.gd")
+
+@export_group("Event")
+## Evento que suena en el punto resuelto. Sin el, el `stream` del nodo se envuelve en una
+## definicion propia (en bucle) con el bus del nodo.
+@export var event_def: AudioEventDef = null
+## Arranca la voz al entrar al arbol (o en cuanto haya stream o evento). El nodo NO suena por
+## si mismo: la voz es del pool (robo de voces, salas, backend binaural) y este nodo solo
+## aporta la posicion cada cuadro.
+@export var auto_play_event: bool = true
+@export_group("")
+
+var active_instance: EventInstance = null
+var _event_manager: AudioEventManager = null
+var _own_def: AudioEventDef = null
+
+func set_event_manager(m: AudioEventManager) -> void:
+	_event_manager = m
+
+func _get_manager() -> AudioEventManager:
+	if _event_manager != null and is_instance_valid(_event_manager):
+		return _event_manager
+	if is_inside_tree():
+		var root_node = get_tree().root
+		if root_node != null and root_node.has_node("OpenDou"):
+			var node = root_node.get_node("OpenDou")
+			if node is AudioEventManager:
+				return node
+	return null
+
+## Publica el evento por el manager con este nodo como proveedor de posicion.
+func play_event() -> bool:
+	if active_instance != null and active_instance.is_playing():
+		return true
+	var manager: AudioEventManager = _get_manager()
+	if manager == null:
+		return false
+	var def: AudioEventDef = event_def
+	if def == null:
+		if stream == null:
+			return false
+		if _own_def == null or _own_def.base_stream != stream:
+			_own_def = AudioEventDefClass.new(StringName("%s_%d" % [name, get_instance_id()]), stream)
+			_own_def.is_looping = true
+			_own_def.stream_length = maxf(float(stream.get_length()), 0.1)
+		_own_def.target_bus = StringName(bus)
+		def = _own_def
+	manager.register_event_definition(def)
+	active_instance = manager.post_event(def, null)
+	if active_instance == null:
+		return false
+	active_instance.position_provider = self
+	active_instance.copy_attenuation_from_player(self)
+	active_instance.doppler_enabled = _provider_doppler_enabled()
+	active_instance.max_distance = _provider_max_distance()
+	active_instance.set_position(resolve_emitter_position(manager.active_listener_position))
+	return true
+
+func stop_event() -> void:
+	if active_instance != null:
+		active_instance.stop()
+	active_instance = null
+
+func _provider_tick() -> void:
+	if Engine.is_editor_hint():
+		return
+	# El reproductor nativo del nodo no debe sonar: si alguien llamo a play(), se para y la
+	# voz sale por el pool.
+	if playing:
+		stop()
+	if auto_play_event and (active_instance == null or not active_instance.is_playing()) and (event_def != null or stream != null):
+		play_event()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_EXIT_TREE:
+		stop_event()
+
+## Proveedor de posicion: el punto de la curva mas cercano al oyente.
+func resolve_emitter_position(listener_pos: Vector3) -> Vector3:
+	return get_closest_virtual_point(listener_pos)
+
+## Velocidad del flujo en ese punto (entra al doppler de la voz).
+func resolve_flow_velocity(listener_pos: Vector3) -> Vector3:
+	return get_flow_velocity_at(listener_pos)
+
+func _provider_doppler_enabled() -> bool:
+	return enable_doppler
+
+func _provider_max_distance() -> float:
+	return max_virtual_distance + 10.0

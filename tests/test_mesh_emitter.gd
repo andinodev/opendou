@@ -54,17 +54,17 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	tree.root.add_child(em)
 	em.mesh_path = em.get_path_to(mesh_node)
 	em.rebuild_mesh()
+	# Fase 15: el nodo ya no se mueve; el punto que suena lo da resolve_emitter_position() a la
+	# voz del pool. Se afirma sobre ese punto.
 	for i in range(5):
 		await tree.process_frame
-	a.ok(em.global_position.is_equal_approx(Vector3(7.3, 0.0, -4.1)), "el emisor se pone en el punto del plano bajo el oyente (%s)" % str(em.global_position))
-	cam.global_position = Vector3(7.4, 2.0, -4.1)   # 10 cm: dentro de la histeresis
-	for i in range(3):
-		await tree.process_frame
-	a.ok(em.global_position.is_equal_approx(Vector3(7.3, 0.0, -4.1)), "10 cm no lo mueven (histeresis 0.25 m)")
-	cam.global_position = Vector3(12.0, 2.0, -4.1)
-	for i in range(3):
-		await tree.process_frame
-	a.ok(em.global_position.is_equal_approx(Vector3(12.0, 0.0, -4.1)), "5 m si (%s)" % str(em.global_position))
+	var p1: Vector3 = em.resolve_emitter_position(cam.global_position)
+	a.ok(p1.is_equal_approx(Vector3(7.3, 0.0, -4.1)), "el punto que suena es el del plano bajo el oyente (%s)" % str(p1))
+	var p2: Vector3 = em.resolve_emitter_position(Vector3(7.4, 2.0, -4.1))   # 10 cm: dentro de la histeresis
+	a.ok(p2.is_equal_approx(Vector3(7.3, 0.0, -4.1)), "10 cm no lo mueven (histeresis 0.25 m)")
+	var p3: Vector3 = em.resolve_emitter_position(Vector3(12.0, 2.0, -4.1))
+	a.ok(p3.is_equal_approx(Vector3(12.0, 0.0, -4.1)), "5 m si (%s)" % str(p3))
+	a.ok(em.global_position.is_zero_approx(), "el nodo no se mueve (%s)" % str(em.global_position))
 	tree.root.remove_child(em); em.free()
 	tree.root.remove_child(cam); cam.free()
 	tree.root.remove_child(mesh_node); mesh_node.free()
