@@ -344,7 +344,8 @@ del `AudioServer` y en el Master.
 
 | Qué | Dónde |
 |---|---|
-| Reglas del proyecto y trampas del motor (observaciones 1–44) | `AGENTS.md`, `.agents/rules/` |
+| Catálogo por funcionalidad: resumen, clases que la implementan y el error que costó | `docs/catalogo-de-funcionalidades.md` |
+| Reglas del proyecto y trampas del motor (observaciones 1–55) | `AGENTS.md`, `.agents/rules/` |
 | Specs y planes por fase | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
 | Estado real de la extensión nativa | `docs/architecture/gdextension_api.md`, §7 |
 | Demos que ejercitan todo | `scenes/demos/` («Bajo la quilla», «El monzón», «La cabina», «Una casa canta», «El taller», **«La presa»** —la escena grande de la Fase 16, que instancia los 21 tipos de nodo salvo el 2D y afirma diez tesis con audio medido: RT60 real 1.8 s en la nave, ducking −12 dB dentro de la sala, cristal −3 dB frente a hormigón −34 dB, goteo tras el codo a 3° de la esquina por sondas, compuerta −64 dB al bajar, sumergido −59 dB de agudos, trueno a 1.1 s, camión 1.026/0.976, vigilante que oye a 4 m y al aire libre pero no tras el muro—, el banco del rig) |

@@ -5,7 +5,9 @@
 
 ## Cómo retomar (para cualquier modelo o persona)
 
-**Dónde está cada cosa.** Qué hace el plugin y qué afirma cada pieza con números: `docs/funcionalidades.md`.
+**Dónde está cada cosa.** Catálogo por funcionalidad, con las clases que la implementan y el error
+que costó cada una: `docs/catalogo-de-funcionalidades.md` (el mejor punto de entrada).
+Qué hace el plugin y qué afirma cada pieza con números: `docs/funcionalidades.md`.
 Por qué se hizo así y qué obligó a corregir la ejecución: cada spec (`docs/superpowers/specs/`, sección
 «Correcciones que la ejecución obligó a hacer») y su plan. Trampas de Godot y Steam Audio descubiertas,
 numeradas por fase (observaciones 1–55): `AGENTS.md`, bloques «Observaciones y trampas de la Fase N».
