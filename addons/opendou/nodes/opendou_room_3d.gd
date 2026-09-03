@@ -15,6 +15,7 @@ const TransformUtilsClass = preload("res://addons/opendou/runtime/spatial/transf
 enum ReverbMode {
 	SABINE_RT60,     ## RT60 calculado geometricamente con la formula de Sabine
 	IR_DERIVED_RT60, ## RT60 derivado de una respuesta al impulso medida
+	CONVOLUTION,     ## IR trazada por Steam Audio contra el bake, centrada en el oyente (Fase 13). Sin extension cae a Sabine con el RT60 real si lo hubo
 }
 
 # ==============================================================================
@@ -82,6 +83,9 @@ func _ready() -> void:
 				break
 
 	register_in_manager()
+	# El export puede fijarse antes de entrar al arbol (runtime_room aun no existia).
+	if runtime_room != null:
+		runtime_room.reverb_mode = int(reverb_mode)
 
 	if not Engine.is_editor_hint() and not snapshot_on_enter.is_empty():
 		body_entered.connect(_on_body_entered)
@@ -153,7 +157,13 @@ func get_effective_reverb_time() -> float:
 		return custom_reverb_time
 	if reverb_mode == ReverbMode.IR_DERIVED_RT60 and _ir_derived_rt60 > 0.0:
 		return _ir_derived_rt60
+	# CONVOLUTION sin extension: si alguna vez se trazo la sala, su RT60 real alimenta a Sabine.
+	if reverb_mode == ReverbMode.CONVOLUTION and traced_rt60 > 0.0:
+		return traced_rt60
 	return calculated_rt60
+
+## RT60 medio trazado por Steam Audio (lo fija el manager cuando llega un resultado).
+var traced_rt60: float = 0.0
 
 ## RT60 derivado del IR asignado, en segundos.
 func get_ir_derived_rt60() -> float:
@@ -221,6 +231,12 @@ func _route_native_reverb(mgr: SpatialAcousticsManager) -> void:
 	if bus.is_empty():
 		return
 	_assigned_reverb_bus = bus
+	if runtime_room != null:
+		runtime_room.assigned_reverb_bus = bus
+		runtime_room.reverb_send_amount = reverb_send_amount
+	# Bus compartido con convolucion de otro manager (steam) y aqui no se permite: Sabine.
+	if not mgr.convolution_allowed and mgr.reverb_bus_pool.has_convolution(bus):
+		mgr.reverb_bus_pool.install_sabine(bus, get_effective_reverb_time(), get_absorption())
 
 	reverb_bus_enabled = true
 	reverb_bus_name = String(bus)

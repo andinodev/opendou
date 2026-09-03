@@ -2,6 +2,7 @@
 #include "register_types.h"
 
 #include "acoustic_scene.h"
+#include "convolution_reverb.h"
 #include "gain_effect.h"
 #include "simulator.h"
 #include "spatial_stream.h"
@@ -23,6 +24,8 @@ void initialize_opendou_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(opendou::OpenDouSimulator);
 	GDREGISTER_CLASS(opendou::OpenDouGainEffect);
 	GDREGISTER_CLASS(opendou::OpenDouGainEffectInstance);
+	GDREGISTER_CLASS(opendou::OpenDouConvolutionReverb);
+	GDREGISTER_CLASS(opendou::OpenDouConvolutionReverbInstance);
 }
 
 void uninitialize_opendou_native(ModuleInitializationLevel p_level) {

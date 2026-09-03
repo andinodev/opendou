@@ -32,6 +32,7 @@ std::atomic<bool> OpenDouSimulator::running_{ false };
 std::mutex OpenDouSimulator::commit_mutex_;
 std::mutex OpenDouSimulator::outputs_mutex_;
 int OpenDouSimulator::period_ms_ = 100;
+std::atomic<int> OpenDouSimulator::reflection_runs_{ 0 };
 
 void OpenDouSimulator::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("configure", "max_sources", "occlusion_samples", "transmission_rays", "with_reflections", "max_duration", "max_rays"), &OpenDouSimulator::configure, DEFVAL(false), DEFVAL(2.0f), DEFVAL(4096));
@@ -40,6 +41,7 @@ void OpenDouSimulator::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("start_reflections", "hz"), &OpenDouSimulator::start_reflections);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("stop_reflections"), &OpenDouSimulator::stop_reflections);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("is_reflections_running"), &OpenDouSimulator::is_reflections_running);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("reflection_runs"), &OpenDouSimulator::reflection_runs);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("get_reverb_times", "handle"), &OpenDouSimulator::get_reverb_times);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("reflections_generation", "handle"), &OpenDouSimulator::reflections_generation);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("shutdown"), &OpenDouSimulator::shutdown);
@@ -169,6 +171,7 @@ void OpenDouSimulator::thread_main() {
 			running_.store(true);
 		}
 		iplSimulatorRunReflections(sim_);
+		reflection_runs_++;
 		{
 			std::lock_guard<std::mutex> lk(outputs_mutex_);
 			for (size_t i = 0; i < sources_.size(); i++) {

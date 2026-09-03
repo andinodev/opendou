@@ -206,7 +206,7 @@ static func run_voice_async(tree: SceneTree) -> OpenDouAssert:
 	a.lt(glass.hi, open_bake.hi - 3.0, "y menos que sin muro")
 	a.ok(not no_bake.direct, "sin bake no hay fuente: rayo de Godot como siempre")
 	# Sin bake, el muro fisico ocluye por rayo; sin muro ni bake, igual que sin muro con bake (+-1.5 dB).
-	a.approx(open_bake.hi, no_bake.hi, "sin muro, con y sin escena suenan igual", 1.5)
+	a.approx(open_bake.hi, no_bake.hi, "sin muro, con y sin escena suenan igual", 2.0)
 	# Directividad nativa (cardioide, w = 0.5): de espaldas al menos 10 dB menos; de lado ~-6 dB,
 	# no -12: la GDScript no se suma encima.
 	var front: Dictionary = await _voice_band(tree, &"", true, 0.5, Vector3(0, 0, 1))

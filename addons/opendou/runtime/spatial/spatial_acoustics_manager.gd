@@ -33,6 +33,9 @@ var reverb_bus_pool: OpenDouReverbBusPool = null
 var speed_of_sound: float = 343.0
 ## Volumenes de entorno con superficie pintada (Fase 10); los asigna el AudioEventManager.
 var surface_volumes: Array = []
+## Fase 13: solo el backend steam_audio puede poner convolucion en un bus de reverb. Los buses
+## del pool son compartidos y sobreviven al manager: una sala en godot los devuelve a Sabine.
+var convolution_allowed: bool = false
 
 func _init() -> void:
 	material_registry = AcousticMaterialRegistryClass.new()

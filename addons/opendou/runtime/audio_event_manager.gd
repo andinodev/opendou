@@ -99,6 +99,10 @@ var acoustic_volumes: Array = []
 var environment: OpenDouEnvironmentState = EnvironmentStateClass.new()
 var _active_medium_snapshot: StringName = &""
 var _had_culled: bool = false
+## Fase 13: fuente de oyente del simulador por sala (room_name -> handle) y bus con convolucion.
+var _room_listener_sources: Dictionary = {}
+var _reflections_started: bool = false
+var _listener_room_name: StringName = &""
 var _warned_hrtf_override: String = ""
 
 ## Programador unico de raycasts de oclusion, con presupuesto por frame.
@@ -144,6 +148,8 @@ func _init() -> void:
 	occlusion_scheduler = OcclusionSchedulerClass.new()
 	occlusion_scheduler.voice_pool = voice_pool
 	occlusion_scheduler.use_simulator = is_steam_audio_backend()
+	if spatial_acoustics != null:
+		spatial_acoustics.convolution_allowed = is_steam_audio_backend()
 	room_path_dispatcher = RoomPathDispatcherClass.new()
 	room_path_dispatcher.acoustics = spatial_acoustics
 	reflection_dispatcher = ReflectionDispatcherClass.new()
@@ -286,7 +292,52 @@ func _update_environment(delta: float) -> void:
 			push_snapshot(environment.medium_snapshot)
 		_active_medium_snapshot = environment.medium_snapshot
 
+## Fuente de oyente para una sala (la crea si no existe). -1 sin simulador con reflexiones.
+func listener_source_for_room(room_name: StringName) -> int:
+	if _room_listener_sources.has(room_name):
+		return int(_room_listener_sources[room_name])
+	if not ClassDB.class_exists("OpenDouSimulator") or not bool(ClassDB.class_call_static("OpenDouSimulator", "is_ready")):
+		return -1
+	var h: int = int(ClassDB.class_call_static("OpenDouSimulator", "create_listener_source"))
+	if h >= 0:
+		_room_listener_sources[room_name] = h
+	return h
+
+## RT60 por banda trazado para la sala; cero si no hay resultado.
+func get_room_reverb_times(room_name: StringName) -> Vector3:
+	if not _room_listener_sources.has(room_name) or not ClassDB.class_exists("OpenDouSimulator"):
+		return Vector3.ZERO
+	return ClassDB.class_call_static("OpenDouSimulator", "get_reverb_times", int(_room_listener_sources[room_name]))
+
+## Sala del oyente: mueve su fuente de oyente, arranca el hilo de reflexiones la primera vez y
+## pone la convolucion en el bus de la sala si la sala lo pide y el simulador esta.
+func _update_listener_room() -> void:
+	if spatial_acoustics == null or not is_steam_audio_backend():
+		return
+	var room = spatial_acoustics.get_room_at_position(active_listener_position)
+	if room == null or room.reverb_mode != 2:
+		return
+	if occlusion_scheduler == null or not occlusion_scheduler.ensure_simulator():
+		return
+	var h: int = listener_source_for_room(room.room_name)
+	if h < 0:
+		return
+	# El oyente compartido del simulador lo fijaba solo el planificador cuando habia voces
+	# simuladas; sin voces, las reflexiones no tenian oyente y no trazaban nada.
+	ClassDB.class_call_static("OpenDouSimulator", "set_listener", active_listener_position, -active_listener_basis.z, active_listener_basis.y)
+	ClassDB.class_call_static("OpenDouSimulator", "set_listener_source_position", h, active_listener_position)
+	if not _reflections_started:
+		ClassDB.class_call_static("OpenDouSimulator", "start_reflections", 10.0)
+		_reflections_started = true
+	if room.assigned_reverb_bus != &"" and spatial_acoustics.reverb_bus_pool != null and not spatial_acoustics.reverb_bus_pool.has_convolution(room.assigned_reverb_bus):
+		spatial_acoustics.reverb_bus_pool.install_convolution(room.assigned_reverb_bus, h, room.reverb_send_amount)
+	_listener_room_name = room.room_name
+
 func _exit_tree() -> void:
+	if ClassDB.class_exists("OpenDouSimulator"):
+		ClassDB.class_call_static("OpenDouSimulator", "stop_reflections")
+	_reflections_started = false
+	_room_listener_sources.clear()
 	# No dejar el filtro del medio en Master cuando el manager se va (tests, cambio de escena).
 	MediumFilterInstallerClass.apply(20000.0)
 	if ClassDB.class_exists("OpenDouSpatialStream"):
@@ -717,6 +768,8 @@ func _process(delta: float) -> void:
 	_update_listener()
 	# 1b. Entorno del oyente (Fase 10): medio, viento, descarte.
 	_update_environment(delta)
+	# 1c. Sala del oyente (Fase 13): fuente de oyente, hilo de reflexiones y convolucion.
+	_update_listener_room()
 
 	# 2. Live Update remoto.
 	if live_update_server and live_update_server.is_server_running:

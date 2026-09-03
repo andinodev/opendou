@@ -19,7 +19,10 @@ var reverb_send_level: float = 0.2
 var floor_surface: StringName = &"Concrete"
 var material_preset: String = "Concrete"
 
-var reverb_mode: int = 0 # 0 = SABINE_RT60, 1 = IR_DERIVED_RT60
+var reverb_mode: int = 0 # 0 = SABINE_RT60, 1 = IR_DERIVED_RT60, 2 = CONVOLUTION (Fase 13)
+## Bus de reverb asignado por el pool y envio de la sala (los fija OpenDouRoom3D).
+var assigned_reverb_bus: StringName = &""
+var reverb_send_amount: float = 0.5
 
 var bounds: AABB = AABB()
 var has_bounds: bool = false

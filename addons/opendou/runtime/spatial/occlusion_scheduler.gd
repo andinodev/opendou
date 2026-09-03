@@ -43,13 +43,16 @@ var voice_pool = null
 var simulated_this_frame: int = 0
 var _warned_no_sim: bool = false
 
-func _simulator_ready() -> bool:
+## Configura el simulador si la escena esta lista (lo llama tambien el manager para la sala del
+## oyente: sin voces, process() vuelve antes de llegar aqui).
+func ensure_simulator() -> bool:
 	if not use_simulator or voice_pool == null or not ClassDB.class_exists("OpenDouSimulator"):
 		return false
 	if not bool(ClassDB.class_call_static("OpenDouAcousticScene", "is_ready")):
 		return false
 	if not bool(ClassDB.class_call_static("OpenDouSimulator", "is_ready")):
-		if not bool(ClassDB.class_call_static("OpenDouSimulator", "configure", voice_pool.max_physical_voices, 16, 2)):
+		# Con reflexiones (Fase 13): el hilo solo corre si alguna sala lo pide.
+		if not bool(ClassDB.class_call_static("OpenDouSimulator", "configure", voice_pool.max_physical_voices + 8, 16, 2, true, 2.0, 4096)):
 			if not _warned_no_sim:
 				_warned_no_sim = true
 				push_warning("[OpenDou] el simulador de Steam Audio no se pudo configurar: oclusion por rayo")
@@ -129,7 +132,7 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D, occlude
 	pairs.sort()
 	var eligible: Array = []
 	# Fase 12: las voces dentro del alcance del efecto directo van al simulador; el resto, al rayo.
-	var sim: bool = _simulator_ready()
+	var sim: bool = ensure_simulator()
 	if not sim and voice_pool != null:
 		# Sin simulador (la escena se fue), ninguna voz conserva una fuente rancia.
 		for ch in voice_pool.channels:

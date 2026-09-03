@@ -105,6 +105,64 @@ func _create_bus(tier: int, rt60: float, absorption: float) -> StringName:
 	AudioServer.add_bus_effect(idx, _make_reverb(rt60, absorption), 0)
 	return StringName(bus_name)
 
+const MARK_CONV: String = "OpenDou_ConvReverb"
+
+## Sustituye el reverb del bus por la convolucion nativa de Steam Audio (Fase 13), alimentada
+## por la fuente de oyente `room_handle`. Devuelve false sin extension.
+func install_convolution(bus: StringName, room_handle: int, wet: float) -> bool:
+	if not ClassDB.class_exists("OpenDouConvolutionReverb"):
+		return false
+	var idx: int = AudioServer.get_bus_index(String(bus))
+	if idx < 0:
+		return false
+	var fx = null
+	for e in range(AudioServer.get_bus_effect_count(idx)):
+		var cand := AudioServer.get_bus_effect(idx, e)
+		if cand != null and cand.resource_name == MARK_CONV:
+			fx = cand
+	if fx == null:
+		for e in range(AudioServer.get_bus_effect_count(idx) - 1, -1, -1):
+			if AudioServer.get_bus_effect(idx, e) is AudioEffectReverb:
+				AudioServer.remove_bus_effect(idx, e)
+		fx = ClassDB.instantiate("OpenDouConvolutionReverb")
+		fx.resource_name = MARK_CONV
+		AudioServer.add_bus_effect(idx, fx, 0)
+	fx.dry = 1.0
+	fx.wet = clampf(wet, 0.0, 1.0)
+	fx.room_handle = room_handle
+	return true
+
+## Vuelve al AudioEffectReverb de Godot en el bus (fallback, o al salir de CONVOLUTION).
+func install_sabine(bus: StringName, rt60: float, absorption: float) -> void:
+	var idx: int = AudioServer.get_bus_index(String(bus))
+	if idx < 0:
+		return
+	for e in range(AudioServer.get_bus_effect_count(idx) - 1, -1, -1):
+		var cand := AudioServer.get_bus_effect(idx, e)
+		if cand != null and (cand.resource_name == MARK_CONV or cand is AudioEffectReverb):
+			AudioServer.remove_bus_effect(idx, e)
+	AudioServer.add_bus_effect(idx, _make_reverb(rt60, absorption), 0)
+
+## Cambia la mezcla humeda del efecto de convolucion del bus, si lo hay.
+func set_convolution_wet(bus: StringName, wet: float) -> void:
+	var idx: int = AudioServer.get_bus_index(String(bus))
+	if idx < 0:
+		return
+	for e in range(AudioServer.get_bus_effect_count(idx)):
+		var cand := AudioServer.get_bus_effect(idx, e)
+		if cand != null and cand.resource_name == MARK_CONV:
+			cand.wet = clampf(wet, 0.0, 1.0)
+
+func has_convolution(bus: StringName) -> bool:
+	var idx: int = AudioServer.get_bus_index(String(bus))
+	if idx < 0:
+		return false
+	for e in range(AudioServer.get_bus_effect_count(idx)):
+		var cand := AudioServer.get_bus_effect(idx, e)
+		if cand != null and cand.resource_name == MARK_CONV:
+			return true
+	return false
+
 ## Configura un AudioEffectReverb a partir del RT60 y la absorcion.
 ##
 ## AudioEffectReverb NO expone RT60: solo room_size, damping, spread, hipass,

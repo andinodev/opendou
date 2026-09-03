@@ -23,6 +23,8 @@ public:
 	static void start_reflections(float hz);
 	static void stop_reflections();
 	static bool is_reflections_running() { return thread_alive_.load(); }
+	static int reflection_runs() { return reflection_runs_.load(); }
+	static std::atomic<int> reflection_runs_;
 	static godot::Vector3 get_reverb_times(int handle);
 	static int reflections_generation(int handle);
 	// Para el efecto de convolucion (hilo de audio): copia los parametros del ultimo resultado.
