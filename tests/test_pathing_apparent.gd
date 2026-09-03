@@ -49,6 +49,12 @@ static func _run(tree: SceneTree, listener: Vector3, emitter: Vector3, pathing_o
 		ac.register_room(east)
 		ac.register_portal(AudioPortalClass.new(&"Hueco", &"Oeste", &"Este", GAP, 1.0))
 	manager.set_listener_position(listener)
+	var debugger = null
+	if pathing_on and not with_portal:
+		debugger = load("res://addons/opendou/nodes/opendou_acoustic_debugger_3d.gd").new()
+		debugger.show_paths = true
+		debugger.show_sound_field_mesh = false
+		tree.root.add_child(debugger)
 	var probe = load("res://tests/support/audio_probe.gd").new()
 	probe.attach_to_existing_bus(TP.BUS, 2.0)
 	var def = load("res://addons/opendou/resources/audio_event_def.gd").new(&"PathVoice", TB._periodic_noise(int(AudioServer.get_mix_rate())))
@@ -81,6 +87,7 @@ static func _run(tree: SceneTree, listener: Vector3, emitter: Vector3, pathing_o
 		await tree.process_frame
 		probe.drain()
 	out["direct"] = ch != null and ch.uses_direct_effect()
+	out["segments"] = debugger.path_segment_count() if debugger != null else 0
 	out["runs"] = int(ClassDB.class_call_static("OpenDouSimulator", "pathing_runs"))
 	out["thread"] = bool(ClassDB.class_call_static("OpenDouSimulator", "is_reflections_running"))
 	out["target"] = inst.target_apparent_position
@@ -90,6 +97,8 @@ static func _run(tree: SceneTree, listener: Vector3, emitter: Vector3, pathing_o
 	out["rms"] = TB._rms_db(cap)
 	inst.stop()
 	probe.teardown()
+	if debugger != null:
+		tree.root.remove_child(debugger); debugger.free()
 	tree.root.remove_child(cam); cam.free()
 	tree.root.remove_child(manager); manager.free()
 	tree.root.remove_child(bake); bake.free()
@@ -128,6 +137,8 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.lt(_angle_deg(apparent, to_gap), 25.0, "el origen aparente apunta al hueco")
 	a.gt(_angle_deg(apparent, to_real), 30.0, "y no al emisor real")
 	a.lt(float(occ.rms), float(vis.rms) - 1.0, "rodeando el tabique llega menos que a la vista")
+	print("[OpenDou] caminos en el depurador: %d segmentos" % int(occ.segments))
+	a.ok(int(occ.segments) >= 1, "el depurador dibuja al menos un segmento de camino")
 	var off: Dictionary = await _run(tree, l_occ, e_occ, false, false)
 	print("[OpenDou] caminos apagados: rms %.1f dB, aparente %s, activo %s" % [float(off.rms), str(off.target), str(off.pathing_active)])
 	a.ok(not bool(off.pathing_active), "con pathing_enabled = false el origen es el emisor")

@@ -84,11 +84,28 @@ static func _measure(tree: SceneTree, backend: String, material: StringName, wet
 		if absf(frames[i].x) > 0.01 or absf(frames[i].y) > 0.01:
 			onset = i
 			break
+	# Godot enruta la voz al bus de reverb del Area3D con hasta un bloque de retraso (obs 49):
+	# a veces el tono llega al bus recortado por delante. El FINAL del tono no depende de eso, y
+	# las ventanas se alinean a el: tono en [-0.1, -0.02] s y cola en [+0.05, +0.2] s.
+	# El final se busca por bloques de 10 ms: el ultimo bloque a menos de 3 dB del mas fuerte
+	# (el tono es estable; la cola cae mas de 5 dB en el primer bloque sin tono).
+	var block: int = int(rate * 0.01)
+	var block_db: Array[float] = []
+	var peak_db: float = -180.0
+	for b in range(0, frames.size() - block, block):
+		var v: float = _rms_db(frames, b, b + block)
+		block_db.append(v)
+		peak_db = maxf(peak_db, v)
+	var end: int = onset
+	for b in range(block_db.size() - 1, -1, -1):
+		if block_db[b] > peak_db - 3.0:
+			end = (b + 1) * block
+			break
 	var decay: String = ""
 	for w in range(0, 6):
 		decay += " %.2f:%.1f" % [w * 0.1, _rms_db(frames, onset + int(rate * w * 0.1), onset + int(rate * (w + 1) * 0.1))]
-	print("[OpenDou] convolucion %s (%s): inicio %d, forma por 100 ms desde el inicio:%s" % [material, backend, onset, decay])
-	var out := {"tone_db": _rms_db(frames, onset + int(rate * 0.05), onset + int(rate * 0.15)), "tail_db": _rms_db(frames, onset + int(rate * 0.25), onset + int(rate * 0.4)), "rt60": rt, "conv": conv, "bus": bus, "samples": frames.size()}
+	print("[OpenDou] convolucion %s (%s): inicio %d, fin %d, forma por 100 ms desde el inicio:%s" % [material, backend, onset, end, decay])
+	var out := {"tone_db": _rms_db(frames, end - int(rate * 0.1), end - int(rate * 0.02)), "tail_db": _rms_db(frames, end + int(rate * 0.05), end + int(rate * 0.2)), "rt60": rt, "conv": conv, "bus": bus, "samples": frames.size()}
 	probe.teardown()
 	tree.root.remove_child(room); room.free()
 	tree.root.remove_child(bake); bake.free()

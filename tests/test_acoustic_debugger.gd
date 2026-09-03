@@ -19,6 +19,8 @@ static func run_all() -> Array[String]:
 		failures.append("Test 1a Failed: OpenDouAcousticDebugger3D must extend Node3D")
 	if debugger.enabled != true:
 		failures.append("Test 1b Failed: enabled default should be true")
+	if debugger.path_segment_count() != 0:
+		failures.append("Test 1c Failed: sin arbol ni caminos, path_segment_count() debe ser 0")
 	if debugger.probe_ray_count != 24:
 		failures.append("Test 1c Failed: probe_ray_count default should be 24, got %d" % debugger.probe_ray_count)
 	if debugger.show_unit_size_core != true:

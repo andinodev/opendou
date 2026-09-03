@@ -36,6 +36,12 @@ enum DisplayMode {
 @export var show_unit_size_core: bool = true
 @export var show_occlusion_rays: bool = true
 @export var show_sound_field_mesh: bool = true
+## Fase 14: dibuja los segmentos de camino reales de Steam Audio (sondas) en verde. Sin
+## extension no dibuja nada y no da error.
+@export var show_paths: bool = true:
+	set(v):
+		show_paths = v
+		_sync_path_visualization()
 @export_flags_3d_physics var collision_mask: int = 1
 @export var max_display_emitters: int = 16
 @export var listener_node: Node3D = null
@@ -48,6 +54,7 @@ var _mesh_instance: MeshInstance3D = null
 var _immediate_mesh: ImmediateMesh = null
 var _shader_material: ShaderMaterial = null
 var _line_material: StandardMaterial3D = null
+var _path_segment_count: int = 0
 
 # ==============================================================================
 # LIFECYCLE
@@ -56,6 +63,20 @@ var _line_material: StandardMaterial3D = null
 func _ready() -> void:
 	_setup_rendering_components()
 	set_process(enabled)
+	_sync_path_visualization()
+
+func _exit_tree() -> void:
+	if ClassDB.class_exists("OpenDouSimulator"):
+		ClassDB.class_call_static("OpenDouSimulator", "set_path_visualization", false)
+
+## El simulador solo acumula segmentos cuando alguien los quiere ver.
+func _sync_path_visualization() -> void:
+	if ClassDB.class_exists("OpenDouSimulator"):
+		ClassDB.class_call_static("OpenDouSimulator", "set_path_visualization", show_paths and enabled and is_inside_tree())
+
+## Segmentos de camino dibujados en el ultimo cuadro (0 sin extension o sin caminos).
+func path_segment_count() -> int:
+	return _path_segment_count
 
 func _setup_rendering_components() -> void:
 	if _mesh_instance == null:
@@ -311,6 +332,7 @@ func _process(_delta: float) -> void:
 
 func _render_acoustic_sound_fields() -> void:
 	_immediate_mesh.clear_surfaces()
+	_render_paths()
 	
 	var world_3d: World3D = get_world_3d()
 	var space_state: PhysicsDirectSpaceState3D = world_3d.direct_space_state if world_3d != null else null
@@ -399,6 +421,25 @@ func _render_acoustic_sound_fields() -> void:
 			_immediate_mesh.surface_add_vertex(p_start)
 			_immediate_mesh.surface_set_color(line_col)
 			_immediate_mesh.surface_add_vertex(p_end)
+	_immediate_mesh.surface_end()
+
+## Caminos de Steam Audio (Fase 14): pares (desde, hasta) en mundo, del ultimo RunPathing.
+func _render_paths() -> void:
+	_path_segment_count = 0
+	if not show_paths or not ClassDB.class_exists("OpenDouSimulator"):
+		return
+	var segs: PackedVector3Array = ClassDB.class_call_static("OpenDouSimulator", "get_path_segments")
+	if segs.size() < 2:
+		return
+	var inv: Transform3D = global_transform.affine_inverse()
+	var col := Color(0.2, 1.0, 0.3, 0.9)
+	_immediate_mesh.surface_begin(Mesh.PRIMITIVE_LINES, _line_material)
+	for i in range(0, segs.size() - 1, 2):
+		_immediate_mesh.surface_set_color(col)
+		_immediate_mesh.surface_add_vertex(inv * (segs[i] + Vector3(0, 0.05, 0)))
+		_immediate_mesh.surface_set_color(col)
+		_immediate_mesh.surface_add_vertex(inv * (segs[i + 1] + Vector3(0, 0.05, 0)))
+		_path_segment_count += 1
 	_immediate_mesh.surface_end()
 
 ## Resolves the list of active AudioStreamPlayer3D emitters to render based on display_mode and selection.
