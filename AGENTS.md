@@ -523,6 +523,24 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
 * **Las curvas de un `AudioBlendContainer` son dB** (0 suena, -60 calla), no pesos 0..1.
 * **`OpenDouEventPlayer3D` en `BUS_CAPTURE` y `OpenDouEventPlayer`: el bus de la fuente baja a
   -80 y otra regla puede sumarle mas** (-90 medido): se afirma `<= -79`, no igual a -80.
+* **Observacion 56.** Una bandera GDScript que refleja estado NATIVO se queda rancia. El manager
+  guardaba `_reflections_started` y no volvia a arrancar el hilo de reflexiones y caminos cuando
+  otro test lo habia apagado con `shutdown()`: RT60 0 y ningun camino, con las sondas cargadas y
+  adjuntas. La verdad la tiene el nativo (`is_reflections_running()`), y ahora se le pregunta.
+  Regla: si el estado vive en C++, no lo caches en GDScript para DECIDIR.
+* **Dos aserciones median con el reloj y fluctuaban.** La cola del hormigon del test de
+  convolucion saltaba 14 dB (de -16 a -30 dB) porque un `RT60 > 0` dice que el hilo trazo UNA
+  vez, no que el efecto tenga la IR viva: hay que esperar dos corridas mas
+  (`reflection_runs`). Y el trueno de «La presa» no llegaba en algunas corridas porque se
+  esperaban 2.5 s de RELOJ para 1 s de retardo: en headless el driver da ~0.84 s de audio por
+  segundo. Con las dos correcciones, tres corridas seguidas dan cola -13.3/-14.1/-14.7 dB y
+  trueno a 1.11 s.
+* **Godot puede reescribir un `.tscn` de demo por su cuenta.** Observado una vez en esta sesion
+  (no reproducido despues en cinco corridas): `street_demo.tscn` aparecio modificado con
+  `reverb_mode = 2` anadido a sus cuatro salas y **sin** el `material_preset`/`floor_surface`
+  `Stone` de `HouseC`, y `presa_demo.tscn` convertido a la forma `uid://`. Un `git add -A`
+  habria comprometido la regresion. Regla: antes de comprometer, `git status` y `git diff` de
+  todo `.tscn` que no hayas editado a mano.
 * **Herramientas que se quedan**: `tools/probe_presa*.gd` (la demo cargada, medidas por zona),
   `tools/probe_transmission.gd` (transmision por material en el stream),
   `tools/probe_master_lpf.gd` / `probe_subbus_lpf.gd` (filtros de Master), `tools/gen_presa_tscn.py`

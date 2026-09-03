@@ -101,7 +101,15 @@ var _active_medium_snapshot: StringName = &""
 var _had_culled: bool = false
 ## Fase 13: fuente de oyente del simulador por sala (room_name -> handle) y bus con convolucion.
 var _room_listener_sources: Dictionary = {}
+## true mientras el hilo de simulacion nativo corra POR ESTE manager. No se consulta para decidir:
+## la verdad la tiene el simulador (`is_reflections_running`), porque otro test u otra escena
+## pueden haberlo apagado con `shutdown()` y esta bandera se quedaria rancia (el hilo no volvia a
+## arrancar: RT60 0 y ningun camino).
 var _reflections_started: bool = false
+
+## true si el hilo de reflexiones y caminos esta corriendo de verdad en el nativo.
+func _reflections_running() -> bool:
+	return ClassDB.class_exists("OpenDouSimulator") and bool(ClassDB.class_call_static("OpenDouSimulator", "is_reflections_running"))
 var _listener_room_name: StringName = &""
 ## Camas ambisonicas registradas (Fase 13): reciben la orientacion del oyente cada cuadro.
 var _ambisonic_beds: Array = []
@@ -339,7 +347,7 @@ func _update_listener_room() -> void:
 		return
 	# Fase 14: los caminos corren en el mismo hilo que las reflexiones; con sondas y voces
 	# simuladas el hilo arranca aunque el oyente no este en ninguna sala.
-	if pathing_enabled and not _reflections_started and occlusion_scheduler != null and occlusion_scheduler.probes_ready and occlusion_scheduler.simulated_this_frame > 0:
+	if pathing_enabled and not _reflections_running() and occlusion_scheduler != null and occlusion_scheduler.probes_ready and occlusion_scheduler.simulated_this_frame > 0:
 		ClassDB.class_call_static("OpenDouSimulator", "set_listener", active_listener_position, -active_listener_basis.z, active_listener_basis.y)
 		ClassDB.class_call_static("OpenDouSimulator", "start_reflections", 10.0)
 		_reflections_started = true
@@ -355,7 +363,7 @@ func _update_listener_room() -> void:
 	# simuladas; sin voces, las reflexiones no tenian oyente y no trazaban nada.
 	ClassDB.class_call_static("OpenDouSimulator", "set_listener", active_listener_position, -active_listener_basis.z, active_listener_basis.y)
 	ClassDB.class_call_static("OpenDouSimulator", "set_listener_source_position", h, active_listener_position)
-	if not _reflections_started:
+	if not _reflections_running():
 		ClassDB.class_call_static("OpenDouSimulator", "start_reflections", 10.0)
 		_reflections_started = true
 	if room.assigned_reverb_bus != &"" and spatial_acoustics.reverb_bus_pool != null and not spatial_acoustics.reverb_bus_pool.has_convolution(room.assigned_reverb_bus):

@@ -64,6 +64,14 @@ static func _measure(tree: SceneTree, backend: String, material: StringName, wet
 	var rt: Vector3 = manager.get_room_reverb_times(&"Caja")
 	var conv: bool = manager.spatial_acoustics.reverb_bus_pool.has_convolution(bus)
 	manager.spatial_acoustics.reverb_bus_pool.set_convolution_wet(bus, wet)
+	# Un RT60 > 0 dice que el hilo trazo UNA vez, no que el efecto tenga ya la IR viva. Sin
+	# esperar dos corridas mas, el tono sonaba antes de la convolucion en algunas corridas y su
+	# cola medida saltaba 14 dB (de -16 a -30 dB).
+	if ClassDB.class_exists("OpenDouSimulator"):
+		var runs0: int = int(ClassDB.class_call_static("OpenDouSimulator", "reflection_runs"))
+		var t_runs: int = Time.get_ticks_msec()
+		while Time.get_ticks_msec() - t_runs < 2000 and int(ClassDB.class_call_static("OpenDouSimulator", "reflection_runs")) < runs0 + 2:
+			await tree.process_frame
 	var probe = OpenDouAudioProbeClass.new()
 	probe.attach_to_existing_bus(bus, 3.0)
 	# Fase 15: la voz seca va a su target_bus (envio propio); se mide alli con otra sonda.

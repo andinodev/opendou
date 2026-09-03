@@ -188,6 +188,13 @@ medido (spec §12). Destapó y arregló tres huecos del plugin (observación 55)
 planificador tras cambiar el presupuesto, las capas sin efecto directo, y los caminos «a la vista»
 congelados.
 
+**Arreglado al releer la documentación (2026-09-03):** el manager cacheaba en GDScript si el hilo
+de reflexiones y caminos estaba arrancado (`_reflections_started`) y no lo revivía cuando otro test
+lo apagaba: con la escena de «La presa» tal como está comprometida, RT60 0 y ningún camino.
+Ahora pregunta al nativo (`is_reflections_running()`); observación 56. Con ello se cerraron dos
+aserciones que fluctuaban: la cola del hormigón de la convolución (espera dos corridas del hilo) y
+la llegada del trueno (espera audio capturado, no reloj). Tres corridas seguidas verdes.
+
 **Siguiente:** el cierre del sprint que quedó en la hoja de ruta (15.1 prefijado `OpenDou` de las
 clases sin prefijo, 15.3 notas de versión y `README.md`), y después CI y plataformas. Candidatos a
 estabilizar: `near_field` (Fase 9) fluctúa a veces.

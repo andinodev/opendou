@@ -1067,7 +1067,10 @@ static func run_presa_async(tree: SceneTree) -> OpenDouAssert:
 	var th_frames := PackedVector2Array()
 	var t3: int = Time.get_ticks_msec()
 	var onset: float = -1.0
-	while Time.get_ticks_msec() - t3 < 2500 and onset < 0.0:
+	# Se espera por AUDIO capturado (2.5 s), no por reloj: el driver headless corre a ~0.84 s de
+	# audio por segundo bajo carga y con 2.5 s de reloj el trueno (1 s de retardo) no siempre
+	# habia llegado. El reloj queda solo como guarda.
+	while onset < 0.0 and float(th_frames.size()) / rate < 2.5 and Time.get_ticks_msec() - t3 < 8000:
 		await tree.process_frame
 		var avail: int = probe_th._capture.get_frames_available()
 		if avail > 0:
