@@ -77,6 +77,7 @@ const TestWorldBusClass = preload("res://tests/test_world_bus.gd")
 const TestAreaTriggerClass = preload("res://tests/test_area_trigger.gd")
 const TestBlendLayersClass = preload("res://tests/test_blend_layers.gd")
 const TestAcousticMaterialClass = preload("res://tests/test_acoustic_material.gd")
+const TestSteamSceneClass = preload("res://tests/test_steam_scene.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -442,6 +443,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestWorldBusClass.run_all_async(tree))
 	acc.absorb(await TestAreaTriggerClass.run_all_async(tree))
 	acc.absorb(await TestBlendLayersClass.run_all_async(tree))
+	acc.absorb(await TestSteamSceneClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,

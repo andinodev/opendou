@@ -1,6 +1,7 @@
 // Punto de entrada de la extension nativa de OpenDou.
 #include "register_types.h"
 
+#include "acoustic_scene.h"
 #include "spatial_stream.h"
 #include "steam_audio_context.h"
 
@@ -16,12 +17,14 @@ void initialize_opendou_native(ModuleInitializationLevel p_level) {
 	}
 	GDREGISTER_CLASS(opendou::OpenDouSpatialStream);
 	GDREGISTER_CLASS(opendou::OpenDouSpatialStreamPlayback);
+	GDREGISTER_CLASS(opendou::OpenDouAcousticScene);
 }
 
 void uninitialize_opendou_native(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
+	opendou::OpenDouAcousticScene::clear();
 	opendou::SteamAudioContext::shutdown();
 }
 

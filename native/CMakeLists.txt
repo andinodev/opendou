@@ -44,6 +44,7 @@ add_library(opendou_native SHARED
     src/register_types.cpp
     src/steam_audio_context.cpp
     src/spatial_stream.cpp
+    src/acoustic_scene.cpp
 )
 target_include_directories(opendou_native PRIVATE "${STEAMAUDIO_DIR}/include")
 target_link_libraries(opendou_native PRIVATE godot-cpp "${PHONON_LIB}")

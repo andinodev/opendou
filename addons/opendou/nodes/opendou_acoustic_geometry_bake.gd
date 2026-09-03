@@ -22,6 +22,8 @@ const AcousticMaterialRegistryClass = preload("res://addons/opendou/runtime/spat
 @export_range(1, 16, 1) var simplification_step: int = 1
 @export var generate_bvh: bool = true
 @export var auto_bake_on_ready: bool = false
+## Alimentar la escena de Steam Audio al terminar el bake (Fase 12). Sin extension no hace nada.
+@export var feed_steam_audio: bool = true
 
 # ==============================================================================
 # BAKED DATA STORAGE
@@ -133,6 +135,8 @@ func bake_geometry(root_node: Node = null) -> Dictionary:
 	stats["triangle_count"] = total_triangles
 	stats["total_volume"] = total_bounds.get_volume() if has_first_bound else 0.0
 
+	if feed_steam_audio and total_triangles > 0:
+		export_to_native()
 	return stats
 
 func _collect_child_meshes(parent_node: Node, out_list: Array[MeshInstance3D]) -> void:
@@ -154,6 +158,41 @@ func clear_baked_data() -> void:
 	stats["mesh_count"] = 0
 	stats["triangle_count"] = 0
 	stats["total_volume"] = 0.0
+
+## Vertices, triangulos e indices de material aplanados, listos para la escena nativa.
+func get_flat_geometry() -> Dictionary:
+	var vertices := PackedVector3Array()
+	var triangles := PackedInt32Array()
+	var indices := PackedInt32Array()
+	var names: Array[StringName] = []
+	var name_to_index: Dictionary = {}
+	for tri in baked_triangles:
+		var mat: StringName = StringName(str(tri.get("material", default_acoustic_material)))
+		if not name_to_index.has(mat):
+			name_to_index[mat] = names.size()
+			names.append(mat)
+		for k in ["v0", "v1", "v2"]:
+			triangles.append(vertices.size())
+			vertices.append(tri[k])
+		indices.append(int(name_to_index[mat]))
+	return {"vertices": vertices, "triangles": triangles, "material_indices": indices, "material_names": names}
+
+## Construye la escena de Steam Audio con la geometria del bake (Fase 12). false sin extension
+## o sin datos. Los materiales salen del registro por banda.
+func export_to_native() -> bool:
+	if not ClassDB.class_exists("OpenDouAcousticScene"):
+		return false
+	var g: Dictionary = get_flat_geometry()
+	if (g.triangles as PackedInt32Array).is_empty():
+		return false
+	var registry = AcousticMaterialRegistryClass.get_singleton()
+	var materials: Array = []
+	for n in g.material_names:
+		var m = registry.get_acoustic_material(n) if registry != null else null
+		if m == null:
+			m = registry.get_acoustic_material(&"Concrete") if registry != null else null
+		materials.append(m.to_ipl() if m != null else PackedFloat32Array([0.05, 0.07, 0.08, 0.05, 0.015, 0.002, 0.001]))
+	return bool(ClassDB.class_call_static("OpenDouAcousticScene", "build", g.vertices, g.triangles, g.material_indices, materials))
 
 func get_baked_triangle_count() -> int:
 	return baked_triangles.size()
