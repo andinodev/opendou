@@ -20,6 +20,8 @@ const AcousticReflectorEngineClass = preload("res://addons/opendou/runtime/spati
 const NativePlayerPoolClass = preload("res://addons/opendou/runtime/native_player_pool.gd")
 
 ## Reflexiones como maximo por voz directa.
+## Interruptor general (Fase 13): apagado, ninguna voz emite reflexiones autoradas.
+var enabled: bool = true
 var max_reflections_per_voice: int = 2
 
 ## Reflexiones simultaneas como maximo en total.
@@ -49,7 +51,7 @@ func set_player_pool(pool: OpenDouNativePlayerPool) -> void:
 
 ## Emite las reflexiones tempranas de una instancia. Devuelve cuantas emitio.
 func dispatch(instance, listener_pos: Vector3, world_3d: World3D) -> int:
-	if player_pool == null or world_3d == null or instance == null:
+	if not enabled or player_pool == null or world_3d == null or instance == null:
 		return 0
 	if active_reflection_count >= max_total_reflections:
 		return 0

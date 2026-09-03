@@ -119,6 +119,27 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	# del tono (filtro de peine); con wet = 0 el tono queda intacto.
 	a.approx(dry.tone_db, concrete.tone_db, "el tono seco pasa (las reflexiones tempranas lo mueven menos de 4 dB)", 4.0)
 	# Sin extension (backend godot): CONVOLUTION deja un reverb de Godot y el bus existe.
+	# Reflectores como ajuste artistico: en una sala CONVOLUTION con extension no se emiten.
+	var mgr = TestParityClass.make_manager(tree, "steam_audio")
+	var conv_room = load("res://addons/opendou/runtime/spatial/audio_room.gd").new(&"Conv")
+	conv_room.set_bounds(AABB(Vector3(-5, -5, -5), Vector3(10, 10, 10)))
+	conv_room.reverb_mode = 2
+	mgr.spatial_acoustics.register_room(conv_room)
+	var sabine_room = load("res://addons/opendou/runtime/spatial/audio_room.gd").new(&"Sabine")
+	sabine_room.set_bounds(AABB(Vector3(20, -5, -5), Vector3(10, 10, 10)))
+	mgr.spatial_acoustics.register_room(sabine_room)
+	var probe_def = AudioEventDefClass.new(&"Refl", load("res://tests/test_emitter_physics.gd")._tone(500.0, 0.5))
+	mgr.register_event_definition(probe_def)
+	var in_conv = mgr.post_event(probe_def, null)
+	in_conv.set_position(Vector3(0, 1, 0))
+	var in_sabine = mgr.post_event(probe_def, null)
+	in_sabine.set_position(Vector3(25, 1, 0))
+	a.ok(not mgr.reflections_allowed_for(in_conv), "en una sala CONVOLUTION no se emiten reflexiones autoradas")
+	a.ok(mgr.reflections_allowed_for(in_sabine), "en una sala Sabine si")
+	mgr.reflection_dispatcher.enabled = false
+	a.ok(not mgr.reflections_allowed_for(in_sabine), "con el despachador apagado, nunca")
+	mgr.stop_all()
+	tree.root.remove_child(mgr); mgr.free()
 	var fallback: Dictionary = await _measure(tree, "godot", &"Concrete", 1.0)
 	a.ok(not fallback.conv, "en godot no hay convolucion nativa (el bus compartido vuelve a Sabine)")
 	a.ok(String(fallback.bus) != "" and String(fallback.bus) != "Master", "pero la sala tiene su bus de reverb de Sabine")
