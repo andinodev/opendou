@@ -375,7 +375,7 @@ static func run_propagation_delay_async(tree: SceneTree) -> OpenDouAssert:
 						onset = float(captured + i) / rate
 						# El bloque que trae el transitorio llego en este cuadro: reloj de pared al
 						# cierre del bloque, menos lo que falta del bloque hasta la muestra.
-						onset_wall = float(Time.get_ticks_msec() - t0) / 1000.0 - float(buf.size() - i) / rate
+						onset_wall = maxf(0.0, float(Time.get_ticks_msec() - t0) / 1000.0 - float(buf.size() - i) / rate)
 						break
 				if onset >= 0.0:
 					break

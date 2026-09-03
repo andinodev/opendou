@@ -17,9 +17,10 @@ const SCENES: Array[String] = [
 	"res://scenes/demos/cabin/cabin_demo.tscn",
 	"res://scenes/demos/street/street_demo.tscn",
 	"res://scenes/demos/workshop/workshop_demo.tscn",
+	"res://scenes/demos/presa/presa_demo.tscn",
 ]
 
-## Los 15 tipos de nodo del plugin. El unico que las demos NO instancian, por decision
+## Los 22 tipos de nodo del plugin. El unico que las demos NO instancian, por decision
 ## del spec, es opendou_event_player_2d.gd: queda cubierto solo por sus tests.
 const NODE_SCRIPTS: Array[String] = [
 	"opendou_acoustic_debugger_3d.gd", "opendou_acoustic_geometry_bake.gd",
@@ -32,14 +33,13 @@ const NODE_SCRIPTS: Array[String] = [
 	"opendou_spline_emitter_3d.gd",
 	"opendou_physics_impact_3d.gd", "opendou_dialogue_emitter_3d.gd",
 	"opendou_listener_3d.gd", "opendou_acoustic_volume_3d.gd",
-	"opendou_sound_indicator.gd", "opendou_ai_hearing_3d.gd",
+	"opendou_sound_indicator.gd", "opendou_ai_hearing_3d.gd", "opendou_ambisonic_bed_3d.gd",
 ]
 
-## Sin demo por decision: el 2D (spec de la Fase 5) y los cuatro nodos de la Fase 10 (el
-## oyente y el entorno todavia no tienen escena que los luzca; queda anotado en current.md).
+## Sin demo por decision: el 2D (spec de la Fase 5). Los cuatro nodos de la Fase 10 los luce
+## «La presa» (Fase 16).
 const EXPECTED_UNCOVERED: Array[String] = [
-	"opendou_event_player_2d.gd", "opendou_listener_3d.gd", "opendou_acoustic_volume_3d.gd",
-	"opendou_sound_indicator.gd", "opendou_ai_hearing_3d.gd",
+	"opendou_event_player_2d.gd",
 ]
 
 ## Extensiones de audio que no puede referenciar ningun archivo de scenes/.
@@ -95,6 +95,20 @@ const COMPOSITION: Array[Dictionary] = [
 			"opendou_parameter_area_3d.gd", "opendou_physics_impact_3d.gd",
 			"opendou_dialogue_emitter_3d.gd", "opendou_multi_position_emitter_3d.gd",
 			"opendou_acoustic_geometry_bake.gd", "opendou_acoustic_debugger_3d.gd",
+		],
+	},
+	{
+		"scene": "res://scenes/demos/presa/presa_demo.tscn",
+		"min_nodes": 300,
+		"requires": [
+			"opendou_room_3d.gd", "opendou_portal_3d.gd", "opendou_reflector_3d.gd",
+			"opendou_parameter_area_3d.gd", "opendou_acoustic_geometry_bake.gd",
+			"opendou_acoustic_debugger_3d.gd", "opendou_event_player_3d.gd", "opendou_event_player.gd",
+			"opendou_music_player.gd", "opendou_ambisonic_bed_3d.gd", "opendou_spline_emitter_3d.gd",
+			"opendou_multi_position_emitter_3d.gd", "opendou_granular_emitter_3d.gd",
+			"opendou_physics_impact_3d.gd", "opendou_dialogue_emitter_3d.gd",
+			"opendou_acoustic_volume_3d.gd", "opendou_listener_3d.gd", "opendou_sound_indicator.gd",
+			"opendou_ai_hearing_3d.gd", "opendou_audible_monitor.gd",
 		],
 	},
 	{

@@ -163,14 +163,14 @@ static func run_hub() -> OpenDouAssert:
 		var inst = state.get_node_instance(i)
 		if inst != null and str(inst.resource_path).ends_with("demo_card.tscn"):
 			declared_cards += 1
-	a.eq(declared_cards, 6, "el hub declara seis tarjetas en su .tscn: cinco demos y el banco")
+	a.eq(declared_cards, 7, "el hub declara siete tarjetas en su .tscn: seis demos y el banco")
 
 	var hub = packed.instantiate()
 	# Fuera del arbol no hay _ready, asi que se anade a un padre suelto para leerlo.
 	var holder := Node.new()
 	holder.add_child(hub)
 	var paths: PackedStringArray = hub.get_entry_paths()
-	a.eq(paths.size(), 6, "y expone seis rutas, una por tarjeta")
+	a.eq(paths.size(), 7, "y expone siete rutas, una por tarjeta")
 
 	# Ninguna ruta muerta. Es la asercion que impide que el hub sobreviva a un borrado
 	# apuntando a escenas que ya no existen.
