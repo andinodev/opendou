@@ -774,12 +774,15 @@ static func run_workshop_async(tree: SceneTree) -> OpenDouAssert:
 		materials[String(h[1])] = true
 		a.gt(float(h[0]), 1.0, "ImpactForce > 1 m/s (%.2f)" % h[0])
 	a.ok(materials.has("Metal") or materials.has("Concrete"), "el material es la mesa (Metal) o el suelo (Concrete): %s" % str(materials.keys()))
-	# Motor: RPM cambia la capa dominante. Se mide en el bus de REVERB de la sala, porque
-	# dentro de un Area3D con reverb Godot manda la salida del reproductor 3D solo a ese bus
-	# y su target_bus no recibe nada (observacion 49; tools/probe_area_reverb.gd lo mide).
+	# Motor: RPM cambia la capa dominante. Se mide en el bus del motor ('Engine'): con envio
+	# propio (Fase 15) la voz seca vuelve a su target_bus dentro de la sala. En el backend
+	# godot sigue mandando el Area3D (obs 49) y se mide en el bus de reverb de la sala.
 	var room_bus: StringName = demo.get_node("Workshop").get_assigned_reverb_bus()
+	var engine_bus: StringName = &"Engine"
+	var rt_room = demo.get_node("Workshop").runtime_room
+	var measure_bus: StringName = engine_bus if (rt_room != null and rt_room.send_id >= 0) else room_bus
 	var probe = OpenDouAudioProbeClass.new()
-	a.ok(probe.attach_to_existing_bus(room_bus, 2.0), "la sonda se engancha al bus de reverb del taller ('%s')" % String(room_bus))
+	a.ok(probe.attach_to_existing_bus(measure_bus, 2.0), "la sonda se engancha al bus del motor ('%s')" % String(measure_bus))
 	# El emisor suaviza el RTPC: se espera por tiempo, no por cuadros (2 ms en headless).
 	demo.set_rpm(800.0)
 	var t_rpm: int = Time.get_ticks_msec()
@@ -806,7 +809,7 @@ static func run_workshop_async(tree: SceneTree) -> OpenDouAssert:
 	var ratio_low: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo(low, rate, 150.0, 800.0), 1e-12)) - linear_to_db(maxf(TestBinauralClass._band_energy_stereo(low, rate, 20.0, 150.0), 1e-12))
 	var ratio_high: float = linear_to_db(maxf(TestBinauralClass._band_energy_stereo(high, rate, 150.0, 800.0), 1e-12)) - linear_to_db(maxf(TestBinauralClass._band_energy_stereo(high, rate, 20.0, 150.0), 1e-12))
 	print("[OpenDou] taller: motor a 800 rpm media/grave %.1f dB, a 5000 rpm %.1f dB; impactos %s" % [ratio_low, ratio_high, str(hits)])
-	a.gt(ratio_high, ratio_low + 3.0, "y en el bus de reverb del taller la banda media gana al menos 3 dB sobre la grave")
+	a.gt(ratio_high, ratio_low + 3.0, "y en el bus medido la banda media gana al menos 3 dB sobre la grave")
 	probe.teardown()
 	# Radio: el bus directo esta callado porque suena por el altavoz.
 	var radio_idx: int = AudioServer.get_bus_index("Radio")

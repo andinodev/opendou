@@ -32,6 +32,8 @@ var surface_volumes: Array = []
 ## Fase 13: solo el backend steam_audio puede poner convolucion en un bus de reverb. Los buses
 ## del pool son compartidos y sobreviven al manager: una sala en godot los devuelve a Sabine.
 var convolution_allowed: bool = false
+## Fase 15: el backend steam_audio con extension manda el reverb por envio propio, no por el Area3D.
+var native_send_allowed: bool = false
 
 func _init() -> void:
 	material_registry = AcousticMaterialRegistryClass.new()

@@ -66,6 +66,7 @@ func bus_for_rt60(rt60: float, absorption: float) -> StringName:
 ## Va desde el final hacia atras porque remove_bus() desplaza los indices
 ## posteriores: quitar de delante hacia atras invalidaria los indices restantes.
 func release_all() -> void:
+	release_sends()
 	var indices: Array[int] = []
 	for n in _tier_to_bus.values():
 		var idx: int = AudioServer.get_bus_index(String(n))
@@ -103,9 +104,67 @@ func _create_bus(tier: int, rt60: float, absorption: float) -> StringName:
 	AudioServer.set_bus_name(idx, bus_name)
 	AudioServer.set_bus_send(idx, "Master")
 	AudioServer.add_bus_effect(idx, _make_reverb(rt60, absorption), 0)
+	install_send_input(StringName(bus_name))
 	return StringName(bus_name)
 
 const MARK_CONV: String = "OpenDou_ConvReverb"
+const SEND_PLAYER_PREFIX: String = "OpenDou_Send_"
+## Nodo que hospeda los reproductores de envio (lo fija el manager). Sin el, no hay envio.
+var host: Node = null
+## Envios por bus, compartidos por todos los pools del proceso (los buses sobreviven al manager).
+static var _bus_send_ids: Dictionary = {}
+var _send_players: Dictionary = {}
+
+## Envio propio (Fase 15): id del acumulador nativo del bus, -1 si no lo hay.
+func send_id_for(bus: StringName) -> int:
+	return int(_bus_send_ids.get(bus, -1))
+
+func has_send_input(bus: StringName) -> bool:
+	return send_id_for(bus) >= 0
+
+## Fase 15: para y libera los reproductores de envio de este pool y sus acumuladores nativos.
+## Lo llama el manager al salir del arbol: un reproductor que siga sonando al cerrar deja su
+## playback vivo en el AudioServer y el trinquete de fugas lo cuenta.
+func release_sends() -> void:
+	for b in _send_players:
+		var p = _send_players[b]
+		if is_instance_valid(p):
+			p.stop()
+			p.stream = null
+			if p.get_parent() != null:
+				p.get_parent().remove_child(p)
+			p.free()
+		if ClassDB.class_exists("OpenDouSendBus") and _bus_send_ids.has(b):
+			ClassDB.class_call_static("OpenDouSendBus", "release", int(_bus_send_ids[b]))
+			_bus_send_ids.erase(b)
+	_send_players.clear()
+
+## Un AudioStreamPlayer en el bus de reverb reproduce OpenDouSendStream: vuelca el envio acumulado
+## y mantiene el bus activo (un bus sin reproductores no llega a Master). false sin extension.
+func install_send_input(bus: StringName) -> bool:
+	if not ClassDB.class_exists("OpenDouSendStream") or not ClassDB.class_exists("OpenDouSendBus"):
+		return false
+	if has_send_input(bus) and _send_players.has(bus) and is_instance_valid(_send_players[bus]):
+		return true
+	if host == null or not host.is_inside_tree() or AudioServer.get_bus_index(String(bus)) < 0:
+		return false
+	var id: int = send_id_for(bus)
+	if id < 0:
+		id = int(ClassDB.class_call_static("OpenDouSendBus", "create"))
+		if id < 0:
+			return false
+		_bus_send_ids[bus] = id
+	var stream = ClassDB.instantiate("OpenDouSendStream")
+	stream.set("send_id", id)
+	var player := AudioStreamPlayer.new()
+	player.name = SEND_PLAYER_PREFIX + String(bus)
+	player.stream = stream
+	player.bus = String(bus)
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
+	host.add_child(player)
+	player.play()
+	_send_players[bus] = player
+	return true
 
 ## Sustituye el reverb del bus por la convolucion nativa de Steam Audio (Fase 13), alimentada
 ## por la fuente de oyente `room_handle`. Devuelve false sin extension.
@@ -127,7 +186,8 @@ func install_convolution(bus: StringName, room_handle: int, wet: float) -> bool:
 		fx = ClassDB.instantiate("OpenDouConvolutionReverb")
 		fx.resource_name = MARK_CONV
 		AudioServer.add_bus_effect(idx, fx, 0)
-	fx.dry = 1.0
+	# Con entrada de envio el bus solo lleva el envio: nada de seco (la voz va por su target_bus).
+	fx.dry = 0.0 if has_send_input(bus) else 1.0
 	fx.wet = clampf(wet, 0.0, 1.0)
 	fx.room_handle = room_handle
 	return true

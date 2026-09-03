@@ -238,6 +238,17 @@ func _route_native_reverb(mgr: SpatialAcousticsManager) -> void:
 	if not mgr.convolution_allowed and mgr.reverb_bus_pool.has_convolution(bus):
 		mgr.reverb_bus_pool.install_sabine(bus, get_effective_reverb_time(), get_absorption())
 
+	# Fase 15: con envio propio (steam_audio + extension) la voz vuelve a su target_bus y el bus
+	# de reverb recibe solo el envio acumulado en nativo. Godot no enruta nada.
+	var send_id: int = -1
+	if mgr.native_send_allowed and mgr.reverb_bus_pool.install_send_input(bus):
+		send_id = mgr.reverb_bus_pool.send_id_for(bus)
+	if runtime_room != null:
+		runtime_room.send_id = send_id
+	if send_id >= 0:
+		reverb_bus_enabled = false
+		return
+
 	reverb_bus_enabled = true
 	reverb_bus_name = String(bus)
 	reverb_bus_amount = reverb_send_amount

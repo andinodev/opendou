@@ -672,15 +672,20 @@ static func _band_energy_stereo(cap: Dictionary, mix_rate: float, f_lo: float, f
 	var l: PackedFloat32Array = cap["left"]
 	var r: PackedFloat32Array = cap["right"]
 	var n: int = mini(l.size(), r.size())
+	# Energia MEDIA por periodo: la captura trae un numero variable de periodos completos (los
+	# bloques del servidor no cuadran con CAPTURE_SAMPLES), y sumarlos hacia que dos medidas del
+	# mismo sonido difirieran hasta 3 dB segun cayeran uno o dos periodos.
 	var total: float = 0.0
+	var periods: int = 0
 	var offset: int = 0
 	while offset + PERIOD <= n:
 		var mono := PackedFloat32Array()
 		for i in range(offset, offset + PERIOD):
 			mono.append(l[i] + r[i])
 		total += _band_energy(mono, mix_rate, f_lo, f_hi)
+		periods += 1
 		offset += PERIOD
-	return total
+	return total / float(periods) if periods > 0 else 0.0
 
 ## RMS en dB de los dos canales juntos.
 static func _rms_db(cap: Dictionary) -> float:

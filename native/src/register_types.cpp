@@ -5,6 +5,8 @@
 #include "ambisonic_stream.h"
 #include "convolution_reverb.h"
 #include "gain_effect.h"
+#include "send_stream.h"
+#include "send_bus.h"
 #include "simulator.h"
 #include "spatial_stream.h"
 #include "steam_audio_context.h"
@@ -29,6 +31,9 @@ void initialize_opendou_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(opendou::OpenDouConvolutionReverbInstance);
 	GDREGISTER_CLASS(opendou::OpenDouAmbisonicStream);
 	GDREGISTER_CLASS(opendou::OpenDouAmbisonicStreamPlayback);
+	GDREGISTER_CLASS(opendou::OpenDouSendBus);
+	GDREGISTER_CLASS(opendou::OpenDouSendStream);
+	GDREGISTER_CLASS(opendou::OpenDouSendStreamPlayback);
 }
 
 void uninitialize_opendou_native(ModuleInitializationLevel p_level) {

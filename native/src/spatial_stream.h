@@ -83,6 +83,8 @@ public:
 	void set_propagation_delay_sec(float p_sec);
 	// Todo lo que el canal escribe por voz y cuadro, en una sola llamada (deuda de coste).
 	void set_direct_params(bool p_enabled, float p_occlusion, const godot::Vector3 &p_transmission, const godot::Vector3 &p_air, float p_directivity);
+	// Envio de reverb propio (Fase 15): id del acumulador del bus del pool y ganancia.
+	void set_send(int p_id, float p_gain);
 	void set_spatial_params(const godot::Vector3 &p_direction, float p_spatial_blend, float p_distance_gain, float p_cutoff_hz, float p_shelf_db, float p_shelf_cutoff_hz, float p_near_field_bass_db, float p_near_field_ild_db, float p_propagation_delay_sec);
 	float get_propagation_delay_sec() const;
 	// Tope de memoria por voz. Solo antes de crear playbacks con retardo.
@@ -142,6 +144,8 @@ private:
 	std::atomic<float> shelf_db_{ 0.0f };
 	std::atomic<float> shelf_cutoff_hz_{ 5000.0f };
 	std::atomic<int> output_mode_{ OUTPUT_HEADPHONES };
+	std::atomic<int> send_id_{ -1 };
+	std::atomic<float> send_gain_{ 0.0f };
 	std::atomic<float> near_field_bass_db_{ 0.0f };
 	std::atomic<float> near_field_ild_db_{ 0.0f };
 	std::atomic<float> propagation_delay_{ 0.0f };
@@ -217,6 +221,8 @@ private:
 	// Anillo de salida: Godot pide un numero variable de frames y Steam Audio produce
 	// exactamente frameSize. El anillo desacopla los dos. Es la latencia del sistema.
 	std::vector<godot::AudioFrame> ring_;
+	std::vector<float> send_ring_;
+	std::vector<float> send_tmp_;
 	size_t ring_read_ = 0;
 	size_t ring_available_ = 0;
 };

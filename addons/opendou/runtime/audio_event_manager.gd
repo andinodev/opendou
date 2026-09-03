@@ -156,6 +156,9 @@ func _init() -> void:
 	occlusion_scheduler.use_simulator = is_steam_audio_backend()
 	if spatial_acoustics != null:
 		spatial_acoustics.convolution_allowed = is_steam_audio_backend()
+		spatial_acoustics.native_send_allowed = is_steam_audio_backend() and ClassDB.class_exists("OpenDouSendStream")
+		if spatial_acoustics.reverb_bus_pool != null:
+			spatial_acoustics.reverb_bus_pool.host = self
 	room_path_dispatcher = RoomPathDispatcherClass.new()
 	room_path_dispatcher.acoustics = spatial_acoustics
 	reflection_dispatcher = ReflectionDispatcherClass.new()
@@ -358,6 +361,8 @@ func _update_listener_room() -> void:
 	_listener_room_name = room.room_name
 
 func _exit_tree() -> void:
+	if spatial_acoustics != null and spatial_acoustics.reverb_bus_pool != null:
+		spatial_acoustics.reverb_bus_pool.release_sends()
 	if ClassDB.class_exists("OpenDouSimulator"):
 		ClassDB.class_call_static("OpenDouSimulator", "stop_reflections")
 	_reflections_started = false
@@ -681,6 +686,7 @@ func _apply_voices(delta: float) -> void:
 	if voice_pool == null:
 		return
 	var probes_ready: bool = pathing_enabled and occlusion_scheduler != null and occlusion_scheduler.probes_ready
+	var native_send: bool = spatial_acoustics != null and spatial_acoustics.native_send_allowed
 	for instance in active_instances:
 		if instance == null or instance.assigned_channel_id < 0:
 			continue
@@ -742,6 +748,14 @@ func _apply_voices(delta: float) -> void:
 				# La amplitud del camino trae su 1/d; relativa a la distancia directa (que ya atenua
 				# nuestro modelo) queda <= 1: a la vista vale 1, rodeando menos.
 				ch.pathing_gain = clampf(float(path.get("gain", 0.0)) * dist, 0.0, 1.0)
+		# Envio de reverb propio (Fase 15): la sala del emisor decide el acumulador y la cantidad;
+		# fuera de toda sala, sin envio. Godot ya no enruta la voz al bus de reverb.
+		if native_send:
+			var send_room = spatial_acoustics.get_room_at_position(instance.emitter_position) if instance.has_spatial_position else null
+			if send_room != null and send_room.send_id >= 0:
+				ch.set_send(send_room.send_id, send_room.reverb_send_amount)
+			else:
+				ch.set_send(-1, 0.0)
 		# Capas del contenedor (Fase 11): con un arbol determinista los desplazamientos se
 		# re-resuelven cada cuadro, y asi un blend por RTPC cruza de verdad.
 		if instance.live_blend and instance.definition != null:

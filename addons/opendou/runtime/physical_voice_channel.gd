@@ -23,6 +23,16 @@ var speed_of_sound: float = 343.0
 var sim_source: int = -1
 ## Ganancia del camino (W de Steam Audio, 0 = sin camino): relaja la oclusion directa (Fase 14).
 var pathing_gain: float = 0.0
+## Envio de reverb propio (Fase 15): acumulador del bus de la sala y ganancia; se empuja al
+## stream solo cuando cambia.
+var send_id: int = -1
+var send_gain: float = 0.0
+var _send_pushed_id: int = -1
+var _send_pushed_gain: float = -1.0
+
+func set_send(p_id: int, p_gain: float) -> void:
+	send_id = p_id
+	send_gain = p_gain
 var _direct_was_on: bool = false
 
 func uses_direct_effect() -> bool:
@@ -222,6 +232,10 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		elif _direct_was_on:
 			s.set_direct_params(false, 1.0, Vector3.ONE, Vector3.ONE, 1.0)
 			_direct_was_on = false
+		if send_id != _send_pushed_id or absf(send_gain - _send_pushed_gain) > 0.001:
+			s.set_send(send_id, send_gain)
+			_send_pushed_id = send_id
+			_send_pushed_gain = send_gain
 		# Una sola llamada al nativo por voz y cuadro: nueve escrituras de propiedad costaban
 		# medio microsegundo por voz.
 		s.set_spatial_params(direction, base_blend * (1.0 - spread),
@@ -298,6 +312,10 @@ func stop_with_fade(fade_time_sec: float = 0.015) -> void:
 ## Detiene y libera el canal de inmediato.
 func stop_immediate() -> void:
 	pathing_gain = 0.0
+	send_id = -1
+	send_gain = 0.0
+	_send_pushed_id = -1
+	_send_pushed_gain = -1.0
 	if sim_source >= 0 and ClassDB.class_exists("OpenDouSimulator"):
 		ClassDB.class_call_static("OpenDouSimulator", "release_source", sim_source)
 	sim_source = -1

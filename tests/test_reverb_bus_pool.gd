@@ -4,6 +4,14 @@ extends RefCounted
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const ReverbBusPoolClass = preload("res://addons/opendou/runtime/spatial/reverb_bus_pool.gd")
 
+## El reverb del bus: desde la Fase 15 la posicion 0 puede ser la entrada de envio nativa.
+static func _reverb_of(idx: int) -> AudioEffectReverb:
+	for e in range(AudioServer.get_bus_effect_count(idx)):
+		var fx := AudioServer.get_bus_effect(idx, e)
+		if fx is AudioEffectReverb:
+			return fx
+	return null
+
 static func run_all() -> OpenDouAssert:
 	var a := OpenDouAssertClass.new("reverb_bus_pool")
 	var buses_before: int = AudioServer.bus_count
@@ -28,7 +36,7 @@ static func run_all() -> OpenDouAssert:
 	a.gt(float(idx), 0.0, "el bus existe en el AudioServer")
 	if idx >= 0:
 		a.gt(float(AudioServer.get_bus_effect_count(idx)), 0.0, "el bus lleva al menos un efecto")
-		a.ok(AudioServer.get_bus_effect(idx, 0) is AudioEffectReverb, "el efecto es un AudioEffectReverb")
+		a.ok(_reverb_of(idx) is AudioEffectReverb, "el bus tiene un AudioEffectReverb (tras la entrada de envio si hay extension)")
 
 	# Superado el techo, una sala nueva reutiliza el escalon mas proximo en lugar
 	# de crear buses sin limite.
@@ -48,8 +56,8 @@ static func run_all() -> OpenDouAssert:
 	var idx_small: int = AudioServer.get_bus_index(String(pool.bus_for_rt60(0.3, 0.5)))
 	var idx_big: int = AudioServer.get_bus_index(String(bus_c))
 	if idx_small > 0 and idx_big > 0:
-		var small_reverb = AudioServer.get_bus_effect(idx_small, 0)
-		var big_reverb = AudioServer.get_bus_effect(idx_big, 0)
+		var small_reverb = _reverb_of(idx_small)
+		var big_reverb = _reverb_of(idx_big)
 		a.gt(big_reverb.room_size, small_reverb.room_size, "mas RT60 da mas room_size")
 
 	pool.release_all()

@@ -361,6 +361,7 @@ static func run_propagation_delay_async(tree: SceneTree) -> OpenDouAssert:
 			inst.max_distance = 1000.0
 			inst.set_position(Vector3(0, 0, -float(case[1])))
 			var onset: float = -1.0
+			var onset_wall: float = -1.0
 			var captured: int = 0
 			var t0: int = Time.get_ticks_msec()
 			while Time.get_ticks_msec() - t0 < 1800:
@@ -372,13 +373,21 @@ static func run_propagation_delay_async(tree: SceneTree) -> OpenDouAssert:
 				for i in range(buf.size()):
 					if absf(buf[i].x) + absf(buf[i].y) > 0.02:
 						onset = float(captured + i) / rate
+						# El bloque que trae el transitorio llego en este cuadro: reloj de pared al
+						# cierre del bloque, menos lo que falta del bloque hasta la muestra.
+						onset_wall = float(Time.get_ticks_msec() - t0) / 1000.0 - float(buf.size() - i) / rate
 						break
 				if onset >= 0.0:
 					break
 				captured += avail
 			var label: String = "%s, retardo %s, %.0f m" % [backend, "on" if case[0] else "off", case[1]]
-			print("[OpenDou] %s: primer transitorio a %.3f s" % [label, onset])
-			a.ok(onset >= float(case[2]) and onset <= float(case[3]), "%s: llega entre %.2f y %.2f s (medido %.3f)" % [label, case[2], case[3], onset])
+			# En steam_audio el retardo es una linea de muestras: se afirma en muestras capturadas. En
+			# godot es un arranque aplazado que descuenta delta (reloj de pared), y el driver de audio
+			# headless corre mas lento que el reloj bajo carga (0.84 s de audio por segundo): se
+			# afirma con el reloj, que es lo que ese backend promete.
+			var measured: float = onset if backend == "steam_audio" else onset_wall
+			print("[OpenDou] %s: primer transitorio a %.3f s de audio, %.3f s de reloj" % [label, onset, onset_wall])
+			a.ok(measured >= float(case[2]) and measured <= float(case[3]), "%s: llega entre %.2f y %.2f s (medido %.3f)" % [label, case[2], case[3], measured])
 			inst.stop()
 			await probe.await_silence(tree, 0.002, 30)
 		manager.stop_all()

@@ -66,15 +66,25 @@ static func _measure(tree: SceneTree, backend: String, material: StringName, wet
 	manager.spatial_acoustics.reverb_bus_pool.set_convolution_wet(bus, wet)
 	var probe = OpenDouAudioProbeClass.new()
 	probe.attach_to_existing_bus(bus, 3.0)
+	# Fase 15: la voz seca va a su target_bus (envio propio); se mide alli con otra sonda.
+	TestParityClass.ensure_bus()
+	var dry_probe = OpenDouAudioProbeClass.new()
+	dry_probe.attach_to_existing_bus(TestParityClass.BUS, 3.0)
 	# 200 ms de tono: un click de 50 ms acaba antes de que Godot enrute el anfitrion al bus de reverb.
 	var def = AudioEventDefClass.new(&"Click", load("res://tests/test_emitter_physics.gd")._tone(1000.0, 0.2, -3.0))
 	def.is_looping = false
 	def.stream_length = 0.2
+	def.target_bus = TestParityClass.BUS
 	manager.register_event_definition(def)
 	probe.drain()
+	dry_probe.drain()
 	var inst = manager.post_event(def, null)
 	inst.set_position(Vector3(1, 1.5, -1))
 	var frames: PackedVector2Array = await _record(tree, probe, 1200)
+	var dry_frames: PackedVector2Array = dry_probe._capture.get_buffer(dry_probe._capture.get_frames_available())
+	var dry_peak: float = 0.0
+	for f in dry_frames:
+		dry_peak = maxf(dry_peak, maxf(absf(f.x), absf(f.y)))
 	var rate: int = int(AudioServer.get_mix_rate())
 	# Tono: 0.05-0.2 s; cola: 0.25-0.4 s (con RT60 de 0.4 s en una caja de 6 m, a los 0.5 s ya no
 	# queda nada: la IR trazada decae -60 dB en 0.4 s).
@@ -105,8 +115,9 @@ static func _measure(tree: SceneTree, backend: String, material: StringName, wet
 	for w in range(0, 6):
 		decay += " %.2f:%.1f" % [w * 0.1, _rms_db(frames, onset + int(rate * w * 0.1), onset + int(rate * (w + 1) * 0.1))]
 	print("[OpenDou] convolucion %s (%s): inicio %d, fin %d, forma por 100 ms desde el inicio:%s" % [material, backend, onset, end, decay])
-	var out := {"tone_db": _rms_db(frames, end - int(rate * 0.1), end - int(rate * 0.02)), "tail_db": _rms_db(frames, end + int(rate * 0.05), end + int(rate * 0.2)), "rt60": rt, "conv": conv, "bus": bus, "samples": frames.size()}
+	var out := {"tone_db": _rms_db(frames, end - int(rate * 0.1), end - int(rate * 0.02)), "tail_db": _rms_db(frames, end + int(rate * 0.05), end + int(rate * 0.2)), "rt60": rt, "conv": conv, "bus": bus, "samples": frames.size(), "target_peak_db": linear_to_db(maxf(dry_peak, 1e-9)), "send": room.runtime_room.send_id if room.runtime_room != null else -1}
 	probe.teardown()
+	dry_probe.teardown()
 	tree.root.remove_child(room); room.free()
 	tree.root.remove_child(bake); bake.free()
 	for w in walls:
@@ -132,9 +143,13 @@ static func run_all_async(tree: SceneTree) -> OpenDouAssert:
 	a.gt(concrete.rt60.y, 0.1, "y el hilo trazo su RT60")
 	a.gt(concrete.tail_db, foliage.tail_db + 6.0, "la cola del hormigon supera a la del follaje en al menos 6 dB")
 	a.lt(dry.tail_db, concrete.tail_db - 15.0, "con wet = 0 no hay cola")
-	# El seco pasa: con wet = 1 las reflexiones tempranas suman o restan hasta 4 dB en la ventana
-	# del tono (filtro de peine); con wet = 0 el tono queda intacto.
-	a.approx(dry.tone_db, concrete.tone_db, "el tono seco pasa (las reflexiones tempranas lo mueven menos de 4 dB)", 4.0)
+	# Fase 15: el seco va por su target_bus (envio propio) y no depende del wet; el bus de
+	# reverb lleva solo el envio: durante el tono queda por debajo del bus destino.
+	print("[OpenDou] convolucion, envio propio: send %d, pico en el bus destino %.1f dBFS (wet 1) / %.1f (wet 0); tono en el bus de reverb %.1f" % [int(concrete.send), float(concrete.target_peak_db), float(dry.target_peak_db), concrete.tone_db])
+	a.ok(int(concrete.send) >= 0, "la sala steam_audio tiene envio propio")
+	a.gt(float(concrete.target_peak_db), -20.0, "la voz seca llega a su target_bus dentro de la sala (obs 49 pagada)")
+	a.approx(float(dry.target_peak_db), float(concrete.target_peak_db), "y no depende del wet del reverb", 1.0)
+	a.lt(dry.tone_db, -60.0, "con wet = 0 el bus de reverb no lleva seco")
 	# Sin extension (backend godot): CONVOLUTION deja un reverb de Godot y el bus existe.
 	# Reflectores como ajuste artistico: en una sala CONVOLUTION con extension no se emiten.
 	var mgr = TestParityClass.make_manager(tree, "steam_audio")

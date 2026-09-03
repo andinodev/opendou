@@ -42,6 +42,8 @@ endif()
 
 add_library(opendou_native SHARED
     src/register_types.cpp
+    src/send_bus.cpp
+    src/send_stream.cpp
     src/steam_audio_context.cpp
     src/spatial_stream.cpp
     src/acoustic_scene.cpp

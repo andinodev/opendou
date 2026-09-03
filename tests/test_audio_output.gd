@@ -528,6 +528,9 @@ static func run_room_reverb_async(tree: SceneTree) -> OpenDouAssert:
 	box.size = Vector3(30.0, 12.0, 30.0)
 	shape.shape = box
 	room.add_child(shape)
+	# La sala se registra en ESTE manager (no en el autoload): con envio propio, solo las voces
+	# del manager que conoce la sala reciben su reverb.
+	room.set_acoustics_manager(manager.spatial_acoustics)
 	tree.root.add_child(room)
 	await tree.process_frame
 	await tree.physics_frame
@@ -537,8 +540,14 @@ static func run_room_reverb_async(tree: SceneTree) -> OpenDouAssert:
 	# La trampa: si el bus no existiera, Godot habria coaccionado el nombre a
 	# Master sin avisar y el reverb de la sala se iria al bus maestro.
 	a.ok(String(bus) != "Master", "el nombre del bus no quedo coaccionado a Master")
-	a.ok(room.reverb_bus_enabled, "el reverb del Area3D quedo activado")
-	a.eq(String(room.reverb_bus_name), String(bus), "Area3D conserva el nombre asignado")
+	# Fase 15: con envio propio (steam_audio + extension) la sala NO enruta por el Area3D: el
+	# reverb lo alimenta el acumulador nativo y la voz vuelve a su target_bus.
+	var native_send: bool = room.runtime_room != null and room.runtime_room.send_id >= 0
+	if native_send:
+		a.ok(not room.reverb_bus_enabled, "con envio propio el Area3D no enruta")
+	else:
+		a.ok(room.reverb_bus_enabled, "el reverb del Area3D quedo activado")
+		a.eq(String(room.reverb_bus_name), String(bus), "Area3D conserva el nombre asignado")
 
 	# Sonda enganchada al bus de reverb de la sala.
 	var probe = OpenDouAudioProbeClass.new()
@@ -553,28 +562,27 @@ static func run_room_reverb_async(tree: SceneTree) -> OpenDouAssert:
 	cam.make_current()
 	await tree.process_frame
 
-	# Un emisor dentro de la sala, con area_mask 1 para que el reverb nativo de
-	# Area3D lo alcance.
-	var emitter := AudioStreamPlayer3D.new()
-	emitter.stream = AudioSynthesizerClass.create_tone(440.0, 4.0, 0.9, false)
-	emitter.area_mask = 1
-	emitter.unit_size = 60.0
-	tree.root.add_child(emitter)
-	await tree.process_frame
-	emitter.global_position = Vector3.ZERO
+	# Una voz del manager dentro de la sala (con envio propio solo las voces de OpenDou reciben
+	# el reverb de la sala; sin el, el Area3D alcanza a cualquier AudioStreamPlayer3D con
+	# area_mask 1, incluidas las del pool).
+	var def = AudioEventDefClass.new(&"RoomTone", AudioSynthesizerClass.create_tone(440.0, 4.0, 0.9, false))
+	def.is_looping = false
+	def.stream_length = 4.0
+	manager.register_event_definition(def)
+	var inst = manager.post_event(def, null)
+	inst.set_position(Vector3.ZERO)
+	inst.unit_size = 60.0
 	await tree.physics_frame
 	await tree.physics_frame
-	emitter.play()
 
 	probe.drain()
 	var peak: float = await probe.measure_peak_over_frames(tree, 60)
-	a.gt(peak, 0.001, "la voz dentro de la sala produce energia en su bus de reverb")
+	a.gt(peak, 0.001, "la voz dentro de la sala produce energia en su bus de reverb (envio propio: %s)" % str(native_send))
 
-	emitter.stop()
-	emitter.stream = null
+	inst.stop()
+	manager.stop_all()
+	await tree.process_frame
 	probe.teardown()
-	tree.root.remove_child(emitter)
-	emitter.free()
 	tree.root.remove_child(room)
 	room.free()
 	# clear_current() antes de liberar: un make_current() deja al viewport

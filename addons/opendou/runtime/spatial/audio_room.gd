@@ -23,6 +23,8 @@ var reverb_mode: int = 0 # 0 = SABINE_RT60, 1 = IR_DERIVED_RT60, 2 = CONVOLUTION
 ## Bus de reverb asignado por el pool y envio de la sala (los fija OpenDouRoom3D).
 var assigned_reverb_bus: StringName = &""
 var reverb_send_amount: float = 0.5
+## Fase 15: id del envio nativo del bus de la sala (-1 = enruta Godot por el Area3D).
+var send_id: int = -1
 
 var bounds: AABB = AABB()
 var has_bounds: bool = false

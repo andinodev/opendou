@@ -13,6 +13,12 @@ func _init() -> void:
 	total += int(async_res["total"])
 	passed += int(async_res["passed"])
 	failures.append_array(async_res["failures"])
+	# Fase 15: los reproductores de envio del autoload siguen sonando hasta el cierre; parados
+	# aqui y con 300 ms de margen, el AudioServer suelta sus playbacks antes del recuento de fugas.
+	var autoload = root.get_node_or_null("OpenDou")
+	if autoload != null and autoload.spatial_acoustics != null and autoload.spatial_acoustics.reverb_bus_pool != null:
+		autoload.spatial_acoustics.reverb_bus_pool.release_sends()
+		await create_timer(0.3).timeout
 	
 	var content: String = ""
 	if failures.is_empty():

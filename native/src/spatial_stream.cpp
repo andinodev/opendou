@@ -1,4 +1,5 @@
 #include "spatial_stream.h"
+#include "send_bus.h"
 #include "steam_audio_context.h"
 #include <phonon_version.h>
 
@@ -67,6 +68,7 @@ void OpenDouSpatialStream::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "near_field_ild_db", PROPERTY_HINT_RANGE, "0,12,0.1"), "set_near_field_ild_db", "get_near_field_ild_db");
 	ClassDB::bind_method(D_METHOD("set_propagation_delay_sec", "sec"), &OpenDouSpatialStream::set_propagation_delay_sec);
 	ClassDB::bind_method(D_METHOD("set_direct_params", "enabled", "occlusion", "transmission", "air", "directivity"), &OpenDouSpatialStream::set_direct_params);
+	ClassDB::bind_method(D_METHOD("set_send", "id", "gain"), &OpenDouSpatialStream::set_send);
 	ClassDB::bind_method(D_METHOD("set_spatial_params", "direction", "spatial_blend", "distance_gain", "cutoff_hz", "shelf_db", "shelf_cutoff_hz", "near_field_bass_db", "near_field_ild_db", "propagation_delay_sec"), &OpenDouSpatialStream::set_spatial_params);
 	ClassDB::bind_method(D_METHOD("get_propagation_delay_sec"), &OpenDouSpatialStream::get_propagation_delay_sec);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "propagation_delay_sec", PROPERTY_HINT_RANGE, "0,10,0.001"), "set_propagation_delay_sec", "get_propagation_delay_sec");
@@ -158,6 +160,11 @@ void OpenDouSpatialStream::set_direct_params(bool p_enabled, float p_occlusion, 
 	direct_air_[1].store(std::clamp(p_air.y, 0.0f, 1.0f));
 	direct_air_[2].store(std::clamp(p_air.z, 0.0f, 1.0f));
 	direct_dir_.store(std::clamp(p_directivity, 0.0f, 1.0f));
+}
+
+void OpenDouSpatialStream::set_send(int p_id, float p_gain) {
+	send_id_.store(p_id);
+	send_gain_.store(std::clamp(p_gain, 0.0f, 2.0f));
 }
 
 void OpenDouSpatialStream::set_spatial_params(const godot::Vector3 &p_direction, float p_spatial_blend, float p_distance_gain, float p_cutoff_hz, float p_shelf_db, float p_shelf_cutoff_hz, float p_near_field_bass_db, float p_near_field_ild_db, float p_propagation_delay_sec) {
@@ -326,6 +333,8 @@ bool OpenDouSpatialStreamPlayback::create_effect() {
 	interleaved_.assign(static_cast<size_t>(audio.frameSize) * 2, 0.0f);
 	// El anillo guarda dos bloques: el que se esta sirviendo y el siguiente.
 	ring_.assign(static_cast<size_t>(audio.frameSize) * 2, AudioFrame{ 0.0f, 0.0f });
+	send_ring_.assign(static_cast<size_t>(audio.frameSize) * 2, 0.0f);
+	send_tmp_.assign(4096, 0.0f);
 	ring_read_ = 0;
 	ring_available_ = 0;
 	lpf_.reset();
@@ -579,6 +588,9 @@ bool OpenDouSpatialStreamPlayback::render_block(float p_rate_scale) {
 	size_t write = (ring_read_ + ring_available_) % cap;
 	for (int i = 0; i < frame_size; i++) {
 		ring_[write] = AudioFrame{ interleaved_[2 * i], interleaved_[2 * i + 1] };
+		// El envio de reverb va en paralelo: la misma senal mono (ya atenuada, filtrada y con
+		// efecto directo) que entro al HRTF, alineada con los pasos de Godot al salir del anillo.
+		send_ring_[write] = mono[i];
 		write = (write + 1) % cap;
 	}
 	ring_available_ += static_cast<size_t>(frame_size);
@@ -612,6 +624,9 @@ int32_t OpenDouSpatialStreamPlayback::_mix(AudioFrame *p_buffer, float p_rate_sc
 		}
 		const size_t cap = ring_.size();
 		while (written < p_frames && ring_available_ > 0) {
+			if (static_cast<size_t>(written) < send_tmp_.size()) {
+				send_tmp_[written] = send_ring_[ring_read_];
+			}
 			p_buffer[written++] = ring_[ring_read_];
 			ring_read_ = (ring_read_ + 1) % cap;
 			ring_available_--;
@@ -619,6 +634,11 @@ int32_t OpenDouSpatialStreamPlayback::_mix(AudioFrame *p_buffer, float p_rate_sc
 	}
 	for (int i = written; i < p_frames; i++) {
 		p_buffer[i] = AudioFrame{ 0.0f, 0.0f };
+	}
+	const int sid = stream_->send_id_.load();
+	const float sg = stream_->send_gain_.load();
+	if (sid >= 0 && sg > 0.0001f && written > 0) {
+		OpenDouSendBus::accumulate(sid, send_tmp_.data(), std::min(written, static_cast<int32_t>(send_tmp_.size())), sg);
 	}
 	return p_frames;
 }
