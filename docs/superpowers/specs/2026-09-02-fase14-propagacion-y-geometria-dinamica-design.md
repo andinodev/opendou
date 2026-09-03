@@ -199,4 +199,4 @@ los saca de la tabla (⚪ → retirado, con el porqué).
 7. **Depurador (§6).** Solo segmentos no ocluidos (`get_path_segments`, pares); 11 en la L.
 8. **Medido (§4):** a la vista 0° de error; tras el tabique 0° al hueco y 53° al emisor; EQ
    0.67/0.31/0.18; RMS −23.8 / −10.2 / −62.6 dB (camino / vista / solo oclusión).
-9. **Suite:** 1516 aserciones, 527 objetos vivos de 540; banco a 200 voces sin regresión (ver tools/bench_control_loop.gd).
+9. **Suite:** 1516 aserciones, 527 objetos vivos de 540; banco a 200 voces: godot 3.63 µs por voz, steam_audio 3.77 (Fase 13: 3.37–3.60; techo 4.3).
