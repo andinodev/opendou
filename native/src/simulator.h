@@ -6,6 +6,9 @@
 #include <godot_cpp/variant/packed_float32_array.hpp>
 #include <godot_cpp/variant/vector3.hpp>
 #include <phonon.h>
+#include <atomic>
+#include <mutex>
+#include <thread>
 #include <vector>
 
 namespace opendou {
@@ -13,7 +16,17 @@ namespace opendou {
 class OpenDouSimulator : public godot::Object {
 	GDCLASS(OpenDouSimulator, godot::Object)
 public:
-	static bool configure(int max_sources, int occlusion_samples, int transmission_rays);
+	static bool configure(int max_sources, int occlusion_samples, int transmission_rays, bool with_reflections = false, float max_duration = 2.0f, int max_rays = 4096);
+	// Reflexiones (Fase 13): una fuente colocada en el oyente da la IR de la sala donde esta.
+	static int create_listener_source();
+	static void set_listener_source_position(int handle, const godot::Vector3 &position);
+	static void start_reflections(float hz);
+	static void stop_reflections();
+	static bool is_reflections_running() { return thread_alive_.load(); }
+	static godot::Vector3 get_reverb_times(int handle);
+	static int reflections_generation(int handle);
+	// Para el efecto de convolucion (hilo de audio): copia los parametros del ultimo resultado.
+	static bool copy_reflection_params(int handle, IPLReflectionEffectParams &out);
 	static void shutdown();
 	static bool is_ready() { return sim_ != nullptr; }
 	static int create_source();
@@ -34,6 +47,21 @@ private:
 	static IPLSimulator sim_;
 	static std::vector<IPLSource> sources_;
 	static std::vector<IPLSimulationOutputs> outputs_;
+	static std::vector<int> source_flags_;
+	static std::vector<IPLSimulationOutputs> refl_outputs_;
+	static std::vector<int> refl_generation_;
+	static std::vector<godot::Vector3> listener_source_pos_;
+	static bool with_reflections_;
+	static float max_duration_;
+	static std::thread thread_;
+	static std::atomic<bool> thread_alive_;
+	static std::atomic<bool> stop_flag_;
+	static std::atomic<bool> running_;
+	static std::mutex commit_mutex_;
+	static std::mutex outputs_mutex_;
+	static int period_ms_;
+	static void thread_main();
+	static bool commit_if_dirty_locked();
 	static bool dirty_commit_;
 	static int occlusion_samples_;
 	static int transmission_rays_;
