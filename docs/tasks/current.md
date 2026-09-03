@@ -48,8 +48,8 @@ nuevos van en `native/CMakeLists.txt` y las clases en `native/src/register_types
    para señales arbitrarias (demos), `_band_energy_stereo_windowed` (Hann). El driver headless corre
    a ~0.84 s de audio por segundo de reloj bajo carga: esperar por muestras, no por milisegundos.
 
-El hub tiene cinco entradas: «Bajo la quilla», «El monzón», «La cabina», «Una casa canta» y
-el banco del rig. Todas se componen como árboles de nodos en su `.tscn`; los scripts solo
+El hub tiene siete entradas: «Bajo la quilla», «El monzón», «La cabina», «Una casa canta»,
+«El taller», «La presa» y el banco del rig (eran cinco cuando se escribió este párrafo). Todas se componen como árboles de nodos en su `.tscn`; los scripts solo
 llevan lo dinámico, y una guarda lee cada escena sin instanciarla para hacerlo cumplir.
 
 «Una casa canta» es un sector urbano cerrado con tres casas de verdad —suelo, paredes,
