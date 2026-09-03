@@ -79,6 +79,7 @@ const TestBlendLayersClass = preload("res://tests/test_blend_layers.gd")
 const TestAcousticMaterialClass = preload("res://tests/test_acoustic_material.gd")
 const TestSteamSceneClass = preload("res://tests/test_steam_scene.gd")
 const TestDirectEffectClass = preload("res://tests/test_direct_effect.gd")
+const TestSimBudgetClass = preload("res://tests/test_sim_budget.gd")
 const OpenDouAssertClass = preload("res://tests/support/opendou_assert.gd")
 const TestAudioOutputClass = preload("res://tests/test_audio_output.gd")
 const TestNativePlayerPoolClass = preload("res://tests/test_native_player_pool.gd")
@@ -448,6 +449,7 @@ static func run_async_suite(tree: SceneTree):
 	acc.absorb(await TestDirectEffectClass.run_simulator_async(tree))
 	acc.absorb(await TestDirectEffectClass.run_stream_async(tree))
 	acc.absorb(await TestDirectEffectClass.run_voice_async(tree))
+	acc.absorb(await TestSimBudgetClass.run_all_async(tree))
 	return {
 		"total": acc.assertions_run,
 		"failures": acc.failures,
