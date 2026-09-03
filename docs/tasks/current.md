@@ -1,4 +1,4 @@
-# ⚡ Tarea Activa: Fase 12 implementada — siguiente, Fase 13
+# ⚡ Tarea Activa: Fase 13 implementada — siguiente, Fase 14
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
 * **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
@@ -119,4 +119,11 @@ A1–A13, 13 comprobaciones B1–B13, 5 deudas C1–C5) y hay que resolverlas an
 `AGENTS.md`; correcciones en el §11 del spec; B1–B5 resueltas en las observaciones (el spike B5
 confirmó el `AudioEffect` nativo).
 
-**Siguiente:** Fase 13 (reflexiones en hilo, convolución, camas ambisónicas), luego la 14.
+**Fase 13, implementada (2026-09-03):** 1487 aserciones. Reflexiones `HYBRID` en hilo propio con
+fuente de oyente por sala, `OpenDouConvolutionReverb` en el bus de la sala (`reverb_mode =
+CONVOLUTION`, RT60 real para el fallback), camas ambisónicas (recurso, lector WAV multicanal,
+stream nativo, `OpenDouAmbisonicBed3D`), surround por el dispositivo (`MONO_PASS`) y los
+reflectores como ajuste artístico. Observación 52 y trampas en `AGENTS.md`; §11 del spec;
+B5–B9 resueltas.
+
+**Siguiente:** Fase 14 (sondas, caminos como origen aparente, ocluidores dinámicos, depurador).

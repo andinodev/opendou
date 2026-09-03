@@ -398,6 +398,32 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
   instancia y `_process(const void *src, AudioFrame *dst, int32_t n)` recibe `AudioFrame`s.
   `_tone()` de los tests tiene pico -6 dBFS: con `volume_db = -6` mide -12, no -6.
 
+**Observaciones y trampas de la Fase 13 (reflexiones y ambisonics):**
+
+* **Observación 52.** Un `AudioEffect` nativo por GDExtension funciona en un bus
+  (`OpenDouGainEffect`, `OpenDouConvolutionReverb`): `_instantiate()` + `_process(const void*,
+  AudioFrame*, int32_t)`. Con la observacion 49, el bus de reverb de la sala recibe la voz entera,
+  asi que el efecto de convolucion devuelve seco + humedo.
+* **godot-cpp: `Basis[i]` es la FILA i, no la columna.** Los ejes del oyente son
+  `get_column(0..2)`; usar filas invierte la rotacion (la cama ambisonica giraba al reves).
+* **El simulador solo se configuraba cuando habia voces**: `OcclusionScheduler.process()` vuelve
+  antes si la lista esta vacia. La sala del oyente llama a `ensure_simulator()` por su cuenta.
+* **El oyente compartido del simulador (`iplSimulatorSetSharedInputs`) hay que fijarlo aunque
+  no haya voces simuladas**: sin el, las reflexiones no trazan nada (RT60 0).
+* **Los buses del pool de reverb son compartidos y sobreviven al manager**: un efecto de
+  convolucion instalado por un manager steam seguia en el bus cuando llegaba uno godot. La sala
+  vuelve a Sabine si `convolution_allowed` es falso y el bus trae convolucion.
+* **`reverb_bus_amount = 0` en el Area3D no manda nada al bus** (ni seco ni humedo, obs 49):
+  el «wet 0» se fija en el efecto, no en el envio de la sala.
+* **La cola de una caja de 6 m con RT60 0.4 s dura 0.3 s**: medir a 0.5-0.8 s tras el tono da
+  silencio (-158 dB). Las ventanas van alineadas al inicio real del tono, que tarda cuadros.
+* **Los materiales de la tabla no siguen la intuicion:** Metal y Wood comparten las bandas media
+  y alta; para contrastar RT60 sirven Concrete (0.05/0.07/0.08) frente a Foliage (0.3/0.6/0.8).
+* **Las reflexiones tempranas mueven el tono seco hasta 4 dB** (filtro de peine) en la ventana
+  del tono: «el seco pasa igual» se afirma con `wet = 0`, no comparando wet 1 con wet 0.
+* **Con `--check-only --script` Godot da el error de parse exacto** de un test que la suite solo
+  reporta como «Could not preload». Una variable `shape` repetida en el mismo ambito lo era.
+
 ---
 
 ## 6. Reglas Modulares de Referencia

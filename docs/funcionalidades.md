@@ -90,7 +90,7 @@ Todos resuelven el autoload `/root/OpenDou` y admiten un manager inyectado para 
 
 | Nodo | Hereda de | Qué hace | Estado |
 |---|---|---|---|
-| `OpenDouRoom3D` | `Area3D` | Sala acústica: volumen, RT60 efectivo, absorción por material; se registra en el grafo de salas y pide un bus de reverb a `OpenDouReverbBusPool`, que agrupa salas por perfil y les asigna hasta ocho `AudioEffectReverb` nativos escalonados por RT60. Se desregistra al salir del árbol | ✅ |
+| `OpenDouRoom3D` | `Area3D` | Sala acústica: volumen, RT60 efectivo, absorción por material; se registra en el grafo de salas y pide un bus de reverb a `OpenDouReverbBusPool`, que agrupa salas por perfil y les asigna hasta ocho `AudioEffectReverb` nativos escalonados por RT60. Se desregistra al salir del árbol. Desde la Fase 13, `reverb_mode = CONVOLUTION`: la IR trazada por Steam Audio contra el bake, centrada en el oyente, como efecto nativo en el bus de la sala; sin extensión cae a Sabine con el RT60 real si lo hubo | ✅ |
 | `OpenDouPortal3D` | `Node3D` | Apertura entre dos salas (puerta, ventana) con `open_factor` de 0 a 1 que gobierna el paso-bajo y la atenuación; el BFS elige el portal más audible por coste | ✅ |
 | `OpenDouReflector3D` | `Node3D` | Plano reflectante autorado para las reflexiones tempranas (hasta 16 voces del pool reproducen copias retrasadas) | ✅ |
 | `OpenDouAcousticGeometryBake` | `Node3D` | Recoge los triángulos de las mallas del grupo `AcousticObstacle` con su material y alimenta el raycast de oclusión por CPU y, desde la Fase 12, **la escena de Steam Audio** (`feed_steam_audio`, `export_to_native()`); la escena vive lo que su bake | ✅ |
@@ -103,6 +103,7 @@ Todos resuelven el autoload `/root/OpenDou` y admiten un manager inyectado para 
 | `OpenDouAcousticVolume3D` | `Area3D` | Volumen de entorno con un recurso `AcousticEnvironment` de cinco secciones opcionales (Fase 10): **medio** (velocidad del sonido → ITD, retardo por distancia y doppler; paso-bajo en Master; tono; instantánea), **viento** (aproximación perceptual: en contra, menos nivel y agudos para las voces lejanas), **oclusión parcial** (dB/m y Hz/m por la longitud del segmento dentro del volumen, sobre el rayo que ya se lanza), **descarte** (buses cuyas voces se virtualizan con el oyente dentro, sin rayos, con el tiempo lógico corriendo) y **superficie** pintada con prioridad. La pertenencia del oyente se decide por geometría (caja, esfera, cilindro), no por `body_entered` | ✅ |
 | `OpenDouSoundIndicator` | `Control` | HUD de accesibilidad (Fase 10): un anillo con la dirección de los sonidos audibles respecto al frente del oyente; `get_indicators()` para la suite | ✅ |
 | `OpenDouAIHearing3D` | `Node3D` | Un oído para la IA (Fase 10): consulta `get_loudness_at()` en su posición y emite `sound_heard(evento, dB, desde)` una vez por voz al cruzar el umbral. Tras una puerta cerrada del grafo de salas, 32 dB menos; abierta, 6 | ✅ |
+| `OpenDouAmbisonicBed3D` | `AudioStreamPlayer` | Cama ambisónica (Fase 13): un recurso `OpenDouAmbisonicAudio` (orden 1 o 2, desde WAV multicanal leído por el plugin o codificado con el codificador de Steam Audio) que rota con la cabeza del oyente y se decodifica al HRTF. Sin extensión suena el canal W en mono y lo dice | ✅ |
 
 ### 2.3 Lo que las escenas obtienen del runtime sin declarar nada
 
@@ -145,6 +146,9 @@ oclusión → shelf por distancia → HRTF o paneo → retardo entre oídos → 
 | **Paso-bajo de oclusión** | Butterworth de 2.º orden con `cutoff_hz` (lo alimenta la oclusión por raycast y el grafo de portales), independiente de la distancia | Corte a 500 Hz: la banda 5–10 kHz cae 44 dB | ✅ |
 | **Shelf por distancia** | Réplica exacta del `HIGHSHELF` de Godot (que aplica el doble de decibelios que pide) para que ambos backends suenen igual de lejos | −12 dB pedidos: −24.5 dB en 8–14 kHz, 0.0 dB en 0.5–2 kHz | ✅ |
 | **Efecto directo** (Fase 12) | `OpenDouAcousticScene` convierte el bake en `IPLScene` con `IPLMaterial` por banda; `OpenDouSimulator` (`DIRECT`) da una fuente por voz cercana (LOD) y corre una vez por cuadro en el hilo principal; el stream aplica `IPLDirectEffect` (oclusión volumétrica, transmisión en tres bandas, absorción del aire, directividad nativa) en mono antes del HRTF. La atenuación por distancia sigue siendo la nuestra (paridad). Sin bake o en `godot`, el rayo de Godot y `OcclusionManager` | Tras un muro de cristal la voz conserva 49 dB más de agudos que tras hormigón; sin muro, igual con y sin escena (±0.4 dB); a 200 m el aire deja la banda alta en 0.026; cardioide nativa −6 dB de lado, silencio de espaldas; `run_direct` con 63 fuentes: 22 µs | ✅ |
+| **Reflexiones y convolución** (Fase 13) | `OpenDouSimulator` gana `REFLECTIONS` (`HYBRID`) en un **hilo propio** con una fuente en el oyente por sala; `OpenDouConvolutionReverb` (`AudioEffect` nativo) aplica la IR en el bus de la sala y devuelve seco + húmedo (observación 49); los RT60 por banda salen del propio simulador | Caja de hormigón: cola −34.9 dB a 0.25–0.4 s tras el tono (RT60 0.39 s); follaje −42.5 (RT60 0.15); con `wet = 0`, silencio; primer resultado del hilo a los 12 ms | ✅ |
+| **Camas ambisónicas** (Fase 13) | `OpenDouAmbisonicStream`: rotación (`IPLAmbisonicsRotationEffect`) con la orientación del oyente y decodificación binaural (`IPLAmbisonicsDecodeEffect`) | Fuente codificada al frente: ILD 0.8 dB; oyente girado 90° a la izquierda, +7.3 dB; a la derecha, −8.0 | ✅ |
+| **Surround por el dispositivo** (Fase 13) | Un stream propio solo puede emitir estéreo: con `output = speakers` y dispositivo no estéreo, el stream pasa a `MONO_PASS` y el anfitrión deja de estar neutralizado para que Godot panee a los altavoces reales | La suite afirma la decisión (paneo 1 y modo 2), no la energía por canal: headless es estéreo | 🟡 |
 | **Modo altavoces** | Paneo estéreo de potencia constante sin HRTF ni ITD, conmutable **en vivo** | A 45°: ILD 12.6 dB, ITD 0, delante = detrás | ✅ |
 | **HRTF conmutable en vivo** | Contexto con generación y cuenta de referencias; `set_hrtf_default()` / `set_hrtf_sofa(ruta)`; un SOFA inválido se rechaza sin tocar el activo | Tres cambios con 16 voces sonando: ningún bloque en silencio | ✅ |
 | **Origen aparente para todo** | El emisor de nodo aporta posición; la voz sale por el pool y la dirección viene de `current_apparent_position` | Emisor dentro de una casa: 145 % de diferencia espectral entre salir por el portal de detrás o el de delante | ✅ |
@@ -167,12 +171,11 @@ compila ambos y firma ad hoc las dos bibliotecas en `addons/opendou/bin/` (ignor
 Windows, Linux, Android, iOS y wasm, pero no se afirma nada sin compilarlo y probarlo. Avisos de
 licencia en `addons/opendou/THIRD_PARTY_NOTICES.md` (Apache 2.0 y MIT).
 
-### 3.5 Lo que la extensión aún no hace (Fases 13 y 14)
+### 3.5 Lo que la extensión aún no hace (Fase 14)
 
-Reflexiones y reverb por convolución, camas ambisónicas, propagación por sondas, geometría
-dinámica, salida surround del backend nativo (Fases 13 y 14), CI y otras plataformas. El efecto
-directo, la escena desde el bake y los materiales por banda llegaron en la Fase 12; el doppler y el
-retardo por distancia los hace el plugin, no la extensión.
+Propagación por sondas y geometría dinámica (Fase 14), CI y otras plataformas. El efecto directo,
+la escena desde el bake y los materiales por banda llegaron en la Fase 12; las reflexiones por
+convolución, las camas ambisónicas y el surround por el dispositivo en la 13.
 
 ---
 

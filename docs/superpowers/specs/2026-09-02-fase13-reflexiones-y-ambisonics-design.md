@@ -1,7 +1,7 @@
 # Fase 13 — Reflexiones y ambisonics
 
 **Fecha:** 2026-09-02
-**Estado:** Diseñado sin intervención del usuario; **dudas abiertas en [`docs/tasks/observaciones-fases-12-14.md`](../../tasks/observaciones-fases-12-14.md)**. Pendiente de resolverlas antes de ejecutar.
+**Estado:** Implementado (2026-09-03); correcciones en §11.
 **Rama:** `main`
 **Godot verificado:** 4.7.2 · **Steam Audio:** 4.8.1
 **Hoja de ruta:** [`docs/roadmap/2026-09-02-sprint-aaa.md`](../../roadmap/2026-09-02-sprint-aaa.md), Fase 13
@@ -208,6 +208,25 @@ ajuste artístico. `tests/test_early_reflections*.gd` siguen verdes (salas Sabin
   `hybridReverbTransitionTime` a 0.5.
 - **La suite no puede probar 5.1**: se afirma la decisión, no la energía por canal.
 
-## 11. Correcciones que la ejecución obligue a hacer
+## 11. Correcciones que la ejecución obligó a hacer
 
-Se anotan aquí, numeradas.
+1. **B5 confirmado** (`OpenDouGainEffect`: −12 dB exactos en un bus); el spike se queda como ejemplo.
+2. **Contraste de materiales (§3).** Metal y madera comparten las bandas media y alta en la
+   tabla; el test compara hormigón (RT60 0.40) con follaje (0.15). Primer resultado a los 12 ms.
+3. **El simulador y el oyente compartido (§4).** Sin voces, el planificador no configuraba el
+   simulador ni fijaba el oyente; la sala del oyente llama a `ensure_simulator()` y a
+   `set_listener` cada cuadro.
+4. **Bus compartido (§4).** Los buses del pool sobreviven al manager: `convolution_allowed`
+   (solo steam) y la sala devuelve el bus a Sabine si trae convolución de otro manager.
+5. **`reverb_send_amount = 0` no manda nada al bus** (obs 49): el `wet` del efecto se fija con
+   `set_convolution_wet`, no con el envío.
+6. **Ventanas de medida (§4).** La cola de la caja de 6 m dura ~0.3 s; se mide a 0.25–0.4 s
+   desde el inicio real del tono. Medido: hormigón −34.9 dB, follaje −42.5, `wet = 0` −180; el
+   tono seco con `wet = 1` baja 3.6 dB por las reflexiones tempranas (se afirma ±4).
+7. **`Basis[i]` es la fila (§5).** La rotación ambisónica salía invertida; los ejes son las
+   columnas. Medido: frente 0.8 dB, girado a la izquierda +7.3, a la derecha −8.0.
+8. **Convención de canales (§5).** El test codifica con `OpenDouAmbisonicStream.encode_mono`
+   (el codificador de Steam Audio) y no a mano: codificar y decodificar comparten convención.
+9. **Surround (§6).** Afirmado como decisión: paneo 1 y `MONO_PASS` con `surround_available`;
+   headless es estéreo. B6–B9 resueltas.
+10. **Suite.** 1487 aserciones, 527 objetos vivos de 540. Banco a 200 voces 3.37–3.60 µs.
