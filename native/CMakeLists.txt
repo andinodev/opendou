@@ -46,6 +46,7 @@ add_library(opendou_native SHARED
     src/spatial_stream.cpp
     src/acoustic_scene.cpp
     src/simulator.cpp
+    src/gain_effect.cpp
 )
 target_include_directories(opendou_native PRIVATE "${STEAMAUDIO_DIR}/include")
 target_link_libraries(opendou_native PRIVATE godot-cpp "${PHONON_LIB}")

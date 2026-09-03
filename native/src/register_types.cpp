@@ -2,6 +2,7 @@
 #include "register_types.h"
 
 #include "acoustic_scene.h"
+#include "gain_effect.h"
 #include "simulator.h"
 #include "spatial_stream.h"
 #include "steam_audio_context.h"
@@ -20,6 +21,8 @@ void initialize_opendou_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(opendou::OpenDouSpatialStreamPlayback);
 	GDREGISTER_CLASS(opendou::OpenDouAcousticScene);
 	GDREGISTER_CLASS(opendou::OpenDouSimulator);
+	GDREGISTER_CLASS(opendou::OpenDouGainEffect);
+	GDREGISTER_CLASS(opendou::OpenDouGainEffectInstance);
 }
 
 void uninitialize_opendou_native(ModuleInitializationLevel p_level) {
