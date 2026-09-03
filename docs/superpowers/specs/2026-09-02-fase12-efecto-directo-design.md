@@ -1,7 +1,7 @@
 # Fase 12 — Materiales y efecto directo de Steam Audio
 
 **Fecha:** 2026-09-02
-**Estado:** Diseñado sin intervención del usuario; **dudas abiertas en [`docs/tasks/observaciones-fases-12-14.md`](../../tasks/observaciones-fases-12-14.md)**. Pendiente de resolverlas antes de ejecutar.
+**Estado:** Implementado (2026-09-03); correcciones en §11.
 **Rama:** `main`
 **Godot verificado:** 4.7.2.stable.official.ed1daf0bf · **Steam Audio:** 4.8.1 (binario, pinned)
 **Hoja de ruta:** [`docs/roadmap/2026-09-02-sprint-aaa.md`](../../roadmap/2026-09-02-sprint-aaa.md), Fase 12
@@ -234,6 +234,26 @@ extensión). Reglas de siempre: bus de sonda, cámara, esperar por muestras, `se
   el canal ignora `cutoff_hz` cuando hay fuente. El grafo de salas (`room_path_active`) sigue
   excluyendo la voz del planificador, como hoy.
 
-## 11. Correcciones que la ejecución obligue a hacer
+## 11. Correcciones que la ejecución obligó a hacer
 
-Se anotan aquí, numeradas.
+1. **Nombre del modelo de aire:** `IPL_AIRABSORPTIONTYPE_DEFAULT`, no `IPL_AIRABSORPTIONMODELTYPE_DEFAULT`.
+2. **La escena vive lo que su bake (§4).** Al ser una por proceso, la geometría de la quilla
+   seguía en la escena durante el test de paridad (6.4 dB de diferencia entre backends). El
+   bake que la alimentó la limpia en `_exit_tree`, y `OpenDouAcousticScene.clear()` apaga el
+   simulador.
+3. **El corte del grafo de salas se respeta (§6).** El canal ignoraba `cutoff_hz` con fuente;
+   como el planificador ya no lanza el rayo para esas voces, el corte que llega es el del grafo
+   y los volúmenes y se aplica tal cual. Los volúmenes de oclusión parcial (Fase 10) se suman
+   también a las voces simuladas, sin rayo.
+4. **Medir el stream sin colorear:** `spatialize = false` salta toda la cadena; el test usa
+   `spatialize = true` con `spatial_blend = 0`.
+5. **Medidas.** Simulador: tras `Glass` `occlusion = 0.00`, `transmission = (0.060, 0.044,
+   0.011)`; tras `Concrete` `(0.015, 0.002, 0.001)`; sin muro `occlusion = 1.00`; aire a 200 m
+   `(0.961, 0.712, 0.026)` frente a `(0.998, 0.983, 0.834)` a 10 m. Stream: cristal 62.0 dB de
+   banda alta frente a 54.5 del hormigón (base 82.1; apagado = base). Voz completa en el bus de
+   sonda: cristal 33.8 dB frente a hormigón −15.8 en la banda alta; sin muro 91.6 con escena y
+   92.0 sin ella; cardioide: frente −13.3 dB, lado −19.3 (una sola directividad), espalda
+   silencio. `run_direct` con 63 fuentes sobre la quilla: 22–28 µs; techo 200 µs.
+6. **El test de presupuesto fugaba 64 playbacks** por terminar la suite antes de la siguiente
+   mezcla del hilo de audio; espera 300 ms tras parar. B1–B4 de las observaciones, resueltas.
+7. **Suite.** 1457 aserciones, 527 objetos vivos de 540.

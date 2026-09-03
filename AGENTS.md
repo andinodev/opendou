@@ -369,6 +369,35 @@ Juntas bajaron el paso del grafo de salas de un **+100 %** a un **+8.5 %** (0.09
 * **`OpenDouMultiPositionEmitter3D` hereda de `AudioStreamPlayer3D`** y reproduce su propio
   stream: no postea eventos ni pasa por el pool (como el spline, obs 47).
 
+**Observaciones y trampas de la Fase 12 (efecto directo de Steam Audio):**
+
+* **Observación 51.** El bake ES la escena acustica: `OpenDouAcousticGeometryBake.export_to_native()`
+  vuelca sus triangulos y materiales a `IPLScene` + `IPLStaticMesh`. La escena es **una por
+  proceso** y la limpia el bake que la alimento al salir del arbol: sin eso, los mamparos de la
+  quilla seguian ocluyendo en el test de paridad de la suite siguiente. `OpenDouSimulator` se
+  apaga con la escena y los `sim_source` de los canales quedan invalidos (el planificador los
+  suelta al cuadro siguiente).
+* **`spatialize = false` salta TODA la cadena del stream nativo**, tambien el efecto directo.
+  Para medir sin colorear el HRTF: `spatialize = true` y `spatial_blend = 0`.
+* **Con fuente del simulador el planificador no lanza el rayo**, asi que el corte que llega al
+  canal ya no trae el del rayo: no hay que ignorarlo (trae el del grafo de salas y los volumenes).
+  Ignorarlo dejaba la escotilla de la quilla en 20 kHz.
+* **Steam Audio: `IPL_AIRABSORPTIONTYPE_DEFAULT`** (no `...MODELTYPE...`); `IPLCoordinateSpace3`
+  es `{right, up, ahead, origin}` y Godot mira a -Z: `ahead = -basis.z`, `right = ahead x up`.
+  Un muro delante da `occlusion = 0.00` con oclusion volumetrica de radio 0.5.
+* **`iplDirectEffectApply` acepta in-place** sobre el bufer mono (B3 resuelta).
+* **La transmision del efecto directo es fisica: un muro de hormigon deja pasar casi nada**
+  (0.015 / 0.002 / 0.001). La diferencia entre cristal y hormigon medida en el bus fue de 49 dB en
+  la banda alta: las aserciones piden «al menos 6», no igualdad.
+* **El ultimo test de la suite tiene que esperar ~300 ms tras parar sus voces**: el hilo de
+  audio suelta los playbacks en su siguiente mezcla y, si el proceso termina antes, quedan como
+  fugas (64 `AudioStreamPlaybackWAV`). `--verbose` lista las clases fugadas.
+* **El filtro de commit tiene que mirar el codigo de salida de `run_tests.sh`**, no solo
+  `STATUS: PASSED`: el trinquete de fugas falla aparte.
+* **Un `AudioEffect` por GDExtension funciona** (spike B5): `_instantiate()` devuelve la
+  instancia y `_process(const void *src, AudioFrame *dst, int32_t n)` recibe `AudioFrame`s.
+  `_tone()` de los tests tiene pico -6 dBFS: con `volume_db = -6` mide -12, no -6.
+
 ---
 
 ## 6. Reglas Modulares de Referencia

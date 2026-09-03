@@ -38,11 +38,11 @@ Planes: [12](../superpowers/plans/2026-09-02-fase12-efecto-directo.md) ·
 
 | # | Fase | Duda | Cómo se resuelve |
 |---|---|---|---|
-| B1 | 12 | El binario de Steam Audio 4.8.1 para macOS incluye el trazador `DEFAULT` (sí, siempre); **Embree no**. El spec usa `DEFAULT` | Ninguna acción; si el coste de `run_direct` es alto, es el trazador |
-| B2 | 12 | Convención de ejes y **winding** de los triángulos del bake frente a `IPLStaticMesh` | El primer test de oclusión (muro entre fuente y oyente) lo dice; si «no hay muro», invertir el orden de índices |
-| B3 | 12 | ¿`iplDirectEffectApply` acepta in-place sobre `in_buffer_` (mono)? La doc dice que los efectos que no generan cola sí | Probar; si no, un búfer mono auxiliar |
-| B4 | 12 | Coste real de `run_direct` con 64 fuentes × 16 muestras en el bake de la quilla | Medirlo en la primera corrida y fijar `tests/sim_budget.txt` |
-| B5 | 13 | **`AudioEffect` por GDExtension**: hay que confirmar que `AudioEffectInstance::_process(const void *src, AudioFrame *dst, int frame_count)` está expuesto en godot-cpp 4.7 con esa firma | Un spike de una hora: un efecto de ganancia nativo en un bus y un test que lo mide |
+| B1 | 12 | El binario de Steam Audio 4.8.1 para macOS incluye el trazador `DEFAULT` (sí, siempre); **Embree no**. El spec usa `DEFAULT` | Ninguna acción; si el coste de `run_direct` es alto, es el trazador — **Resuelta: `DEFAULT` basta; 22 µs con 63 fuentes** |
+| B2 | 12 | Convención de ejes y **winding** de los triángulos del bake frente a `IPLStaticMesh` | El primer test de oclusión (muro entre fuente y oyente) lo dice; si «no hay muro», invertir el orden de índices — **Resuelta: sin conversión ni inversión; el muro ocluye a 0.00** |
+| B3 | 12 | ¿`iplDirectEffectApply` acepta in-place sobre `in_buffer_` (mono)? La doc dice que los efectos que no generan cola sí | Probar; si no, un búfer mono auxiliar — **Resuelta: in-place funciona** |
+| B4 | 12 | Coste real de `run_direct` con 64 fuentes × 16 muestras en el bake de la quilla | Medirlo en la primera corrida y fijar `tests/sim_budget.txt` — **Resuelta: 22–28 µs; techo 200 en `tests/sim_budget.txt`** |
+| B5 | 13 | **`AudioEffect` por GDExtension**: hay que confirmar que `AudioEffectInstance::_process(const void *src, AudioFrame *dst, int frame_count)` está expuesto en godot-cpp 4.7 con esa firma | Un spike de una hora: un efecto de ganancia nativo en un bus y un test que lo mide — **Resuelta: `OpenDouGainEffect` aplica −12 dB en un bus (2026-09-03)** |
 | B6 | 13 | `IPLReflectionEffectIR` es opaca: la IR **no** se puede exportar a GDScript; el RT60 sale de `reverbTimes` (HYBRID) | Ninguna acción; `OpenDouIRRT60Analyzer` se queda para IRs de usuario |
 | B7 | 13 | `iplSimulatorCommit` **no** puede llamarse mientras corre `RunReflections`/`RunPathing` en otro hilo | Bandera `running_` + cola de altas/bajas aplicada en el hilo principal entre corridas |
 | B8 | 13 | La decodificación binaural ambisónica dentro del efecto de bus usa el HRTF activo: cambiar de HRTF en vivo tiene que respetar el contador de referencias de `SteamAudioContext` | Reusar `acquire_hrtf/release_hrtf` por bloque, como el binaural |

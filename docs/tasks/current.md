@@ -1,4 +1,4 @@
-# ⚡ Tarea Activa: Fase 11 implementada — siguiente, Fase 12
+# ⚡ Tarea Activa: Fase 12 implementada — siguiente, Fase 13
 
 * **Regla que gobierna las escenas:** [`.agents/rules/04_scene_composition.md`](../../.agents/rules/04_scene_composition.md)
 * **Última fase con spec y plan:** Fase 6 — [spec](../superpowers/specs/2026-09-01-fase6-portales-audibles-design.md) · [plan](../superpowers/plans/2026-09-01-fase6-portales-audibles.md)
@@ -113,5 +113,10 @@ trece objetos (527 de 540).
 **Las dudas están en [`observaciones-fases-12-14.md`](observaciones-fases-12-14.md)** (13 decisiones
 A1–A13, 13 comprobaciones B1–B13, 5 deudas C1–C5) y hay que resolverlas antes de ejecutar.
 
-**Siguiente:** resolver las observaciones A1–A13 y el spike B5; después ejecutar la Fase 12 con
-`superpowers:executing-plans` (inline), luego la 13 y la 14.
+**Fase 12, implementada (2026-09-03):** 1457 aserciones. `AcousticMaterial` por banda,
+`OpenDouAcousticScene` desde el bake, `OpenDouSimulator` (`DIRECT`) con fuentes por LOD, el
+`IPLDirectEffect` en el stream y el presupuesto de simulación. Observación 51 y trampas en
+`AGENTS.md`; correcciones en el §11 del spec; B1–B5 resueltas en las observaciones (el spike B5
+confirmó el `AudioEffect` nativo).
+
+**Siguiente:** Fase 13 (reflexiones en hilo, convolución, camas ambisónicas), luego la 14.
