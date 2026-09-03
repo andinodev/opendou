@@ -92,6 +92,9 @@ func _init() -> void:
 ## Devuelve el numero de raycasts realmente lanzados.
 ## Orientacion del oyente para el simulador (la fija el manager cada cuadro).
 var _listener_basis: Basis = Basis.IDENTITY
+## Fase 14: pedir caminos a las fuentes simuladas cuando la escena tiene sondas (lo fija el manager).
+var pathing_enabled: bool = true
+var probes_ready: bool = false
 
 func set_listener_basis(b: Basis) -> void:
 	_listener_basis = b
@@ -141,6 +144,7 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D, occlude
 					ClassDB.class_call_static("OpenDouSimulator", "release_source", ch.sim_source)
 				ch.sim_source = -1
 	var direct_d2: float = 0.0
+	probes_ready = sim and bool(ClassDB.class_call_static("OpenDouAcousticScene", "has_probes"))
 	if sim:
 		var dd: float = lod_controller.direct_simulation_max_distance()
 		direct_d2 = dd * dd
@@ -149,6 +153,8 @@ func process(instances: Array, listener_pos: Vector3, world_3d: World3D, occlude
 		if sim and inst.assigned_channel_id >= 0:
 			var ch = voice_pool.get_channel(inst.assigned_channel_id)
 			if ch != null and _assign_source(inst, ch, float(pr[0]) <= direct_d2):
+				# Fase 14: el grafo autorado manda; la voz gobernada por un portal no pide caminos.
+				ClassDB.class_call_static("OpenDouSimulator", "set_source_pathing", ch.sim_source, pathing_enabled and probes_ready and not inst.room_path_active, 1)
 				ClassDB.class_call_static("OpenDouSimulator", "set_source_inputs", ch.sim_source, inst.emitter_position, inst.emitter_forward, Vector3.UP, inst.directivity_dipole_weight, inst.directivity_power, 0.5)
 				# La geometria la ve el simulador; los volumenes de entorno (no son geometria) se
 				# siguen sumando aqui, sin rayo.

@@ -134,6 +134,8 @@ var hdr_engine: AudioHDREngine = null
 ## es exactamente 0 dB: dejarlo apagado habria movido el huerfano del editor al
 ## runtime en lugar de arreglarlo.
 var hdr_enabled: bool = true
+## Fase 14: los caminos de Steam Audio (sondas) mueven el origen aparente de las voces simuladas.
+var pathing_enabled: bool = true
 
 func _init() -> void:
 	spatial_backend = SpatialBackendClass.resolve(SpatialBackendClass.read_setting(), SpatialBackendClass.native_available())
@@ -330,6 +332,12 @@ func get_room_reverb_times(room_name: StringName) -> Vector3:
 func _update_listener_room() -> void:
 	if spatial_acoustics == null or not is_steam_audio_backend():
 		return
+	# Fase 14: los caminos corren en el mismo hilo que las reflexiones; con sondas y voces
+	# simuladas el hilo arranca aunque el oyente no este en ninguna sala.
+	if pathing_enabled and not _reflections_started and occlusion_scheduler != null and occlusion_scheduler.probes_ready and occlusion_scheduler.simulated_this_frame > 0:
+		ClassDB.class_call_static("OpenDouSimulator", "set_listener", active_listener_position, -active_listener_basis.z, active_listener_basis.y)
+		ClassDB.class_call_static("OpenDouSimulator", "start_reflections", 10.0)
+		_reflections_started = true
 	var room = spatial_acoustics.get_room_at_position(active_listener_position)
 	if room == null or room.reverb_mode != 2:
 		return
@@ -672,6 +680,7 @@ func _update_hdr(delta: float) -> void:
 func _apply_voices(delta: float) -> void:
 	if voice_pool == null:
 		return
+	var probes_ready: bool = pathing_enabled and occlusion_scheduler != null and occlusion_scheduler.probes_ready
 	for instance in active_instances:
 		if instance == null or instance.assigned_channel_id < 0:
 			continue
@@ -717,6 +726,22 @@ func _apply_voices(delta: float) -> void:
 				if headwind > 0.0:
 					volume_db -= minf(12.0, 0.3 * headwind)
 					cutoff *= 1.0 - 0.5 * clampf(headwind / 20.0, 0.0, 1.0)
+		# Caminos (Fase 14): la voz simulada con sondas llega por donde dice Steam Audio (origen
+		# aparente a la misma distancia), con la banda alta del camino como corte y su ganancia
+		# relajando la oclusion. El grafo autorado (room_path_active) manda sobre las sondas.
+		instance.pathing_active = false
+		ch.pathing_gain = 0.0
+		if probes_ready and instance.has_spatial_position and not instance.room_path_active and ch.sim_source >= 0:
+			var path: Dictionary = ClassDB.class_call_static("OpenDouSimulator", "get_pathing", ch.sim_source)
+			if bool(path.get("valid", false)):
+				var dist: float = instance.emitter_position.distance_to(active_listener_position)
+				instance.target_apparent_position = active_listener_position + Vector3(path["direction"]) * dist
+				instance.pathing_active = true
+				var eq: Vector3 = path["eq"]
+				cutoff = minf(cutoff, lerpf(1500.0, 20000.0, clampf(eq.z, 0.0, 1.0)))
+				# La amplitud del camino trae su 1/d; relativa a la distancia directa (que ya atenua
+				# nuestro modelo) queda <= 1: a la vista vale 1, rodeando menos.
+				ch.pathing_gain = clampf(float(path.get("gain", 0.0)) * dist, 0.0, 1.0)
 		# Capas del contenedor (Fase 11): con un arbol determinista los desplazamientos se
 		# re-resuelven cada cuadro, y asi un blend por RTPC cruza de verdad.
 		if instance.live_blend and instance.definition != null:
@@ -821,6 +846,7 @@ func _process(delta: float) -> void:
 		var vp := get_viewport()
 		var w3d: World3D = vp.find_world_3d() if vp != null else null
 		occlusion_scheduler.set_listener_basis(active_listener_basis)
+		occlusion_scheduler.pathing_enabled = pathing_enabled
 		occlusion_scheduler.process(active_instances, active_listener_position, w3d, acoustic_volumes)
 
 	# 5. Parametros de instancia y limpieza de las terminadas.

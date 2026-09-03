@@ -21,6 +21,8 @@ var channel_id: int = -1
 var speed_of_sound: float = 343.0
 ## Fuente del simulador de Steam Audio (Fase 12); -1 = sin fuente, oclusion por rayo.
 var sim_source: int = -1
+## Ganancia del camino (W de Steam Audio, 0 = sin camino): relaja la oclusion directa (Fase 14).
+var pathing_gain: float = 0.0
 var _direct_was_on: bool = false
 
 func uses_direct_effect() -> bool:
@@ -214,7 +216,8 @@ func apply_spatial(instance: EventInstance, volume_db: float, pitch: float, cuto
 		# planificador no lo lanza para estas voces); trae el del grafo de salas y los volumenes.
 		if sim_source >= 0:
 			var d: PackedFloat32Array = ClassDB.class_call_static("OpenDouSimulator", "get_direct", sim_source)
-			s.set_direct_params(true, d[0], Vector3(d[1], d[2], d[3]), Vector3(d[4], d[5], d[6]), d[7])
+			# Con un camino valido la voz llega rodeando: la oclusion no baja de la ganancia del camino.
+			s.set_direct_params(true, maxf(d[0], clampf(pathing_gain, 0.0, 1.0)), Vector3(d[1], d[2], d[3]), Vector3(d[4], d[5], d[6]), d[7])
 			_direct_was_on = true
 		elif _direct_was_on:
 			s.set_direct_params(false, 1.0, Vector3.ONE, Vector3.ONE, 1.0)
@@ -294,6 +297,7 @@ func stop_with_fade(fade_time_sec: float = 0.015) -> void:
 
 ## Detiene y libera el canal de inmediato.
 func stop_immediate() -> void:
+	pathing_gain = 0.0
 	if sim_source >= 0 and ClassDB.class_exists("OpenDouSimulator"):
 		ClassDB.class_call_static("OpenDouSimulator", "release_source", sim_source)
 	sim_source = -1

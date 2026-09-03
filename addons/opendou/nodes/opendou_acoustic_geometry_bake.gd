@@ -214,7 +214,13 @@ func bake_probes() -> Dictionary:
 	if not bool(ClassDB.class_call_static("OpenDouAcousticScene", "is_ready")) and not export_to_native():
 		return {}
 	probe_bake_progress.emit(0.0)
-	var bounds: AABB = probe_bounds if probe_bounds.size.length() > 0.0 else get_baked_bounds()
+	var bounds: AABB = probe_bounds
+	if bounds.size.length() <= 0.0:
+		# Las sondas nacen de rayos que bajan desde el techo de la caja: si el techo coincide con
+		# la losa del bake, los rayos arrancan sobre ella y las sondas quedan fuera de la sala.
+		# La caja automatica se recorta medio metro por arriba (probe_bounds explicito manda).
+		bounds = get_baked_bounds()
+		bounds.size.y = maxf(bounds.size.y - 0.5, 0.5)
 	var n: int = int(ClassDB.class_call_static("OpenDouAcousticScene", "generate_probes", probe_spacing_m, probe_height_m, bounds))
 	if n <= 0:
 		probe_bake_progress.emit(1.0)

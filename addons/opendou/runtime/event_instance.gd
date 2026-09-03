@@ -103,6 +103,8 @@ var has_spatial_position: bool = false
 ## Cuando lo esta, la oclusion por raycast NO la toca: el grafo ya sabe que hay un
 ## mamparo y por donde se rodea, y sumar los dos cobraria dos veces por la misma pared.
 var room_path_active: bool = false
+## Fase 14: los caminos de Steam Audio fijan el destino aparente este cuadro (el manager lo pone).
+var pathing_active: bool = false
 
 ## Posicion hacia la que se interpola la posicion aparente.
 var target_apparent_position: Vector3 = Vector3.ZERO
@@ -420,7 +422,7 @@ func update_parameters(delta: float, global_rtpcs: Dictionary = {}) -> void:
 	# El destino se fija aqui para las voces que el grafo NO gobierna: el dispatcher solo
 	# mira las fisicas, asi que sin esto una voz que deja de estar gobernada se quedaria
 	# con la posicion del portal para siempre.
-	if not room_path_active:
+	if not room_path_active and not pathing_active:
 		target_apparent_position = emitter_position
 	current_apparent_position = current_apparent_position.lerp(
 		target_apparent_position,

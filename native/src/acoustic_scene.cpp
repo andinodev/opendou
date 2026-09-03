@@ -103,22 +103,24 @@ bool OpenDouAcousticScene::build(const PackedVector3Array &vertices, const Packe
 	return true;
 }
 
-// Matriz 4x4 (elements[fila][columna], vectores columna) que lleva el cubo unidad a la caja.
+// Matriz 4x4 (elements[fila][columna], vectores columna) que lleva el cubo CENTRADO en el
+// origen ([-0.5, 0.5]^3, como el cubo de Unity) a la caja: escala = tamano, traslacion = centro.
 static IPLMatrix4x4 box_matrix(const AABB &box) {
 	IPLMatrix4x4 m = {};
+	const Vector3 c = box.get_center();
 	m.elements[0][0] = box.size.x;
 	m.elements[1][1] = box.size.y;
 	m.elements[2][2] = box.size.z;
-	m.elements[0][3] = box.position.x;
-	m.elements[1][3] = box.position.y;
-	m.elements[2][3] = box.position.z;
+	m.elements[0][3] = c.x;
+	m.elements[1][3] = c.y;
+	m.elements[2][3] = c.z;
 	m.elements[3][3] = 1.0f;
 	return m;
 }
 
-static void IPLCALL bake_progress(IPLfloat32 progress, void *) {
-	UtilityFunctions::print(vformat("[OpenDou] bake de caminos %.0f%%", progress * 100.0f));
-}
+// Steam Audio 4.8.1 llama al callback de progreso sin comprobar nulo (la documentacion dice
+// "puede ser NULL"; con NULL, iplPathBakerBake salta a la direccion 0). Siempre uno vacio.
+static void IPLCALL bake_progress_noop(IPLfloat32, void *) {}
 
 int OpenDouAcousticScene::generate_probes(float spacing_m, float height_m, const AABB &bounds) {
 	if (!is_ready()) {
@@ -164,7 +166,7 @@ bool OpenDouAcousticScene::bake_paths(int num_samples, float radius, float thres
 	b.visRange = vis_range;
 	b.pathRange = path_range;
 	b.numThreads = num_threads < 1 ? 1 : num_threads;
-	iplPathBakerBake(SteamAudioContext::context(), &b, &bake_progress, nullptr);
+	iplPathBakerBake(SteamAudioContext::context(), &b, &bake_progress_noop, nullptr);
 	iplProbeBatchCommit(probes_);
 	probes_generation_++;
 	return true;

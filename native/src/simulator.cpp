@@ -1,4 +1,5 @@
 #include "simulator.h"
+#include <cmath>
 #include "acoustic_scene.h"
 #include "steam_audio_context.h"
 
@@ -19,6 +20,17 @@ int OpenDouSimulator::occlusion_samples_ = 16;
 int OpenDouSimulator::transmission_rays_ = 2;
 int OpenDouSimulator::last_run_usec_ = 0;
 int OpenDouSimulator::scene_generation_ = -1;
+std::vector<char> OpenDouSimulator::pathing_on_;
+std::vector<int> OpenDouSimulator::pathing_order_;
+std::vector<std::array<float, 4>> OpenDouSimulator::path_sh_;
+std::vector<std::array<float, 3>> OpenDouSimulator::path_eq_;
+std::vector<int> OpenDouSimulator::path_generation_;
+IPLProbeBatch OpenDouSimulator::attached_probes_ = nullptr;
+int OpenDouSimulator::probes_generation_seen_ = -1;
+std::atomic<int> OpenDouSimulator::pathing_runs_{0};
+std::atomic<bool> OpenDouSimulator::visualize_paths_{false};
+std::vector<godot::Vector3> OpenDouSimulator::segments_building_;
+std::vector<godot::Vector3> OpenDouSimulator::segments_;
 std::vector<int> OpenDouSimulator::source_flags_;
 std::vector<IPLSimulationOutputs> OpenDouSimulator::refl_outputs_;
 std::vector<int> OpenDouSimulator::refl_generation_;
@@ -41,6 +53,12 @@ void OpenDouSimulator::_bind_methods() {
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("start_reflections", "hz"), &OpenDouSimulator::start_reflections);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("stop_reflections"), &OpenDouSimulator::stop_reflections);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("is_reflections_running"), &OpenDouSimulator::is_reflections_running);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("set_source_pathing", "handle", "enabled", "order"), &OpenDouSimulator::set_source_pathing, DEFVAL(1));
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("get_pathing", "handle"), &OpenDouSimulator::get_pathing);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("pathing_generation", "handle"), &OpenDouSimulator::pathing_generation);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("pathing_runs"), &OpenDouSimulator::pathing_runs);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("set_path_visualization", "enabled"), &OpenDouSimulator::set_path_visualization);
+	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("get_path_segments"), &OpenDouSimulator::get_path_segments);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("reflection_runs"), &OpenDouSimulator::reflection_runs);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("get_reverb_times", "handle"), &OpenDouSimulator::get_reverb_times);
 	ClassDB::bind_static_method("OpenDouSimulator", D_METHOD("reflections_generation", "handle"), &OpenDouSimulator::reflections_generation);
@@ -76,7 +94,7 @@ bool OpenDouSimulator::configure(int max_sources, int occlusion_samples, int tra
 	}
 	shutdown();
 	IPLSimulationSettings s = {};
-	s.flags = with_reflections ? static_cast<IPLSimulationFlags>(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS) : IPL_SIMULATIONFLAGS_DIRECT;
+	s.flags = with_reflections ? static_cast<IPLSimulationFlags>(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS | IPL_SIMULATIONFLAGS_PATHING) : IPL_SIMULATIONFLAGS_DIRECT;
 	s.sceneType = IPL_SCENETYPE_DEFAULT;
 	s.reflectionType = IPL_REFLECTIONEFFECTTYPE_HYBRID;
 	s.maxNumOcclusionSamples = occlusion_samples;
@@ -103,6 +121,14 @@ bool OpenDouSimulator::configure(int max_sources, int occlusion_samples, int tra
 	sources_.assign(max_sources, nullptr);
 	outputs_.assign(max_sources, IPLSimulationOutputs{});
 	source_flags_.assign(max_sources, 0);
+	pathing_on_.assign(max_sources, 0);
+	pathing_order_.assign(max_sources, 1);
+	path_sh_.assign(max_sources, std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f});
+	path_eq_.assign(max_sources, std::array<float, 3>{1.0f, 1.0f, 1.0f});
+	path_generation_.assign(max_sources, 0);
+	attached_probes_ = nullptr;
+	probes_generation_seen_ = -1;
+	pathing_runs_.store(0);
 	refl_outputs_.assign(max_sources, IPLSimulationOutputs{});
 	refl_generation_.assign(max_sources, 0);
 	listener_source_pos_.assign(max_sources, Vector3());
@@ -167,15 +193,44 @@ void OpenDouSimulator::thread_main() {
 			if (sim_ == nullptr) {
 				break;
 			}
+			sync_probes_locked();
 			commit_if_dirty_locked();
 			running_.store(true);
 		}
 		iplSimulatorRunReflections(sim_);
 		reflection_runs_++;
+		bool any_pathing = false;
+		for (size_t i = 0; i < sources_.size(); i++) {
+			if (sources_[i] != nullptr && pathing_on_[i]) {
+				any_pathing = true;
+				break;
+			}
+		}
+		if (any_pathing && attached_probes_ != nullptr) {
+			segments_building_.clear();
+			iplSimulatorRunPathing(sim_);
+			pathing_runs_++;
+			std::lock_guard<std::mutex> lk(outputs_mutex_);
+			for (size_t i = 0; i < sources_.size(); i++) {
+				if (sources_[i] == nullptr || !pathing_on_[i]) {
+					continue;
+				}
+				IPLSimulationOutputs o = {};
+				iplSourceGetOutputs(sources_[i], IPL_SIMULATIONFLAGS_PATHING, &o);
+				for (int b = 0; b < 3; b++) {
+					path_eq_[i][b] = o.pathing.eqCoeffs[b];
+				}
+				for (int c = 0; c < 4; c++) {
+					path_sh_[i][c] = o.pathing.shCoeffs != nullptr ? o.pathing.shCoeffs[c] : 0.0f;
+				}
+				path_generation_[i]++;
+			}
+			segments_ = segments_building_;
+		}
 		{
 			std::lock_guard<std::mutex> lk(outputs_mutex_);
 			for (size_t i = 0; i < sources_.size(); i++) {
-				if (sources_[i] != nullptr && source_flags_[i] == IPL_SIMULATIONFLAGS_REFLECTIONS) {
+				if (sources_[i] != nullptr && (source_flags_[i] & IPL_SIMULATIONFLAGS_REFLECTIONS) != 0) {
 					iplSourceGetOutputs(sources_[i], IPL_SIMULATIONFLAGS_REFLECTIONS, &refl_outputs_[i]);
 					refl_generation_[i]++;
 				}
@@ -247,6 +302,11 @@ void OpenDouSimulator::shutdown() {
 	sources_.clear();
 	outputs_.clear();
 	if (sim_ != nullptr) {
+		if (attached_probes_ != nullptr) {
+			iplSimulatorRemoveProbeBatch(sim_, attached_probes_);
+			iplProbeBatchRelease(&attached_probes_);
+			attached_probes_ = nullptr;
+		}
 		iplSimulatorRelease(&sim_);
 		sim_ = nullptr;
 	}
@@ -260,13 +320,18 @@ int OpenDouSimulator::create_source() {
 	for (size_t i = 0; i < sources_.size(); i++) {
 		if (sources_[i] == nullptr) {
 			IPLSourceSettings ss = {};
-			ss.flags = IPL_SIMULATIONFLAGS_DIRECT;
+			// Con reflexiones el simulador tambien sabe de caminos: la fuente nace con los dos
+			// bits y el pathing se activa por fuente con set_source_pathing.
+			ss.flags = with_reflections_ ? static_cast<IPLSimulationFlags>(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_PATHING) : IPL_SIMULATIONFLAGS_DIRECT;
 			if (iplSourceCreate(sim_, &ss, &sources_[i]) != IPL_STATUS_SUCCESS) {
 				sources_[i] = nullptr;
 				return -1;
 			}
 			iplSourceAdd(sources_[i], sim_);
-			source_flags_[i] = IPL_SIMULATIONFLAGS_DIRECT;
+			source_flags_[i] = static_cast<int>(ss.flags);
+			pathing_on_[i] = 0;
+			path_generation_[i] = 0;
+			path_sh_[i] = {0.0f, 0.0f, 0.0f, 0.0f};
 			outputs_[i] = IPLSimulationOutputs{};
 			dirty_commit_ = true;
 			return static_cast<int>(i);
@@ -288,7 +353,7 @@ void OpenDouSimulator::release_source(int h) {
 }
 
 void OpenDouSimulator::set_source_inputs(int h, const Vector3 &pos, const Vector3 &fwd, const Vector3 &up, float dipole_weight, float dipole_power, float occlusion_radius) {
-	if (!valid(h) || source_flags_[h] != IPL_SIMULATIONFLAGS_DIRECT) {
+	if (!valid(h) || (source_flags_[h] & IPL_SIMULATIONFLAGS_DIRECT) == 0) {
 		return;
 	}
 	IPLSimulationInputs in = {};
@@ -303,6 +368,19 @@ void OpenDouSimulator::set_source_inputs(int h, const Vector3 &pos, const Vector
 	in.numOcclusionSamples = occlusion_samples_;
 	in.numTransmissionRays = transmission_rays_;
 	iplSourceSetInputs(sources_[h], IPL_SIMULATIONFLAGS_DIRECT, &in);
+	if (pathing_on_[h] && attached_probes_ != nullptr && (source_flags_[h] & IPL_SIMULATIONFLAGS_PATHING) != 0) {
+		IPLSimulationInputs pin = {};
+		pin.flags = IPL_SIMULATIONFLAGS_PATHING;
+		pin.source = in.source;
+		pin.pathingProbes = attached_probes_;
+		pin.visRadius = 1.0f;
+		pin.visThreshold = 0.1f;
+		pin.visRange = 50.0f;
+		pin.pathingOrder = pathing_order_[h];
+		pin.enableValidation = IPL_TRUE;
+		pin.findAlternatePaths = IPL_FALSE;
+		iplSourceSetInputs(sources_[h], IPL_SIMULATIONFLAGS_PATHING, &pin);
+	}
 }
 
 void OpenDouSimulator::set_listener(const Vector3 &pos, const Vector3 &fwd, const Vector3 &up) {
@@ -319,6 +397,9 @@ void OpenDouSimulator::set_listener(const Vector3 &pos, const Vector3 &fwd, cons
 	iplSimulatorSetSharedInputs(sim_, IPL_SIMULATIONFLAGS_DIRECT, &sh);
 	if (with_reflections_) {
 		iplSimulatorSetSharedInputs(sim_, IPL_SIMULATIONFLAGS_REFLECTIONS, &sh);
+		sh.pathingVisCallback = visualize_paths_.load() ? &OpenDouSimulator::vis_cb : nullptr;
+		sh.pathingUserData = nullptr;
+		iplSimulatorSetSharedInputs(sim_, IPL_SIMULATIONFLAGS_PATHING, &sh);
 	}
 }
 
@@ -334,12 +415,13 @@ int OpenDouSimulator::run_direct() {
 	}
 	{
 		std::lock_guard<std::mutex> lk(commit_mutex_);
+		sync_probes_locked();
 		commit_if_dirty_locked();
 	}
 	const uint64_t t0 = Time::get_singleton()->get_ticks_usec();
 	iplSimulatorRunDirect(sim_);
 	for (size_t i = 0; i < sources_.size(); i++) {
-		if (sources_[i] != nullptr && source_flags_[i] == IPL_SIMULATIONFLAGS_DIRECT) {
+		if (sources_[i] != nullptr && (source_flags_[i] & IPL_SIMULATIONFLAGS_DIRECT) != 0) {
 			iplSourceGetOutputs(sources_[i], IPL_SIMULATIONFLAGS_DIRECT, &outputs_[i]);
 		}
 	}
@@ -374,6 +456,97 @@ int OpenDouSimulator::source_count() {
 		}
 	}
 	return n;
+}
+
+
+// Quien llama tiene commit_mutex_. Adjunta al simulador el lote de sondas vigente de la escena
+// (con su propia referencia) y suelta el anterior; nunca mientras corre una simulacion.
+void OpenDouSimulator::sync_probes_locked() {
+	if (sim_ == nullptr || running_.load() || probes_generation_seen_ == OpenDouAcousticScene::probes_generation()) {
+		return;
+	}
+	if (attached_probes_ != nullptr) {
+		iplSimulatorRemoveProbeBatch(sim_, attached_probes_);
+		iplProbeBatchRelease(&attached_probes_);
+		attached_probes_ = nullptr;
+	}
+	if (OpenDouAcousticScene::has_probes()) {
+		attached_probes_ = iplProbeBatchRetain(OpenDouAcousticScene::probes());
+		iplSimulatorAddProbeBatch(sim_, attached_probes_);
+	}
+	probes_generation_seen_ = OpenDouAcousticScene::probes_generation();
+	dirty_commit_ = true;
+}
+
+void OpenDouSimulator::set_source_pathing(int h, bool enabled, int order) {
+	if (!valid(h) || (source_flags_[h] & IPL_SIMULATIONFLAGS_PATHING) == 0) {
+		return;
+	}
+	pathing_on_[h] = enabled ? 1 : 0;
+	pathing_order_[h] = order < 1 ? 1 : (order > 2 ? 2 : order);
+	if (!enabled) {
+		std::lock_guard<std::mutex> lk(outputs_mutex_);
+		path_sh_[h] = {0.0f, 0.0f, 0.0f, 0.0f};
+	}
+}
+
+// {valid, direction (mundo), eq (3 bandas), gain (amplitud del camino, ya con su 1/d), sh (4 ACN)}.
+// Convencion comprobada por el test "a la vista" (B10): ACN orden 1 = W, Y, Z, X ambisonicos,
+// donde Y apunta a la IZQUIERDA (-x), Z arriba (+y) y X al FRENTE (-z). W = amplitud / sqrt(4 pi).
+Dictionary OpenDouSimulator::get_pathing(int h) {
+	Dictionary d;
+	std::array<float, 4> sh = {0.0f, 0.0f, 0.0f, 0.0f};
+	std::array<float, 3> eq = {1.0f, 1.0f, 1.0f};
+	if (valid(h)) {
+		std::lock_guard<std::mutex> lk(outputs_mutex_);
+		sh = path_sh_[h];
+		eq = path_eq_[h];
+	}
+	const bool valid_path = std::fabs(sh[0]) > 1e-4f;
+	Vector3 dir(-sh[1], sh[2], -sh[3]);
+	if (dir.length_squared() > 1e-12f) {
+		dir = dir.normalized();
+	} else {
+		dir = Vector3();
+	}
+	PackedFloat32Array packed;
+	packed.resize(4);
+	for (int c = 0; c < 4; c++) {
+		packed[c] = sh[c];
+	}
+	d["valid"] = valid_path;
+	d["direction"] = dir;
+	d["eq"] = Vector3(eq[0], eq[1], eq[2]);
+	d["gain"] = valid_path ? std::fabs(sh[0]) * 3.5449077f : 0.0f;
+	d["sh"] = packed;
+	return d;
+}
+
+int OpenDouSimulator::pathing_generation(int h) {
+	if (!valid(h)) {
+		return 0;
+	}
+	std::lock_guard<std::mutex> lk(outputs_mutex_);
+	return path_generation_[h];
+}
+
+// Solo lo llama el hilo de simulacion durante RunPathing.
+void IPLCALL OpenDouSimulator::vis_cb(IPLVector3 from, IPLVector3 to, IPLbool occluded, void *) {
+	if (occluded) {
+		return;
+	}
+	segments_building_.push_back(Vector3(from.x, from.y, from.z));
+	segments_building_.push_back(Vector3(to.x, to.y, to.z));
+}
+
+PackedVector3Array OpenDouSimulator::get_path_segments() {
+	PackedVector3Array out;
+	std::lock_guard<std::mutex> lk(outputs_mutex_);
+	out.resize(static_cast<int64_t>(segments_.size()));
+	for (size_t i = 0; i < segments_.size(); i++) {
+		out[static_cast<int64_t>(i)] = segments_[i];
+	}
+	return out;
 }
 
 } // namespace opendou

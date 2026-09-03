@@ -138,6 +138,7 @@ func virtualize(instance: EventInstance) -> void:
 	# es donde se sabe, y por eso el dispatcher no tiene que recorrer todas las
 	# instancias para limpiarlo.
 	instance.room_path_active = false
+	instance.pathing_active = false
 
 	if instance.virtualization_mode == AudioEventDefClass.VirtualizationMode.VIRTUAL_KILL_VOICE:
 		instance.voice_state = EventInstanceClass.VoiceState.STATE_KILLED

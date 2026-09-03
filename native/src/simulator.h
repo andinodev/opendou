@@ -8,6 +8,9 @@
 #include <phonon.h>
 #include <atomic>
 #include <mutex>
+#include <godot_cpp/variant/packed_vector3_array.hpp>
+#include <godot_cpp/variant/dictionary.hpp>
+#include <array>
 #include <thread>
 #include <vector>
 
@@ -29,6 +32,14 @@ public:
 	static int reflections_generation(int handle);
 	// Para el efecto de convolucion (hilo de audio): copia los parametros del ultimo resultado.
 	static bool copy_reflection_params(int handle, IPLReflectionEffectParams &out);
+	// Caminos (Fase 14): por fuente, con el lote de sondas de la escena. Corren en el hilo de
+	// reflexiones y salen como direccion aparente + EQ por banda + ganancia (W).
+	static void set_source_pathing(int handle, bool enabled, int order = 1);
+	static godot::Dictionary get_pathing(int handle);
+	static int pathing_generation(int handle);
+	static int pathing_runs() { return pathing_runs_.load(); }
+	static void set_path_visualization(bool enabled) { visualize_paths_.store(enabled); }
+	static godot::PackedVector3Array get_path_segments();
 	static void shutdown();
 	static bool is_ready() { return sim_ != nullptr; }
 	static int create_source();
@@ -69,6 +80,19 @@ private:
 	static int transmission_rays_;
 	static int last_run_usec_;
 	static int scene_generation_;
+	static std::vector<char> pathing_on_;
+	static std::vector<int> pathing_order_;
+	static std::vector<std::array<float, 4>> path_sh_;
+	static std::vector<std::array<float, 3>> path_eq_;
+	static std::vector<int> path_generation_;
+	static IPLProbeBatch attached_probes_;
+	static int probes_generation_seen_;
+	static std::atomic<int> pathing_runs_;
+	static std::atomic<bool> visualize_paths_;
+	static std::vector<godot::Vector3> segments_building_;
+	static std::vector<godot::Vector3> segments_;
+	static void sync_probes_locked();
+	static void IPLCALL vis_cb(IPLVector3 from, IPLVector3 to, IPLbool occluded, void *user);
 };
 
 } // namespace opendou
