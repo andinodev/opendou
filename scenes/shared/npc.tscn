@@ -1,16 +1,21 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://uugdmd2ig34a"]
 
-[ext_resource type="Script" path="res://scenes/shared/npc_controller.gd" id="1_npc"]
+[ext_resource type="Script" uid="uid://bbsr7c62yc5k7" path="res://scenes/shared/npc_controller.gd" id="1_npc"]
 [ext_resource type="PackedScene" path="res://scenes/shared/character_audio_rig.tscn" id="2_rig"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
 height = 1.8
 
-[node name="Npc" type="CharacterBody3D"]
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_giqnr"]
+
+[node name="Npc" type="CharacterBody3D" unique_id=848524049]
 script = ExtResource("1_npc")
 
-[node name="Collision" type="CollisionShape3D" parent="."]
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=1571761295]
 shape = SubResource("CapsuleShape3D_body")
 
-[node name="CharacterAudioRig" parent="." instance=ExtResource("2_rig")]
+[node name="CharacterAudioRig" parent="." unique_id=371023848 instance=ExtResource("2_rig")]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=335580572]
+mesh = SubResource("CapsuleMesh_giqnr")
