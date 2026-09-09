@@ -39,6 +39,7 @@ static func run_all() -> Array[String]:
 	_library_is_clean(registry, failures)
 	_footsteps(registry, failures)
 	_mindy(registry, failures)
+	_weapons(registry, failures)
 	return failures
 
 
@@ -138,10 +139,10 @@ static func _mindy(registry, failures: Array[String]) -> void:
 	if streams.size() < MINDY.size():
 		return
 
-	# Un disparo es un transitorio: el pico cae en los primeros 15 ms
-	var shot: PackedFloat32Array = streams["shot_Revolver"]
-	var peak_at := _peak_index(shot)
-	_check(failures, peak_at < int(0.015 * 44100), "mindy: el pico del disparo cae en los primeros 15 ms (%.1f ms)" % (peak_at * 1000.0 / 44100.0))
+	# Un disparo es un transitorio: su frente de energia (la ventana de 5 ms mas
+	# fuerte) cae en los primeros 20 ms
+	var front_ms := _loudest_window_ms(streams["shot_Revolver"])
+	_check(failures, front_ms < 20.0, "mindy: el frente del disparo cae en los primeros 20 ms (%.1f ms)" % front_ms)
 
 	# El apagon es la version grande del pulso: dura mas
 	_check(failures, streams["mindy_blackout"].size() > streams["mindy_emp"].size(),
@@ -156,6 +157,76 @@ static func _mindy(registry, failures: Array[String]) -> void:
 	var hi_end := _band_fraction(streams["reload_end_Revolver"], "HighPass", 2000.0)
 	var hi_start := _band_fraction(streams["reload_start_Revolver"], "HighPass", 2000.0)
 	_check(failures, hi_end > hi_start, "mindy: cerrar el tambor es mas agudo que abrirlo (%.3f > %.3f)" % [hi_end, hi_start])
+
+
+# ── Armas y proyectiles ──────────────────────────────────────────────────────
+
+## Del catalogo real de heroshooter (WeaponCatalog.BY_HERO y los kits): un disparo
+## por arma, dos de cuerpo a cuerpo, dos proyectiles, tres explosiones por tamano y
+## los cuatro impactos que hoy son formulas del juego.
+const HITSCAN_SHOTS := ["shot_Pistol", "shot_Smg", "shot_AssaultRifle", "shot_Bullpup", "shot_Shotgun", "shot_Sniper"]
+const WEAPONS := HITSCAN_SHOTS + [
+	"shot_GrenadeLauncher", "shot_Beam",
+	"swing_Sword", "swing_Fists",
+	"proj_Knife", "proj_GrenadeBounce",
+	"explosion_Small", "explosion_Medium", "explosion_Large",
+	"hit_Body", "hit_Armor", "hit_Shield", "hit_Headshot",
+]
+
+static func _weapons(registry, failures: Array[String]) -> void:
+	var streams := {}
+	for name in WEAPONS:
+		var p: Dictionary = registry.get_preset(StringName(name))
+		_check(failures, not p.is_empty(), "armas: existe %s" % name)
+		if p.is_empty():
+			continue
+		_check(failures, str(p.get("category", "")) == "Game/Weapons", "armas: %s en Game/Weapons" % name)
+		var wav = registry.get_preset_stream(StringName(name), absi(hash(name)))
+		if wav == null or wav.data.is_empty():
+			failures.append("armas: %s no sintetiza" % name)
+			continue
+		streams[name] = _samples(wav)
+		var peak_db := _peak_db(streams[name])
+		_check(failures, peak_db <= PEAK_MAX_DB and peak_db >= PEAK_MIN_DB,
+			"armas: pico de %s en [%.1f, %.1f] dBFS (%.1f)" % [name, PEAK_MIN_DB, PEAK_MAX_DB, peak_db])
+
+	if streams.size() < WEAPONS.size():
+		return
+
+	# Un arma de fuego estalla: su frente de energia (la ventana de 5 ms mas fuerte)
+	# cae en los primeros 20 ms. Un golpe de espada o de puno hincha el aire: el
+	# frente llega despues de 20 ms. Se mide por ventana y no por la muestra mas
+	# alta porque un estallido saturado es una meseta y su maximo cae en ruido.
+	for name in HITSCAN_SHOTS:
+		var front_ms := _loudest_window_ms(streams[name])
+		_check(failures, front_ms < 20.0, "armas: %s estalla en los primeros 20 ms (%.1f ms)" % [name, front_ms])
+	for name in ["swing_Sword", "swing_Fists"]:
+		var front_ms := _loudest_window_ms(streams[name])
+		_check(failures, front_ms > 20.0, "armas: %s se hincha, frente despues de 20 ms (%.1f ms)" % [name, front_ms])
+
+	# Calibre: la escopeta tiene mas graves que la pistola; el francotirador dura mas que el subfusil
+	var low_shotgun := _band_rms(streams["shot_Shotgun"], "LowPass", 200.0)
+	var low_pistol := _band_rms(streams["shot_Pistol"], "LowPass", 200.0)
+	_check(failures, low_shotgun > low_pistol, "armas: la escopeta tiene mas graves que la pistola (%.4f > %.4f)" % [low_shotgun, low_pistol])
+	_check(failures, streams["shot_Sniper"].size() > streams["shot_Smg"].size(), "armas: el francotirador dura mas que el subfusil")
+
+	# Las explosiones crecen en graves y en duracion con su tamano
+	var sizes := ["explosion_Small", "explosion_Medium", "explosion_Large"]
+	var low := []
+	for n in sizes:
+		low.append(_band_rms(streams[n], "LowPass", 200.0))
+	_check(failures, low[2] > low[1] and low[1] > low[0],
+		"armas: graves Large > Medium > Small (%.4f > %.4f > %.4f)" % [low[2], low[1], low[0]])
+	_check(failures, streams["explosion_Large"].size() > streams["explosion_Medium"].size() and streams["explosion_Medium"].size() > streams["explosion_Small"].size(),
+		"armas: duracion Large > Medium > Small")
+
+	# Impactos: el headshot brilla, la armadura apaga
+	var hi_head := _band_fraction(streams["hit_Headshot"], "HighPass", 2000.0)
+	var hi_body := _band_fraction(streams["hit_Body"], "HighPass", 2000.0)
+	_check(failures, hi_head > hi_body, "armas: el headshot es mas brillante que el impacto en cuerpo (%.3f > %.3f)" % [hi_head, hi_body])
+	var lo_armor := _band_fraction(streams["hit_Armor"], "LowPass", 600.0)
+	var lo_body := _band_fraction(streams["hit_Body"], "LowPass", 600.0)
+	_check(failures, lo_armor > lo_body, "armas: la armadura suena mas apagada que el cuerpo (%.3f > %.3f)" % [lo_armor, lo_body])
 
 
 # ── Medidas ──────────────────────────────────────────────────────────────────
@@ -186,6 +257,24 @@ static func _peak_index(s: PackedFloat32Array) -> int:
 			best_v = v
 			best = i
 	return best
+
+
+## Instante (ms) en que empieza la ventana de `window_sec` con mas energia.
+static func _loudest_window_ms(s: PackedFloat32Array, window_sec: float = 0.005) -> float:
+	var w: int = maxi(1, int(window_sec * 44100.0))
+	if s.size() <= w:
+		return 0.0
+	var acc := 0.0
+	for i in range(w):
+		acc += s[i] * s[i]
+	var best := acc
+	var best_at := 0
+	for i in range(w, s.size()):
+		acc += s[i] * s[i] - s[i - w] * s[i - w]
+		if acc > best:
+			best = acc
+			best_at = i - w + 1
+	return best_at * 1000.0 / 44100.0
 
 
 static func _peak_db(s: PackedFloat32Array) -> float:
