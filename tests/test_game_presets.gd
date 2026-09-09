@@ -36,9 +36,30 @@ static func run_all() -> Array[String]:
 	var registry = SynthPresetRegistryClass.get_singleton()
 	registry.load_presets()
 
+	_library_is_clean(registry, failures)
 	_footsteps(registry, failures)
 	_mindy(registry, failures)
 	return failures
+
+
+# ── Libreria ─────────────────────────────────────────────────────────────────
+
+## La libreria que se entrega no lleva rellenos: 90 `Synth_Preset_NN` sin disenar
+## (todos Basic_Wave con el mismo esqueleto) tapaban los 14 con nombre propio.
+## `Synth_Preset_%d` sigue siendo el nombre que da el editor a un preset nuevo, asi
+## que uno que aparezca aqui es uno que alguien guardo sin bautizar.
+static func _library_is_clean(registry, failures: Array[String]) -> void:
+	var fillers: Array[String] = []
+	for n in registry.get_preset_names():
+		if str(n).begins_with("Synth_Preset_"):
+			fillers.append(str(n))
+	_check(failures, fillers.is_empty(), "libreria: sin rellenos Synth_Preset_NN (quedan %d: %s)" % [fillers.size(), ", ".join(fillers.slice(0, 5))])
+	# Y todo preset del juego vive en una categoria Game/*
+	for prefix in ["step_", "shot_", "reload_", "mindy_", "swing_", "proj_", "explosion_", "hit_"]:
+		for n in registry.get_preset_names():
+			if str(n).begins_with(prefix):
+				_check(failures, registry.get_preset_category(n).begins_with("Game/"),
+					"libreria: %s deberia estar en una categoria Game/* (%s)" % [str(n), registry.get_preset_category(n)])
 
 
 # ── Pisadas ──────────────────────────────────────────────────────────────────
