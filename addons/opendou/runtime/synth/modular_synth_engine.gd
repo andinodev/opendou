@@ -382,20 +382,26 @@ static func synthesize_wav(preset_dict: Dictionary, rng_seed: int = 0) -> AudioS
 				var l_dur = float(l.get("duration", duration))
 				var l_seed = rng_seed + layer_idx * 1000 if rng_seed != 0 else 0
 				var l_samples = generate_layer_samples(l, l_dur, sample_rate, l_seed)
-				var l_gain_db = float(l.get("gain_db", 0.0))
-				var l_gain_lin = db_to_linear(l_gain_db)
+				# La ganancia de la capa ya la aplico generate_layer_samples: aqui solo se
+				# suma. Antes se multiplicaba otra vez y cada capa sonaba al doble de dB
+				# de lo que decia su gain_db (una capa a -6 salia a -12).
 				var count = mini(master_buffer.size(), l_samples.size())
 				for i in range(count):
-					master_buffer[i] += l_samples[i] * l_gain_lin
+					master_buffer[i] += l_samples[i]
 				layer_idx += 1
 	else:
 		master_buffer = generate_layer_samples(preset_dict, duration, sample_rate, rng_seed)
 
 	var num_samples = master_buffer.size()
 
+	# En un Single_Generator el diccionario del preset ES la capa: generate_layer_samples
+	# ya aplico su gain_db y su drive. Volver a aplicarlos aqui como master los doblaba
+	# (un preset a -6 dB salia a -12 y el drive saturaba dos veces).
+	var shaped_by_layer: bool = p_type != "Layer_Container"
+
 	# Master Gain
 	var master_gain_db = float(preset_dict.get("gain_db", 0.0))
-	if not is_zero_approx(master_gain_db):
+	if not shaped_by_layer and not is_zero_approx(master_gain_db):
 		var m_gain_lin = db_to_linear(master_gain_db)
 		for i in range(num_samples):
 			master_buffer[i] *= m_gain_lin
@@ -403,7 +409,7 @@ static func synthesize_wav(preset_dict: Dictionary, rng_seed: int = 0) -> AudioS
 	# Master Drive
 	var master_drive_dict: Dictionary = preset_dict.get("drive", {})
 	var m_drive_type = master_drive_dict.get("type", "None")
-	if m_drive_type != "None" and m_drive_type != "":
+	if not shaped_by_layer and m_drive_type != "None" and m_drive_type != "":
 		var m_drive_amt = float(master_drive_dict.get("amount", 1.0))
 		for i in range(num_samples):
 			master_buffer[i] = apply_drive(master_buffer[i], m_drive_type, m_drive_amt)
