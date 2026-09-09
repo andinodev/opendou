@@ -198,3 +198,16 @@ la llegada del trueno (espera audio capturado, no reloj). Tres corridas seguidas
 **Siguiente:** el cierre del sprint que quedó en la hoja de ruta (15.1 prefijado `OpenDou` de las
 clases sin prefijo, 15.3 notas de versión y `README.md`), y después CI y plataformas. Candidatos a
 estabilizar: `near_field` (Fase 9) fluctúa a veces.
+
+**Presets del juego (2026-09-09):** la libreria `addons/opendou/data/synth_presets.json` paso de 104 presets
+(90 rellenos `Synth_Preset_NN`) a 46: los 14 de siempre mas 32 disenados contra la convencion que fija
+heroshooter en `SfxPresets.footstep_name` (`step_heavy_Metal`): seis pisadas `step_<peso>_<Superficie>`
+(`Game/Footsteps`), el kit de Mindy (`shot_Revolver`, `reload_{start,end}_Revolver`, `mindy_emp`,
+`mindy_mine_arm`, `mindy_mine_blast`, `mindy_blackout`; `Game/Mindy`) y diecinueve de armas, proyectiles,
+explosiones e impactos del catalogo real (`Game/Weapons`). Regla de nombres: lo que distingue el sonido
+es el material o el arma, no el heroe; las habilidades si son identidad (`<heroe>_<accion>`).
+`tests/test_game_presets.gd` mide cada promesa en el WAV (167 aserciones) y `tools/probe_game_presets.gd`
+lo corre solo y vuelca los WAV con `OPENDOU_RENDER_DIR`. `tools/probe_one_test.gd` corre cualquier clase
+de la suite por separado con `OPENDOU_TEST=res://tests/test_x.gd` (run_tests.ps1 se cuelga a veces).
+Hallazgo: el motor aplicaba `gain_db` y `drive` dos veces (capa y master); corregido. La tabla de
+correspondencias del juego (`resources/audio/sfx_presets.json`) sigue vacia: cablearla es el paso siguiente.
