@@ -35,6 +35,7 @@ const TestDeclarativeNodesClass = preload("res://tests/test_declarative_nodes.gd
 const TestAudibleMonitorClass = preload("res://tests/test_audible_monitor.gd")
 const TestSynthNatureClass = preload("res://tests/test_synth_nature.gd")
 const TestModularSynthEngineClass = preload("res://tests/test_modular_synth_engine.gd")
+const TestLayerOpsClass = preload("res://tests/test_layer_ops.gd")
 const TestSynthPresetRegistryClass = preload("res://tests/test_synth_preset_registry.gd")
 const TestGamePresetsClass = preload("res://tests/test_game_presets.gd")
 const TestSynthVstWorkspaceClass = preload("res://tests/test_synth_vst_workspace.gd")
@@ -249,8 +250,12 @@ static func run_suite() -> Dictionary:
 	all_failures.append_array(r36)
 	
 	var r37 = TestModularSynthEngineClass.run_all()
-	total_tests += 16
+	total_tests += 19
 	all_failures.append_array(r37)
+
+	var r_layers = TestLayerOpsClass.run_all()
+	total_tests += 9
+	all_failures.append_array(r_layers)
 	
 	var r38 = TestSynthPresetRegistryClass.run_all()
 	total_tests += 8

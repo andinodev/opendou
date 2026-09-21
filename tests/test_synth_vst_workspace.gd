@@ -393,4 +393,71 @@ static func run_all() -> Array[String]:
 
 			ws.free()
 
+	# Test 11: the tone cards edit the SELECTED LAYER of a Layer_Container
+	#
+	# The bug: every card read and wrote the preset root. A Layer_Container holds
+	# none of those fields on its root, so every knob showed its default and
+	# every turn wrote a key `synthesize_wav` never reads. Sound unchanged, knobs
+	# lying about the sound, dead keys piling up in the JSON.
+	if WorkspaceClass != null:
+		var lw = WorkspaceClass.new()
+		if lw == null:
+			failures.append("Test 11 Failed: workspace failed to instantiate")
+		else:
+			lw.active_preset_dict = {
+				"type": "Layer_Container",
+				"duration": 0.3,
+				"layers": [
+					{
+						"name": "one", "generator_type": "Filtered_Noise", "noise_type": "White",
+						"start_offset": 0.0,
+						"filter": {"type": "HighPass", "cutoff_hz": 1230.0, "resonance_q": 3.5},
+					},
+					{
+						"name": "two", "generator_type": "Impulse_Ping",
+						"base_freq": 777.0, "start_offset": 0.042,
+					},
+				],
+			}
+			lw.current_preset_name = &"layer_test"
+
+			if lw.layer_list == null or lw.knob_start_offset == null:
+				failures.append("Test 11 Failed: the layer strip was not built")
+			else:
+				lw._capa_sel = 0
+				lw._update_ui_from_preset_dict()
+				if lw.opt_gen_type.get_item_text(lw.opt_gen_type.selected) != "Filtered_Noise":
+					failures.append("Test 11 Failed: generator not read from layer 0")
+				if absf(lw.knob_filter_q.value - 3.5) > 0.01:
+					failures.append("Test 11 Failed: filter Q not read from layer 0 (got %f)" % lw.knob_filter_q.value)
+
+				lw._capa_sel = 1
+				lw._update_ui_from_preset_dict()
+				if absf(lw.knob_base_freq.value - 777.0) > 0.5:
+					failures.append("Test 11 Failed: base_freq not read from layer 1 (got %f)" % lw.knob_base_freq.value)
+				if absf(lw.knob_start_offset.value - 0.042) > 0.001:
+					failures.append("Test 11 Failed: start_offset not read from layer 1")
+				if lw.layer_list.item_count != 2:
+					failures.append("Test 11 Failed: layer list shows %d entries, expected 2" % lw.layer_list.item_count)
+
+				# A knob turn must land on the selected layer and nowhere else.
+				lw._on_base_freq_changed(999.0)
+				var l1 = lw.active_preset_dict["layers"][1]
+				if absf(float(l1.get("base_freq", 0.0)) - 999.0) > 0.01:
+					failures.append("Test 11 Failed: the edit did not reach layer 1")
+				if lw.active_preset_dict.has("base_freq"):
+					failures.append("Test 11 Failed: the edit leaked onto the container root")
+
+				# And DISPLAYING must not write anything. Setting a knob's value
+				# emits value_changed, so refreshing the UI used to stamp every
+				# card's default onto the preset — which is where the shipped
+				# containers full of dead root keys came from.
+				var l0 = lw.active_preset_dict["layers"][0]
+				if l0.has("base_freq"):
+					failures.append("Test 11 Failed: refreshing the UI stamped defaults into layer 0")
+				if l0.has("envelope"):
+					failures.append("Test 11 Failed: refreshing the UI stamped an envelope into layer 0")
+
+			lw.free()
+
 	return failures

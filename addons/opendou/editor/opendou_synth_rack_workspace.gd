@@ -13,6 +13,7 @@ const OpenDouKnobClass = preload("res://addons/opendou/editor/controls/opendou_k
 const OpenDouADSREditorClass = preload("res://addons/opendou/editor/controls/opendou_adsr_editor.gd")
 const OpenDouWaveformPlayheadClass = preload("res://addons/opendou/editor/controls/opendou_waveform_playhead.gd")
 const OpenDouVUMeterClass = preload("res://addons/opendou/editor/controls/opendou_vu_meter.gd")
+const SynthLayerOpsClass = preload("res://addons/opendou/runtime/synth/layer_ops.gd")
 
 const GENERATOR_TYPES = [
 	"Basic_Wave", "FM_Chirp", "Filtered_Noise", "Karplus_Strong",
@@ -50,6 +51,11 @@ var type_option: OptionButton
 var chk_loop: CheckBox
 var knob_duration: Control
 var knob_master_gain: Control
+
+# Layer strip (Layer_Container only)
+var layer_strip: PanelContainer
+var layer_list: ItemList
+var knob_start_offset: Control
 
 # Card 1: Generator Card
 var opt_gen_type: OptionButton
@@ -105,6 +111,12 @@ var audio_player: AudioStreamPlayer
 var current_preset_name: StringName = &""
 var active_preset_dict: Dictionary = {}
 var _is_updating_ui: bool = false
+## Which layer the Generator / ADSR / Filter / LFO / Drive cards are editing.
+## Ignored for a Single_Generator, where the preset root IS the layer.
+var _capa_sel: int = 0
+## Scratch target for writes that happen while the UI is refreshing itself.
+## See `_capa_escribir`.
+var _descarte: Dictionary = {}
 var _is_auditioning: bool = false
 var _preview_samples: PackedFloat32Array = PackedFloat32Array()
 
@@ -281,6 +293,12 @@ func _build_ui() -> void:
 	cards_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cards_container.add_theme_constant_override("h_separation", 6)
 	cards_container.add_theme_constant_override("v_separation", 6)
+	# Layer strip: which layer the tone cards below are editing.
+	# Built BEFORE the cards and added before them, because without it the cards
+	# have no subject on a Layer_Container: they showed defaults and wrote into
+	# the container root, where synthesize_wav reads none of them.
+	vbox_rack.add_child(_build_layer_strip())
+
 	vbox_rack.add_child(cards_container)
 
 	# Card 1: Generator Card
@@ -357,6 +375,154 @@ func _create_card_container(border_color: Color) -> PanelContainer:
 # ----------------------------------------------------------------
 # Sub-Card Builders
 # ----------------------------------------------------------------
+
+## The layer strip: which layer the tone cards edit, and the layer-level timing
+## that had no control at all before (`start_offset`).
+##
+## Hidden for a Single_Generator, where the preset root IS the layer and a list
+## of one would be noise.
+func _build_layer_strip() -> PanelContainer:
+	layer_strip = _create_card_container(Color(0.95, 0.65, 0.2, 0.8))
+	layer_strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	layer_strip.add_child(vb)
+
+	var header = Label.new()
+	header.text = "LAYERS"
+	header.add_theme_font_size_override("font_size", 11)
+	vb.add_child(header)
+
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	vb.add_child(row)
+
+	layer_list = ItemList.new()
+	layer_list.custom_minimum_size = Vector2(220, 92)
+	layer_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layer_list.select_mode = ItemList.SELECT_SINGLE
+	layer_list.item_selected.connect(_on_layer_selected)
+	row.add_child(layer_list)
+
+	var botones = VBoxContainer.new()
+	botones.add_theme_constant_override("separation", 2)
+	row.add_child(botones)
+
+	var fila_a = HBoxContainer.new()
+	fila_a.add_theme_constant_override("separation", 2)
+	botones.add_child(fila_a)
+	fila_a.add_child(_layer_button("➕", "Add a layer", func(): _on_layer_add()))
+	fila_a.add_child(_layer_button("📋", "Duplicate the selected layer", func(): _on_layer_duplicate()))
+	fila_a.add_child(_layer_button("🗑️", "Remove the selected layer", func(): _on_layer_remove()))
+
+	var fila_b = HBoxContainer.new()
+	fila_b.add_theme_constant_override("separation", 2)
+	botones.add_child(fila_b)
+	fila_b.add_child(_layer_button("▲", "Move the layer up", func(): _on_layer_move(-1)))
+	fila_b.add_child(_layer_button("▼", "Move the layer down", func(): _on_layer_move(1)))
+
+	knob_start_offset = OpenDouKnobClass.new()
+	knob_start_offset.label = "Offset"
+	knob_start_offset.min_value = 0.0
+	knob_start_offset.max_value = 1.0
+	knob_start_offset.step = 0.001
+	knob_start_offset.suffix = " s"
+	knob_start_offset.default_value = 0.0
+	knob_start_offset.tooltip_text = "When this layer starts, in seconds from the top of the sound.\nThis is what lets a shot spread transient, body, mechanism and tail\ninstead of stacking everything on the same instant."
+	knob_start_offset.value_changed.connect(_on_start_offset_changed)
+	row.add_child(knob_start_offset)
+
+	return layer_strip
+
+
+func _layer_button(texto: String, pista: String, al_pulsar: Callable) -> Button:
+	var b = Button.new()
+	b.text = texto
+	b.tooltip_text = pista
+	b.custom_minimum_size = Vector2(30, 24)
+	b.pressed.connect(al_pulsar)
+	return b
+
+
+## Repaints the list from the preset. Called on load and after every structural
+## change, so the list never drifts from the data it claims to show.
+func _refrescar_lista_capas() -> void:
+	if layer_list == null:
+		return
+	var es_cont := SynthLayerOpsClass.is_container(active_preset_dict)
+	if layer_strip:
+		layer_strip.visible = es_cont
+	layer_list.clear()
+	if not es_cont:
+		return
+	var capas := SynthLayerOpsClass.layers(active_preset_dict)
+	for i in range(capas.size()):
+		var c: Dictionary = capas[i] if capas[i] is Dictionary else {}
+		var off := float(c.get("start_offset", 0.0))
+		var etiqueta := "%d. %s  [%s]" % [
+			i + 1,
+			str(c.get("name", "Layer %d" % (i + 1))),
+			str(c.get("generator_type", "Basic_Wave")),
+		]
+		# The offset goes in the label on purpose: it is the one property you
+		# need to see across ALL layers at once to understand the sound's shape,
+		# and a knob only ever shows you the selected one.
+		if off > 0.0:
+			etiqueta += "  +%.0f ms" % (off * 1000.0)
+		layer_list.add_item(etiqueta)
+	if capas.size() > 0:
+		_capa_sel = clampi(_capa_sel, 0, capas.size() - 1)
+		layer_list.select(_capa_sel)
+
+
+func _on_layer_selected(idx: int) -> void:
+	_capa_sel = idx
+	_update_ui_from_preset_dict()
+
+
+func _on_layer_add() -> void:
+	if not SynthLayerOpsClass.is_container(active_preset_dict):
+		return
+	_capa_sel = SynthLayerOpsClass.add(active_preset_dict)
+	_tras_cambiar_capas()
+
+
+func _on_layer_duplicate() -> void:
+	if not SynthLayerOpsClass.is_container(active_preset_dict):
+		return
+	_capa_sel = SynthLayerOpsClass.duplicate_at(active_preset_dict, _capa_sel)
+	_tras_cambiar_capas()
+
+
+func _on_layer_remove() -> void:
+	if not SynthLayerOpsClass.is_container(active_preset_dict):
+		return
+	_capa_sel = maxi(0, SynthLayerOpsClass.remove(active_preset_dict, _capa_sel))
+	_tras_cambiar_capas()
+
+
+func _on_layer_move(delta: int) -> void:
+	if not SynthLayerOpsClass.is_container(active_preset_dict):
+		return
+	_capa_sel = SynthLayerOpsClass.move(active_preset_dict, _capa_sel, delta)
+	_tras_cambiar_capas()
+
+
+func _on_start_offset_changed(val: float) -> void:
+	_capa_escribir()["start_offset"] = val
+	_refrescar_lista_capas()
+	_commit_preset_change()
+
+
+## After any structural change: repaint the list, resync the cards to the newly
+## selected layer, and persist. All three, always — doing two of the three is
+## how an editor starts lying about what you are editing.
+func _tras_cambiar_capas() -> void:
+	_refrescar_lista_capas()
+	_update_ui_from_preset_dict()
+	_commit_preset_change()
+
 
 func _build_generator_card() -> PanelContainer:
 	var card = _create_card_container(Color(0.2, 0.7, 0.9, 0.7))
@@ -797,6 +963,9 @@ func load_presets_from_registry() -> void:
 
 func select_preset(p_name: StringName) -> void:
 	current_preset_name = p_name
+	# New preset selected: start on its first layer, not on whatever index the
+	# previous preset happened to leave behind.
+	_capa_sel = 0
 	active_preset_dict = SynthPresetRegistryClass.get_singleton().get_preset(p_name)
 	if active_preset_dict.is_empty():
 		active_preset_dict = {
@@ -864,8 +1033,54 @@ func delete_current_preset() -> void:
 	SynthPresetRegistryClass.get_singleton().delete_preset(current_preset_name)
 	load_presets_from_registry()
 
+## The dictionary the tone cards READ from. May be empty — a container with no
+## layers yet — and that is fine: the cards then show their defaults, which is
+## honest, because there is nothing to show.
+func _capa_leer() -> Dictionary:
+	return SynthLayerOpsClass.target(active_preset_dict, _capa_sel)
+
+
+## The dictionary the tone cards WRITE to.
+##
+## Differs from `_capa_leer` in one thing that matters: on a container with no
+## layers it creates one instead of returning an empty dictionary. Writing into
+## a temporary would swallow the edit silently — a knob that moves and does
+## nothing, which is the bug this whole change is here to fix.
+func _capa_escribir() -> Dictionary:
+	# While the UI is being refreshed, writes go to a scratch dictionary and are
+	# thrown away.
+	#
+	# This is not defensive padding, it is a real bug fix. Setting `.value` on a
+	# knob emits `value_changed`, which calls the handler, which writes. So
+	# merely DISPLAYING a preset stamped every card's default onto it:
+	# base_freq 440, envelope 0.05/0.1/0.7/0.2, filter None/2000/1.0. The
+	# `_is_updating_ui` flag only ever guarded `_commit_preset_change`, so the
+	# write had already happened by the time anything checked.
+	#
+	# That is where the shipped Layer_Containers carrying dead root keys came
+	# from: opening one in the workspace was enough. Without this guard the same
+	# thing would now happen one level down, stamping defaults into real layers,
+	# which is worse — those are not dead keys, they are the sound.
+	# Deliberately NOT cleared here. Several handlers touch the target three
+	# times in a row —`has("envelope")`, create it, then write into it— and
+	# clearing on every access wiped the sub-dictionary between the second call
+	# and the third. It is emptied once per refresh instead, in
+	# `_update_ui_from_preset_dict`.
+	if _is_updating_ui:
+		return _descarte
+	if not SynthLayerOpsClass.is_container(active_preset_dict):
+		return active_preset_dict
+	if SynthLayerOpsClass.count(active_preset_dict) == 0:
+		_capa_sel = SynthLayerOpsClass.add(active_preset_dict)
+		_refrescar_lista_capas()
+	elif not SynthLayerOpsClass.valid(active_preset_dict, _capa_sel):
+		_capa_sel = 0
+	return SynthLayerOpsClass.at(active_preset_dict, _capa_sel)
+
+
 func _update_ui_from_preset_dict() -> void:
 	_is_updating_ui = true
+	_descarte.clear()
 
 	if name_edit:
 		name_edit.text = str(current_preset_name)
@@ -883,20 +1098,27 @@ func _update_ui_from_preset_dict() -> void:
 	if knob_master_gain:
 		knob_master_gain.value = float(active_preset_dict.get("gain_db", 0.0))
 
+	# The layer list, and the offset of whichever layer is selected. Repainting
+	# here and not only on load keeps the list honest after a rename or a type
+	# change.
+	_refrescar_lista_capas()
+	if knob_start_offset:
+		knob_start_offset.value = float(_capa_leer().get("start_offset", 0.0))
+
 	# Generator Card
-	var gen_type = active_preset_dict.get("generator_type", "Basic_Wave")
+	var gen_type = _capa_leer().get("generator_type", "Basic_Wave")
 	if opt_gen_type:
 		var g_idx = GENERATOR_TYPES.find(gen_type)
 		opt_gen_type.selected = g_idx if g_idx >= 0 else 0
 
 	if knob_base_freq:
-		knob_base_freq.value = float(active_preset_dict.get("base_freq", 440.0))
+		knob_base_freq.value = float(_capa_leer().get("base_freq", 440.0))
 
 	if knob_freq_var:
-		knob_freq_var.value = float(active_preset_dict.get("base_freq_var", 0.0))
+		knob_freq_var.value = float(_capa_leer().get("base_freq_var", 0.0))
 
 	# ADSR Card
-	var env_dict = active_preset_dict.get("envelope", {})
+	var env_dict = _capa_leer().get("envelope", {})
 	var att = float(env_dict.get("attack", 0.05))
 	var dec = float(env_dict.get("decay", 0.1))
 	var sus = float(env_dict.get("sustain", 0.7))
@@ -914,7 +1136,7 @@ func _update_ui_from_preset_dict() -> void:
 		knob_release.value = rel
 
 	# Filter Card
-	var f_dict = active_preset_dict.get("filter", {})
+	var f_dict = _capa_leer().get("filter", {})
 	var f_type = f_dict.get("type", "None")
 	if opt_filter_mode:
 		var f_idx = FILTER_TYPES.find(f_type)
@@ -925,7 +1147,7 @@ func _update_ui_from_preset_dict() -> void:
 		knob_filter_q.value = float(f_dict.get("resonance_q", 1.0))
 
 	# LFO Card
-	var lfo_dict = active_preset_dict.get("lfo", {})
+	var lfo_dict = _capa_leer().get("lfo", {})
 	var l_wave = lfo_dict.get("wave", "Sine")
 	var l_target = lfo_dict.get("target", "Amplitude")
 	if opt_lfo_wave:
@@ -940,7 +1162,7 @@ func _update_ui_from_preset_dict() -> void:
 		knob_lfo_depth.value = float(lfo_dict.get("depth", 0.0))
 
 	# Drive Card
-	var d_dict = active_preset_dict.get("drive", {})
+	var d_dict = _capa_leer().get("drive", {})
 	var d_type = d_dict.get("type", "None")
 	if opt_drive_type:
 		var dt_idx = DRIVE_TYPES.find(d_type)
@@ -1021,8 +1243,8 @@ func _refresh_preview(re_synthesize: bool = true) -> void:
 		if waveform_playhead:
 			waveform_playhead.set_waveform(_preview_samples)
 
-	if waveform_playhead and active_preset_dict.has("envelope"):
-		var env = active_preset_dict["envelope"]
+	if waveform_playhead and not _capa_leer().get("envelope", {}).is_empty():
+		var env = _capa_leer()["envelope"]
 		var a = float(env.get("attack", 0.05))
 		var d = float(env.get("decay", 0.1))
 		var s = float(env.get("sustain", 0.7))
@@ -1054,8 +1276,17 @@ func _on_preset_name_submitted(new_name: String) -> void:
 	select_preset(s_name)
 
 func _on_type_option_selected(idx: int) -> void:
-	active_preset_dict["type"] = "Layer_Container" if idx == 1 else "Single_Generator"
-	_commit_preset_change()
+	if idx == 1:
+		# Not a flag flip: the sound you had built lives in fields that only mean
+		# something on a layer, so they move INTO the first layer. Merely setting
+		# the type left them stranded on the container root, where
+		# synthesize_wav reads none of them — that is exactly where the shipped
+		# presets carrying dead root keys came from.
+		SynthLayerOpsClass.to_container(active_preset_dict)
+		_capa_sel = 0
+	else:
+		active_preset_dict["type"] = "Single_Generator"
+	_tras_cambiar_capas()
 
 func _on_loop_toggled(is_loop: bool) -> void:
 	active_preset_dict["loop_mode"] = is_loop
@@ -1071,142 +1302,151 @@ func _on_master_gain_knob_changed(val: float) -> void:
 
 func _on_gen_type_selected(idx: int) -> void:
 	if idx >= 0 and idx < GENERATOR_TYPES.size():
-		active_preset_dict["generator_type"] = GENERATOR_TYPES[idx]
+		_capa_escribir()["generator_type"] = GENERATOR_TYPES[idx]
 		_commit_preset_change()
 
 func _on_base_freq_changed(val: float) -> void:
-	active_preset_dict["base_freq"] = val
+	_capa_escribir()["base_freq"] = val
 	_commit_preset_change()
 
 func _on_freq_var_changed(val: float) -> void:
-	active_preset_dict["base_freq_var"] = val
+	_capa_escribir()["base_freq_var"] = val
 	_commit_preset_change()
 
 func _on_octave_changed(val: float) -> void:
-	active_preset_dict["octave"] = int(roundf(val))
+	_capa_escribir()["octave"] = int(roundf(val))
 	_commit_preset_change()
 
 func _on_detune_changed(val: float) -> void:
-	active_preset_dict["detune_cents"] = val
+	_capa_escribir()["detune_cents"] = val
 	_commit_preset_change()
 
 func _on_adsr_editor_changed(a: float, d: float, s: float, r: float) -> void:
+	# The flag is SAVED and RESTORED, not forced to false.
+	#
+	# This handler runs re-entrantly: refreshing the UI calls
+	# `adsr_editor.set_adsr()`, which emits `adsr_changed`, which lands here. The
+	# old code set the flag false on its way out, which did not just let this
+	# write through — it disarmed the guard for the whole rest of the refresh, so
+	# every knob assignment after the ADSR card wrote its default into the
+	# preset. It was the main way presets picked up values nobody dialled in.
+	var estaba := _is_updating_ui
 	_is_updating_ui = true
 	if knob_attack: knob_attack.value = a
 	if knob_decay: knob_decay.value = d
 	if knob_sustain: knob_sustain.value = s
 	if knob_release: knob_release.value = r
-	_is_updating_ui = false
+	_is_updating_ui = estaba
 
-	if not active_preset_dict.has("envelope"):
-		active_preset_dict["envelope"] = {}
-	active_preset_dict["envelope"]["attack"] = a
-	active_preset_dict["envelope"]["decay"] = d
-	active_preset_dict["envelope"]["sustain"] = s
-	active_preset_dict["envelope"]["release"] = r
+	if not _capa_escribir().has("envelope"):
+		_capa_escribir()["envelope"] = {}
+	_capa_escribir()["envelope"]["attack"] = a
+	_capa_escribir()["envelope"]["decay"] = d
+	_capa_escribir()["envelope"]["sustain"] = s
+	_capa_escribir()["envelope"]["release"] = r
 	_commit_preset_change()
 
 func _on_attack_knob_changed(val: float) -> void:
 	if not _is_updating_ui and adsr_editor:
 		adsr_editor.attack = val
-	if not active_preset_dict.has("envelope"):
-		active_preset_dict["envelope"] = {}
-	active_preset_dict["envelope"]["attack"] = val
+	if not _capa_escribir().has("envelope"):
+		_capa_escribir()["envelope"] = {}
+	_capa_escribir()["envelope"]["attack"] = val
 	_commit_preset_change()
 
 func _on_decay_knob_changed(val: float) -> void:
 	if not _is_updating_ui and adsr_editor:
 		adsr_editor.decay = val
-	if not active_preset_dict.has("envelope"):
-		active_preset_dict["envelope"] = {}
-	active_preset_dict["envelope"]["decay"] = val
+	if not _capa_escribir().has("envelope"):
+		_capa_escribir()["envelope"] = {}
+	_capa_escribir()["envelope"]["decay"] = val
 	_commit_preset_change()
 
 func _on_sustain_knob_changed(val: float) -> void:
 	if not _is_updating_ui and adsr_editor:
 		adsr_editor.sustain = val
-	if not active_preset_dict.has("envelope"):
-		active_preset_dict["envelope"] = {}
-	active_preset_dict["envelope"]["sustain"] = val
+	if not _capa_escribir().has("envelope"):
+		_capa_escribir()["envelope"] = {}
+	_capa_escribir()["envelope"]["sustain"] = val
 	_commit_preset_change()
 
 func _on_release_knob_changed(val: float) -> void:
 	if not _is_updating_ui and adsr_editor:
 		adsr_editor.release = val
-	if not active_preset_dict.has("envelope"):
-		active_preset_dict["envelope"] = {}
-	active_preset_dict["envelope"]["release"] = val
+	if not _capa_escribir().has("envelope"):
+		_capa_escribir()["envelope"] = {}
+	_capa_escribir()["envelope"]["release"] = val
 	_commit_preset_change()
 
 func _on_filter_mode_selected(idx: int) -> void:
 	if idx >= 0 and idx < FILTER_TYPES.size():
-		if not active_preset_dict.has("filter"):
-			active_preset_dict["filter"] = {}
-		active_preset_dict["filter"]["type"] = FILTER_TYPES[idx]
+		if not _capa_escribir().has("filter"):
+			_capa_escribir()["filter"] = {}
+		_capa_escribir()["filter"]["type"] = FILTER_TYPES[idx]
 		_commit_preset_change()
 
 func _on_filter_cutoff_changed(val: float) -> void:
-	if not active_preset_dict.has("filter"):
-		active_preset_dict["filter"] = {}
-	active_preset_dict["filter"]["cutoff_hz"] = val
+	if not _capa_escribir().has("filter"):
+		_capa_escribir()["filter"] = {}
+	_capa_escribir()["filter"]["cutoff_hz"] = val
 	_commit_preset_change()
 
 func _on_filter_q_changed(val: float) -> void:
-	if not active_preset_dict.has("filter"):
-		active_preset_dict["filter"] = {}
-	active_preset_dict["filter"]["resonance_q"] = val
+	if not _capa_escribir().has("filter"):
+		_capa_escribir()["filter"] = {}
+	_capa_escribir()["filter"]["resonance_q"] = val
 	_commit_preset_change()
 
 func _on_lfo_wave_selected(idx: int) -> void:
 	if idx >= 0 and idx < LFO_WAVES.size():
-		if not active_preset_dict.has("lfo"):
-			active_preset_dict["lfo"] = {}
-		active_preset_dict["lfo"]["wave"] = LFO_WAVES[idx]
+		if not _capa_escribir().has("lfo"):
+			_capa_escribir()["lfo"] = {}
+		_capa_escribir()["lfo"]["wave"] = LFO_WAVES[idx]
 		_commit_preset_change()
 
 func _on_lfo_target_selected(idx: int) -> void:
 	if idx >= 0 and idx < LFO_TARGETS.size():
-		if not active_preset_dict.has("lfo"):
-			active_preset_dict["lfo"] = {}
-		active_preset_dict["lfo"]["target"] = LFO_TARGETS[idx]
+		if not _capa_escribir().has("lfo"):
+			_capa_escribir()["lfo"] = {}
+		_capa_escribir()["lfo"]["target"] = LFO_TARGETS[idx]
 		_commit_preset_change()
 
 func _on_lfo_rate_changed(val: float) -> void:
-	if not active_preset_dict.has("lfo"):
-		active_preset_dict["lfo"] = {}
-	active_preset_dict["lfo"]["rate_hz"] = val
+	if not _capa_escribir().has("lfo"):
+		_capa_escribir()["lfo"] = {}
+	_capa_escribir()["lfo"]["rate_hz"] = val
 	_commit_preset_change()
 
 func _on_lfo_depth_changed(val: float) -> void:
-	if not active_preset_dict.has("lfo"):
-		active_preset_dict["lfo"] = {}
-	active_preset_dict["lfo"]["depth"] = val
+	if not _capa_escribir().has("lfo"):
+		_capa_escribir()["lfo"] = {}
+	_capa_escribir()["lfo"]["depth"] = val
 	_commit_preset_change()
 
 func _on_drive_type_selected(idx: int) -> void:
 	if idx >= 0 and idx < DRIVE_TYPES.size():
-		if not active_preset_dict.has("drive"):
-			active_preset_dict["drive"] = {}
-		active_preset_dict["drive"]["type"] = DRIVE_TYPES[idx]
+		if not _capa_escribir().has("drive"):
+			_capa_escribir()["drive"] = {}
+		_capa_escribir()["drive"]["type"] = DRIVE_TYPES[idx]
 		_commit_preset_change()
 
 func _on_drive_amount_changed(val: float) -> void:
-	if not active_preset_dict.has("drive"):
-		active_preset_dict["drive"] = {}
-	active_preset_dict["drive"]["amount"] = val
+	if not _capa_escribir().has("drive"):
+		_capa_escribir()["drive"] = {}
+	_capa_escribir()["drive"]["amount"] = val
 	_commit_preset_change()
 
 func _on_voice_mode_selected(idx: int) -> void:
 	if idx >= 0 and idx < VOICE_MODES.size():
-		if not active_preset_dict.has("voice"):
-			active_preset_dict["voice"] = {}
-		active_preset_dict["voice"]["mode"] = VOICE_MODES[idx]
+		if not _capa_escribir().has("voice"):
+			_capa_escribir()["voice"] = {}
+		_capa_escribir()["voice"]["mode"] = VOICE_MODES[idx]
 		_commit_preset_change()
 
 func _on_glide_time_changed(val: float) -> void:
-	if not active_preset_dict.has("voice"):
-		active_preset_dict["voice"] = {}
-	active_preset_dict["voice"]["glide_ms"] = val * 1000.0
+	if not _capa_escribir().has("voice"):
+		_capa_escribir()["voice"] = {}
+	_capa_escribir()["voice"]["glide_ms"] = val * 1000.0
 	_commit_preset_change()
 
 func _on_pan_changed(val: float) -> void:
