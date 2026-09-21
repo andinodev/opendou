@@ -335,9 +335,31 @@ static func generate_layer_samples(layer_dict: Dictionary, duration: float, samp
 		var f_cutoff: float = float(filter_dict.get("cutoff_hz", 2000.0))
 		var f_q: float = float(filter_dict.get("resonance_q", 1.0))
 		var biquad = Biquad.new()
-		biquad.setup(f_type, f_cutoff, f_q, float(sample_rate))
-		for i in range(num_samples):
-			samples[i] = biquad.process(samples[i])
+		var f_env: Dictionary = filter_dict.get("envelope", {})
+		if f_env.is_empty():
+			biquad.setup(f_type, f_cutoff, f_q, float(sample_rate))
+			for i in range(num_samples):
+				samples[i] = biquad.process(samples[i])
+		else:
+			# Exponential sweep from start_hz toward cutoff_hz, which here is the
+			# DESTINATION. This is what separates a gunshot from a blip: the
+			# brightness collapses over tens of milliseconds while the body rings on.
+			#
+			# Two things that look like details and are not:
+			#  - Coefficients are recomputed every BLOCK samples, not every sample.
+			#    At 44100 Hz that is 1378 updates per second, smooth by a wide
+			#    margin, and it saves a sin and a cos per sample.
+			#  - The biquad state x1/x2/y1/y2 is NOT reset on recompute. Resetting
+			#    would inject an audible click on every block, 1378 times a second.
+			var f_start: float = float(f_env.get("start_hz", f_cutoff))
+			var f_decay: float = maxf(0.0001, float(f_env.get("decay", 0.05)))
+			var block: int = 32
+			for i in range(num_samples):
+				if i % block == 0:
+					var t_f: float = float(i) / float(sample_rate)
+					var hz: float = f_cutoff + (f_start - f_cutoff) * exp(-t_f / f_decay)
+					biquad.setup(f_type, hz, f_q, float(sample_rate))
+				samples[i] = biquad.process(samples[i])
 
 	# Layer Drive
 	var drive_dict: Dictionary = layer_dict.get("drive", {})
@@ -366,12 +388,16 @@ static func synthesize_wav(preset_dict: Dictionary, rng_seed: int = 0) -> AudioS
 
 	if p_type == "Layer_Container":
 		var layers: Array = preset_dict.get("layers", [])
+		# Primera pasada: hasta donde llega la capa mas tardia. Una capa que arranca
+		# en start_offset y dura l_dur acaba en la suma de las dos, y el contenedor
+		# tiene que cubrirla o su cola se corta a media caida.
 		var max_dur = duration
 		for l in layers:
 			if l is Dictionary:
-				var l_dur = float(l.get("duration", duration))
-				if l_dur > max_dur:
-					max_dur = l_dur
+				var l_off = maxf(0.0, float(l.get("start_offset", 0.0)))
+				var l_dur = float(l.get("duration", duration - l_off))
+				if l_off + l_dur > max_dur:
+					max_dur = l_off + l_dur
 		duration = max_dur
 		var total_samples = int(duration * sample_rate)
 		master_buffer.resize(total_samples)
@@ -379,15 +405,23 @@ static func synthesize_wav(preset_dict: Dictionary, rng_seed: int = 0) -> AudioS
 		var layer_idx: int = 0
 		for l in layers:
 			if l is Dictionary:
-				var l_dur = float(l.get("duration", duration))
+				var l_off = maxf(0.0, float(l.get("start_offset", 0.0)))
+				# Sin duracion propia, la capa llega hasta el final del contenedor
+				# DESDE donde arranca. Con offset 0 esto es `duration`, que es lo que
+				# valia antes de que existieran los offsets.
+				var l_dur = float(l.get("duration", duration - l_off))
 				var l_seed = rng_seed + layer_idx * 1000 if rng_seed != 0 else 0
+				# La capa se genera desde su propio t=0: generate_layer_samples no sabe
+				# nada de offsets y sigue siendo pura. El desplazamiento es cosa de la
+				# composicion, y asi la envolvente de la capa empieza donde suena.
 				var l_samples = generate_layer_samples(l, l_dur, sample_rate, l_seed)
+				var start_i = int(l_off * sample_rate)
 				# La ganancia de la capa ya la aplico generate_layer_samples: aqui solo se
 				# suma. Antes se multiplicaba otra vez y cada capa sonaba al doble de dB
 				# de lo que decia su gain_db (una capa a -6 salia a -12).
-				var count = mini(master_buffer.size(), l_samples.size())
+				var count = mini(master_buffer.size() - start_i, l_samples.size())
 				for i in range(count):
-					master_buffer[i] += l_samples[i]
+					master_buffer[start_i + i] += l_samples[i]
 				layer_idx += 1
 	else:
 		master_buffer = generate_layer_samples(preset_dict, duration, sample_rate, rng_seed)

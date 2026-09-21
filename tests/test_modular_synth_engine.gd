@@ -295,7 +295,188 @@ static func run_all() -> Array[String]:
 		if stream_multi.data.size() != expected_bytes:
 			failures.append("Test 16 Failed: Layer_Container data byte size mismatch (got %d, expected %d)" % [stream_multi.data.size(), expected_bytes])
 
+	# Test 17: start_offset places a layer on the time axis
+	# Without it every layer starts at t=0, so a gunshot cannot spread transient,
+	# body, mechanism and tail: everything stacks on the same instant and the
+	# result is a blip. Absent means 0.0, so existing presets are untouched.
+	var offset_preset = {
+		"type": "Layer_Container",
+		"duration": 0.2,
+		"layers": [
+			{
+				"name": "late",
+				"generator_type": "Basic_Wave",
+				"wave_type": "Sine",
+				"base_freq": 440.0,
+				"duration": 0.1,
+				"start_offset": 0.1
+			}
+		]
+	}
+	var stream_offset = ModularSynthEngineClass.synthesize_wav(offset_preset, 7)
+	if stream_offset == null or not (stream_offset is AudioStreamWAV):
+		failures.append("Test 17 Failed: synthesize_wav with start_offset returned no stream")
+	else:
+		var off_samples = _decode_mono(stream_offset)
+		# 0.1 s at 44100 Hz is 4410 samples of EXACT silence, not near-silence.
+		var dirty = 0
+		for i in range(mini(4410, off_samples.size())):
+			if absf(off_samples[i]) > 0.0:
+				dirty += 1
+		if dirty != 0:
+			failures.append("Test 17 Failed: %d non-silent samples before start_offset" % dirty)
+		# And there must be signal after it, or an empty buffer would pass.
+		if _calculate_slice_rms(off_samples, 4410, off_samples.size()) <= 0.01:
+			failures.append("Test 17 Failed: no signal after start_offset")
+
+	# Test 18: the container grows to cover the latest layer
+	# The layer ends at 0.3 + 0.2 = 0.5 s, well past the declared 0.2. If the
+	# container does not grow, the tail is cut mid-decay.
+	var grow_preset = {
+		"type": "Layer_Container",
+		"duration": 0.2,
+		"layers": [
+			{
+				"name": "tail",
+				"generator_type": "Basic_Wave",
+				"wave_type": "Sine",
+				"base_freq": 220.0,
+				"duration": 0.2,
+				"start_offset": 0.3
+			}
+		]
+	}
+	var stream_grow = ModularSynthEngineClass.synthesize_wav(grow_preset, 7)
+	if stream_grow == null:
+		failures.append("Test 18 Failed: synthesize_wav returned no stream")
+	else:
+		var expected_grow = int(0.5 * 44100) * 2
+		if absi(stream_grow.data.size() - expected_grow) > 2:
+			failures.append("Test 18 Failed: container did not grow (got %d bytes, expected %d)" % [stream_grow.data.size(), expected_grow])
+
+	# Test 19: a start_offset of 0.0 is identical to not declaring it
+	# This is the backward-compatibility guarantee: every preset authored before
+	# the field existed must render byte for byte the same.
+	var plain_layer = {
+		"name": "x",
+		"generator_type": "Basic_Wave",
+		"wave_type": "Sine",
+		"base_freq": 330.0,
+		"duration": 0.1
+	}
+	var zero_layer = plain_layer.duplicate(true)
+	zero_layer["start_offset"] = 0.0
+	var stream_plain = ModularSynthEngineClass.synthesize_wav(
+		{"type": "Layer_Container", "duration": 0.1, "layers": [plain_layer]}, 11)
+	var stream_zero = ModularSynthEngineClass.synthesize_wav(
+		{"type": "Layer_Container", "duration": 0.1, "layers": [zero_layer]}, 11)
+	if stream_plain == null or stream_zero == null:
+		failures.append("Test 19 Failed: synthesize_wav returned no stream")
+	elif stream_plain.data != stream_zero.data:
+		failures.append("Test 19 Failed: start_offset 0.0 changed the output")
+
+	# Test 20: filter envelope sweeps the cutoff over time
+	# A static cutoff is the other reason a synthesized gunshot sounds like a
+	# blip: a real shot decays from bright to dark in tens of milliseconds. With
+	# cutoff_hz as the destination and envelope.start_hz as the origin, white
+	# noise swept from 9 kHz to 400 Hz must be far brighter in its first third.
+	var sweep_layer = {
+		"generator_type": "Filtered_Noise",
+		"noise_type": "White",
+		"filter": {
+			"type": "LowPass",
+			"resonance_q": 0.9,
+			"cutoff_hz": 400.0,
+			"envelope": {"start_hz": 9000.0, "decay": 0.04}
+		}
+	}
+	var sweep_samples = ModularSynthEngineClass.generate_layer_samples(sweep_layer, 0.3, 44100, 13)
+	if sweep_samples.is_empty():
+		failures.append("Test 20 Failed: filter envelope produced no samples")
+	else:
+		var third = sweep_samples.size() / 3
+		var bright = _count_zero_crossings(sweep_samples, 0, third)
+		var dark = _count_zero_crossings(sweep_samples, third * 2, sweep_samples.size())
+		if bright <= dark * 2:
+			failures.append("Test 20 Failed: cutoff did not sweep down (%d crossings early, %d late)" % [bright, dark])
+
+	# Test 21: a filter with no envelope behaves exactly as before
+	# Backward compatibility for every preset authored against the static filter.
+	var static_layer = {
+		"generator_type": "Filtered_Noise",
+		"noise_type": "White",
+		"filter": {"type": "LowPass", "resonance_q": 0.9, "cutoff_hz": 1200.0}
+	}
+	var static_a = ModularSynthEngineClass.generate_layer_samples(static_layer, 0.15, 44100, 23)
+	var static_b = ModularSynthEngineClass.generate_layer_samples(static_layer, 0.15, 44100, 23)
+	if static_a != static_b:
+		failures.append("Test 21 Failed: static filter is not deterministic")
+	else:
+		var s_third = static_a.size() / 3
+		var s_early = _count_zero_crossings(static_a, 0, s_third)
+		var s_late = _count_zero_crossings(static_a, s_third * 2, static_a.size())
+		# No sweep means the brightness holds. If the late third darkened, the
+		# envelope was applied without being asked for.
+		if absi(s_early - s_late) >= maxi(s_early, s_late) / 2:
+			failures.append("Test 21 Failed: brightness drifted without an envelope (%d vs %d)" % [s_early, s_late])
+
+	# Test 22: a Layer_Container is NOT a layer, and treating it as one is garbage
+	# This pins the bug behind the Synth Rack waveform fix. The workspace drew its
+	# preview by passing the whole container to generate_layer_samples, which
+	# finds no generator_type and falls through to the default Basic_Wave sine at
+	# 440 Hz. Every layered preset drew the same perfect sine regardless of its
+	# contents, while the play button (synthesize_wav) played the real thing.
+	var container_preset = {
+		"type": "Layer_Container",
+		"duration": 0.2,
+		"layers": [
+			{
+				"name": "noise",
+				"generator_type": "Filtered_Noise",
+				"noise_type": "White",
+				"duration": 0.2
+			}
+		]
+	}
+	var as_layer = ModularSynthEngineClass.generate_layer_samples(container_preset, 0.2, 44100, 100)
+	var as_container = _decode_mono(ModularSynthEngineClass.synthesize_wav(container_preset, 100))
+	if as_layer.is_empty() or as_container.is_empty():
+		failures.append("Test 22 Failed: one of the two renders came back empty")
+	else:
+		# The wrong path is a clean sine: a 440 Hz sine crosses zero about 880
+		# times per second, so ~176 in 0.2 s. White noise crosses far more often.
+		var sine_crossings = _count_zero_crossings(as_layer, 0, as_layer.size())
+		var noise_crossings = _count_zero_crossings(as_container, 0, as_container.size())
+		if sine_crossings > 400:
+			failures.append("Test 22 Failed: expected the container-as-layer path to yield a plain sine, got %d crossings" % sine_crossings)
+		if noise_crossings <= sine_crossings * 2:
+			failures.append("Test 22 Failed: synthesize_wav should render the actual noise layer (%d vs %d crossings)" % [noise_crossings, sine_crossings])
+
 	return failures
+
+## Rough brightness proxy: a bright signal crosses zero far more often than a
+## dark one. Comparing two thirds of the SAME signal needs nothing finer, and it
+## avoids pulling an FFT into the test suite.
+static func _count_zero_crossings(samples: PackedFloat32Array, start_idx: int, end_idx: int) -> int:
+	start_idx = clampi(start_idx, 1, samples.size())
+	end_idx = clampi(end_idx, start_idx, samples.size())
+	var n: int = 0
+	for i in range(start_idx, end_idx):
+		if (samples[i - 1] < 0.0) != (samples[i] < 0.0):
+			n += 1
+	return n
+
+## Samples of a 16-bit stream in [-1, 1]. Stereo returns the left channel.
+static func _decode_mono(stream: AudioStreamWAV) -> PackedFloat32Array:
+	var out = PackedFloat32Array()
+	if stream == null:
+		return out
+	var step: int = 4 if stream.stereo else 2
+	var n: int = stream.data.size() / step
+	out.resize(n)
+	for i in range(n):
+		out[i] = float(stream.data.decode_s16(i * step)) / 32768.0
+	return out
 
 static func _calculate_rms(samples: PackedFloat32Array) -> float:
 	if samples.is_empty():
