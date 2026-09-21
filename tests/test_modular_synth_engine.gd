@@ -375,7 +375,64 @@ static func run_all() -> Array[String]:
 	elif stream_plain.data != stream_zero.data:
 		failures.append("Test 19 Failed: start_offset 0.0 changed the output")
 
+	# Test 20: filter envelope sweeps the cutoff over time
+	# A static cutoff is the other reason a synthesized gunshot sounds like a
+	# blip: a real shot decays from bright to dark in tens of milliseconds. With
+	# cutoff_hz as the destination and envelope.start_hz as the origin, white
+	# noise swept from 9 kHz to 400 Hz must be far brighter in its first third.
+	var sweep_layer = {
+		"generator_type": "Filtered_Noise",
+		"noise_type": "White",
+		"filter": {
+			"type": "LowPass",
+			"resonance_q": 0.9,
+			"cutoff_hz": 400.0,
+			"envelope": {"start_hz": 9000.0, "decay": 0.04}
+		}
+	}
+	var sweep_samples = ModularSynthEngineClass.generate_layer_samples(sweep_layer, 0.3, 44100, 13)
+	if sweep_samples.is_empty():
+		failures.append("Test 20 Failed: filter envelope produced no samples")
+	else:
+		var third = sweep_samples.size() / 3
+		var bright = _count_zero_crossings(sweep_samples, 0, third)
+		var dark = _count_zero_crossings(sweep_samples, third * 2, sweep_samples.size())
+		if bright <= dark * 2:
+			failures.append("Test 20 Failed: cutoff did not sweep down (%d crossings early, %d late)" % [bright, dark])
+
+	# Test 21: a filter with no envelope behaves exactly as before
+	# Backward compatibility for every preset authored against the static filter.
+	var static_layer = {
+		"generator_type": "Filtered_Noise",
+		"noise_type": "White",
+		"filter": {"type": "LowPass", "resonance_q": 0.9, "cutoff_hz": 1200.0}
+	}
+	var static_a = ModularSynthEngineClass.generate_layer_samples(static_layer, 0.15, 44100, 23)
+	var static_b = ModularSynthEngineClass.generate_layer_samples(static_layer, 0.15, 44100, 23)
+	if static_a != static_b:
+		failures.append("Test 21 Failed: static filter is not deterministic")
+	else:
+		var s_third = static_a.size() / 3
+		var s_early = _count_zero_crossings(static_a, 0, s_third)
+		var s_late = _count_zero_crossings(static_a, s_third * 2, static_a.size())
+		# No sweep means the brightness holds. If the late third darkened, the
+		# envelope was applied without being asked for.
+		if absi(s_early - s_late) >= maxi(s_early, s_late) / 2:
+			failures.append("Test 21 Failed: brightness drifted without an envelope (%d vs %d)" % [s_early, s_late])
+
 	return failures
+
+## Rough brightness proxy: a bright signal crosses zero far more often than a
+## dark one. Comparing two thirds of the SAME signal needs nothing finer, and it
+## avoids pulling an FFT into the test suite.
+static func _count_zero_crossings(samples: PackedFloat32Array, start_idx: int, end_idx: int) -> int:
+	start_idx = clampi(start_idx, 1, samples.size())
+	end_idx = clampi(end_idx, start_idx, samples.size())
+	var n: int = 0
+	for i in range(start_idx, end_idx):
+		if (samples[i - 1] < 0.0) != (samples[i] < 0.0):
+			n += 1
+	return n
 
 ## Samples of a 16-bit stream in [-1, 1]. Stereo returns the left channel.
 static func _decode_mono(stream: AudioStreamWAV) -> PackedFloat32Array:

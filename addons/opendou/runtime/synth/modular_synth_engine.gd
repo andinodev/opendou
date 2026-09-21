@@ -335,9 +335,31 @@ static func generate_layer_samples(layer_dict: Dictionary, duration: float, samp
 		var f_cutoff: float = float(filter_dict.get("cutoff_hz", 2000.0))
 		var f_q: float = float(filter_dict.get("resonance_q", 1.0))
 		var biquad = Biquad.new()
-		biquad.setup(f_type, f_cutoff, f_q, float(sample_rate))
-		for i in range(num_samples):
-			samples[i] = biquad.process(samples[i])
+		var f_env: Dictionary = filter_dict.get("envelope", {})
+		if f_env.is_empty():
+			biquad.setup(f_type, f_cutoff, f_q, float(sample_rate))
+			for i in range(num_samples):
+				samples[i] = biquad.process(samples[i])
+		else:
+			# Exponential sweep from start_hz toward cutoff_hz, which here is the
+			# DESTINATION. This is what separates a gunshot from a blip: the
+			# brightness collapses over tens of milliseconds while the body rings on.
+			#
+			# Two things that look like details and are not:
+			#  - Coefficients are recomputed every BLOCK samples, not every sample.
+			#    At 44100 Hz that is 1378 updates per second, smooth by a wide
+			#    margin, and it saves a sin and a cos per sample.
+			#  - The biquad state x1/x2/y1/y2 is NOT reset on recompute. Resetting
+			#    would inject an audible click on every block, 1378 times a second.
+			var f_start: float = float(f_env.get("start_hz", f_cutoff))
+			var f_decay: float = maxf(0.0001, float(f_env.get("decay", 0.05)))
+			var block: int = 32
+			for i in range(num_samples):
+				if i % block == 0:
+					var t_f: float = float(i) / float(sample_rate)
+					var hz: float = f_cutoff + (f_start - f_cutoff) * exp(-t_f / f_decay)
+					biquad.setup(f_type, hz, f_q, float(sample_rate))
+				samples[i] = biquad.process(samples[i])
 
 	# Layer Drive
 	var drive_dict: Dictionary = layer_dict.get("drive", {})
