@@ -295,7 +295,99 @@ static func run_all() -> Array[String]:
 		if stream_multi.data.size() != expected_bytes:
 			failures.append("Test 16 Failed: Layer_Container data byte size mismatch (got %d, expected %d)" % [stream_multi.data.size(), expected_bytes])
 
+	# Test 17: start_offset places a layer on the time axis
+	# Without it every layer starts at t=0, so a gunshot cannot spread transient,
+	# body, mechanism and tail: everything stacks on the same instant and the
+	# result is a blip. Absent means 0.0, so existing presets are untouched.
+	var offset_preset = {
+		"type": "Layer_Container",
+		"duration": 0.2,
+		"layers": [
+			{
+				"name": "late",
+				"generator_type": "Basic_Wave",
+				"wave_type": "Sine",
+				"base_freq": 440.0,
+				"duration": 0.1,
+				"start_offset": 0.1
+			}
+		]
+	}
+	var stream_offset = ModularSynthEngineClass.synthesize_wav(offset_preset, 7)
+	if stream_offset == null or not (stream_offset is AudioStreamWAV):
+		failures.append("Test 17 Failed: synthesize_wav with start_offset returned no stream")
+	else:
+		var off_samples = _decode_mono(stream_offset)
+		# 0.1 s at 44100 Hz is 4410 samples of EXACT silence, not near-silence.
+		var dirty = 0
+		for i in range(mini(4410, off_samples.size())):
+			if absf(off_samples[i]) > 0.0:
+				dirty += 1
+		if dirty != 0:
+			failures.append("Test 17 Failed: %d non-silent samples before start_offset" % dirty)
+		# And there must be signal after it, or an empty buffer would pass.
+		if _calculate_slice_rms(off_samples, 4410, off_samples.size()) <= 0.01:
+			failures.append("Test 17 Failed: no signal after start_offset")
+
+	# Test 18: the container grows to cover the latest layer
+	# The layer ends at 0.3 + 0.2 = 0.5 s, well past the declared 0.2. If the
+	# container does not grow, the tail is cut mid-decay.
+	var grow_preset = {
+		"type": "Layer_Container",
+		"duration": 0.2,
+		"layers": [
+			{
+				"name": "tail",
+				"generator_type": "Basic_Wave",
+				"wave_type": "Sine",
+				"base_freq": 220.0,
+				"duration": 0.2,
+				"start_offset": 0.3
+			}
+		]
+	}
+	var stream_grow = ModularSynthEngineClass.synthesize_wav(grow_preset, 7)
+	if stream_grow == null:
+		failures.append("Test 18 Failed: synthesize_wav returned no stream")
+	else:
+		var expected_grow = int(0.5 * 44100) * 2
+		if absi(stream_grow.data.size() - expected_grow) > 2:
+			failures.append("Test 18 Failed: container did not grow (got %d bytes, expected %d)" % [stream_grow.data.size(), expected_grow])
+
+	# Test 19: a start_offset of 0.0 is identical to not declaring it
+	# This is the backward-compatibility guarantee: every preset authored before
+	# the field existed must render byte for byte the same.
+	var plain_layer = {
+		"name": "x",
+		"generator_type": "Basic_Wave",
+		"wave_type": "Sine",
+		"base_freq": 330.0,
+		"duration": 0.1
+	}
+	var zero_layer = plain_layer.duplicate(true)
+	zero_layer["start_offset"] = 0.0
+	var stream_plain = ModularSynthEngineClass.synthesize_wav(
+		{"type": "Layer_Container", "duration": 0.1, "layers": [plain_layer]}, 11)
+	var stream_zero = ModularSynthEngineClass.synthesize_wav(
+		{"type": "Layer_Container", "duration": 0.1, "layers": [zero_layer]}, 11)
+	if stream_plain == null or stream_zero == null:
+		failures.append("Test 19 Failed: synthesize_wav returned no stream")
+	elif stream_plain.data != stream_zero.data:
+		failures.append("Test 19 Failed: start_offset 0.0 changed the output")
+
 	return failures
+
+## Samples of a 16-bit stream in [-1, 1]. Stereo returns the left channel.
+static func _decode_mono(stream: AudioStreamWAV) -> PackedFloat32Array:
+	var out = PackedFloat32Array()
+	if stream == null:
+		return out
+	var step: int = 4 if stream.stereo else 2
+	var n: int = stream.data.size() / step
+	out.resize(n)
+	for i in range(n):
+		out[i] = float(stream.data.decode_s16(i * step)) / 32768.0
+	return out
 
 static func _calculate_rms(samples: PackedFloat32Array) -> float:
 	if samples.is_empty():
