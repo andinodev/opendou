@@ -420,6 +420,38 @@ static func run_all() -> Array[String]:
 		if absi(s_early - s_late) >= maxi(s_early, s_late) / 2:
 			failures.append("Test 21 Failed: brightness drifted without an envelope (%d vs %d)" % [s_early, s_late])
 
+	# Test 22: a Layer_Container is NOT a layer, and treating it as one is garbage
+	# This pins the bug behind the Synth Rack waveform fix. The workspace drew its
+	# preview by passing the whole container to generate_layer_samples, which
+	# finds no generator_type and falls through to the default Basic_Wave sine at
+	# 440 Hz. Every layered preset drew the same perfect sine regardless of its
+	# contents, while the play button (synthesize_wav) played the real thing.
+	var container_preset = {
+		"type": "Layer_Container",
+		"duration": 0.2,
+		"layers": [
+			{
+				"name": "noise",
+				"generator_type": "Filtered_Noise",
+				"noise_type": "White",
+				"duration": 0.2
+			}
+		]
+	}
+	var as_layer = ModularSynthEngineClass.generate_layer_samples(container_preset, 0.2, 44100, 100)
+	var as_container = _decode_mono(ModularSynthEngineClass.synthesize_wav(container_preset, 100))
+	if as_layer.is_empty() or as_container.is_empty():
+		failures.append("Test 22 Failed: one of the two renders came back empty")
+	else:
+		# The wrong path is a clean sine: a 440 Hz sine crosses zero about 880
+		# times per second, so ~176 in 0.2 s. White noise crosses far more often.
+		var sine_crossings = _count_zero_crossings(as_layer, 0, as_layer.size())
+		var noise_crossings = _count_zero_crossings(as_container, 0, as_container.size())
+		if sine_crossings > 400:
+			failures.append("Test 22 Failed: expected the container-as-layer path to yield a plain sine, got %d crossings" % sine_crossings)
+		if noise_crossings <= sine_crossings * 2:
+			failures.append("Test 22 Failed: synthesize_wav should render the actual noise layer (%d vs %d crossings)" % [noise_crossings, sine_crossings])
+
 	return failures
 
 ## Rough brightness proxy: a bright signal crosses zero far more often than a

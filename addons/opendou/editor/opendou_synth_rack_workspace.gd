@@ -989,10 +989,35 @@ func _commit_preset_change() -> void:
 		preset_modified.emit(current_preset_name, active_preset_dict)
 	_refresh_preview(true)
 
+## Samples of a rendered stream, for drawing. A container with pan, delay or
+## reverb comes out stereo; the left channel is drawn, which for judging the
+## shape of the envelope is the same thing and avoids a waveform twice as long.
+func _decode_preview(stream: AudioStreamWAV) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	if stream == null:
+		return out
+	var step: int = 4 if stream.stereo else 2
+	var n: int = stream.data.size() / step
+	out.resize(n)
+	for i in range(n):
+		out[i] = float(stream.data.decode_s16(i * step)) / 32768.0
+	return out
+
+
 func _refresh_preview(re_synthesize: bool = true) -> void:
 	if re_synthesize:
 		var dur = float(active_preset_dict.get("duration", 1.0))
-		_preview_samples = ModularSynthEngineClass.generate_layer_samples(active_preset_dict, dur, 44100, 100)
+		# A Layer_Container has no generator_type of its own, so passing it to
+		# generate_layer_samples fell through to the default (Basic_Wave at
+		# 440 Hz): the drawn waveform had nothing to do with what you hear. Every
+		# layered preset drew the same perfect sine no matter its contents.
+		# synthesize_wav is what the play button uses, and drawing and sound
+		# coming out of the same function is exactly the point.
+		if str(active_preset_dict.get("type", "Single_Generator")) == "Layer_Container":
+			_preview_samples = _decode_preview(
+				ModularSynthEngineClass.synthesize_wav(active_preset_dict, 100))
+		else:
+			_preview_samples = ModularSynthEngineClass.generate_layer_samples(active_preset_dict, dur, 44100, 100)
 		if waveform_playhead:
 			waveform_playhead.set_waveform(_preview_samples)
 
